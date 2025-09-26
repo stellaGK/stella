@@ -2,9 +2,7 @@
 !                             (KX,KY) DERIVATIVES                               
 !###############################################################################
 ! 
-! This module computes derivatives in Fourier space.
-! 
-!                                  MATHEMATICS                                  
+! This module computes derivatives in Fourier space.                        
 ! 
 ! The derivates in real space are calulated in Fourier space as,
 !        Fourier [ dg/dy ] = i ky g

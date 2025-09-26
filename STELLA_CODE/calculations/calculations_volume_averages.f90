@@ -1,7 +1,8 @@
 !###############################################################################
-!                                                                               
+!                         CALCULATIONS - VOLUME AVERAGES                                                    
 !###############################################################################
-! This module ...
+! This module is used for spacial averages. This has fieldline integrals, and 
+! volume integrals
 !###############################################################################
 module calculations_volume_averages
 
@@ -156,7 +157,7 @@ contains
 !############################################################################### 
 
    !****************************************************************************
-   !                                      Title
+   !                        Fieldline Average - Real
    !****************************************************************************
    subroutine fieldline_average_real(unavg, avg)
 
@@ -184,7 +185,7 @@ contains
    end subroutine fieldline_average_real
 
    !****************************************************************************
-   !                                      Title
+   !                         Fieldline Average - Complex
    !****************************************************************************
    subroutine fieldline_average_complex(unavg, avg)
 
@@ -212,7 +213,7 @@ contains
    end subroutine fieldline_average_complex
 
    !****************************************************************************
-   !                                      Title
+   !                                Volume Average
    !****************************************************************************
    subroutine volume_average(unavg, avg)
 
@@ -247,7 +248,7 @@ contains
    end subroutine volume_average
 
    !****************************************************************************
-   !                                      Title
+   !                             Flux Surface Average
    !****************************************************************************
    subroutine flux_surface_average_ffs(no_fsa, fsa)
 

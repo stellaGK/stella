@@ -5,6 +5,9 @@
 ! This module evolves the magnetic mirror term:
 !     - v_{th,s} mu_s b . ∇B ∂g_{k,s} / ∂v_parallel
 ! 
+! Define the mirror coefficient: 
+!        <mirror> = v_{th,s} * mu_s * b . ∇z * dB/dz * code_dt/dvpar
+! If neoclassical effects are included this is also added to <mirror> here. 
 !###############################################################################
 module gk_mirror
 

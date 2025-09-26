@@ -1,8 +1,8 @@
 !###############################################################################
-!###############################################################################
+!########################## CALCULATIONS - TIME STEP ###########################
 !###############################################################################
 ! 
-! This module ...
+! This module is used for CFL calculations, and resetting the time step, dt.
 ! 
 !###############################################################################
 module calculations_timestep
@@ -21,7 +21,7 @@ module calculations_timestep
 contains
     
 !###############################################################################
-!############################ INITIALISE CFL CODITION ##########################
+!########################### INITIALISE CFL CONDITION ##########################
 !###############################################################################
    subroutine init_cfl
 
@@ -101,7 +101,7 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_shear)
       end if
 
-      ! Sream has code_dt built-in, which accounts for code_dt factor here
+      ! Stream has code_dt built-in, which accounts for code_dt factor here
       if (.not. stream_implicit) then
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream)), zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
@@ -197,12 +197,12 @@ contains
    !****************************************************************************
    subroutine reset_dt
 
-      ! Physics flags
-      use dissipation_and_collisions, only: include_collisions
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: radial_variation
       
-      ! Routines
+      use arrays, only: initialised_radial_variation, initialised_implicit_drifts
+      use arrays, only: initialised_wdrift, initialised_wstar
+      
       use gk_mirror, only: init_mirror
       use gk_flow_shear, only: init_flow_shear
       use gk_drive, only: init_wstar
@@ -213,10 +213,9 @@ contains
       use gk_parallel_streaming, only: init_parallel_streaming
       use response_matrix, only: init_response_matrix
       use dissipation_and_collisions, only: init_collisions
+      use dissipation_and_collisions, only: include_collisions
       
-      ! Flags 
-      use arrays, only: initialised_radial_variation, initialised_implicit_drifts
-      use arrays, only: initialised_wdrift, initialised_wstar
+      ! Flags -> Logicals for initalisation (true or false)
       use gk_parallel_streaming, only: initialised_parallel_streaming
       use dissipation_and_collisions, only: initialised_collisions
       use response_matrix, only: initialised_response_matrix
@@ -263,8 +262,7 @@ contains
          call init_collisions
       end if
       
-      ! Do not try to re-init response matrix
-      ! before it has been initialised the first time
+      ! Do not try to re-init response matrix before it has been initialised the first time
       if ((stream_implicit .or. driftkinetic_implicit) .and. initialised_response_matrix) then
          initialised_response_matrix = .false.
          if (debug) write (6, *) 'time_advance::reset_dt::init_response_matrix'

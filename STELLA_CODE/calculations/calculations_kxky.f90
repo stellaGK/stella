@@ -1,7 +1,15 @@
 !###############################################################################
 !                                                                               
 !###############################################################################
-! This module ...
+! This module swaps between different orderings of the (kx, ky) grids
+
+! Use reality to swap between arrays with:
+!     ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+!     kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
+!
+! This is needed becuase Fourier transforms may need one or the other grid.
+! If transforming from ky->y then we need all ky, and if transforming from 
+! kx->x then we need all kx. 
 !###############################################################################
 module calculations_kxky
 
@@ -32,7 +40,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !             Positive ky, all kx -> Positive kx, all ky - Complex
    !****************************************************************************
    ! Take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
@@ -79,7 +87,7 @@ contains
    end subroutine swap_kxky_complex
 
    !****************************************************************************
-   !                                      Title
+   !               Positive ky, all kx -> Positive kx, all ky - Real 
    !****************************************************************************
    ! Take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
@@ -126,11 +134,13 @@ contains
    end subroutine swap_kxky_real
    
    !****************************************************************************
-   !                                      Title
+   !          Positive ky, all kx -> Positive kx, all ky (ordered) - Real 
    !****************************************************************************
    ! Take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
    ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
+   ! Note the ordering of the returned ky array is different compared with the 
+   ! swap_kxky_real routine above
    !****************************************************************************
    subroutine swap_kxky_ordered_real(gin, gout)
       
@@ -173,11 +183,13 @@ contains
    end subroutine swap_kxky_ordered_real
    
    !****************************************************************************
-   !                                      Title
+   !         Positive ky, all kx -> Positive kx, all ky (ordered) - Complex 
    !****************************************************************************
-   ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+   ! Take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
    ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
+   ! Note the ordering of the returned ky array is different compared with the 
+   ! swap_kxky_complex routine above
    !****************************************************************************
    subroutine swap_kxky_ordered_complex(gin, gout)
       
@@ -220,11 +232,12 @@ contains
    end subroutine swap_kxky_ordered_complex
    
    !****************************************************************************
-   !                                      Title
+   !             Positive kx, all ky -> Positive ky, all kx - Complex 
    !****************************************************************************
    ! Take an array with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
    ! and uses reality condition to return array
    ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+   ! This is the reverse routine to swap_kxky_real
    !****************************************************************************
    subroutine swap_kxky_back(gin, gout)
       
@@ -260,11 +273,14 @@ contains
    end subroutine swap_kxky_back
    
    !****************************************************************************
-   !                                      Title
+   !        Positive kx, all ky -> Positive ky, all kx (ordered) - Complex
    !****************************************************************************
    ! Take an array with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
    ! and uses reality condition to return array
    ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+   ! This is the reverse routine to swap_kxky_ordered_complex
+   ! Note, the returned array, kx, has a different ordering compared to that
+   ! returned from swap_kxky_back.
    !****************************************************************************
    subroutine swap_kxky_back_ordered(gin, gout)
       
@@ -297,7 +313,7 @@ contains
    end subroutine swap_kxky_back_ordered
    
    !****************************************************************************
-   !                                      Title
+   !               Communicate Multibox Grids - For Radial Variation
    !****************************************************************************
    subroutine communicate_ktgrids_multibox
    
@@ -325,7 +341,7 @@ contains
    end subroutine communicate_ktgrids_multibox
    
    !****************************************************************************
-   !                                      Title
+   !                          Multiply by rho - For Radial Variation
    !****************************************************************************
    subroutine multiply_by_rho(gin)
       

@@ -5,6 +5,9 @@
 ! This module evolves the parallel streaming term:
 !     v_{th,s} v_parallel b . ∇z ( ∂g_{k,s} / ∂z + Z_s/T_s ∂(J_0 ϕ_k) / ∂z exp(-v*2_s))
 ! 
+! In this module the parallel streaming coefficient is defined as:
+!        <stream> = - v_{th,s} * vpa * b . ∇z  * code_dt/dz
+! 
 !###############################################################################
 module gk_parallel_streaming
 

@@ -1,5 +1,5 @@
 !###############################################################################
-!###############################################################################
+!#################### CALCULATIONS - ADD EXPLICIT TERMS ########################
 !###############################################################################
 ! 
 ! This module is used in the following subroutines, to add factor*field
@@ -22,7 +22,7 @@ module calculations_add_explicit_terms
 contains
 
    !****************************************************************************
-   !                                      Title
+   !                               Add explicit term
    !****************************************************************************
    subroutine add_explicit_term(g, pre_factor, src)
 
@@ -58,7 +58,7 @@ contains
    end subroutine add_explicit_term
 
    !****************************************************************************
-   !                                      Title
+   !                       Add explicit term - FFS
    !****************************************************************************
    ! add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation
    subroutine add_explicit_term_ffs(g, pre_factor, src)
