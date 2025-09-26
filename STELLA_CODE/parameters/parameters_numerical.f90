@@ -130,19 +130,19 @@ contains
       if (proc0) call read_namelist_time_trace_options(nstep, tend, autostop, avail_cpu_time)
 
       if (proc0) call read_namelist_time_step(delt, delt_option_switch, &
-                                       delt_max, delt_min, &
-                                       cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower)
+                        delt_max, delt_min, &
+                        cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower)
 
       if (proc0) call read_namelist_numerical_algorithms(explicit_algorithm_switch, flip_flop, &
-                                                  stream_implicit, stream_iterative_implicit, &
-                                                  stream_matrix_inversion, driftkinetic_implicit, &
-                                                  mirror_implicit, mirror_semi_lagrange, &
-                                                  mirror_linear_interp, drifts_implicit, &
-                                                  fully_implicit, fully_explicit, &
-                                                  maxwellian_inside_zed_derivative, &
-                                                  use_deltaphi_for_response_matrix, & 
-                                                  split_parallel_dynamics, &
-                                                  maxwellian_normalization)
+                        stream_implicit, stream_iterative_implicit, &
+                        stream_matrix_inversion, driftkinetic_implicit, &
+                        mirror_implicit, mirror_semi_lagrange, &
+                        mirror_linear_interp, drifts_implicit, &
+                        fully_implicit, fully_explicit, &
+                        maxwellian_inside_zed_derivative, &
+                        use_deltaphi_for_response_matrix, & 
+                        split_parallel_dynamics, &
+                        maxwellian_normalization)
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
@@ -314,6 +314,7 @@ contains
          use mp, only: broadcast
          
          implicit none    
+         
          ! Exit stella if we ran into an error
          call broadcast(error)
          if (error) call mp_abort('Aborting in parameters_numerical.f90')
