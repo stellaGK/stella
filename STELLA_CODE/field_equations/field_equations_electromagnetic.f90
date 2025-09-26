@@ -551,7 +551,6 @@ contains
       ! Arrays
       use arrays, only: kperp2
       use arrays, only: denominator_fields
-      use arrays, only: denominator_fields13, denominator_fields31, denominator_fields33
       use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
       
@@ -714,7 +713,6 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use arrays_fields, only: apar, apar_old
       use arrays_fields, only: bpar, bpar_old
-      use arrays, only: denominator_fields13, denominator_fields31, denominator_fields33
       use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
 
@@ -762,6 +760,7 @@ contains
 
       use arrays_fields, only: apar
       use arrays_fields, only: apar_old, bpar_old
+      use arrays_fields, only: bpar
       use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
       
@@ -783,8 +782,6 @@ contains
    end subroutine finish_field_equations_electromagnetic
 
    subroutine deallocate_field_equations_electromagnetic_temporary
-
-      use arrays, only: denominator_fields13, denominator_fields31, denominator_fields33
 
       implicit none 
 
