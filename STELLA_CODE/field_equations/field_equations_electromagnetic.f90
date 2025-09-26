@@ -210,7 +210,8 @@ contains
          call gyro_average(g, g_scratch)
          
          ! For parallel Amperes Law, need to calculate parallel current rather than density,
-         ! so multiply <g> by vpa before integrating. First get the vpa index, then multiply with vpa
+         ! so multiply <g> by vpa before integrating. 
+         ! Because we are parallelising over (vpa, mu) we need to first get the vpa index, then multiply with vpa
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
             g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * vpa(iv)
@@ -324,7 +325,8 @@ contains
          ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
-         ! Get phi and bpar
+         ! Get phi and bpar - Need to divide by the correct denominator
+         ! For this, see notes at the top of this file
          call calculate_phi_and_bpar(phi, bpar, dist)
          
       end if
@@ -342,6 +344,7 @@ contains
          allocate (g0(nvpa, nmu))
          
          ! Iterate over the (kx,ky,z,mu,vpa,s) points
+         ! This gives: 2 β sum_s Z_s n_s vth J0 vpa g
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -359,6 +362,7 @@ contains
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(apar)
          
+         ! Depending on the distribution function used the denominator is modified. 
          if (dist == 'h') then
             apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
          else if (dist == 'gbar') then
@@ -379,7 +383,17 @@ contains
    end subroutine advance_fields_electromagnetic_kxkyzlo
 
    !****************************************************************************
-   !**************************** GET APAR AND BPAR *****************************
+   !***************************** GET PHI AND BPAR *****************************
+   !****************************************************************************
+   ! These two fields are solved using quasineutrality and perpendicular 
+   ! Ampere's Law. They are coupled and solved simultaneously. This routine
+   ! divides the RHS by the appropriate factors in order to obtain the
+   ! fields.
+   ! 
+   ! For gbar or g: 
+   ! 
+   ! phi = denominator_fields_inv11 * antot1 + denominator_fields_inv13 * antot3
+   ! bpar = denominator_fields_inv31 * antot1 + denominator_fields_inv33 * antot3
    !****************************************************************************
    subroutine calculate_phi_and_bpar(phi, bpar, dist)
 
@@ -427,7 +441,7 @@ contains
                end do
             end do
          end do
-         
+      
       else if (dist == 'h') then
          ! divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts)
          phi = phi / denominator_fields_h
@@ -452,6 +466,11 @@ contains
    ! the input apar is the RHS of the above equation and is overwritten by the true apar
    ! the pre-factor depends on whether g or gbar is used (kperp2 in former case, with additional
    ! term appearing in latter case)
+   !
+   ! For g: 
+   ! apar = apar / kperp2
+   ! For gbar: 
+   ! apar = apar / apar_denom
    !****************************************************************************
    subroutine get_apar(apar, dist)
 
@@ -498,7 +517,8 @@ contains
    !****************************************************************************
    ! Advance the apar field when electromagnetic effects are included.
    ! This has its own subroutine because Apar is solved using parallel Ampere's Law
-   ! which does not involve phi or bpar.
+   ! which does not involve phi or bpar. Sometimes only Apar is evolved, e.g., in
+   ! the mirror advance - hence, it has it's own subroutine.
    !****************************************************************************
    subroutine advance_apar(g, dist, apar)
 
@@ -551,10 +571,10 @@ contains
             call integrate_vmu(scratch, iz, tmp)
             apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
          end do
-         ! apar for different species may be spread over processors at this point, so
+         ! Apar for different species may be spread over processors at this point, so
          ! broadcast to all procs and sum over species
          call sum_allreduce(apar)
-         ! divide by the appropriate apar pre-factor to get apar
+         ! Divide by the appropriate apar pre-factor to get apar
          call get_apar(apar, dist)
          deallocate (scratch)
       end if
@@ -723,8 +743,8 @@ contains
          deallocate (g0)
       end if
 
-            
-      ! Compute coefficients for even part of field solve (phi, bpar)
+      ! Compute: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33 
+      ! These are the factors that are actually needed in the field solve
       if (fphi > epsilon(0.0) .and. include_bpar) then
          do iz = -nzgrid,nzgrid 
             do ikx = 1, nakx
@@ -736,7 +756,7 @@ contains
                   else
                      denominator_fields_inv11(iky,ikx,iz) = 1.0/denom_tmp
                   end if
-                  ! denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
+                  ! Compute: denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33 
                   denom_tmp = denominator_fields(iky,ikx,iz)*denominator_fields33(iky,ikx,iz) - denominator_fields13(iky,ikx,iz)*denominator_fields31(iky,ikx,iz)
                   if (denom_tmp < epsilon(0.0)) then
                      denominator_fields_inv13(iky,ikx,iz) = 0.0
@@ -792,23 +812,22 @@ contains
       if (include_bpar) then
          if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0. ; end if
-         if (.not. allocated(denominator_fields33)) then; allocate (denominator_fields33(naky, nakx, -nzgrid:nzgrid)); denominator_fields33 = 0. ; end if
-         if (.not. allocated(denominator_fields13)) then; allocate (denominator_fields13(naky, nakx, -nzgrid:nzgrid)); denominator_fields13 = 0. ; end if
-         if (.not. allocated(denominator_fields31)) then; allocate (denominator_fields31(naky, nakx, -nzgrid:nzgrid)); denominator_fields31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv11)) then; allocate (denominator_fields_inv11(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv11 = 0. ; end if
          if (.not. allocated(denominator_fields_inv31)) then; allocate (denominator_fields_inv31(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv13)) then; allocate (denominator_fields_inv13(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv13 = 0. ; end if
          if (.not. allocated(denominator_fields_inv33)) then; allocate (denominator_fields_inv33(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv33 = 0. ; end if
+         ! Temporary arrays needed for initialisation
+         if (.not. allocated(denominator_fields33)) then; allocate (denominator_fields33(naky, nakx, -nzgrid:nzgrid)); denominator_fields33 = 0. ; end if
+         if (.not. allocated(denominator_fields13)) then; allocate (denominator_fields13(naky, nakx, -nzgrid:nzgrid)); denominator_fields13 = 0. ; end if
+         if (.not. allocated(denominator_fields31)) then; allocate (denominator_fields31(naky, nakx, -nzgrid:nzgrid)); denominator_fields31 = 0. ; end if
       else
          if (.not. allocated(bpar)) then; allocate (bpar(1, 1, 1, 1)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(1, 1, 1, 1)); bpar_old = 0. ; end if
-         if (.not. allocated(denominator_fields33)) then; allocate (denominator_fields33(1, 1, 1)); denominator_fields33 = 0. ; end if
-         if (.not. allocated(denominator_fields13)) then; allocate (denominator_fields13(1, 1, 1)); denominator_fields13 = 0. ; end if
-         if (.not. allocated(denominator_fields31)) then; allocate (denominator_fields31(1, 1, 1)); denominator_fields31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv11)) then; allocate (denominator_fields_inv11(1, 1, 1)); denominator_fields_inv11 = 0. ; end if
          if (.not. allocated(denominator_fields_inv31)) then; allocate (denominator_fields_inv31(1, 1, 1)); denominator_fields_inv31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv13)) then; allocate (denominator_fields_inv13(1, 1, 1)); denominator_fields_inv13 = 0. ; end if
          if (.not. allocated(denominator_fields_inv33)) then; allocate (denominator_fields_inv33(1, 1, 1)); denominator_fields_inv33 = 0. ; end if
+         ! Note - do not need to allocate temporary arrays if bpar is not included
       end if
 
    end subroutine allocate_field_equations_electromagnetic

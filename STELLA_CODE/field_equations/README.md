@@ -93,7 +93,7 @@ $$
 This is normalised by taking its product with the factor $\frac{L_r \rho_r}{B_r}$, to give:
 
 $$
-2 \beta_r \sum_s n_s T_s \frac{2 B_0}{\sqrt{\pi}} \int d v_{\parallel} \int d \mu_s \mu_{\s} J_{1,s}/a_s g_s + \left[ \frac{\beta_r}{2 B_0} \sum_s Z_s n_s \Gamma_{1,s} \right] \phi + \left[1 + \frac{\beta}{2 B_0} \sum_s Z_s n_s T_s \Gamma_{2,s} \right] = 0
+2 \beta_r \sum_s n_s T_s \frac{2 B_0}{\sqrt{\pi}} \int d v_{\parallel} \int d \mu_s \mu_{s} J_{1,s}/a_s g_s + \left[ \frac{\beta_r}{2 B_0} \sum_s Z_s n_s \Gamma_{1,s} \right] \phi + \left[1 + \frac{\beta}{2 B_0} \sum_s Z_s n_s T_s \Gamma_{2,s} \right] = 0
 $$
 
 (where everything is writen in terms of normalised quantities, and titles have been ignored).
