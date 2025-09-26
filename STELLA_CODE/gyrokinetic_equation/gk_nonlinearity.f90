@@ -35,23 +35,25 @@ contains
    subroutine init_parallel_nonlinearity
 
       use parameters_physics, only: rhostar
+      use parameters_physics, only: ydriftknob
+      use parameters_physics, only: radial_variation
+
       use grids_species, only: spec, nspec
       use grids_z, only: nztot, nzgrid
+      use arrays, only: initialised_parallel_streaming
+
       use geometry, only: geo_surf, drhodpsi, q_as_x
       use geometry, only: gradpar, dbdzed, bmag
       use geometry, only: cvdrift, cvdrift0
       use geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
       use geometry, only: dcvdriftdrho, dcvdrift0drho
-      use parameters_physics, only: radial_variation
-      use parameters_physics, only: ydriftknob
-      use arrays, only: initialised_parallel_streaming
-
+      
       implicit none
 
       !-------------------------------------------------------------------------
 
       if (.not. allocated(par_nl_fac)) allocate (par_nl_fac(-nzgrid:nzgrid, nspec))
-      ! this is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
+      ! This is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
       par_nl_fac = 0.5 * rhostar * spread(spec%stm_psi0 * spec%zt_psi0, 1, nztot) * spread(gradpar, 2, nspec)
 
       if (.not. allocated(par_nl_curv)) allocate (par_nl_curv(-nzgrid:nzgrid, nspec))
@@ -70,15 +72,15 @@ contains
 
       if (radial_variation) then
          if (.not. allocated(d_par_nl_fac_dr)) allocate (d_par_nl_fac_dr(-nzgrid:nzgrid, nspec))
-         ! this is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
+         ! This is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
          d_par_nl_fac_dr = 0.5 * rhostar * spread(spec%stm_psi0 * spec%zt_psi0, 1, nztot) * spread(dgradpardrho, 2, nspec)
 
          if (.not. allocated(d_par_nl_curv_dr)) allocate (d_par_nl_curv_dr(-nzgrid:nzgrid, nspec))
          ! ydriftknob is here because this term comes from bhat x curvature . grad B
-         ! handle terms with no zeroes
+         ! Handle terms with no zeroes
          d_par_nl_curv_dr = par_nl_curv * (dIdrho / geo_surf%rgeo - drhodpsi * geo_surf%d2psidr2 &
                                           - spread(dBdrho / bmag(1, :) + dgradpardrho / gradpar, 2, nspec))
-         ! handle terms with possible zeroes
+         ! Handle terms with possible zeroes
          d_par_nl_curv_dr = d_par_nl_curv_dr &
                               - ((ydriftknob * rhostar * geo_surf%rgeo * drhodpsi * spread(gradpar / bmag(1, :), 2, nspec)) &
                               / spread(spec%zt_psi0, 1, nztot)) &
@@ -104,44 +106,45 @@ contains
    !****************************************************************************
    subroutine advance_ExB_nonlinearity(g, gout, restart_time_step, istep)
 
+      use constants, only: pi, zi
+
+      use job_manage, only: time_message
       use mp, only: proc0, min_allreduce
       use mp, only: scope, allprocs, subprocs
-      use job_manage, only: time_message
-      use constants, only: pi, zi
+      use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx
       use file_utils, only: runtype_option_switch, runtype_multibox
 
-      use calculations_transforms, only: transform_y2ky, transform_x2kx
-      use calculations_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
-      use grids_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
-      use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx
-      
+      use calculations_timestep, only: reset_dt
       use calculations_tofrom_ghf, only: g_to_h
       use calculations_gyro_averages, only: gyro_average
-      use calculations_kxky_derivatives, only: get_dchidx, get_dchidy
-      use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-
-      use arrays_fields, only: phi, apar, bpar
-      use arrays_fields, only: phi_corr_QN, phi_corr_GA
-      use arrays, only: shift_state
-      use arrays_distribution_function, only: g_scratch
-      use arrays, only: time_gke
+      use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
+      use calculations_kxky_derivatives, only: get_dchidx, get_dchidy
+      use calculations_transforms, only: transform_y2ky, transform_x2kx
+      use calculations_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       
-      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_physics, only: fphi
-      use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: suppress_zonal_interaction
+      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      
+      use arrays, only: time_gke
+      use arrays, only: shift_state
+      use arrays_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_distribution_function, only: g_scratch
+      
+      use grids_kxky, only: x
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: akx, aky, rho_clamped
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, nx, ny
+      use grids_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
+
       use gk_flow_shear, only: prp_shear_enabled, hammett_flow_shear
       use gk_flow_shear, only: g_exb, g_exbfac
 
-      use grids_z, only: nzgrid, ntubes
-      use grids_kxky, only: akx, aky, rho_clamped
-      use grids_kxky, only: x
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
-
-      use calculations_timestep, only: reset_dt
 
       implicit none
 
@@ -161,19 +164,19 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! alpha-component of magnetic drift (requires ky -> y)
+      ! Alpha-component of magnetic drift (requires ky -> y)
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
 
       if (debug) write (*, *) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
-      ! avoid divide by zero in cfl_dt terms below
+      ! Avoid divide by zero in cfl_dt terms below
       zero = 100.*epsilon(0.)
 
       ! Initialize cfl_dt_ExB
       cfl_dt_ExB = 10000000.
 
       restart_time_step = .false.
-      ! this statement seems to imply that flow shear is not compatible with FFS
+      ! This statement seems to imply that flow shear is not compatible with FFS 
       ! need to check
       yfirst = .not. prp_shear_enabled
 
@@ -191,14 +194,14 @@ contains
          allocate (g0xky(naky, nx))
       end if
 
-      !> compute phase factor needed when running with equilibrium flow shear
+      ! Compute phase factor needed when running with equilibrium flow shear
       prefac = 1.0
       if (prp_shear_enabled .and. hammett_flow_shear) then
          prefac = exp(-zi * g_exb * g_exbfac * spread(x, 1, naky) * spread(aky * shift_state, 2, nx))
       end if
 
-      ! incoming pdf is g = <f>
-      ! for EM simulations, the pdf entering the ExB nonlinearity needs to be
+      ! Incoming pdf is g = <f>. 
+      ! For EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
 
@@ -207,35 +210,35 @@ contains
          is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-               !> compute i*ky*g
+               ! Compute i*ky*g
                call get_dgdy(g(:, :, iz, it, ivmu), g0k)
-               !> FFT to get dg/dy in (y,x) space
+               ! Take the FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
-               !> compute i*kx*<chi>
+               ! Compute i*kx*<chi>
                if (full_flux_surface) then
                   call get_dgdx(g_scratch(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
-               !> zero out the zonal contribution to d<chi>/dx if requested
+               ! Zero out the zonal contribution to d<chi>/dx if requested
                if (suppress_zonal_interaction) then
                   g0k(1,:) = 0.0
                end if
-               !> if running with equilibrium flow shear, make adjustment to
-               !> the term multiplying dg/dy
+               ! If running with equilibrium flow shear, make adjustment to
+               ! The term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
                   call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0a)
                   g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                end if
-               !> FFT to get d<chi>/dx in (y,x) space
+               ! Take the FFT to get d<chi>/dx in (y,x) space
                call forward_transform(g0k, g1xy)
-               !> multiply by the geometric factor appearing in the Poisson bracket;
-               !> i.e., (dx/dpsi*dy/dalpha)*0.5
+               ! Multiply by the geometric factor appearing in the Poisson bracket;
+               ! i.e., (dx/dpsi*dy/dalpha)*0.5
                g1xy = g1xy * exb_nonlin_fac
-               !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
+               ! Compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
                bracket = g0xy * g1xy
 
-               !> estimate the CFL dt due to the above contribution
+               ! Estimate the CFL dt due to the above contribution
                cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
 
                if (radial_variation) then
@@ -246,38 +249,38 @@ contains
                   call forward_transform(g0k, g1xy)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket + g0xy * g1xy
-                  !> estimate the CFL dt due to the above contribution
+                  ! Estimate the CFL dt due to the above contribution
                   cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
                end if
 
-               !> compute dg/dx in k-space (= i*kx*g)
+               ! Compute dg/dx in k-space (= i*kx*g)
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
-               !> zero out the zonal contribution to dg/dx if requested
+               ! Zero out the zonal contribution to dg/dx if requested
                if (suppress_zonal_interaction) then
                   g0k(1,:) = 0.0
                end if
-               !> if running with equilibrium flow shear, correct dg/dx term
+               ! If running with equilibrium flow shear, correct dg/dx term
                if (prp_shear_enabled .and. hammett_flow_shear) then
                   call get_dgdy(g(:, :, iz, it, ivmu), g0a)
                   g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                end if
-               !> FFT to get dg/dx in (y,x) space
+               ! Take the FFT to get dg/dx in (y,x) space
                call forward_transform(g0k, g0xy)
-               !> compute d<chi>/dy in k-space
+               ! Compute d<chi>/dy in k-space
                if (full_flux_surface) then
                   call get_dgdy(g_scratch(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
-               !> FFT to get d<chi>/dy in (y,x) space
+               ! Take the FFT to get d<chi>/dy in (y,x) space
                call forward_transform(g0k, g1xy)
-               !> multiply by the geometric factor appearing in the Poisson bracket;
-               !> i.e., (dx/dpsi*dy/dalpha)*0.5
+               ! Multiply by the geometric factor appearing in the Poisson bracket;
+               ! i.e., (dx/dpsi*dy/dalpha)*0.5
                g1xy = g1xy * exb_nonlin_fac
-               !> compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
+               ! Compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
                bracket = bracket - g0xy * g1xy
 
-               !> estimate the CFL dt due to the above contribution
+               ! Estimate the CFL dt due to the above contribution
                cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * akx(ikx_max), zero))
 
                if (radial_variation) then
@@ -288,7 +291,7 @@ contains
                   call forward_transform(g0k, g1xy)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket - g0xy * g1xy
-                  !> estimate the CFL dt due to the above contribution
+                  ! Estimate the CFL dt due to the above contribution
                   cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * akx(ikx_max), zero))
                end if
 
@@ -309,7 +312,7 @@ contains
          end do
       end do
 
-      ! convert back from h to g = <f> (only needed for EM sims)
+      ! Convert back from h to g = <f> (only needed for EM sims)
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
@@ -323,7 +326,7 @@ contains
 
       if (runtype_option_switch == runtype_multibox) call scope(subprocs)
 
-      !> check estimated cfl_dt to see if the time step size needs to be changed
+      ! Check estimated cfl_dt to see if the time step size needs to be changed
       cfl_dt = min(cfl_dt_ExB, cfl_dt_linear)
       if (code_dt > cfl_dt * cfl_cushion_upper) then
          if (proc0) then
@@ -382,10 +385,10 @@ contains
          !----------------------------------------------------------------------
 
          if (yfirst) then
-               ! we have i*ky*g(kx,ky) for ky >= 0 and all kx
-               ! want to do 1D complex to complex transform in y
-               ! which requires i*ky*g(kx,ky) for all ky and kx >= 0
-               ! use g(kx,-ky) = conjg(g(-kx,ky))
+               ! Ee have i*ky*g(kx,ky) for ky >= 0 and all kx.
+               ! We want to do 1D complex to complex transform in y, 
+               ! which requires i*ky*g(kx,ky) for all ky and kx >= 0 .
+               ! Use the reality condition: g(kx,-ky) = conjg(g(-kx,ky))
                ! so i*(-ky)*g(kx,-ky) = -i*ky*conjg(g(-kx,ky)) = conjg(i*ky*g(-kx,ky))
                ! and i*kx*g(kx,-ky) = i*kx*conjg(g(-kx,ky)) = conjg(i*(-kx)*g(-kx,ky))
                ! and i*(-ky)*J0(kx,-ky)*phi(kx,-ky) = conjg(i*ky*J0(-kx,ky)*phi(-kx,ky))
@@ -412,37 +415,46 @@ contains
    !****************************************************************************
    subroutine advance_parallel_nonlinearity(g, gout, restart_time_step)
 
+      ! Constants + Paralellisation
       use constants, only: zi
-      use mp, only: proc0, min_allreduce, mp_abort
+      use redistribute, only: xyz2vmu
+      use job_manage, only: time_message
       use mp, only: scope, allprocs, subprocs
+      use mp, only: proc0, min_allreduce, mp_abort
+      use initialise_redistribute, only: gather, scatter
       use parallelisation_layouts, only: vmu_lo, xyz_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
-      use job_manage, only: time_message
-      use calculations_finite_differences, only: second_order_centered_zed
-      use calculations_finite_differences, only: third_order_upwind
-      use initialise_redistribute, only: gather, scatter
-      use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
-      use calculations_transforms, only: transform_ky2y, transform_y2ky
-      use calculations_transforms, only: transform_kx2x, transform_x2kx
-      use grids_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
-      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-      use grids_z, only: nzgrid, delzed, ntubes
-      use grids_extended_zgrid, only: neigen, nsegments, ikxmod
-      use grids_extended_zgrid, only: iz_low, iz_up
-      use grids_extended_zgrid, only: periodic
+      use file_utils, only: runtype_option_switch, runtype_multibox
+      
+      ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation
-      use grids_kxky, only: akx, aky, rho_clamped
-      use grids_kxky, only: nakx, naky, nx, ny, ikx_max
-      use calculations_kxky, only: swap_kxky, swap_kxky_back
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      
+      ! Grids + Arrays
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: dvpa, vpa, mu
-      use calculations_gyro_averages, only: gyro_average
-      use gk_parallel_streaming, only: stream_sign
-      use redistribute, only: xyz2vmu
-      use file_utils, only: runtype_option_switch, runtype_multibox
+      use grids_extended_zgrid, only: periodic
+      use grids_z, only: nzgrid, delzed, ntubes
+      use grids_kxky, only: akx, aky, rho_clamped
+      use grids_kxky, only: nakx, naky, nx, ny, ikx_max
+      use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: neigen, nsegments, ikxmod
+      use grids_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
       use arrays, only: time_parallel_nl
+      use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
+      
+      ! Calculations
       use calculations_timestep, only: reset_dt
+      use calculations_gyro_averages, only: gyro_average
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
+      use calculations_finite_differences, only: third_order_upwind
+      use calculations_finite_differences, only: second_order_centered_zed
+      use calculations_transforms, only: transform_ky2y, transform_y2ky
+      use calculations_transforms, only: transform_kx2x, transform_x2kx
+      
+      ! GK equation
+      use gk_parallel_streaming, only: stream_sign
 
       implicit none
 
@@ -469,9 +481,9 @@ contains
       !-------------------------------------------------------------------------
       
       ! WARNING this routine will probably break if neigen_max = 0
-      ! which happens when be set grid_option = 'range'
+      ! Which happens when be set grid_option = 'range'
 
-      ! alpha-component of magnetic drift (requires ky -> y)
+      ! Alpha-component of magnetic drift (requires ky -> y)
       if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')
 
       ! Initialize cfl_dt_parallel
@@ -479,9 +491,10 @@ contains
 
       restart_time_step = .false.
 
-      ! overview:
-      ! need g and d<phi>/dz in (x,y) space in
-      ! order to upwind dg/dvpa
+      ! Overview:
+      ! ---------
+      ! Need g and d<phi>/dz in (x,y) space in order to upwind dg/dvpa
+      ! 
       ! 1) transform d<phi>/dz from (kx,ky) to (x,y). layout: vmu_lo
       ! 2) need sign of parnl advection in xyz_lo (since dg/dvpa
       !    requires vpa local), so d<phi>/dz(vmu_lo) --> d<phi>/dz(xyz_lo)
@@ -501,7 +514,7 @@ contains
       allocate (g0k_swap(2 * naky - 1, ikx_max))
       allocate (tmp(size(gout, 1), size(gout, 2)))
 
-      ! get d<phi>/dz in vmu_lo
+      ! Get d<phi>/dz in vmu_lo
       ! we will need to transform it to real-space
       ! as its sign is needed for upwinding of dg/dvpa
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -509,7 +522,7 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
 
-         ! construct <phi>
+         ! Construct <phi>
          dphidz = phi
          if (radial_variation) dphidz = dphidz + phi_corr_QN
          call gyro_average(dphidz, ivmu, phi_gyro)
@@ -519,26 +532,26 @@ contains
                do it = 1, ntubes
                do ie = 1, neigen(iky)
                   do iseg = 1, nsegments(ie, iky)
-                     ! first fill in ghost zones at boundaries in g(z)
+                     ! First fill in ghost zones at boundaries in g(z)
                      call fill_zed_ghost_zones(it, iseg, ie, iky, phi_gyro, gleft, gright)
-                     ! now get d<phi>/dz
+                     ! Now get d<phi>/dz
                      call second_order_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
-                                                      phi_gyro(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
-                                                      delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
-                                                      dphidz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
+                        phi_gyro(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
+                        delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
+                        dphidz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
                   end do
                end do
                end do
          end do
 
          if (radial_variation) then
-               do it = 1, ntubes
+            do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  ! use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
+                  ! Use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
                   call swap_kxky(dphidz(:, :, iz, it), g0k_swap)
-                  ! transform in y
+                  ! Transform in y
                   call transform_ky2y(g0k_swap, g0kxy)
-                  ! transform in x
+                  ! Transform in x
                   call transform_kx2x(g0kxy, g1xy)
                   g0xy(:, :, iz, it, ivmu) = g1xy * (par_nl_fac(iz, is) + d_par_nl_fac_dr(iz, is) * spread(rho_clamped, 1, ny))
 
@@ -547,38 +560,38 @@ contains
                   call transform_ky2y(g0k_swap, g0kxy)
                   call transform_kx2x(g0kxy, g1xy)
                   g0xy(:, :, iz, it, ivmu) = g0xy(:, :, iz, it, ivmu) &
-                                             + vpa(iv) * g1xy * (par_nl_drifty(iz) + d_par_nl_drifty_dr(iz) * spread(rho_clamped, 1, ny))
+                     + vpa(iv) * g1xy * (par_nl_drifty(iz) + d_par_nl_drifty_dr(iz) * spread(rho_clamped, 1, ny))
 
                   g0k = zi * spread(akx, 1, naky) * phi_gyro(:, :, iz, it)
                   call swap_kxky(g0k, g0k_swap)
                   call transform_ky2y(g0k_swap, g0kxy)
                   call transform_kx2x(g0kxy, g1xy)
                   g0xy(:, :, iz, it, ivmu) = g0xy(:, :, iz, it, ivmu) &
-                                             + vpa(iv) * g1xy * (par_nl_driftx(iz) + d_par_nl_driftx_dr(iz) * spread(rho_clamped, 1, ny))
+                     + vpa(iv) * g1xy * (par_nl_driftx(iz) + d_par_nl_driftx_dr(iz) * spread(rho_clamped, 1, ny))
 
                   g0xy(:, :, iz, it, ivmu) = g0xy(:, :, iz, it, ivmu) &
-                                             + vpa(iv) * mu(imu) * (par_nl_curv(iz, is) + d_par_nl_curv_dr(iz, is) * spread(rho_clamped, 1, ny))
+                     + vpa(iv) * mu(imu) * (par_nl_curv(iz, is) + d_par_nl_curv_dr(iz, is) * spread(rho_clamped, 1, ny))
 
                end do
-               end do
+            end do
          else
-               do it = 1, ntubes
+            do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   g0k = dphidz(:, :, iz, it) * par_nl_fac(iz, is) + vpa(iv) * mu(imu) * par_nl_curv(iz, is) &
                            + zi * vpa(iv) * phi_gyro(:, :, iz, it) * (spread(akx, 1, naky) * par_nl_driftx(iz) &
                                                                   + spread(aky, 2, nakx) * par_nl_drifty(iz))
-                  ! use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
+                  ! Use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
                   call swap_kxky(g0k, g0k_swap)
-                  ! transform in y
+                  ! Transform in y
                   call transform_ky2y(g0k_swap, g0kxy)
-                  ! transform in x
+                  ! Transform in x
                   call transform_kx2x(g0kxy, g0xy(:, :, iz, it, ivmu))
                end do
-               end do
+            end do
          end if
       end do
 
-      ! do not need phi_gyro or dphidz  again so deallocate
+      ! Do not need phi_gyro or dphidz  again so deallocate
       deallocate (phi_gyro, dphidz)
       deallocate (g0k)
       if (allocated(g1xy)) deallocate (g1xy)
@@ -586,61 +599,61 @@ contains
       allocate (gxy_vmulocal(nvpa, nmu, xyz_lo%llim_proc:xyz_lo%ulim_alloc))
       allocate (advect_speed(nmu, xyz_lo%llim_proc:xyz_lo%ulim_alloc))
 
-      ! we now have the advection velocity in vpa in (x,y) space
-      ! next redistribute it so that (vpa,mu) are local
+      ! We now have the advection velocity in vpa in (x,y) space.
+      ! Next redistribute it so that (vpa,mu) are local
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
       call scatter(xyz2vmu, g0xy, gxy_vmulocal)
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
       ! advect_speed does not depend on vpa
       advect_speed = gxy_vmulocal(1, :, :)
 
-      ! transform g from (kx,ky) to (x,y)
+      ! Transform g from (kx,ky) to (x,y)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                call swap_kxky(g(:, :, iz, it, ivmu), g0k_swap)
-               ! transform in y
+               ! Transform in y
                call transform_ky2y(g0k_swap, g0kxy)
-               ! transform in x
+               ! Transform in x
                call transform_kx2x(g0kxy, g0xy(:, :, iz, it, ivmu))
                end do
          end do
       end do
 
-      ! redistribute so that (vpa,mu) local
+      ! Redistribute so that (vpa,mu) local
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
       call scatter(xyz2vmu, g0xy, gxy_vmulocal)
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
 
       allocate (dgdv(nvpa))
 
-      ! we now need to form dg/dvpa and obtain product of dg/dvpa with advection speed
+      ! We now need to form dg/dvpa and obtain product of dg/dvpa with advection speed
       do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
          do imu = 1, nmu
-               ! advect_sign set to +/- 1 depending on sign of the parallel nonlinearity
-               ! advection velocity
-               ! NB: advect_sign = -1 corresponds to positive advection velocity
-               advect_sign = int(sign(1.0, advect_speed(imu, ixyz)))
-               call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, advect_sign, dgdv)
-               gxy_vmulocal(:, imu, ixyz) = dgdv * advect_speed(imu, ixyz)
-               cfl_dt_parallel = min(cfl_dt_parallel, dvpa / abs(advect_speed(imu, ixyz)))
+            ! advect_sign set to +/- 1 depending on sign of the parallel nonlinearity
+            ! advection velocity
+            ! NB: advect_sign = -1 corresponds to positive advection velocity
+            advect_sign = int(sign(1.0, advect_speed(imu, ixyz)))
+            call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, advect_sign, dgdv)
+            gxy_vmulocal(:, imu, ixyz) = dgdv * advect_speed(imu, ixyz)
+            cfl_dt_parallel = min(cfl_dt_parallel, dvpa / abs(advect_speed(imu, ixyz)))
          end do
       end do
 
-      ! finished with dgdv and advect_speed
+      ! Finished with dgdv and advect_speed
       deallocate (dgdv, advect_speed)
 
-      ! now that we have the full parallel nonlinearity in (x,y)-space
-      ! need to redistribute so that (x,y) local for transforms
+      ! Now that we have the full parallel nonlinearity in (x,y)-space.
+      ! Need to redistribute so that (x,y) local for transforms
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
       call gather(xyz2vmu, gxy_vmulocal, g0xy)
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
 
-      ! finished with gxy_vmulocal
+      ! Finished with gxy_vmulocal - deallocate
       deallocate (gxy_vmulocal)
 
       ! g0xy is parallel nonlinearity term with (x,y) on processor
-      ! need to inverse Fourier transform
+      ! Need to inverse Fourier transform
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -663,7 +676,7 @@ contains
 
       if (runtype_option_switch == runtype_multibox) call scope(subprocs)
 
-      !> check estimated cfl_dt to see if the time step size needs to be changed
+      ! Check estimated cfl_dt to see if the time step size needs to be changed
       cfl_dt = min(cfl_dt_parallel, cfl_dt_linear)
       if (code_dt > cfl_dt * cfl_cushion_upper) then
          if (proc0) then
@@ -699,8 +712,6 @@ contains
          code_dt = min(cfl_dt * cfl_cushion_middle, code_dt_max)
          call reset_dt
          restart_time_step = .true.
-   !    else
-   !       gout = code_dt*gout
       end if
 
       if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')

@@ -101,7 +101,7 @@ contains
             allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
             mirror_rad_var = 0.
          end if
-         !FLAG should include neoclassical corrections here?
+         !FLAG - should include neoclassical corrections here?
          do imu = 1, nmu
             do ia = 1, nalpha
                do iz = -nzgrid, nzgrid
@@ -177,20 +177,27 @@ contains
    !****************************************************************************
    subroutine init_invert_mirror_operator
 
+      ! Parallelisation
       use mp, only: mp_abort
       use parallelisation_layouts, only: kxkyz_lo, kxyz_lo, vmu_lo
       use parallelisation_layouts, only: iz_idx, is_idx, imu_idx, iv_idx, iy_idx
+      
+      ! Parameters
+      use parameters_physics, only: full_flux_surface
+      use parameters_numerical, only: vpa_upwind, time_upwind
+      use parameters_numerical, only: maxwellian_normalization
+
+      ! Grids
       use grids_z, only: nzgrid
       use grids_velocity, only: dvpa, vpa, mu
       use grids_velocity, only: nvpa, nmu
-      use parameters_physics, only: full_flux_surface
       use grids_species, only: spec
       use grids_kxky, only: nalpha
+
+      ! Geometry + Neoclassical
       use geometry, only: dbdzed
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
-      use parameters_numerical, only: vpa_upwind, time_upwind
-      use parameters_numerical, only: maxwellian_normalization
 
       implicit none
 
@@ -317,7 +324,7 @@ contains
    end subroutine init_invert_mirror_operator
 
    !****************************************************************************
-   !                           ELECTROMAGNETIC MIRROR RESPONSE
+   !                          ELECTROMAGNETIC MIRROR RESPONSE
    !****************************************************************************
    ! If electromagnetic effects with apar are included then we need to get 
    ! response of the distrubution function to a unit impulse in apar.
@@ -383,22 +390,29 @@ contains
    !****************************************************************************
    subroutine advance_mirror_explicit(g, gout)
 
+      ! Parallelisation
       use mp, only: proc0
-      use initialise_redistribute, only: gather, scatter
-      use arrays_distribution_function, only: gvmu
       use job_manage, only: time_message
-      use parallelisation_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
+      use redistribute, only: kxkyz2vmu, kxyz2vmu
+      use initialise_redistribute, only: gather, scatter
+      use parallelisation_layouts, only: fields_kxkyz
       use parallelisation_layouts, only: iv_idx, is_idx
-      use calculations_transforms, only: transform_ky2y
-      use grids_z, only: nzgrid, ntubes
+      use parallelisation_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
+      
+      ! Parameters
       use parameters_physics, only: full_flux_surface
-      use grids_kxky, only: nakx, naky, naky_all, ny, ikx_max
-      use calculations_kxky, only: swap_kxky
+      use parameters_numerical, only: maxwellian_normalization
+
+      ! Grids + Arrays
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, maxwell_vpa
-      use parallelisation_layouts, only: fields_kxkyz
-      use parameters_numerical, only: maxwellian_normalization
-      use redistribute, only: kxkyz2vmu, kxyz2vmu
+      use grids_kxky, only: nakx, naky, naky_all, ny, ikx_max
+      use arrays_distribution_function, only: gvmu
+
+      ! Calculations
+      use calculations_transforms, only: transform_ky2y
+      use calculations_kxky, only: swap_kxky      
 
       implicit none
 
@@ -567,8 +581,9 @@ contains
    end subroutine get_dgdvpa_explicit
 
    !****************************************************************************
-   !                                      Title
+   !                            Add Mirror Term
    !****************************************************************************
+   ! add_mirror_term is used to add mirror term to the RHS in explicit advance
    subroutine add_mirror_term(g, src)
 
       use parallelisation_layouts, only: vmu_lo
@@ -600,6 +615,9 @@ contains
 
    end subroutine add_mirror_term
 
+   !****************************************************************************
+   !                       Add Mirror Term - Full Flux Surface
+   !****************************************************************************
    subroutine add_mirror_term_ffs(g, src)
 
       use parallelisation_layouts, only: vmu_lo
@@ -632,39 +650,47 @@ contains
    !****************************************************************************
    !                     ADVANE MIRROR IMPLICIT 
    !****************************************************************************
-   ! Advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
-   ! 
-   !****************************************************************************
+   ! Advance mirror implicit solve:
+   !              dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
    subroutine advance_mirror_implicit(collisions_implicit, g, apar)
 
+      ! Parallelisation
       use constants, only: zi
       use mp, only: proc0
       use job_manage, only: time_message
+      use redistribute, only: kxkyz2vmu, kxyz2vmu
       use initialise_redistribute, only: gather, scatter
-      use calculations_finite_differences, only: fd_variable_upwinding_vpa
+      use parallelisation_layouts, only: iy_idx
       use parallelisation_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use parallelisation_layouts, only: iv_idx, imu_idx
-      use calculations_transforms, only: transform_ky2y, transform_y2ky
+
+      ! Grids + Arrays
       use grids_z, only: nzgrid, ntubes
-      use arrays_distribution_function, only: gvmu
-      use parameters_physics, only: full_flux_surface
       use grids_kxky, only: ny, nakx
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa
-      use neoclassical_terms, only: include_neoclassical_terms
+      use grids_kxky, only: naky_all, ikx_max
+      use grids_velocity, only: dvpa
+      use arrays_distribution_function, only: gvmu
+
+      ! Parameters
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_apar
+      use parameters_numerical, only: time_upwind
       use parameters_numerical, only: vpa_upwind, time_upwind
       use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
-      use parameters_physics, only: include_apar
-      use redistribute, only: kxkyz2vmu, kxyz2vmu
-      use field_equations_electromagnetic, only: advance_apar
-      use field_equations, only: fields_updated
+
+      ! Calculations
       use calculations_tofrom_ghf, only: gbar_to_g
-      use parameters_numerical, only: time_upwind
-      use grids_velocity, only: dvpa
-      use parallelisation_layouts, only: iy_idx
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-      use grids_kxky, only: naky_all, ikx_max
+      use calculations_finite_differences, only: fd_variable_upwinding_vpa
+      use calculations_transforms, only: transform_ky2y, transform_y2ky
+
+      ! Fields + Neoclassical
+      use field_equations, only: fields_updated
+      use field_equations_electromagnetic, only: advance_apar
+      use neoclassical_terms, only: include_neoclassical_terms
       
       implicit none
 
@@ -681,7 +707,7 @@ contains
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
 
-      !! GA - arrays for FFS
+      ! Arays for FFS
       complex, dimension(:, :, :), allocatable :: dgdvpa
       integer :: iy
       complex, dimension(:, :), allocatable :: g_swap
@@ -694,8 +720,6 @@ contains
       ! incoming pdf is g = <f>
       dist = 'g'
 
-      ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
-      ! FOR FULL_FLUX_SURFACE
 
       ! now that we have g^{*}, need to solve
       ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
@@ -703,96 +727,10 @@ contains
       ! so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
       ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
       ! to invert and obtain h^{n+1}
-      if (full_flux_surface) then
-         ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
-         !if (.not. collisions_implicit) then
-         !   ! get g^{*} with v-space on processor
-         !   if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         !   call scatter(kxkyz2vmu, g, gvmu)
-         !   if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         !end if
-
-         allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-         allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
-         ! first must take g^{*}(ky) and transform to g^{*}(y)
-
-         allocate (g_swap(naky_all, ikx_max))
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
-                  call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
-               end do
-            end do
-         end do
-
-         ! convert g to g*(integrating factor), as this is what is being advected
-         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
-         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-         end if
-
-         ! second, remap g so velocities are local
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         call scatter(kxyz2vmu, g0x, g0v)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-
-         allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-         do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
-            iz = iz_idx(kxyz_lo, ikxyz)
-            is = is_idx(kxyz_lo, ikxyz)
-            iy = iy_idx(kxyz_lo, ikxyz)
-            do imu = 1, nmu
-               call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
-                                              mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
-               dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
-                                       dgdvpa(:, imu, ikxyz)
-               call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
-            end do
-         end do
-         g0v = dgdvpa
-         deallocate (dgdvpa)
-
-         ! then take the results and remap again so y,kx,z local.
-         call gather(kxyz2vmu, g0v, g0x)
-
-         ! convert back from g*(integrating factor) to g
-         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
-         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-         end if
-
-         ! finally transform back from y to ky space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  call transform_y2ky(g0x(:, :, iz, it, ivmu), g_swap)
-                  call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
-               end do
-            end do
-         end do
-         deallocate (g_swap)
-
-      else
+      ! ------------------------------------------------------------------------
+      !                                Flux Tube
+      ! ------------------------------------------------------------------------
+      if (.not. full_flux_surface) then 
          ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
          if (.not. collisions_implicit) then
             ! get g^{*} with v-space on processor
@@ -882,6 +820,91 @@ contains
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+
+      elseif (full_flux_surface) then
+         ! ---------------------------------------------------------------------
+         !                              Full Flux Surface
+         ! ---------------------------------------------------------------------
+
+         allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
+         allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+         ! For upwinding, need to evaluate dg^{*}/dvpa in y-space
+         ! first must take g^{*}(ky) and transform to g^{*}(y)
+         allocate (g_swap(naky_all, ikx_max))
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
+                  call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
+               end do
+            end do
+         end do
+
+         ! Convert g to g*(integrating factor), as this is what is being advected
+         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
+         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
+         if (include_neoclassical_terms) then
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               do it = 1, ntubes
+                  do iz = -nzgrid, nzgrid
+                     do ikx = 1, nakx
+                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
+                     end do
+                  end do
+               end do
+            end do
+         end if
+
+         ! Second, remap g so velocities are local
+         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call scatter(kxyz2vmu, g0x, g0v)
+         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+
+         allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
+         do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+            iz = iz_idx(kxyz_lo, ikxyz)
+            is = is_idx(kxyz_lo, ikxyz)
+            iy = iy_idx(kxyz_lo, ikxyz)
+            do imu = 1, nmu
+               call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
+                                              mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
+               dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
+                                       dgdvpa(:, imu, ikxyz)
+               call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
+            end do
+         end do
+         g0v = dgdvpa
+         deallocate (dgdvpa)
+
+         ! Then take the results and remap again so y,kx,z local.
+         call gather(kxyz2vmu, g0v, g0x)
+
+         ! Convert back from g*(integrating factor) to g
+         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
+         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
+         if (include_neoclassical_terms) then
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               do it = 1, ntubes
+                  do iz = -nzgrid, nzgrid
+                     do ikx = 1, nakx
+                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
+                     end do
+                  end do
+               end do
+            end do
+         end if
+
+         ! Finally transform back from y to ky space
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  call transform_y2ky(g0x(:, :, iz, it, ivmu), g_swap)
+                  call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
+               end do
+            end do
+         end do
+         deallocate (g_swap)
       end if
 
       deallocate (g0x, g0v)
@@ -1000,18 +1023,20 @@ contains
    !****************************************************************************
    subroutine add_mirror_radial_variation(g, gout)
 
+      ! Parallelisation
       use mp, only: proc0
-      use initialise_redistribute, only: gather, scatter
-      use arrays_distribution_function, only: gvmu
+      use redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
+      use initialise_redistribute, only: gather, scatter
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use parallelisation_layouts, only: is_idx, imu_idx
-      use grids_z, only: nzgrid, ntubes
-      use parameters_physics, only: full_flux_surface
-      use grids_velocity, only: nvpa, nmu
       use parallelisation_layouts, only: fields_kxkyz
-      use redistribute, only: kxkyz2vmu
 
+      use grids_z, only: nzgrid, ntubes
+      use grids_velocity, only: nvpa, nmu
+      use arrays_distribution_function, only: gvmu
+      use parameters_physics, only: full_flux_surface
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1024,7 +1049,7 @@ contains
 
       allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
-      !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+      ! if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
 
       ia = 1
 
@@ -1036,15 +1061,15 @@ contains
             call scatter(kxkyz2vmu, g, gvmu)
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          end if
-         ! get dg/dvpa and store in g0v
+         ! Get dg/dvpa and store in g0v
          g0v = gvmu
          call get_dgdvpa_explicit(g0v)
-         ! swap layouts so that (z,kx,ky) are local
+         ! Swap layouts so that (z,kx,ky) are local
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, gout)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
 
-         ! get mirror term and add to source
+         ! Get mirror term and add to source
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
@@ -1059,7 +1084,7 @@ contains
 
       deallocate (g0v)
 
-      !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+      ! if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
 
    end subroutine add_mirror_radial_variation
 
@@ -1109,20 +1134,20 @@ contains
                   interp(iv, imu, ikxkyz) = grid(iv + shift, imu, ikxkyz) * fac1 &
                                             + grid(iv + shift + sgn, imu, ikxkyz) * fac2
                end do
-               ! either assume BC for g is zero beyond grid extrema
+               ! Either assume BC for g is zero beyond grid extrema
                ! or dg/dvpa is zero beyond grid extrema
                ! at boundary cell, use zero incoming BC for point just beyond boundary
                interp(ulim + sgn, imu, ikxkyz) = grid(ulim + shift + sgn, imu, ikxkyz) * fac1
-               ! use zero incoming BC for cells beyond +/- nvgrid
+               ! Use zero incoming BC for cells beyond +/- nvgrid
                if (shift > 0) then
-!                   interp(nvpa-shift+1:,imu,ikxkyz) = 0.
+               ! interp(nvpa-shift+1:,imu,ikxkyz) = 0.
 
                   do iv = nvpa - shift, nvpa
                      interp(iv, imu, ikxkyz) = grid(nvpa, imu, ikxkyz) * real(nvpa - iv) / real(shift + 1)
                   end do
 
                else if (shift < 0) then
-!                   interp(:-shift,imu,ikxkyz) = 0.
+               ! interp(:-shift,imu,ikxkyz) = 0.
 
                   do iv = 1, -shift
                      interp(iv, imu, ikxkyz) = grid(1, imu, ikxkyz) * real(iv - 1) / real(-shift)
@@ -1145,9 +1170,8 @@ contains
                sgn = mirror_sign(1, iz)
 
                if (shift == 0) then
-                  ! deal with boundary point near outgoing BC
-                  ! using 2-point (linear) interpolation
-                  ! could do 3-point to improve accuracy
+                  ! Deal with boundary point near outgoing BC using 2-point
+                  ! (linear) interpolation -> could do 3-point to improve accuracy
                   fac1 = 1.0 - tmp0
                   fac2 = tmp0
                   if (sgn > 0) then
@@ -1170,33 +1194,33 @@ contains
                   end if
                end if
 
-               ! if llim > ulim (for sgn > 0) or llim < ulim (for sgn < 0)
+               ! If llim > ulim (for sgn > 0) or llim < ulim (for sgn < 0)
                ! then there are no elements to be interpolated
                if (sgn * ulim < sgn * llim) then
                   interp(:, imu, ikxkyz) = 0.
                else
-                  ! coefficient multiplying g_{iv-1}
+                  ! Coefficient multiplying g_{iv-1}
                   fac0 = -tmp0 * tmp1 * tmp2
-                  ! coefficient multiplying g_{iv}
+                  ! Coefficient multiplying g_{iv}
                   fac1 = 3.*tmp1 * tmp2 * tmp3
-                  ! coefficient multiplying g_{iv+1}
+                  ! Coefficient multiplying g_{iv+1}
                   fac2 = -3.*tmp0 * tmp1 * tmp3
-                  ! coefficient multiplying g_{iv+2}
+                  ! Coefficient multiplying g_{iv+2}
                   fac3 = tmp0 * tmp2 * tmp3
                   do iv = llim, ulim, sgn
                      interp(iv, imu, ikxkyz) = (grid(iv + shift - sgn, imu, ikxkyz) * fac0 &
-                                                + grid(iv + shift, imu, ikxkyz) * fac1 &
-                                                + grid(iv + shift + sgn, imu, ikxkyz) * fac2 &
-                                                + grid(iv + shift + 2 * sgn, imu, ikxkyz) * fac3) / 6.
+                        + grid(iv + shift, imu, ikxkyz) * fac1 &
+                        + grid(iv + shift + sgn, imu, ikxkyz) * fac2 &
+                        + grid(iv + shift + 2 * sgn, imu, ikxkyz) * fac3) / 6.
                   end do
 
-                  ! at boundary cell, use zero incoming BC for point just beyond boundary
+                  ! At boundary cell, use zero incoming BC for point just beyond boundary
                   interp(ulim + sgn, imu, ikxkyz) = (grid(ulim + shift, imu, ikxkyz) * fac0 &
-                                                     + grid(ulim + shift + sgn, imu, ikxkyz) * fac1 &
-                                                     + grid(ulim + shift + 2 * sgn, imu, ikxkyz) * fac2) / 6.
+                     + grid(ulim + shift + sgn, imu, ikxkyz) * fac1 &
+                     + grid(ulim + shift + 2 * sgn, imu, ikxkyz) * fac2) / 6.
                   interp(ulim + 2 * sgn, imu, ikxkyz) = (grid(ulim + shift + sgn, imu, ikxkyz) * fac0 &
-                                                         + grid(ulim + shift + 2 * sgn, imu, ikxkyz) * fac1) / 6.
-                  ! use zero incoming BC for cells beyond +/- nvgrid
+                     + grid(ulim + shift + 2 * sgn, imu, ikxkyz) * fac1) / 6.
+                  ! Use zero incoming BC for cells beyond +/- nvgrid
                   if (shift > 0) then
                      interp(nvpa - shift + 1:, imu, ikxkyz) = 0.
                   else if (shift < 0) then

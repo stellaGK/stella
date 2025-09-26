@@ -298,7 +298,7 @@ contains
       use calculations_transforms, only: transform_ky2y
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
 
-	   ! For FFS 
+      ! For FFS 
       use arrays_gyro_averages, only: j0_ffs
 
       implicit none
