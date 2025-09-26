@@ -755,7 +755,7 @@ contains
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
       use arrays_fields, only: phi_solve, phizf_solve
-      use arrays, only: denominator_fields, ddenominator_fieldsdr
+      use arrays, only: denominator_fields, denominator_fields_dr
       use linear_solve, only: lu_decomposition, lu_inverse
 
       use parameters_multibox, only: phi_bound
@@ -806,7 +806,7 @@ contains
                !row column
                phi_solve(iky, iz)%zloc(:, ikx - b_solve) = g0x(1, (1 + b_solve):(x_fft_size - b_solve))
 
-               g1k(1, :) = g0k(1, :) * ddenominator_fieldsdr(iky, :, iz)
+               g1k(1, :) = g0k(1, :) * denominator_fields_dr(iky, :, iz)
                call transform_kx2x(g1k, g0x)
                g0x(1, :) = rho_mb_clamped * g0x(1, :)
 
@@ -875,7 +875,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
-      use arrays, only: denominator_fields, ddenominator_fieldsdr
+      use arrays, only: denominator_fields, denominator_fields_dr
       use arrays_fields, only: phi_solve, phizf_solve
       use linear_solve, only: lu_back_substitution
 
@@ -944,7 +944,7 @@ contains
                   g1k(1, :) = g0k(1, :) * denominator_fields(iky, :, iz)
                   call transform_kx2x(g1k, g1x)
                   g0x = g0x + g1x
-                  g1k(1, :) = g0k(1, :) * ddenominator_fieldsdr(iky, :, iz)
+                  g1k(1, :) = g0k(1, :) * denominator_fields_dr(iky, :, iz)
                   call transform_kx2x(g1k, g1x)
                   g1x(1, :) = rho_mb_clamped * g1x(1, :) + g0x(1, :)
 

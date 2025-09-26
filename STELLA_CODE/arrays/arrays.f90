@@ -7,97 +7,153 @@
 !###############################################################################
 module arrays
 
-   use mpi
+   ! Import type for the response matrix
    use common_types, only: response_matrix_type
 
    implicit none
    
-   ! Velocity-dependent coefficients used in the equations
-   public :: kperp2, dkperp2dr
-   public :: time_gke
-   public :: time_parallel_nl
+   ! Keep track of which routines have been initialised
+   public :: initialised_wdrift
+   public :: initialised_wstar
+   public :: initialised_parallel_streaming
+   public :: initialised_implicit_drifts
    public :: initialised_radial_variation
-   public :: initialised_wdrift, initialised_wstar
-   public :: initialised_parallel_streaming, initialised_implicit_drifts
-   public :: wstar, wstarp
-   public :: wdriftx_g, wdrifty_g
-   public :: wdriftx_phi, wdrifty_phi
-   public :: wdriftx_bpar, wdrifty_bpar
-   public :: wdriftpx_g, wdriftpy_g
-   public :: wdriftpx_phi, wdriftpy_phi
+   
+   ! Time the  gyrokinetic equation and field equations routines
+   public :: time_gke
+   public :: time_field_solve
+   public :: time_parallel_nl
+   
+   !----------------------------------------------------------------------------
+   ! For the Gyrokinetic Equation
+   !----------------------------------------------------------------------------
+   
+   ! Velocity-dependent ferquencies used in the equations
+   public :: wstar
+   public :: wstarp
+   public :: wdriftx_g
+   public :: wdrifty_g
+   public :: wdriftx_phi
+   public :: wdrifty_phi
+   public :: wdriftx_bpar
+   public :: wdrifty_bpar
+   public :: wdriftpx_g
+   public :: wdriftpy_g
+   public :: wdriftpx_phi
+   public :: wdriftpy_phi
+   
+   ! Geometric quantities vs (naky, nakx, nalpha, -nzgrid:nzgrid)
+   public :: kperp2
+   public :: dkperp2dr
 
-   ! Arrays without velocity dependence. Used mostly in field calculations.
-   public :: response_matrix, response_window
-   public :: shift_state
-   public :: denominator_fields, ddenominator_fieldsdr
-   public :: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
-   public :: denominator_fields_MBR
-   public :: apar_denom
+   ! For radial variations and sources
    public :: theta
    public :: c_mat
    public :: exclude_boundary_regions_qn
-   public :: tcorr_source_qn, exp_fac_qn
-   public :: qn_window, qn_zf_window
-   public :: denominator_fields_h, denominator_fields_MBR_h, efac, efacp
-   public :: time_field_solve
+   public :: tcorr_source_qn
+   public :: exp_fac_qn
+   
+   ! For flow shear
+   public :: shift_state
+   
+   ! For the reponse matrix
+   public :: response_matrix
+   public :: response_window
+   public :: qn_window
+   public :: qn_zf_window
    
    !----------------------------------------------------------------------------
-   ! For the gyrokinetic equation
+   ! For the Field Equations
    !----------------------------------------------------------------------------
    
-   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
-   real, dimension(:, :, :), allocatable :: wstar, wstarp
+   ! Arrays used to calculate the fields for electrostatic simulations
+   public :: denominator_fields
+   public :: denominator_fields_h
+   
+   ! Arrays used to calculate the fields for electrostatic simulations
+   ! considering a Modified Boltzmann Response for the electrons
+   public :: denominator_fields_MBR
+   public :: denominator_fields_MBR_h
+   public :: efac, efacp
+   
+   ! Arrays used to calculate the fields for electromagnetic simulations
+   public :: denominator_fields_inv11
+   public :: denominator_fields_inv13
+   public :: denominator_fields_inv31
+   public :: denominator_fields_inv33
+   public :: apar_denom
+   
+   ! Arrays used to calculate the fields for radial variation simulations
+   public :: denominator_fields_dr
+   
+   private
+   
+   !----------------------------------------------------------------------------
 
-   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
-   real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g
-   real, dimension(:, :, :), allocatable :: wdriftx_phi, wdrifty_phi
-   real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar 
-   real, dimension(:, :, :), allocatable :: wdriftpx_g, wdriftpy_g
-   real, dimension(:, :, :), allocatable :: wdriftpx_phi, wdriftpy_phi
-
-   ! dkperp2dr will contain the radial variation of kperp2
-   real, dimension(:, :, :, :), allocatable :: kperp2, dkperp2dr
-
-   ! for time advance
-   real, dimension(2, 10) :: time_gke = 0.
-   real, dimension(2, 2) :: time_parallel_nl = 0.
-
+   ! Keep track of which routines have been initialised
    logical :: initialised_wdrift
    logical :: initialised_wstar
    logical :: initialised_parallel_streaming
    logical :: initialised_radial_variation
    logical :: initialised_implicit_drifts
+   
+   !----------------------------------------------------------------------------
+   ! For the Gyrokinetic Equation
+   !----------------------------------------------------------------------------
+   
+   ! Frequencies appearing in the gyrokinetic equations vs (nalpha, -nzgrid:nzgrid, -vmu-layout-)
+   real, dimension(:, :, :), allocatable :: wstar, wstarp
+   real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g
+   real, dimension(:, :, :), allocatable :: wdriftx_phi, wdrifty_phi
+   real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar
+   real, dimension(:, :, :), allocatable :: wdriftpx_g, wdriftpy_g
+   real, dimension(:, :, :), allocatable :: wdriftpx_phi, wdriftpy_phi
 
-   !----------------------------------------------------------------------------
-   ! For field solves
-   !----------------------------------------------------------------------------
+   ! Geometric quantities vs (naky, nakx, nalpha, -nzgrid:nzgrid)
+   real, dimension(:, :, :, :), allocatable :: kperp2
+   real, dimension(:, :, :, :), allocatable :: dkperp2dr
    
+   ! For the reponse matrix
    type(response_matrix_type), dimension(:), allocatable :: response_matrix
+   integer :: qn_window = MPI_WIN_NULL
+   integer :: qn_zf_window = MPI_WIN_NULL
    integer :: response_window = MPI_WIN_NULL
-   real, dimension(:), allocatable :: shift_state
    
-   ! The electrostatic potential phi is calculated based on the quasi-neutrality condition
-   !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
-   !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-   !     denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
-   ! The denominators needed to calculate <phi> are initialised in 
-   !     - field_equations_fluxtube::init_field_equations_fluxtube
-   real, dimension(:, :, :), allocatable :: denominator_fields, ddenominator_fieldsdr
-   real, dimension(:, :, :), allocatable :: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
-   real, dimension(:, :), allocatable :: denominator_fields_MBR
-   real, dimension(:, :, :), allocatable ::  apar_denom
-   
-   ! (nakx, nakx, -nzgrid:nzgrid)
-   complex, dimension(:, :, :), allocatable :: theta
-   
-   ! (nakx, nakx)
-   complex, dimension(:, :), allocatable :: c_mat
-   
-   ! Variables needed for the sources
+   ! Variables needed for the sources and radial variation
+   complex, dimension(:, :, :), allocatable :: theta ! (nakx, nakx, -nzgrid:nzgrid)
+   complex, dimension(:, :), allocatable :: c_mat    ! (nakx, nakx)
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn
-   integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
-   real :: denominator_fields_h, denominator_fields_MBR_h, efac, efacp
+   
+   ! For flow shear
+   real, dimension(:), allocatable :: shift_state
+
+   ! Time the time advance routines
+   real, dimension(2, 10) :: time_gke = 0.
+   real, dimension(2, 2) :: time_parallel_nl = 0.
+
+   !----------------------------------------------------------------------------
+   ! For the Field Equations
+   !----------------------------------------------------------------------------
+   
+   ! For electrostatic simulations
+   real, dimension(:, :, :), allocatable :: denominator_fields     ! (nakx, naky, -nzgrid:nzgrid)
+   real, dimension(:, :), allocatable :: denominator_fields_MBR    ! (nakx, -nzgrid:nzgrid)
+   real :: denominator_fields_h
+   real :: denominator_fields_MBR_h
+   real :: efac, efacp
+   
+   ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)
+   real, dimension(:, :, :), allocatable :: denominator_fields_inv11
+   real, dimension(:, :, :), allocatable :: denominator_fields_inv13
+   real, dimension(:, :, :), allocatable :: denominator_fields_inv31
+   real, dimension(:, :, :), allocatable :: denominator_fields_inv33
+   real, dimension(:, :, :), allocatable :: apar_denom
+   
+   ! For radial variation simulations (nakx, naky, -nzgrid:nzgrid)
+   real, dimension(:, :, :), allocatable :: denominator_fields_dr
+   
+   ! Time the field equations routines
    real, dimension(2, 5) :: time_field_solve = 0.
 
 end module arrays

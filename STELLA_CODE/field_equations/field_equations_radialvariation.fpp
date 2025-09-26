@@ -476,7 +476,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use grids_species, only: spec, has_electron_species
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
-      use arrays, only: denominator_fields, ddenominator_fieldsdr
+      use arrays, only: denominator_fields, denominator_fields_dr
       use arrays, only: denominator_fields_MBR, efac, efacp
       use arrays, only: kperp2, dkperp2dr
       use grids_species, only: adiabatic_option_switch
@@ -537,7 +537,7 @@ contains
          ! Apply radial operator Xhat
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
-               g0k = phi1(:, :, iz, it) - ddenominator_fieldsdr(:, :, iz) * phi0(:, :, iz, it)
+               g0k = phi1(:, :, iz, it) - denominator_fields_dr(:, :, iz) * phi0(:, :, iz, it)
                call multiply_by_rho(g0k)
                phi1(:, :, iz, it) = g0k
             end do
@@ -660,7 +660,7 @@ contains
       use linear_solve, only: lu_decomposition, lu_inverse
       use multibox, only: init_mb_calculate_phi
       use arrays_fields, only: phi_solve
-      use arrays, only: denominator_fields, ddenominator_fieldsdr
+      use arrays, only: denominator_fields, denominator_fields_dr
       use arrays, only: c_mat, theta
       use file_utils, only: runtype_option_switch, runtype_multibox
       use arrays_gyro_averages, only: aj0v, aj1v
@@ -722,24 +722,24 @@ contains
                  + spread(g1, 1, nvpa))
          wgt = spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%temp
          call integrate_vmu(g0, iz, tmp)
-         ddenominator_fieldsdr(iky, ikx, iz) = ddenominator_fieldsdr(iky, ikx, iz) + tmp * wgt
+         denominator_fields_dr(iky, ikx, iz) = denominator_fields_dr(iky, ikx, iz) + tmp * wgt
       end do
       
       ! Sum the values on all processors and send them to <proc0>
-      call sum_allreduce(ddenominator_fieldsdr)
+      call sum_allreduce(denominator_fields_dr)
       
       ! Deallocate temporary arrays
       deallocate (g1)
 
       if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
-         ddenominator_fieldsdr(1, 1, :) = 0.0
+         denominator_fields_dr(1, 1, :) = 0.0
          zm = 1
       end if
 
       if (.not. has_electron_species(spec)) then
          efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
          efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
-         ddenominator_fieldsdr = ddenominator_fieldsdr + efacp
+         denominator_fields_dr = denominator_fields_dr + efacp
       end if
 
       naky_r = min(naky, ky_solve_radial)
@@ -840,7 +840,7 @@ contains
                   phi_solve(iky, iz)%idx = 0
                   do ikx = 1 + zmi, nakx
                      g0k(1, :) = 0.0
-                     g0k(1, ikx) = ddenominator_fieldsdr(iky, ikx, iz)
+                     g0k(1, ikx) = denominator_fields_dr(iky, ikx, iz)
 
                      call transform_kx2x_unpadded(g0k, g0x)
                      g0x(1, :) = rho_d_clamped * g0x(1, :)
@@ -881,7 +881,7 @@ contains
                !get Theta
                do ikx = 1, nakx
                   g0k(1, :) = 0.0
-                  g0k(1, ikx) = ddenominator_fieldsdr(1, ikx, iz) - efacp
+                  g0k(1, ikx) = denominator_fields_dr(1, ikx, iz) - efacp
 
                   call transform_kx2x_unpadded(g0k, g0x)
                   g0x(1, :) = rho_d_clamped * g0x(1, :)
@@ -906,7 +906,7 @@ contains
       use parameters_physics, only: radial_variation
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
       use arrays_fields, only: apar_corr_QN, apar_corr_GA
-      use arrays, only: ddenominator_fieldsdr
+      use arrays, only: denominator_fields_dr
       use grids_z, only: nzgrid, ntubes
       use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: naky, nakx
@@ -934,8 +934,8 @@ contains
          apar_corr_GA = 0.
       end if
 
-      if (.not. allocated(ddenominator_fieldsdr)) allocate (ddenominator_fieldsdr(naky, nakx, -nzgrid:nzgrid)); ddenominator_fieldsdr = 0.
-      if (.not. allocated(ddenominator_fieldsdr)) allocate (ddenominator_fieldsdr(1, 1, 1)); ddenominator_fieldsdr = 0.
+      if (.not. allocated(denominator_fields_dr)) allocate (denominator_fields_dr(naky, nakx, -nzgrid:nzgrid)); denominator_fields_dr = 0.
+      if (.not. allocated(denominator_fields_dr)) allocate (denominator_fields_dr(1, 1, 1)); denominator_fields_dr = 0.
 
    end subroutine allocate_arrays_radial_variation
 
@@ -946,7 +946,7 @@ contains
 
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
       use arrays_fields, only: apar_corr_QN, apar_corr_GA
-      use arrays, only: ddenominator_fieldsdr
+      use arrays, only: denominator_fields_dr
       use arrays, only: c_mat, theta
 #ifdef ISO_C_BINDING
       use arrays, only: qn_window
@@ -974,7 +974,7 @@ contains
       if (allocated(phi_corr_GA)) deallocate (phi_corr_GA)
       if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
       if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
-      if (allocated(ddenominator_fieldsdr)) deallocate (ddenominator_fieldsdr)
+      if (allocated(denominator_fields_dr)) deallocate (denominator_fields_dr)
 
    end subroutine finish_field_equations_radialvariation
 
