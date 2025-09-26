@@ -11,7 +11,9 @@
 !        - Flux tube -> Supports electrostatic and electromagnetic
 !        - Full flux annulus -> Supports only electrostatic
 !        - Radially global (extension of flux tube) -> Supports only electrostatic
-!
+! 
+! The corresponding equations that are solved can be found in the appropriate
+! module. 
 !###############################################################################
 module field_equations
 

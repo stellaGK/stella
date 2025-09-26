@@ -1,5 +1,5 @@
 !###############################################################################
-!                                                                               
+!############## ADVANCE FIELDS IN FULL FLUX ANNULUS SIMULATION #################
 !###############################################################################
 ! 
 ! Module for advancing and initialising the fields when Full Flux Surface effects are included
