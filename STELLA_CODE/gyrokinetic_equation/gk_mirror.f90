@@ -22,11 +22,9 @@ module gk_mirror
    public :: mirror
    public :: advance_mirror_explicit, advance_mirror_implicit
    public :: add_mirror_radial_variation
-   public :: time_mirror
 
    private
 
-   real, dimension(2, 2) :: time_mirror = 0.
    integer, dimension(:, :), allocatable :: mirror_sign
    real, dimension(:, :, :, :), allocatable :: mirror
    real, dimension(:, :, :, :), allocatable :: mirror_rad_var
@@ -396,6 +394,7 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
+      use timers, only: time_mirror
       use initialise_redistribute, only: kxkyz2vmu, kxyz2vmu
       use redistribute, only: gather, scatter
       use parallelisation_layouts, only: fields_kxkyz
@@ -661,6 +660,7 @@ contains
       use constants, only: zi
       use mp, only: proc0
       use job_manage, only: time_message
+      use timers, only: time_mirror
       use initialise_redistribute, only: kxkyz2vmu, kxyz2vmu
       use redistribute, only: gather, scatter
       use parallelisation_layouts, only: iy_idx
@@ -1030,6 +1030,7 @@ contains
       use mp, only: proc0
       use initialise_redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
+      use timers, only: time_mirror
       use redistribute, only: gather, scatter
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use parallelisation_layouts, only: is_idx, imu_idx

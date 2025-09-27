@@ -21,7 +21,6 @@ module multibox
    public :: xL, xR
    public :: rhoL, rhoR
    public :: kx0_L, kx0_R
-   public :: time_multibox
    public :: phi_buffer0, phi_buffer1
 
    private
@@ -33,8 +32,6 @@ module multibox
    real, dimension(:), allocatable :: krook_fac
    real, dimension(:), allocatable :: b_mat
    real, dimension(:), allocatable :: x_mb, rho_mb, rho_mb_clamped
-
-   real, dimension(2, 2) :: time_multibox = 0.
 
    real :: dx_mb
 
@@ -397,8 +394,10 @@ contains
       use mp, only: crossdomprocs, subprocs, allprocs
       use mp, only: ssend, receive, proc0
       use parallelisation_layouts, only: vmu_lo
-      use job_manage, only: njobs, time_message
+      use job_manage, only: njobs
       use file_utils, only: get_unused_unit
+      use job_manage, only: time_message
+      use timers, only: time_multibox
 
       ! Grids
       use constants, only: zi
@@ -680,6 +679,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use mp, only: job, proc0
       use job_manage, only: time_message
+      use timers, only: time_multibox
       use parameters_multibox, only: nu_krook_mb
       use parameters_multibox, only: use_dirichlet_BC
 

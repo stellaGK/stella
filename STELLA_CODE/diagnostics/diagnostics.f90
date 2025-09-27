@@ -13,16 +13,14 @@ module diagnostics
    implicit none
 
    ! Make routines available to other modules
-   public :: diagnose_distribution_function_and_fields, init_diagnostics, finish_diagnostics 
-   public :: time_diagnostics
+   public :: diagnose_distribution_function_and_fields
+   public :: init_diagnostics
+   public :: finish_diagnostics
 
    private
 
    ! Current maximum index of the time dimension in the netCDF file
    integer :: nout = 1
-
-   ! Needed for timing various pieces of the diagnostics
-   real, dimension(2, 6) :: time_diagnostics = 0.
 
    ! Only initialise once
    logical :: initialised_diagnostics = .false.
@@ -39,6 +37,8 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
+      use timers, only: time_all_diagnostics
+      use timers, only: time_individual_diagnostics
 
       ! Fields and distribution function
       use arrays_fields, only: phi, apar, bpar
@@ -59,7 +59,6 @@ contains
       use diagnostics_moments, only: write_moments_to_netcdf_file
       use diagnostics_distribution, only: write_distribution_to_netcdf_file
       use write_diagnostics_to_netcdf, only: sync_nc
-   
 
       implicit none
 
@@ -69,7 +68,10 @@ contains
       ! Writing variables
       logical :: write_to_ascii_files, write_to_netcdf_file
 
-      !---------------------------------------------------------------------- 
+      !-------------------------------------------------------------------------
+      
+      ! Start the timer
+      call time_message(.false., time_all_diagnostics, ' diagnostics')
 
       ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps
       write_to_ascii_files = (mod(istep, nwrite) == 0)
@@ -80,7 +82,7 @@ contains
       !**********************************************************************
 
       ! Calculate Omega from <phi> = exp(-i*<0mega>*t) at every time step
-      call calculate_omega(istep, time_diagnostics(:, 1))    
+      call calculate_omega(istep, time_individual_diagnostics(:, 1))    
       
       !**********************************************************************
       !                 WRITE TO ASCII FILES EVERY <NWRITE>                 !
@@ -94,9 +96,9 @@ contains
       call advance_fields(gnew, phi, apar, bpar, dist='g')
 
       ! First write data that also has ascii files (do potential first since it will update the fields)
-      call write_potential_to_netcdf_file(istep, nout, time_diagnostics(:, 2), write_to_netcdf_file)
-      call write_omega_to_netcdf_file(istep, nout, time_diagnostics(:, 3), write_to_netcdf_file)  
-      call write_fluxes_to_netcdf_file(nout, time_diagnostics(:, 4), write_to_netcdf_file) 
+      call write_potential_to_netcdf_file(istep, nout, time_individual_diagnostics(:, 2), write_to_netcdf_file)
+      call write_omega_to_netcdf_file(istep, nout, time_individual_diagnostics(:, 3), write_to_netcdf_file)  
+      call write_fluxes_to_netcdf_file(nout, time_individual_diagnostics(:, 4), write_to_netcdf_file) 
       
       !**********************************************************************
       !             WRITE TO NETCDF FILES EVERY <NWRITE*NC_MULT>            !
@@ -106,14 +108,17 @@ contains
       if (.not. write_to_netcdf_file) return
  
       ! Write data to the netcdf files
-      call write_moments_to_netcdf_file(nout, time_diagnostics(:, 5))
-      call write_distribution_to_netcdf_file(nout, time_diagnostics(:, 6))
+      call write_moments_to_netcdf_file(nout, time_individual_diagnostics(:, 5))
+      call write_distribution_to_netcdf_file(nout, time_individual_diagnostics(:, 6))
 
       ! Synchronize the disk copy of a netCDF dataset with in-memory buffers
       if (proc0) call sync_nc
 
       ! Keep track of the netcdf pointer
       nout = nout + 1
+      
+      ! End the timer
+      call time_message(.false., time_all_diagnostics, ' diagnostics')
 
    end subroutine diagnose_distribution_function_and_fields
 

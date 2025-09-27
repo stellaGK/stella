@@ -21,7 +21,6 @@ module dissipation_and_collisions
    ! Make parameters available
    public :: include_collisions, hyper_dissipation, ecoll_zeff
    public :: collisions_implicit, cfl_dt_mudiff, cfl_dt_vpadiff
-   public :: time_collisions
    public :: zeff, vnew_ref
 
    private
@@ -37,7 +36,6 @@ module dissipation_and_collisions
 
    ! Parameters
    real :: cfl_dt_mudiff = huge(0.0), cfl_dt_vpadiff = huge(0.0)
-   real, dimension(2, 2) :: time_collisions = 0.
    real :: zeff, vnew_ref
    
    ! Only initialise once
@@ -224,6 +222,7 @@ contains
 
       ! Parallelisation
       use mp, only: mp_abort
+      use timers, only: time_collisions
       
       ! Grids
       use grids_z, only: nzgrid
@@ -267,6 +266,7 @@ contains
       use redistribute, only: gather, scatter
       use initialise_redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
+      use timers, only: time_collisions
       
       ! Grids
       use grids_z, only: nzgrid

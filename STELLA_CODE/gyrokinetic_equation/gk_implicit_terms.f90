@@ -37,15 +37,12 @@ module gk_implicit_terms
    implicit none
 
    ! Public routines
-   public :: time_implicit_advance
    public :: sweep_zed_zonal
    public :: advance_implicit_terms
    public :: get_gke_rhs
    public :: sweep_g_zext
 
    private
-
-   real, dimension(2, 3) :: time_implicit_advance = 0.
 
 contains
 
@@ -60,6 +57,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
+      use timers, only: time_implicit_advance
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use arrays_distribution_function, only: g1, g2

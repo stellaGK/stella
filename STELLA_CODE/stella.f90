@@ -30,9 +30,6 @@ program stella
    
    ! Used for restarted simulations
    integer :: istatus
-   
-   ! Time the routines (needs to be available to init_stella and finish_stella)
-   real, dimension(2) :: time_diagnose_stella = 0.
       
    !----------------------------------------------------------------------------
 
@@ -55,7 +52,7 @@ program stella
    
    ! Finish stella
    if (debug) write (*, *) 'stella::finish_stella'
-   call finish_stella(istep, time_diagnose_stella, last_call=.true.)
+   call finish_stella(istep, last_call=.true.)
 
 contains
 
@@ -150,9 +147,7 @@ contains
          end if
          
          ! Calculate diagnostics, e.g., turbulent fluxes, growth rates, density fluctuations, ...
-         call time_message(.false., time_diagnose_stella, ' diagnostics')
          call diagnose_distribution_function_and_fields(istep)
-         call time_message(.false., time_diagnose_stella, ' diagnostics')
          
          ! Make sure the error file is written
          call flush_output_file(error_unit())

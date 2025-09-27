@@ -37,7 +37,6 @@ module gk_sources
    public :: tcorr_source, exclude_boundary_regions, exp_fac
    public :: int_krook, int_proj
    public :: initialised_qn_source
-   public :: time_sources
    
    ! Although the parameters are available through namelist_radial_variation,
    ! make them available through gk_sources as well
@@ -53,7 +52,6 @@ module gk_sources
    real :: nu_krook, tcorr_source, int_krook, int_proj
    real :: exp_fac
    logical :: initialised_qn_source, include_qn_source
-   real, dimension(2, 2) :: time_sources = 0.
 
    ! Switch
    integer :: source_option_switch
@@ -246,6 +244,7 @@ contains
    subroutine add_krook_operator(g, gke_rhs)
 
       use mp, only: proc0
+      use timers, only: time_sources
       use job_manage, only: time_message
       use grids_z, only: nzgrid, ntubes
       use constants, only: pi, zi
@@ -359,6 +358,7 @@ contains
    subroutine update_tcorr_krook(g)
 
       use mp, only: proc0
+      use timers, only: time_sources
       use job_manage, only: time_message
       use constants, only: pi, zi
       use arrays_distribution_function, only: g_krook, g_symm
@@ -453,6 +453,7 @@ contains
    subroutine enforce_momentum_conservation(g_work)
 
       use mp, only: proc0
+      use timers, only: time_sources
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
       use parallelisation_layouts, only: vmu_lo, kxkyz_lo
@@ -595,6 +596,7 @@ contains
    subroutine project_out_zero(gold, gnew)
 
       use mp, only: proc0
+      use timers, only: time_sources
       use job_manage, only: time_message
       use grids_z, only: nzgrid, ntubes
       use constants, only: pi, zi

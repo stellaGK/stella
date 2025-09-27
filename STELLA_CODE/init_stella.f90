@@ -767,7 +767,7 @@ contains
 ! Finish a simulation, call the finialisation routines of all modules
 !###############################################################################
 
-   subroutine finish_stella(istep, time_diagnose_stella, last_call)
+   subroutine finish_stella(istep, last_call)
 
       ! Parallelisation
       use mp, only: finish_mp
@@ -775,16 +775,17 @@ contains
       
       ! Time routines
       use job_manage, only: time_message
-      use gk_parallel_streaming, only: time_parallel_streaming
-      use dissipation_and_collisions, only: time_collisions
-      use gk_implicit_terms, only: time_implicit_advance
-      use diagnostics, only: time_diagnostics
-      use gk_mirror, only: time_mirror
-      use multibox, only: time_multibox
-      use gk_sources, only: time_sources
+      use timers, only: time_gke
+      use timers, only: time_mirror
+      use timers, only: time_sources
+      use timers, only: time_multibox
+      use timers, only: time_collisions
       use timers, only: time_field_solve
       use timers, only: time_parallel_nl
-      use timers, only: time_gke
+      use timers, only: time_implicit_advance
+      use timers, only: time_all_diagnostics
+      use timers, only: time_parallel_streaming
+      use timers, only: time_individual_diagnostics
       
       ! Flags
       use file_utils, only: runtype_option_switch
@@ -824,7 +825,6 @@ contains
       implicit none
 
       ! Arguments
-      real, dimension(2), intent(in) :: time_diagnose_stella
       logical, intent(in), optional :: last_call
       integer, intent(in) :: istep
       
@@ -928,17 +928,17 @@ contains
          end if
          write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
 
-         sum_timings = time_diagnostics(1, 1) + time_diagnostics(1, 2) + time_diagnostics(1, 3)  
-         sum_timings = sum_timings + time_diagnostics(1, 4) + time_diagnostics(1, 5) + time_diagnostics(1, 6)  
+         sum_timings = time_individual_diagnostics(1, 1) + time_individual_diagnostics(1, 2) + time_individual_diagnostics(1, 3)  
+         sum_timings = sum_timings + time_individual_diagnostics(1, 4) + time_individual_diagnostics(1, 5) + time_individual_diagnostics(1, 6)  
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                        DIAGNOSTICS'
          write (*, fmt='(A)') '                        -----------' 
-         write (*, fmt=101) 'calculate omega:', time_diagnostics(1, 1) / 60., 'min', time_diagnostics(1, 1)/sum_timings*100., '%'
-         write (*, fmt=101) 'write phi:', time_diagnostics(1, 2) / 60., 'min', time_diagnostics(1, 3)/sum_timings*100., '%'
-         write (*, fmt=101) 'write omega:', time_diagnostics(1, 3) / 60., 'min', time_diagnostics(1, 2)/sum_timings*100., '%'
-         write (*, fmt=101) 'write fluxes:', time_diagnostics(1, 4) / 60., 'min', time_diagnostics(1, 4)/sum_timings*100., '%'
-         write (*, fmt=101) 'write moments:', time_diagnostics(1, 5) / 60., 'min', time_diagnostics(1, 5)/sum_timings*100., '%'
-         write (*, fmt=101) 'write distribution:', time_diagnostics(1, 6) / 60., 'min', time_diagnostics(1, 6)/sum_timings*100., '%'
+         write (*, fmt=101) 'calculate omega:', time_individual_diagnostics(1, 1) / 60., 'min', time_individual_diagnostics(1, 1)/sum_timings*100., '%'
+         write (*, fmt=101) 'write phi:', time_individual_diagnostics(1, 2) / 60., 'min', time_individual_diagnostics(1, 3)/sum_timings*100., '%'
+         write (*, fmt=101) 'write omega:', time_individual_diagnostics(1, 3) / 60., 'min', time_individual_diagnostics(1, 2)/sum_timings*100., '%'
+         write (*, fmt=101) 'write fluxes:', time_individual_diagnostics(1, 4) / 60., 'min', time_individual_diagnostics(1, 4)/sum_timings*100., '%'
+         write (*, fmt=101) 'write moments:', time_individual_diagnostics(1, 5) / 60., 'min', time_individual_diagnostics(1, 5)/sum_timings*100., '%'
+         write (*, fmt=101) 'write distribution:', time_individual_diagnostics(1, 6) / 60., 'min', time_individual_diagnostics(1, 6)/sum_timings*100., '%'
          write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
 
          sum_timings = time_collisions(1, 1) +time_collisions(1, 2)
@@ -962,12 +962,12 @@ contains
          end if
          write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
  
-         sum_timings = time_init(1) + time_diagnose_stella(1) + time_gke(1, 9) + time_gke(1, 8) 
+         sum_timings = time_init(1) + time_all_diagnostics(1) + time_gke(1, 9) + time_gke(1, 8) 
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                          TOTALS'
          write (*, fmt='(A)') '                          ------'
          write (*, fmt=101) 'initialization:', time_init(1) / 60., 'min', time_init(1)/time_total(1)*100., '%'
-         write (*, fmt=101) 'diagnostics:', time_diagnose_stella(1) / 60., 'min', time_diagnose_stella(1)/time_total(1)*100., '%' 
+         write (*, fmt=101) 'diagnostics:', time_all_diagnostics(1) / 60., 'min', time_all_diagnostics(1)/time_total(1)*100., '%' 
          write (*, fmt=101) 'total implicit:', time_gke(1, 9) / 60., 'min', time_gke(1, 9)/time_total(1)*100., '%'
          write (*, fmt=101) 'total explicit:', time_gke(1, 8) / 60., 'min', time_gke(1, 8)/time_total(1)*100., '%'
          write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'

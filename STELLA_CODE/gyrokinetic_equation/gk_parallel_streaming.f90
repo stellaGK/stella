@@ -23,7 +23,6 @@ module gk_parallel_streaming
    public :: stream_tridiagonal_solve
    public :: initialised_parallel_streaming
    public :: stream, stream_c, stream_sign, gradpar_c
-   public :: time_parallel_streaming
    public :: stream_rad_var1
    public :: stream_rad_var2
    public :: center_zed, get_dzed
@@ -51,7 +50,6 @@ module gk_parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
    real, dimension(:, :), allocatable :: gradpar_c
 
-   real, dimension(2, 3) :: time_parallel_streaming = 0.
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
@@ -285,6 +283,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
+      use timers, only: time_parallel_streaming
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
