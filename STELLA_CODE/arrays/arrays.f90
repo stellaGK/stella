@@ -6,9 +6,10 @@
 ! they are stored here to make them easily accessible.
 !###############################################################################
 module arrays
-
-   ! Import type for the response matrix
+   
+   ! Import variables for the response matrix
    use common_types, only: response_matrix_type
+   use mpi, only: MPI_WIN_NULL
 
    implicit none
    
