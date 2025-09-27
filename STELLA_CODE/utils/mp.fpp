@@ -1966,6 +1966,7 @@ contains
       integer, parameter :: error_code = MPI_ERR_UNKNOWN
 
       if (proc0) then
+         write (*,*) "Error: "//msg; write(*,*) ''
          write (error_unit(), *) "Error: "//msg
          call flush_output_file(error_unit())
       end if
