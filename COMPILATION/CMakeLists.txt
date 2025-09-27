@@ -141,6 +141,7 @@ set(STELLA_SOURCES_f90
 set(STELLA_SOURCES_fpp
   ../STELLA_CODE/diagnostics/write_diagnostics_to_netcdf.fpp
   ../STELLA_CODE/diagnostics/save_stella_for_restart.fpp
+  ../STELLA_CODE/diagnostics/save_stella_for_restart_parallel_netcdf.fpp
   ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
   ../STELLA_CODE/field_equations/field_equations_radialvariation.fpp
   ../STELLA_CODE/radial_variation/gk_sources.fpp
