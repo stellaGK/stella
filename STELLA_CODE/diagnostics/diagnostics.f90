@@ -13,7 +13,7 @@ module diagnostics
    implicit none
 
    ! Make routines available to other modules
-   public :: diagnostics_stella, init_diagnostics, finish_diagnostics 
+   public :: diagnose_distribution_function_and_fields, init_diagnostics, finish_diagnostics 
    public :: time_diagnostics
 
    private
@@ -34,7 +34,7 @@ contains
 !###############################################################################
 
    ! Calculate and write diagnostics.
-   subroutine diagnostics_stella(istep)
+   subroutine diagnose_distribution_function_and_fields(istep)
    
       ! Parallelisation
       use mp, only: proc0
@@ -115,7 +115,7 @@ contains
       ! Keep track of the netcdf pointer
       nout = nout + 1
 
-   end subroutine diagnostics_stella
+   end subroutine diagnose_distribution_function_and_fields
 
 
 !###############################################################################

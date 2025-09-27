@@ -2,8 +2,11 @@
 !###################### STELLA: Delta-f gyrokinetic code #######################
 !###############################################################################
 ! 
-! This is the main stella program. Here all parameters and grid are initialised,
-! and the gyrokinetic equation is evolved in time.
+! This is the main stella program. The parameters, grids and modules are
+! initialised within initialise_stella(). Here, the distribution function and
+! fields (phi, apar, bpar) are evolved in time using the gyrokinetic equation
+! and the field equations. At every <nwrite> time steps the distribution function
+! and fields are examined, and diagnostics are written to an output file.
 ! 
 !###############################################################################
 program stella
@@ -11,24 +14,24 @@ program stella
    ! Load the debug flags
    use debug_flags, only: debug => stella_debug
    
-   ! While evolving the distribution function and fields in time, we will 
+   ! While evolving the distribution function and fields in time, we will
    ! run diagnostics. Moreover we need to initialise and finialise stella.
-   use diagnostics, only: diagnostics_stella
+   use diagnostics, only: diagnose_distribution_function_and_fields
    use init_stella, only: initialise_stella
    use init_stella, only: finish_stella
       
    implicit none
+   
+   ! Keep track of the time step
+   integer :: istep
 
    ! For a restarted simulation, istep0 > 0
    integer :: istep0
    
-   ! istep is used by evolve_gyrokinetic_equation() and finish_stella()
-   integer :: istep
-   
    ! Used for restarted simulations
    integer :: istatus
    
-   ! Time the routines (need to be available to init_stella and finish_stella)
+   ! Time the routines (needs to be available to init_stella and finish_stella)
    real, dimension(2) :: time_diagnose_stella = 0.
       
    !----------------------------------------------------------------------------
@@ -41,12 +44,12 @@ program stella
    call initialise_stella(istep0, istatus)
 
    ! Diagnose stella for istep=0
-   if (debug) write (*, *) 'stella::diagnostics_stella'
-   if (istep0 == 0) call diagnostics_stella(istep0)
+   if (debug) write (*, *) 'stella::diagnose_distribution_function_and_fields'
+   if (istep0 == 0) call diagnose_distribution_function_and_fields(istep0)
 
    ! Advance the guiding-center distribution function <g>, as well as the electrostatic
    ! potential <phi> and the electromagnetic fields <apar> and <bpar> in time, using
-   ! the gyrokinetic equation and the quasineutrality equation.
+   ! the gyrokinetic equation and the field equations (e.g. quasineutrality).
    if (debug) write (*, *) 'stella::run_stella'
    call run_stella
    
@@ -59,9 +62,9 @@ contains
    !****************************************************************************
    !      EVOLVE THE DISTRIBUTION FUNCTION AND FIELDS AND RUN DIAGNOSTICS      !
    !****************************************************************************
-   ! The guiding-center distribution function <g>, and the electrostatic potential 
-   ! <phi> and the electromagnetic fields <apar> and <bpar> are evolved in time, 
-   ! untill <code_time> > <tend> or <nstep> > <istep>. 
+   ! The guiding-center distribution function <g>, the electrostatic potential
+   ! <phi> and the electromagnetic fields <apar> and <bpar> are evolved in time,
+   ! untill <code_time> is bigger than <tend> or <nstep> is bigger than <istep>. 
    ! 
    ! Moreover, every time step, the distribution function and fields are diagnosed.
    ! Every 10 time steps, it is checked whether the program should be stopped, and
@@ -69,22 +72,38 @@ contains
    !****************************************************************************
    subroutine run_stella
    
-      use debug_flags, only: debug => stella_debug
+      ! Parallelisation
       use redistribute, only: scatter
-      use job_manage, only: time_message, checkstop
-      use job_manage, only: checktime
-      use file_utils, only: error_unit, flush_output_file
-      use grids_time, only: update_time, code_time, code_dt, checkcodedt
-      use save_stella_for_restart, only: save_stella_data_for_restart
-      use parameters_numerical, only: nstep, tend
-      use parameters_numerical, only: avail_cpu_time
-      use parameters_diagnostics, only: nsave
       use initialise_redistribute, only: kxkyz2vmu
-      use diagnostics_omega, only: checksaturation
-      use arrays_distribution_function, only: gnew, gvmu
+      use job_manage, only: time_message
+      
+      ! Distribution function
+      use arrays_distribution_function, only: gnew
+      use arrays_distribution_function, only: gvmu
+      
+      ! Check whether stella should be stopped
+      use grids_time, only: check_code_dt
+      use job_manage, only: check_cpu_time
+      use job_manage, only: check_stop_file
+      use diagnostics_omega, only: check_saturation_omega
+      use parameters_numerical, only: avail_cpu_time
+      
+      ! Time trace
+      use grids_time, only: code_dt
+      use grids_time, only: code_time
+      use grids_time, only: update_time
+      use parameters_numerical, only: nstep
+      use parameters_numerical, only: tend
+      
+      ! Write output files
+      use file_utils, only: error_unit
+      use file_utils, only: flush_output_file
+      use save_stella_for_restart, only: save_stella_data_for_restart
+      use parameters_diagnostics, only: nsave
       
       implicit none
 
+      ! Local variables
       logical :: stop_stella = .false.
       
       !-------------------------------------------------------------------------
@@ -95,7 +114,7 @@ contains
       ! Evolve the gyrokinetic equation in time until <istep>=<nstep> or <code_time>=<tend>
       do while ((code_time <= tend .and. tend > 0) .or. (istep <= nstep .and. nstep > 0))
       
-         ! Keep track of the steps when debugging
+         ! Keep track of the time step when debugging
          if (debug) write (*, *) 'istep = ', istep
          
          ! Every 10 time steps, check if stella should be stopped, so stella can make a clean exit
@@ -104,10 +123,10 @@ contains
          !     - stop stella of <code_dt> < <code_dt_min> which happens when |phi| blows up
          !     - stop stella if <autostop> = True and <omega_vs_tkykx> has saturated over <navg> time steps
          if (mod(istep, 10) == 0) then
-            call checkstop(stop_stella)
-            call checktime(avail_cpu_time, stop_stella)
-            call checkcodedt(stop_stella)
-            call checksaturation(istep, stop_stella)
+            call check_stop_file(stop_stella)
+            call check_cpu_time(avail_cpu_time, stop_stella)
+            call check_code_dt(stop_stella)
+            call check_saturation_omega(istep, stop_stella)
          end if
          if (stop_stella) exit
          
@@ -116,9 +135,9 @@ contains
          ! in time, using the gyrokinetic equation and the quasineutrality equation.
          call advance_distribution_function_and_fields(istep, stop_stella)
          
-         ! During the time advance, the time step is sometimes changed and the 
+         ! During the time advance, the time step is sometimes changed and the
          ! time advance is retried, if it is changed unsuccesfully more than 5 times,
-         ! we give up on evolving the gyroketinic equation and <stop_stella> = True
+         ! we give up on evolving the gyrokinetic equation since <stop_stella> = True
          if (stop_stella) exit
          
          ! After succesfully evolving the fields, we can update code_time to code_time + code_dt
@@ -131,8 +150,8 @@ contains
          end if
          
          ! Calculate diagnostics, e.g., turbulent fluxes, growth rates, density fluctuations, ...
-         call time_message(.false., time_diagnose_stella, ' diagnostics') 
-         call diagnostics_stella(istep) 
+         call time_message(.false., time_diagnose_stella, ' diagnostics')
+         call diagnose_distribution_function_and_fields(istep)
          call time_message(.false., time_diagnose_stella, ' diagnostics')
          
          ! Make sure the error file is written
