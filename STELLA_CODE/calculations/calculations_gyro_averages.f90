@@ -27,7 +27,7 @@
 !        = k_perpN*v_perpsN*sqrt(T_s/T_r)*sqrt(m_r/m_s)*(Z_r/Z_s)*(m_s/m_r)*B_r/B_s
 !        = k_perpN*v_perpsN*sqrt(T_N*m_N)/Z_N/bmag(ia,iz)
 !        = sqrt(kperp2*vperp2)*spec(is)%smz_psi0/bmag
-!
+! 
 !###############################################################################
 module calculations_gyro_averages
 

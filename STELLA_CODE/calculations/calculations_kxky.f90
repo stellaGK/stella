@@ -6,7 +6,7 @@
 ! Use reality to swap between arrays with:
 !     ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
 !     kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
-!
+! 
 ! This is needed becuase Fourier transforms may need one or the other grid.
 ! If transforming from ky->y then we need all ky, and if transforming from 
 ! kx->x then we need all kx. 

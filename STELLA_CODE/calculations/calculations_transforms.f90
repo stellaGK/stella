@@ -6,7 +6,7 @@
 ! the help of the package FFTW, which stands for the "Fastest Fourier Transform
 ! in the West". The package takes advantage of using multiple processors.
 ! See module "utils/fft_work.f90" for details on the FFTW.
-!
+! 
 ! Stella considers (nx,ny) modes in xyz-space and (nakx,naky) modes in k-space.
 ! To make the nx/ny modes in a centered convolution free of aliasing errors
 ! we consider nakx/naky de-aliased modes, which is 2/3 of the total number of modes.
@@ -14,14 +14,14 @@
 ! Along naky we only consider positive modes due the reality condition
 !      naky = (ny-1)/3 + 1          ordered like [0, dky, ..., kymax]
 !      nakx = 2*((nx-1)/3) +  1     ordered like [0, dkx, ..., kxmax, -kxmax, ..., -dkx]
-!
+! 
 ! If the input data is real, the output satisfies the Hermitian redundancy
 ! and out[i] = conjugate(out[n-i]) so there are only n/2+1 redundant outputs
-!
+! 
 ! This module contains 6 Fourier transforms in sets of 2 where we first transform
 ! our quantity along x and then along y, or vice versa. Each of these transforms
 ! consists of a forward transform (k-space -> xyz-space) and a backward transform.
-!
+! 
 !  (1) FFT along ny, followed by a FFT along nx, with zero-padding
 !         I. Fourier transformation along ny while the x-axis is still in k-space
 !               yf_fft      ky --C2C--> y      transform_ky2y_2d/5d (gky_unpad, gy)
@@ -29,7 +29,7 @@
 !         II. Fourier transformation along nx while the y-axis is already in xyz-space
 !               xf_fft      kx --C2R--> x      transform_kx2x (gkx, gx)
 !               xb_fft      x  --RC2--> kx     transform_x2kx (gx, gkx)
-!
+! 
 !  (2) FFT along nx, followed by a FFT along ny, with zero-padding
 !         I. Fourier transformation along nx while the y-axis is still in k-space
 !               xsf_fft    kx --C2C--> x       transform_kx2x_xfirst (gkx, gx)
@@ -37,7 +37,7 @@
 !         II. Fourier transformation along ny while the x-axis is already in xyz-space
 !               ysf_fft    ky --C2R--> y       transform_ky2y_xfirst (gky, gy)
 !               ysb_fft    y  --RC2--> ky      transform_y2ky_xfirst (gy, gky)
-!
+! 
 !  (3) FFT along nakx, followed by a FFT along naky, without zero-padding
 !         I. Fourier transformation along nakx while the y-axis is still in k-space
 !               xfnp_fft   kx --C2C--> x       transform_kx2x_unpadded (gkx, gx)
@@ -45,11 +45,11 @@
 !         II. Fourier transformation along naky while the x-axis is already in xyz-space
 !               yfnp_fft   ky --C2R--> y       transform_ky2y_unpadded (gky, gy)
 !               ybnp_fft   y  --RC2--> ky      transform_y2ky_unpadded (gy, gky)
-!
+! 
 !  (4) FFT along nalpha = ny if full_flux_surface==True
 !          alpha_f_fft   kalpha --C2R--> alpha    transform_kalpha2alpha (gkalph, galph)
 !          alpha_b_fft   alpha  --RC2--> kalpha   transform_alpha2kalpha (galph, gkalph)
-!
+! 
 !###############################################################################
 module calculations_transforms
 
