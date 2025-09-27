@@ -146,8 +146,8 @@ include $(DEPEND_FILE)
 # For the prerequisites, we need to make sure that the external libraries 
 # 'git_version' and 'neasyf' are correctly downloaded, these prerequisites
 # will trigger the 'submodules' target. We also need to make sure that 
-# the 'build_make' directory exists.  
-.PHONY: depend  
+# the 'build_make' directory exists.
+.PHONY: depend
 depend: $(GIT_VERSION_DIR)/git_version.f90 $(NEASYF_DIR)/neasyf.f90 $(BUILD_DIR) ensure-that-all-f90-files-exist
 	@$(MAKE) --no-print-directory -C $(UTILS_DIR) ensure-that-all-f90-files-exist 
 	@echo "          "

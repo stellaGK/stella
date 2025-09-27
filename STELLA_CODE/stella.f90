@@ -19,7 +19,8 @@ program stella
    use diagnostics, only: diagnose_distribution_function_and_fields
    use init_stella, only: initialise_stella
    use init_stella, only: finish_stella
-      
+   use init_stella, only: parse_command_line
+
    implicit none
    
    ! Keep track of the time step
@@ -174,6 +175,8 @@ contains
       ! Distribution function
       use arrays_distribution_function, only: gold
       use arrays_distribution_function, only: gnew
+      
+      ! Advance the distribution function using the gyrokinetic equation
       use gyrokinetic_equation_explicit, only: advance_distribution_function_using_explicit_gyrokinetic_terms
       use gyrokinetic_equation_implicit, only: advance_distribution_function_using_implicit_gyrokinetic_terms
       use gk_radial_variation, only: advance_distribution_function_and_fields_radial_variation
@@ -182,6 +185,8 @@ contains
       ! Fields
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_old, apar_old
+      
+      ! Advance the fields using the field equations (e.g., the quasineutrality condition)
       use field_equations, only: advance_fields
       use field_equations, only: fields_updated
       
@@ -291,46 +296,5 @@ contains
       call advance_distribution_function_and_fields_radial_variation()
 
    end subroutine advance_distribution_function_and_fields
-
-   !****************************************************************************
-   !****************************************************************************
-   !****************************************************************************
-   ! Parse some basic command line arguments. Currently just 'version' and 'help'.
-   ! This should be called before anything else, but especially before initialising MPI.
-   !****************************************************************************
-   subroutine parse_command_line()
-   
-      use git_version, only: get_git_version
-      integer :: arg_count, arg_n
-      integer :: arg_length
-      character(len=:), allocatable :: argument
-      character(len=*), parameter :: endl = new_line('a')
-      
-      !----------------------------------------------------------------------
-
-      arg_count = command_argument_count()
-
-      do arg_n = 0, arg_count
-         call get_command_argument(1, length=arg_length)
-         if (allocated(argument)) deallocate (argument)
-         allocate (character(len=arg_length)::argument)
-         call get_command_argument(1, argument)
-
-         if ((argument == "--version") .or. (argument == "-v")) then
-            write (*, '("stella version ", a)') get_git_version()
-            stop
-         else if ((argument == "--help") .or. (argument == "-h")) then
-            write (*, '(a)') "stella [--version|-v] [--help|-h] [input file]"//endl//endl// &
-               "stella is a flux tube gyrokinetic code for micro-stability and turbulence "// &
-               "simulations of strongly magnetised plasma"//endl// &
-               "For more help, see the documentation at https://stellagk.github.io/stella/"//endl// &
-               "or create an issue https://github.com/stellaGK/stella/issues/new"//endl// &
-               endl// &
-               "  -h, --help     Print this message"//endl// &
-               "  -v, --version  Print the stella version"
-            stop
-         end if
-      end do
-   end subroutine parse_command_line
    
 end program stella

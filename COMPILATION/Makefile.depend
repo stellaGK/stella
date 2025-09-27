@@ -1338,7 +1338,6 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/diagnostics_omega.o \
 	 $(OBJ_DIR)/field_equations.o \
 	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
 	 $(OBJ_DIR)/grids_time.o \
 	 $(OBJ_DIR)/gyrokinetic_equation_explicit.o \
@@ -1347,7 +1346,6 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
-	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o 

@@ -15,6 +15,7 @@ module init_stella
    ! Make routines available to stella.f90
    public :: initialise_stella
    public :: finish_stella
+   public :: parse_command_line
    
    private
    
@@ -762,6 +763,48 @@ contains
       end if
 
    end subroutine print_header
+   
+   !****************************************************************************
+   !                   GET ARGUMENTS FROM COMMAND PROMPT LINE                   
+   !****************************************************************************
+   ! Parse some basic command line arguments. Currently just 'version' and 'help'.
+   ! This should be called before anything else, but especially before initialising MPI.
+   !****************************************************************************
+   subroutine parse_command_line
+   
+      use git_version, only: get_git_version
+      integer :: arg_count, arg_n
+      integer :: arg_length
+      character(len=:), allocatable :: argument
+      character(len=*), parameter :: endl = new_line('a')
+      
+      !----------------------------------------------------------------------
+
+      arg_count = command_argument_count()
+
+      do arg_n = 0, arg_count
+         call get_command_argument(1, length=arg_length)
+         if (allocated(argument)) deallocate (argument)
+         allocate (character(len=arg_length)::argument)
+         call get_command_argument(1, argument)
+
+         if ((argument == "--version") .or. (argument == "-v")) then
+            write (*, '("stella version ", a)') get_git_version()
+            stop
+         else if ((argument == "--help") .or. (argument == "-h")) then
+            write (*, '(a)') "stella [--version|-v] [--help|-h] [input file]"//endl//endl// &
+               "stella is a flux tube gyrokinetic code for micro-stability and turbulence "// &
+               "simulations of strongly magnetised plasma"//endl// &
+               "For more help, see the documentation at https://stellagk.github.io/stella/"//endl// &
+               "or create an issue https://github.com/stellaGK/stella/issues/new"//endl// &
+               endl// &
+               "  -h, --help     Print this message"//endl// &
+               "  -v, --version  Print the stella version"
+            stop
+         end if
+      end do
+      
+   end subroutine parse_command_line
 
 !###############################################################################
 !################################ FINISH STELLA ################################
