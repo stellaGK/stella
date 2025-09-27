@@ -216,6 +216,12 @@ jobs:
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-7
+          
+      - name: Python tests 8 - Restart simulations
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-8
 
 #-----------------------------------------------------------------------
 #                              Quick build                              
