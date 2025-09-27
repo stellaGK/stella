@@ -64,8 +64,8 @@ module save_stella_for_restart
 # ifdef NETCDF
    real, allocatable, dimension(:, :, :) :: tmpr, tmpi
    real, allocatable, dimension(:, :, :, :) :: ktmpr, ktmpi
-   real, allocatable, dimension(:, :, :, :) :: ptmpr, ptmpi
-   real, allocatable, dimension(:, :, :) :: pptmpr, pptmpi
+   real, allocatable, dimension(:, :, :, :)   :: ptmpr, ptmpi
+   real, allocatable, dimension(:, :, :)   :: pptmpr, pptmpi
    integer(kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
    integer(kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
    integer(kind_nf) :: phiprojr_id, phiproji_id
@@ -145,7 +145,7 @@ contains
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use common_types, only: kxkyz_layout_type
       use mp, only: iproc, barrier
-      use mp, only: proc0
+      use mp, only: proc0, mp_abort
       
       ! Grids
       use grids_z, only: nztot, nzgrid, ntubes
@@ -185,6 +185,12 @@ contains
       logical :: has_vmulo
       logical :: exit
 
+      ! Temporary arrays
+      real, allocatable, dimension(:, :, :) :: g_temp
+      real, allocatable, dimension(:, :, :, :) :: krook_temp
+      real, allocatable, dimension(:, :, :, :) :: proj_temp
+      real, allocatable, dimension(:, :, :) :: phiproj_temp
+      
       !-------------------------------------------------------------------------
       
       ! Error status and exit status
@@ -223,7 +229,7 @@ contains
          istatus = nf90_create(path_netcdf_file_per_proc, NF90_CLOBBER, ncid)
          if (istatus /= NF90_NOERR) call process_nf90_error("nf90_create error: ", istatus)
 
-         ! Save the (kx,ky,z,tube,nu,vpa) dimensions
+         ! Save the dimensions
          if (n_elements > 0) then
          
             ! Save the (kx,ky,z,tube,nu,vpa) dimensions
@@ -252,10 +258,11 @@ contains
 
          end if
 
-         ! At initialisation there are various variables which we will set to zero
+         ! At initialisation there the variables swill set to zero
          ! The zero is chosen to be code precision instead of absolute zero
          if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
 
+         ! Save the time, istep and delt variables
          istatus = nf90_def_var(ncid, "t0", netcdf_real, t0id)
          if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var t0 error: ", istatus)
          istatus = nf90_def_var(ncid, "istep0", nf90_int, istep0id)
@@ -263,12 +270,18 @@ contains
          istatus = nf90_def_var(ncid, "delt0", netcdf_real, delt0id)
          if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var delt0 error: ", istatus)
 
+         ! Save the variables
          if (n_elements > 0) then
          
+            ! Save the real and imaginary part of the distribution function vs (vpa, mu, ikxkyzs)
             istatus = nf90_def_var(ncid, "gr", netcdf_real, (/vpaid, muid, gloid/), gr_id)
             if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var g error: ", istatus)
             istatus = nf90_def_var(ncid, "gi", netcdf_real, (/vpaid, muid, gloid/), gi_id)
             if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var g error: ", istatus)
+
+            ! Flow shear
+            istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, (/kyid/), shift_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var shiftstate error: ", istatus)
 
             ! Radial variation and sources
             if (source_option_switch == source_option_krook .and. has_vmulo) then
@@ -298,151 +311,101 @@ contains
                if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var proji error: ", istatus)
             end if
 
-            ! Flow shear
-            istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, (/kyid/), shift_id)
-            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var shiftstate error: ", istatus)
-
          end if
 
+         ! Finished defining all dimensions and variables in the netcdf file
          istatus = nf90_enddef(ncid)
-         if (istatus /= NF90_NOERR) then
-            write (unit_error_file, *) "nf90_enddef error: ", nf90_strerror(istatus)
-            goto 1
-         end if
+         if (istatus /= NF90_NOERR) call process_nf90_error("nf90_enddef error: ", istatus)
+
       end if
 
       !-------------------------------------------------------------------------
       !                          Write the netcdf file                          
       !-------------------------------------------------------------------------
 
-      istatus = nf90_put_var(ncid, delt0id, delt0)
-      if (istatus /= NF90_NOERR) then
-         write (unit_error_file, *) "nf90_put_var delt0 error: ", nf90_strerror(istatus)
-         goto 1
-      end if
-
+      ! Write the actual time, istep and delt variables to the netcdf file
       istatus = nf90_put_var(ncid, t0id, t0)
-      if (istatus /= NF90_NOERR) then
-         write (unit_error_file, *) "nf90_put_var t0 error: ", nf90_strerror(istatus)
-         goto 1
-      end if
-
+      if (istatus /= NF90_NOERR) call process_nf90_error("nf90_put_var t0 error: ", istatus)
       istatus = nf90_put_var(ncid, istep0id, istep0)
-      if (istatus /= NF90_NOERR) then
-         write (unit_error_file, *) "nf90_put_var istep0 error: ", nf90_strerror(istatus)
-         goto 1
-      end if
+      if (istatus /= NF90_NOERR) call process_nf90_error("nf90_put_var istep error: ", istatus)
+      istatus = nf90_put_var(ncid, delt0id, delt0)
+      if (istatus /= NF90_NOERR) call process_nf90_error("nf90_put_var delt0 error: ", istatus)
 
-1     continue
-
-      if (istatus /= NF90_NOERR) then
-         i = nf90_close(ncid)
-         return
-      end if
-
+      ! Save the distribution function to the netcdf file
       if (n_elements > 0) then
 
-         if (.not. allocated(tmpr)) &
-            allocate (tmpr(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         ! Use a temporary array for the real and imaginary parts of g(vpa,mu,ikxkyzs)
+         if (.not. allocated(g_temp)) allocate (g_temp(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
-         tmpr = real(gvmu)
-
-         istatus = nf90_put_var(ncid, gr_id, tmpr)
-
-
+         ! Save the real part of the distribution function
+         g_temp = real(gvmu)
+         istatus = nf90_put_var(ncid, gr_id, g_temp)
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gr_id)
 
-         tmpr = aimag(gvmu)
-         istatus = nf90_put_var(ncid, gi_id, tmpr)
-
+         ! Save the imaginary part of the distribution function
+         g_temp = aimag(gvmu)
+         istatus = nf90_put_var(ncid, gi_id, g_temp)
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gi_id)
+         
+         ! Deallocate the temporary array
+         if (allocated(g_temp)) deallocate (g_temp)
 
-         if (source_option_switch == source_option_krook .and. has_vmulo) then
-            if (.not. allocated(ktmpr)) &
-               allocate (ktmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-            if (.not. allocated(ktmpi)) &
-               allocate (ktmpi(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
-            istatus = nf90_put_var(ncid, intkrook_id, int_krook)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_put_var int_krook error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
-            ktmpr = real(g_krook)
-            ktmpi = aimag(g_krook)
-
-            istatus = nf90_put_var(ncid, krookr_id, ktmpr)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krookr_id)
-
-            istatus = nf90_put_var(ncid, krooki_id, ktmpi)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krooki_id)
-
-         end if
-
-         if (source_option_switch == source_option_projection .and. has_vmulo) then
-            if (.not. allocated(ptmpr)) &
-               allocate (ptmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-            if (.not. allocated(ptmpi)) &
-               allocate (ptmpi(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
-
-            istatus = nf90_put_var(ncid, intproj_id, int_proj)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_put_var int_proj error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
-            ptmpr = real(g_proj)
-            ptmpi = aimag(g_proj)
-
-            istatus = nf90_put_var(ncid, projr_id, ptmpr)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, projr_id)
-
-            istatus = nf90_put_var(ncid, proji_id, ptmpi)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, proji_id)
-
-         end if
-
+         ! Flow shear
          istatus = nf90_put_var(ncid, shift_id, shift_state)
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
 
-         if (include_qn_source .and. iproc == 0) then
-            if (.not. allocated(pptmpr)) &
-               allocate (pptmpr(nakx, -nzgrid:nzgrid, ntubes))
-            if (.not. allocated(pptmpi)) &
-               allocate (pptmpi(nakx, -nzgrid:nzgrid, ntubes))
-
-            pptmpr = real(phi_proj)
-            pptmpi = aimag(phi_proj)
-
-            istatus = nf90_put_var(ncid, phiprojr_id, pptmpr)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiprojr_id)
-
-            istatus = nf90_put_var(ncid, phiproji_id, pptmpi)
-            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiproji_id)
-
+         ! Radial variation and sources
+         if (source_option_switch == source_option_krook .and. has_vmulo) then
+            istatus = nf90_put_var(ncid, intkrook_id, int_krook)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_put_var int_krook error: ", istatus)
+            if (.not. allocated(krook_temp)) allocate (krook_temp(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            krook_temp = real(g_krook)
+            istatus = nf90_put_var(ncid, krookr_id, krook_temp)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krookr_id)
+            krook_temp = aimag(g_krook)
+            istatus = nf90_put_var(ncid, krooki_id, krook_temp)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krooki_id)
+            if (allocated(krook_temp)) deallocate (krook_temp)
          end if
+
+         ! Radial variation and sources
+         if (source_option_switch == source_option_projection .and. has_vmulo) then
+            istatus = nf90_put_var(ncid, intproj_id, int_proj)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_put_var int_proj error: ", istatus)
+            if (.not. allocated(proj_temp)) allocate (proj_temp(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            proj_temp = real(g_proj)
+            istatus = nf90_put_var(ncid, projr_id, proj_temp)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, projr_id)
+            proj_temp = aimag(g_proj)
+            istatus = nf90_put_var(ncid, proji_id, proj_temp)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, proji_id)
+            if (allocated(proj_temp)) deallocate (proj_temp)
+         end if
+
+         ! Radial variation and sources
+         if (include_qn_source .and. iproc == 0) then
+            if (.not. allocated(phiproj_temp)) allocate (phiproj_temp(nakx, -nzgrid:nzgrid, ntubes))
+            phiproj_temp = real(phi_proj)
+            istatus = nf90_put_var(ncid, phiprojr_id, phiproj_temp)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiprojr_id)
+            phiproj_temp = aimag(phi_proj)
+            istatus = nf90_put_var(ncid, phiproji_id, phiproj_temp)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiproji_id)
+            if (allocated(phiproj_temp)) deallocate (phiproj_temp)
+         end if
+         
       end if
 
+      ! If we make a clean exit of stella, then close the netcdf file
       if (exit) then
          i = nf90_close(ncid)
-         if (i /= NF90_NOERR) &
-            call netcdf_error(istatus, message='nf90_close error')
+         if (i /= NF90_NOERR) call netcdf_error(istatus, message='nf90_close error')
+         
+      ! Otherwise, sync the netcdf file
       else
          i = nf90_sync(ncid)
-         if (i /= NF90_NOERR) &
-            call netcdf_error(istatus, message='nf90_sync error')
+         if (i /= NF90_NOERR) call netcdf_error(istatus, message='nf90_sync error')
       end if
-
-      if (allocated(tmpr)) deallocate (tmpr)
-      if (allocated(tmpi)) deallocate (tmpi)
-      if (allocated(ptmpr)) deallocate (ptmpr)
-      if (allocated(ptmpi)) deallocate (ptmpi)
-      if (allocated(ktmpr)) deallocate (ktmpr)
-      if (allocated(ktmpi)) deallocate (ktmpi)
-      if (allocated(pptmpr)) deallocate (pptmpr)
-      if (allocated(pptmpi)) deallocate (pptmpi)
 
    end subroutine save_stella_data_for_restart_to_multiple_files
 # endif
@@ -1577,11 +1540,14 @@ contains
      
       integer, intent(in) :: istatus
       character(*), intent(in) :: error_message
+      integer :: i
+      
+      !-------------------------------------------------------------------------
       
       if (.not. proc0) return
       write (unit_error_file, *) error_message, nf90_strerror(istatus)
       write (*, *) ' '; write (*, *) error_message, nf90_strerror(istatus)
-      call mp_abort('Error while writing the netcdf file to restart a simulation. Aborting.') 
+      call mp_abort('Error while writing the netcdf file to restart a simulation. Aborting.')
       
    end subroutine process_nf90_error
 
