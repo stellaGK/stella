@@ -66,7 +66,7 @@ contains
    !****************************************************************************
    ! The guiding-center distribution function <g>, the electrostatic potential
    ! <phi> and the electromagnetic fields <apar> and <bpar> are evolved in time,
-   ! untill <code_time> is bigger than <tend> or <nstep> is bigger than <istep>. 
+   ! untill <code_time> is bigger than <tend> or <nstep> is bigger than <istep>.
    ! 
    ! Moreover, every time step, the distribution function and fields are diagnosed.
    ! Every 10 time steps, it is checked whether the program should be stopped, and

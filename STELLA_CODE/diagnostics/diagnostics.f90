@@ -246,7 +246,7 @@ contains
       
       !-------------------------------------------------------------------------
 
-      ! Save stella to be restarted
+      ! Save stella to be restarted if stella is being exited cleanly (hence exit_in = .true.)
       if (save_for_restart) then
          call save_stella_data_for_restart(istep, code_time, code_dt, istatus, .true.)
       end if

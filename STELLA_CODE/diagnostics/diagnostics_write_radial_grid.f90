@@ -1,7 +1,7 @@
 !###############################################################################
-!                                                                               
+!                               WRITE RADIAL GRID                               
 !###############################################################################
-! This module ...
+! Write the radial grid to a text file for radial variation simulations.
 !###############################################################################
 module write_radial_grid
 
@@ -14,7 +14,7 @@ module write_radial_grid
 contains
 
    !****************************************************************************
-   !                                      Title
+   !                       Write radial grid to text file                       
    !****************************************************************************
    subroutine dump_radial_grid (x, rho, nx)
 

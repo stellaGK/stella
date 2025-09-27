@@ -1,8 +1,7 @@
-
 !###############################################################################
 !#################### CALCULATE FLUXES FOR RADIAL VARIATION ####################
 !###############################################################################
-! This module ...
+! This module calculates the fluxes for radial variation simulations.
 !###############################################################################
 module diagnostics_fluxes_radialvariation
 

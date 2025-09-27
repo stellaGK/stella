@@ -17,7 +17,7 @@ module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stell
 with open(module_path, 'r') as file: exec(file.read())
 
 # Global variables
-input_filename = 'input.in'
+input_filename = 'input_singlerestartfile.in'
 local_stella_run_directory = 'Not/Run/Yet'
 
 #-------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ def stella_version(pytestconfig):
 #-------------------------------------------------------------------------------
 #                         Run local stella simulation                          #
 #-------------------------------------------------------------------------------
-def test_whether_we_can_restart_a_simulation_readmanytrue(tmp_path, stella_version):
+def test_whether_we_can_restart_a_simulation_readmanyfalse(tmp_path, stella_version):
     '''Run a local stella simulation in a temporary folder <tmp_path>.'''
 
     # Save the temporary folder <tmp_path> as a global variable so the

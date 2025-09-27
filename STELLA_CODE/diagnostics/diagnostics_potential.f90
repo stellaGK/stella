@@ -1,9 +1,8 @@
-
 !###############################################################################
 !############################# DIAGNOSE POTENTIAL ##############################
 !###############################################################################
 ! 
-! Routines for calculating and writing the potential.  
+! Routines for calculating and writing the potential.
 ! 
 !###############################################################################
 module diagnostics_potential
@@ -18,7 +17,7 @@ module diagnostics_potential
    public :: finish_diagnostics_potential
    public :: write_potential_to_netcdf_file
 
-   private 
+   private
 
    ! The <units> are used to identify the external ascii files
    integer :: stdout_unit

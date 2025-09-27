@@ -1,4 +1,3 @@
-
 !###############################################################################
 !############################## DIAGNOSE OMEGA #################################
 !###############################################################################
@@ -6,9 +5,9 @@
 ! Routines for calculating and writing the growth rate and frequency data.
 !  
 ! The potential can be written as <phi> = exp(-i*<0mega>*t) = exp(-i*(<omega>+i<gamma>)*t)
-!     Thus <Omega> = log(dphi)/(-i*dt) = i*log(dphi)/dt 
-!     with <omega> = real(<Omega>) and <gamma> = imag(<Omega>)  
-! We take the running average of <Omega> over the last <navg> time points. 
+!     Thus <Omega> = log(dphi)/(-i*dt) = i*log(dphi)/dt
+!     with <omega> = real(<Omega>) and <gamma> = imag(<Omega>)
+! We take the running average of <Omega> over the last <navg> time points.
 ! 
 !###############################################################################
 module diagnostics_omega
