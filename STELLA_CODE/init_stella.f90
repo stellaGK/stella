@@ -769,45 +769,66 @@ contains
 
    subroutine finish_stella(istep, time_diagnose_stella, last_call)
 
+      ! Parallelisation
       use mp, only: finish_mp
       use mp, only: proc0
-      use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
+      
+      ! Time routines
       use job_manage, only: time_message
-      use parallelisation_layouts, only: fields_kxkyz
-      use parameters_physics, only: finish_read_parameters_physics
-      use parameters_physics, only: include_parallel_nonlinearity, radial_variation
-      use parameters_numerical, only: finish_read_parameters_numerical
-      use parameters_numerical, only: stream_implicit, drifts_implicit
-      use grids_z, only: finish_z_grid
-      use grids_species, only: finish_species
-      use grids_extended_zgrid, only: finish_extended_zgrid
-      use grids_velocity, only: finish_velocity_grids
-      use grids_kxky, only: finish_grids_kxky
-      use initialise_arrays, only: finish_arrays_vperp_kperp
-      use arrays_gyro_averages, only: finish_arrays_bessel_functions
-      use arrays, only: time_field_solve
-      use arrays, only: time_gke, time_parallel_nl
-      use initialise_distribution_function, only: finish_distribution_function
-      use field_equations, only: finish_field_equations
-      use gyrokinetic_equation_initialisation, only: finish_gyrokinetic_equation
       use gk_parallel_streaming, only: time_parallel_streaming
-      use gk_mirror, only: time_mirror
-      use gk_sources, only: finish_sources, time_sources, source_option_switch, source_option_none
+      use dissipation_and_collisions, only: time_collisions
       use gk_implicit_terms, only: time_implicit_advance
-      use response_matrix, only: finish_response_matrix
-      use dissipation_and_collisions, only: time_collisions, include_collisions 
-      use initialise_redistribute, only: finish_redistribute
-      use diagnostics, only: finish_diagnostics, time_diagnostics
-      use geometry, only: finish_geometry
-      use calculations_volume_averages, only: finish_volume_averages
-      use multibox, only: finish_multibox, time_multibox
+      use diagnostics, only: time_diagnostics
+      use gk_mirror, only: time_mirror
+      use multibox, only: time_multibox
+      use gk_sources, only: time_sources
+      use arrays, only: time_field_solve
+      use arrays, only: time_parallel_nl
+      use arrays, only: time_gke
+      
+      ! Flags
+      use file_utils, only: runtype_option_switch
+      use file_utils, only: runtype_multibox
+      use parallelisation_layouts, only: fields_kxkyz
+      use parameters_physics, only: include_parallel_nonlinearity
+      use parameters_physics, only: radial_variation
+      use parameters_numerical, only: stream_implicit
+      use parameters_numerical, only: drifts_implicit
+      use dissipation_and_collisions, only: include_collisions
       use debug_flags, only: print_extra_info_to_terminal
+      use gk_sources, only: source_option_switch
+      use gk_sources, only: source_option_none
+      
+      ! Finish modules
+      use grids_z, only: finish_z_grid
+      use geometry, only: finish_geometry
+      use multibox, only: finish_multibox
+      use gk_sources, only: finish_sources
+      use grids_species, only: finish_species
+      use file_utils, only: finish_file_utils
+      use grids_kxky, only: finish_grids_kxky
+      use diagnostics, only: finish_diagnostics
+      use grids_velocity, only: finish_velocity_grids
+      use field_equations, only: finish_field_equations
+      use response_matrix, only: finish_response_matrix
+      use grids_extended_zgrid, only: finish_extended_zgrid
+      use initialise_arrays, only: finish_arrays_vperp_kperp
+      use initialise_redistribute, only: finish_redistribute
+      use parameters_physics, only: finish_read_parameters_physics
+      use arrays_gyro_averages, only: finish_arrays_bessel_functions
+      use calculations_volume_averages, only: finish_volume_averages
+      use parameters_numerical, only: finish_read_parameters_numerical
+      use initialise_distribution_function, only: finish_distribution_function
+      use gyrokinetic_equation_initialisation, only: finish_gyrokinetic_equation
 
       implicit none
 
+      ! Arguments
       real, dimension(2), intent(in) :: time_diagnose_stella
       logical, intent(in), optional :: last_call
       integer, intent(in) :: istep
+      
+      ! Local variables
       real :: sum_timings
       
       !----------------------------------------------------------------------
@@ -829,8 +850,9 @@ contains
       call finish_extended_zgrid
       if (debug) write (*, *) 'stella::finish_stella::finish_multibox'
       call finish_multibox
-      if (debug) write (*, *) 'stella::finish_stella::finish_dist_fn'
+      if (debug) write (*, *) 'stella::finish_stella::finish_arrays_vperp_kperp'
       call finish_arrays_vperp_kperp
+      if (debug) write (*, *) 'stella::finish_stella::finish_arrays_bessel_functions'
       call finish_arrays_bessel_functions
       if (debug) write (*, *) 'stella::finish_stella::finish_redistribute'
       call finish_redistribute
