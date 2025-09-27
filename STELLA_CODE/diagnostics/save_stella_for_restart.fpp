@@ -117,8 +117,6 @@ contains
          ! The <save_many> variable is an input variable that can be set by the user
          ! However, if parallel netcdf is not loaded, we need to save to multiple netcdf files
          if (.not. parallel_netcdf) save_many = .true.
-         write (*,*) 'COOKIE parallel_netcdf', parallel_netcdf
-         write (*,*) 'COOKIE save_many', save_many
          
       end if
       
@@ -136,7 +134,7 @@ contains
 
 # ifdef NETCDF
    !****************************************************************************
-   !                 Save distribution function to a netcdf file                
+   !    Save distribution function to a netcdf file (one file per processor)    
    !****************************************************************************
    subroutine save_stella_data_for_restart_to_multiple_files(istep0, t0, delt0, istatus, exit_in)
       
@@ -144,24 +142,14 @@ contains
       ! diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use common_types, only: kxkyz_layout_type
-      use mp, only: iproc, barrier
-      use mp, only: proc0, mp_abort
+      use mp, only: iproc
       
       ! Grids
-      use grids_z, only: nztot, nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_kxky, only: naky, nakx
       
-      ! Error file
-      use file_utils, only: error_unit
-      use file_units, only: unit_error_file
-      
-      ! Radial variation and sources
-      use gk_sources, only: include_qn_source
-      use gk_sources, only: source_option_krook, source_option_projection
-      use gk_sources, only: source_option_switch, int_krook, int_proj
-      use arrays_distribution_function, only: g_krook, g_proj
-      use arrays_fields, only: phi_proj
+      ! Flow shear
       use arrays, only: shift_state
       
       ! Make sure we have the distribution function vs (nvpa, nmu, -kxkyz-layout-)
@@ -181,15 +169,12 @@ contains
       ! Local variables
       character(306) :: path_netcdf_file_per_proc
       character(10) :: suffix
-      integer :: i, n_elements, nvmulo_elements
+      integer :: n_elements, nvmulo_elements
       logical :: has_vmulo
       logical :: exit
 
       ! Temporary arrays
       real, allocatable, dimension(:, :, :) :: g_temp
-      real, allocatable, dimension(:, :, :, :) :: krook_temp
-      real, allocatable, dimension(:, :, :, :) :: proj_temp
-      real, allocatable, dimension(:, :, :) :: phiproj_temp
       
       !-------------------------------------------------------------------------
       
@@ -282,34 +267,9 @@ contains
             ! Flow shear
             istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, (/kyid/), shift_id)
             if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var shiftstate error: ", istatus)
-
-            ! Radial variation and sources
-            if (source_option_switch == source_option_krook .and. has_vmulo) then
-               istatus = nf90_def_var(ncid, "intkrook", netcdf_real, intkrook_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var intkrook error: ", istatus)
-               istatus = nf90_def_var(ncid, "krookr", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), krookr_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var krookr error: ", istatus)
-               istatus = nf90_def_var(ncid, "krooki", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), krooki_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var krooki error: ", istatus)
-            end if
-
-            ! Radial variation and sources
-            if (include_qn_source .and. iproc == 0) then
-               istatus = nf90_def_var(ncid, "phiprojr", netcdf_real, (/kxid, zedid, tubeid/), phiprojr_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var phiprojr error: ", istatus)
-               istatus = nf90_def_var(ncid, "phiproji", netcdf_real, (/kxid, zedid, tubeid/), phiproji_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var phiproji error: ", istatus)
-            end if
-
-            ! Radial variation and sources
-            if (source_option_switch == source_option_projection .and. has_vmulo) then
-               istatus = nf90_def_var(ncid, "intproj", netcdf_real, intproj_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var intproj error: ", istatus)
-               istatus = nf90_def_var(ncid, "projr", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), projr_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var projr error: ", istatus)
-               istatus = nf90_def_var(ncid, "proji", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), proji_id)
-               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var proji error: ", istatus)
-            end if
+            
+            ! Radial variation and Sources
+            call save_radial_variation_to_netcdf_def_var()
 
          end if
 
@@ -353,6 +313,85 @@ contains
          ! Flow shear
          istatus = nf90_put_var(ncid, shift_id, shift_state)
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
+         
+         ! Radial variation and sources
+         call save_radial_variation_to_netcdf_put_var()
+         
+      end if
+
+      ! If we make a clean exit of stella, then close the netcdf file
+      if (exit) then
+         istatus = nf90_close(ncid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, message='nf90_close error')
+         
+      ! Otherwise, sync the netcdf file
+      else
+         istatus = nf90_sync(ncid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, message='nf90_sync error')
+      end if
+      
+   contains
+   
+      !------------- Radial variation and Sources: Define variables ------------
+      subroutine save_radial_variation_to_netcdf_def_var
+      
+         ! Radial variation and sources
+         use gk_sources, only: include_qn_source
+         use gk_sources, only: source_option_krook
+         use gk_sources, only: source_option_projection
+         use gk_sources, only: source_option_switch
+         
+         implicit none
+
+         !----------------------------------------------------------------------
+      
+         ! Radial variation and sources
+         if (source_option_switch == source_option_krook .and. has_vmulo) then
+            istatus = nf90_def_var(ncid, "intkrook", netcdf_real, intkrook_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var intkrook error: ", istatus)
+            istatus = nf90_def_var(ncid, "krookr", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), krookr_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var krookr error: ", istatus)
+            istatus = nf90_def_var(ncid, "krooki", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), krooki_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var krooki error: ", istatus)
+         end if
+
+         ! Radial variation and sources
+         if (include_qn_source .and. iproc == 0) then
+            istatus = nf90_def_var(ncid, "phiprojr", netcdf_real, (/kxid, zedid, tubeid/), phiprojr_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var phiprojr error: ", istatus)
+            istatus = nf90_def_var(ncid, "phiproji", netcdf_real, (/kxid, zedid, tubeid/), phiproji_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var phiproji error: ", istatus)
+         end if
+
+         ! Radial variation and sources
+         if (source_option_switch == source_option_projection .and. has_vmulo) then
+            istatus = nf90_def_var(ncid, "intproj", netcdf_real, intproj_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var intproj error: ", istatus)
+            istatus = nf90_def_var(ncid, "projr", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), projr_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var projr error: ", istatus)
+            istatus = nf90_def_var(ncid, "proji", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), proji_id)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var proji error: ", istatus)
+         end if
+      
+      end subroutine save_radial_variation_to_netcdf_def_var
+      
+      !-------------- Radial variation and Sources: Put variables --------------
+      subroutine save_radial_variation_to_netcdf_put_var
+      
+         ! Radial variation and sources
+         use gk_sources, only: include_qn_source
+         use gk_sources, only: source_option_krook, source_option_projection
+         use gk_sources, only: source_option_switch, int_krook, int_proj
+         use arrays_distribution_function, only: g_krook, g_proj
+         use arrays_fields, only: phi_proj
+         
+         implicit none
+         
+         real, allocatable, dimension(:, :, :, :) :: krook_temp
+         real, allocatable, dimension(:, :, :, :) :: proj_temp
+         real, allocatable, dimension(:, :, :) :: phiproj_temp
+
+         !----------------------------------------------------------------------
 
          ! Radial variation and sources
          if (source_option_switch == source_option_krook .and. has_vmulo) then
@@ -393,19 +432,8 @@ contains
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiproji_id)
             if (allocated(phiproj_temp)) deallocate (phiproj_temp)
          end if
-         
-      end if
-
-      ! If we make a clean exit of stella, then close the netcdf file
-      if (exit) then
-         i = nf90_close(ncid)
-         if (i /= NF90_NOERR) call netcdf_error(istatus, message='nf90_close error')
-         
-      ! Otherwise, sync the netcdf file
-      else
-         i = nf90_sync(ncid)
-         if (i /= NF90_NOERR) call netcdf_error(istatus, message='nf90_sync error')
-      end if
+      
+      end subroutine save_radial_variation_to_netcdf_put_var
 
    end subroutine save_stella_data_for_restart_to_multiple_files
 # endif
@@ -1540,7 +1568,6 @@ contains
      
       integer, intent(in) :: istatus
       character(*), intent(in) :: error_message
-      integer :: i
       
       !-------------------------------------------------------------------------
       
