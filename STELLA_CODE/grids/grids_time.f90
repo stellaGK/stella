@@ -10,7 +10,7 @@ module grids_time
    public :: code_dt, update_time, code_dt_old
    public :: code_time
    public :: write_dt
-   public :: init_tstart, init_delt, checkcodedt
+   public :: init_tstart, init_delt, check_code_dt
    public :: cfl_dt_linear, cfl_dt_ExB, cfl_dt_parallel
    public :: code_dt_min, code_dt_max
 
@@ -81,7 +81,7 @@ contains
    !****************************************************************************
    !                     Check that code_dt is not too small
    !****************************************************************************
-   subroutine checkcodedt(stop_stella)
+   subroutine check_code_dt(stop_stella)
 
       use mp, only: proc0, broadcast
       logical, intent(in out) :: stop_stella
@@ -101,6 +101,6 @@ contains
 
       call broadcast(stop_stella)
 
-   end subroutine checkcodedt
+   end subroutine check_code_dt
 
 end module grids_time

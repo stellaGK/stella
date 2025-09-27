@@ -7,8 +7,8 @@ module job_manage
    public :: timer_local
    public :: time_message
    public :: job_fork
-   public :: checkstop
-   public :: checktime
+   public :: check_stop_file
+   public :: check_cpu_time
    public :: njobs
 
    integer :: njobs = 1
@@ -161,7 +161,7 @@ contains
 
    end subroutine job_fork
 
-   subroutine checkstop(exit, list)
+   subroutine check_stop_file(exit, list)
 
       use mp, only: proc0, broadcast
       use file_utils, only: run_name, list_name
@@ -184,9 +184,9 @@ contains
 
       call broadcast(exit)
 
-   end subroutine checkstop
+   end subroutine check_stop_file
 
-   subroutine checktime(avail_time, exit)
+   subroutine check_cpu_time(avail_time, exit)
       use mp, only: proc0, broadcast
       use file_utils, only: error_unit
 
@@ -221,6 +221,6 @@ contains
 
       call broadcast(exit)
 
-   end subroutine checktime
+   end subroutine check_cpu_time
 
 end module job_manage
