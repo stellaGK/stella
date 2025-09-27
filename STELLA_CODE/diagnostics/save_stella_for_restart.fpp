@@ -2,7 +2,9 @@
 !###############################################################################
 !                   SAVE DISTRIBUTION FUNCTION FOR A RESTART                    
 !###############################################################################
-! This module ...
+! This module saves the distribution function g(mu,vpa,ikxkyzs) to a netcdf
+! file, as well as the dimensions (kx,ky,z,nu,vpa,s,tube). This allows us to
+! restart the simulation in the future, to continue the time evolution.
 !###############################################################################
 module save_stella_for_restart
 

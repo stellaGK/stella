@@ -2,9 +2,13 @@
 !###############################################################################
 !                   SAVE DISTRIBUTION FUNCTION FOR A RESTART                    
 !###############################################################################
-! This module has not been cleaned since parallel netcdf does not seem to work.
-! Therefore, one should always run with <save_many> = .true. until this module
-! has been debugged and fixed.
+! This module saves the distribution function g(mu,vpa,ikxkyzs) to a netcdf
+! file, as well as the dimensions (kx,ky,z,nu,vpa,s,tube). This allows us to
+! restart the simulation in the future, to continue the time evolution.
+! 
+! WARNING: This module has not been cleaned completely, since parallel netcdf 
+! does not seem to work. Therefore, one should always run with <save_many> = .true.
+! until this module has been debugged and fixed.
 !###############################################################################
 module save_stella_for_restart_parallel_netcdf
 
