@@ -94,10 +94,9 @@ contains
    subroutine read_parameters_distribution_function
 
       use mp, only: proc0, broadcast
-      use save_stella_for_restart, only: init_save, read_many
+      use save_stella_for_restart, only: init_save, save_many
       use parallelisation_layouts, only: read_parameters_parallelisation_layouts
       use system_fortran, only: systemf
-      use save_stella_for_restart, only: read_many
       
       ! Read namelist from input file
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution
@@ -107,7 +106,7 @@ contains
       ! Load the <init_distribution_switch> parameters
       use namelist_initialise_distribution_function, only: init_distribution_option_maxwellian
       use namelist_initialise_distribution_function, only: init_distribution_option_noise
-      use namelist_initialise_distribution_function, only: init_distribution_option_restart_many
+      use namelist_initialise_distribution_function, only: init_distribution_option_restart
       use namelist_initialise_distribution_function, only: init_distribution_option_kpar
       use namelist_initialise_distribution_function, only: init_distribution_option_rh
       use namelist_initialise_distribution_function, only: init_distribution_option_remap
@@ -136,14 +135,14 @@ contains
       ! Read <restart_options> namelist
       ! Most of these options will be parsed to other stella modules
       ! Except the <scale> variable which is used in init_distribution_switch = 'many'
-      if (proc0) call read_namelist_restart_options(tstart, scale, restart_file, restart_dir, read_many)
+      if (proc0) call read_namelist_restart_options(tstart, scale, restart_file, restart_dir, save_many)
          
       ! Broadcast to all processors
       call broadcast(tstart)
       call broadcast(scale)
       call broadcast(restart_file)
       call broadcast(restart_dir)
-      call broadcast(read_many)
+      call broadcast(save_many)
 
       ! Prepend restart_dir to restart_file, and append trailing slash if not exists
       if (restart_dir(len_trim(restart_dir):) /= "/") &
@@ -298,7 +297,7 @@ contains
       ! Load the <init_distribution_switch> parameters
       use namelist_initialise_distribution_function, only: init_distribution_option_maxwellian
       use namelist_initialise_distribution_function, only: init_distribution_option_noise
-      use namelist_initialise_distribution_function, only: init_distribution_option_restart_many
+      use namelist_initialise_distribution_function, only: init_distribution_option_restart
       use namelist_initialise_distribution_function, only: init_distribution_option_kpar
       use namelist_initialise_distribution_function, only: init_distribution_option_rh
       use namelist_initialise_distribution_function, only: init_distribution_option_remap
@@ -317,7 +316,7 @@ contains
       initialised_distribution_function_vs_muvpa = .false.
 
       ! Assume this is a new simulation, starting from time step <istep0> = 0.
-      ! If <init_distribution_switch> = <init_distribution_option_restart_many>,
+      ! If <init_distribution_switch> = <init_distribution_option_restart>,
       ! then we have restarted the simulation from <istep0> > 0.
       restarted = .false.
       istep0 = 0
@@ -335,8 +334,8 @@ contains
          call initialise_distribution_rh
       case (init_distribution_option_remap)
          call initialise_distribution_remap
-      case (init_distribution_option_restart_many)
-         call initialise_distribution_restart_many
+      case (init_distribution_option_restart)
+         call initialise_distribution_restart
          call init_tstart(tstart, istep0, istatus)
          restarted = .true.
          scale = 1.
@@ -344,7 +343,7 @@ contains
 
       ! If <maxwwellian_normalization> = .true., the pdf is normalized by F0 (which is not the case otherwise)
       ! unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
-      if (maxwellian_normalization .and. init_distribution_switch /= init_distribution_option_restart_many) then
+      if (maxwellian_normalization .and. init_distribution_switch /= init_distribution_option_restart) then
          call normalize_by_maxwellian
       end if
 
@@ -948,7 +947,7 @@ contains
    !****************************************************************************
    !                       INITIALISE POTENTIAL: MANY                          !
    !****************************************************************************
-   subroutine initialise_distribution_restart_many
+   subroutine initialise_distribution_restart
 
       use arrays_distribution_function, only: gvmu
       use save_stella_for_restart, only: stella_restore
@@ -970,7 +969,7 @@ contains
          gvmu = 0.
       end if
 
-   end subroutine initialise_distribution_restart_many
+   end subroutine initialise_distribution_restart
   
 
 !###############################################################################
@@ -1013,11 +1012,11 @@ contains
    !****************************************************************************
    subroutine reset_init
    
-      use namelist_initialise_distribution_function, only: init_distribution_option_restart_many
+      use namelist_initialise_distribution_function, only: init_distribution_option_restart
       
       implicit none
 
-      init_distribution_switch = init_distribution_option_restart_many
+      init_distribution_switch = init_distribution_option_restart
 
    end subroutine reset_init
 
@@ -1027,7 +1026,6 @@ contains
 
    subroutine finish_distribution_function
 
-      use save_stella_for_restart, only: finish_save
       use arrays_distribution_function, only: gnew, gold, gvmu
       use arrays_distribution_function, only: g_scratch, g_kymus
       use arrays_distribution_function, only: g0, g1, g2, g3
@@ -1050,8 +1048,6 @@ contains
       initialised_arrays = .false.
       initialised_distribution_function_vs_muvpa = .false.
       initialised_distribution_function_vs_kxkyz = .false.
-   
-      call finish_save
 
    end subroutine finish_distribution_function
 

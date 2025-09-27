@@ -486,7 +486,8 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'init_g_knobs:restart_dir:./'               : 'restart_options:restart_dir:./',
         'init_g_knobs:tstart:0.0'                   : 'restart_options:tstart:0.0',
         'init_g_knobs:scale:1.0'                    : 'restart_options:scale:1.0',
-        'restart_options:read_many:DOESNT EXIST YET': 'restart_options:read_many:True',
+        'restart_options:read_many:DOESNT EXIST YET': 'restart_options:save_many:True',
+        'restart_options:save_many:DOESNT EXIST YET': 'restart_options:save_many:True',
         }
     
     # Replace variables

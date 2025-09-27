@@ -332,7 +332,7 @@
   scale = 1.0
   restart_file = trim(run_name)//'.nc'
   restart_dir = './'
-  read_many = .true.
+  save_many = .true.
 /
 
 !===============================================================================

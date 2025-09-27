@@ -14,7 +14,7 @@
 /
 &restart_options
   restart_dir = 'restart'
-  read_many = .false.
+  save_many = .false.
 /
 &gyrokinetic_terms
   include_nonlinear = .true.

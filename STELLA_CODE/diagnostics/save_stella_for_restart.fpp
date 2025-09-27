@@ -13,7 +13,7 @@ module save_stella_for_restart
    ! Import parallel netcdf modules
    ! If using netcdf version 4.1.2 or older replace NF90_MPIIO with NF90_CLOBBER
 # ifdef NETCDF_PARALLEL
-   use netcdf, only: NF90_HDF5, NF90_MPIIO
+   use netcdf, only: NF90_HDF5, NF90_CLOBBER
    use netcdf, only: nf90_var_par_access, NF90_COLLECTIVE
    use netcdf, only: nf90_put_att, NF90_GLOBAL, nf90_get_att
 # endif
@@ -38,21 +38,15 @@ module save_stella_for_restart
    ! Make the routines available to other modules
    public :: stella_restore
    public :: save_stella_data_for_restart
-   public :: read_many
    public :: save_many
    public :: init_dt
    public :: init_tstart
    public :: init_save
-   public :: finish_save
-
-   interface stella_restore
-      module procedure stella_restore_many
-   end interface
-
-   ! Read and write single or multiple restart files
-   ! Note that <read_many> can be set in the input file in <restart_options>
-   ! but it is only read if initialise_distribution_option = "many"
-   logical :: read_many = .true.
+ 
+   ! Note that <save_many> can be set in the input file in <restart_options>
+   ! but it is only read if <save_for_restart> = True. If <save_many> = True,
+   ! the distribution function is saved to a netcdf file for each processor.
+   ! If instead <save_many> = .false., it is saved to a single netcdf file.
    logical :: save_many = .true.
 
    private
@@ -62,10 +56,6 @@ module save_stella_for_restart
 
    ! Initialise local arrays
 # ifdef NETCDF
-   real, allocatable, dimension(:, :, :) :: tmpr, tmpi
-   real, allocatable, dimension(:, :, :, :) :: ktmpr, ktmpi
-   real, allocatable, dimension(:, :, :, :)   :: ptmpr, ptmpi
-   real, allocatable, dimension(:, :, :)   :: pptmpr, pptmpi
    integer(kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
    integer(kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
    integer(kind_nf) :: phiprojr_id, phiproji_id
@@ -117,6 +107,9 @@ contains
          ! The <save_many> variable is an input variable that can be set by the user
          ! However, if parallel netcdf is not loaded, we need to save to multiple netcdf files
          if (.not. parallel_netcdf) save_many = .true.
+         
+         write(*,*) 'COOKIE parallel_netcdf', parallel_netcdf
+         write(*,*) 'COOKIE save_many', save_many
          
       end if
       
@@ -484,13 +477,14 @@ contains
       
       ! Local variables
 # ifdef NETCDF
-      character(306) :: path_netcdf_file_per_proc
+      character(306) :: path_netcdf_file
       character(10) :: suffix
-      integer :: i, n_elements, nvmulo_elements
+      integer :: i, n_elements, nvmulo_elements, tmpunit
       integer :: total_elements, total_vmulo_elements
       logical :: has_vmulo
 # ifdef NETCDF_PARALLEL
       integer, dimension(3) :: start_pos, counts
+      integer, dimension(4) :: start_pos_krook, counts_krook
 # endif
       logical :: parallel_netcdf
       logical :: exit
@@ -526,65 +520,27 @@ contains
          ! Only initialise once
          initialised_restart_module = .true.
          
-         ! The distribution function can be saved to a single restart file, or it
-         ! can be saved to multiple restart file, using one file for each processor.
-         ! To save to a single restart file, parallel netcdf needs to be loaded.
-         ! The save to multiple restart files, set <save_many> = True.
-         parallel_netcdf = .false.
-# ifdef NETCDF_PARALLEL
-         parallel_netcdf = .true.
-# endif
-         
-         ! The <save_many> variable is an input variable that can be set by the user
-         ! However, if parallel netcdf is not loaded, we need to save to multiple netcdf files
-         if (.not. parallel_netcdf) save_many = .true.
-
-         ! Write a netcdf file for each processor if <save_many> = True, 
-         ! otherwise we create a single netcdf file.
-         if (save_many) then
-            WRITE (suffix, '(a1,i0)') '.', iproc
-         else
-            WRITE (suffix, *) ''
-         end if
-         
          ! Path of the netcdf file
-         path_netcdf_file_per_proc = trim(restart_file)
-         path_netcdf_file_per_proc = trim(trim(path_netcdf_file_per_proc)//adjustl(suffix))
+         path_netcdf_file = trim(restart_file)
+         
+         if (proc0) write(*,*) 'Create the netcdf file'
+         if (proc0) write(*,*) path_netcdf_file
 
-         ! Create a netcdf file for each processor
-         if (save_many) then
-            istatus = nf90_create(path_netcdf_file_per_proc, NF90_CLOBBER, ncid)
-            
          ! Create a single netcdf file using the parallel netcdf library
-         else
-            call barrier
-            if (iproc == 0) open (unit=tmpunit, file=path_netcdf_file_per_proc)
-            if (iproc == 0) close (unit=tmpunit, status='delete')
-            call barrier
-            istatus = nf90_create(path_netcdf_file_per_proc, IOR(NF90_HDF5, NF90_MPIIO), ncid, comm=mp_comm, info=mp_info)
-         end if
+         call barrier
+         tmpunit = 983
+         if (iproc == 0) open (unit=tmpunit, file=path_netcdf_file)
+         if (iproc == 0) close (unit=tmpunit, status='delete')
+         call barrier
+         istatus = nf90_create(path_netcdf_file, IOR(NF90_HDF5, NF90_CLOBBER), ncid, comm=mp_comm, info=mp_info)
 
          ! Exit if we have an error when creating the netcdf file
          if (istatus /= NF90_NOERR) then
             write (unit_error_file, *) "nf90_create error: ", nf90_strerror(istatus)
             goto 1
          end if
-
-         ! Use the <NF90_GLOBAL> variable from the netcdf parallel library
-# ifdef NETCDF_PARALLEL
-         if (.not. save_many) then
-            istatus = nf90_put_att(ncid, NF90_GLOBAL, 'xyzs_layout', xyzs_layout)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_put_attr error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-            istatus = nf90_put_att(ncid, NF90_GLOBAL, 'vms_layout', vms_layout)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_put_attr error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-         end if
-# endif
+         
+         if (proc0) write(*,*) 'Create the netcdf file: Done'
 
          if (n_elements > 0) then
             istatus = nf90_def_dim(ncid, "tube", ntubes, tubeid)
@@ -898,10 +854,10 @@ contains
                istatus = nf90_var_par_access(ncid, krookr_id, NF90_COLLECTIVE)
                istatus = nf90_var_par_access(ncid, krooki_id, NF90_COLLECTIVE)
 
-               start_pos = (/1, 1, 1, vmu_lo%llim_proc + 1/)
-               counts = (/nakx, nztot, ntubes, nvmulo_elements/)
+               start_pos_krook = (/1, 1, 1, vmu_lo%llim_proc + 1/)
+               counts_krook = (/nakx, nztot, ntubes, nvmulo_elements/)
 
-               istatus = nf90_put_var(ncid, krookr_id, ktmpr, start=start_pos, count=counts)
+               istatus = nf90_put_var(ncid, krookr_id, ktmpr, start=start_pos_krook, count=counts_krook)
             end if
 # endif
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krookr_id)
@@ -912,7 +868,7 @@ contains
                istatus = nf90_put_var(ncid, krooki_id, ktmpi)
 #ifdef NETCDF_PARALLEL
             else
-               istatus = nf90_put_var(ncid, krooki_id, ktmpi, start=start_pos, count=counts)
+               istatus = nf90_put_var(ncid, krooki_id, ktmpi, start=start_pos_krook, count=counts_krook)
             end if
 # endif
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krooki_id)
@@ -951,10 +907,10 @@ contains
                istatus = nf90_var_par_access(ncid, projr_id, NF90_COLLECTIVE)
                istatus = nf90_var_par_access(ncid, proji_id, NF90_COLLECTIVE)
 
-               start_pos = (/1, 1, 1, vmu_lo%llim_proc + 1/)
-               counts = (/nakx, nztot, ntubes, nvmulo_elements/)
+               start_pos_krook = (/1, 1, 1, vmu_lo%llim_proc + 1/)
+               counts_krook = (/nakx, nztot, ntubes, nvmulo_elements/)
 
-               istatus = nf90_put_var(ncid, projr_id, ptmpr, start=start_pos, count=counts)
+               istatus = nf90_put_var(ncid, projr_id, ptmpr, start=start_pos_krook, count=counts_krook)
             end if
 # endif
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, projr_id)
@@ -965,7 +921,7 @@ contains
                istatus = nf90_put_var(ncid, proji_id, ptmpi)
 #ifdef NETCDF_PARALLEL
             else
-               istatus = nf90_put_var(ncid, proji_id, ptmpi, start=start_pos, count=counts)
+               istatus = nf90_put_var(ncid, proji_id, ptmpi, start=start_pos_krook, count=counts_krook)
             end if
 # endif
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, proji_id)
@@ -1044,26 +1000,362 @@ contains
    end subroutine save_stella_data_for_restart_to_a_single_file
 # endif
 
-!!----------------------------------------------------------------------!!
-!!----------------------------------------------------------------------!!
-!!---Restart------------------------------------------------------------!!
-!!----------------------------------------------------------------------!!
-!!----------------------------------------------------------------------!!
+!###############################################################################
+!############################### READ DISTRIBUTION #############################
+!###############################################################################
 
+   !****************************************************************************
+   !                Read distribution function from a netcdf file               
+   !****************************************************************************
+   subroutine stella_restore(g, scale, istatus)
+   
+      use parallelisation_layouts, only: kxkyz_lo
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
+      real, intent(in) :: scale
+      integer, intent(out) :: istatus
+
+      !-------------------------------------------------------------------------
+      
+      ! Initialise the restart module
+      if (.not. intialised_parallel_netcdf) then
+
+         ! Only initialise once
+         intialised_parallel_netcdf = .true.
+         
+         ! The distribution function can be saved to a single restart file, or it
+         ! can be saved to multiple restart file, using one file for each processor.
+         ! To save to a single restart file, parallel netcdf needs to be loaded.
+         ! The save to multiple restart files, set <save_many> = True.
+         parallel_netcdf = .false.
+# ifdef NETCDF_PARALLEL
+         parallel_netcdf = .true.
+# endif
+         
+         ! The <save_many> variable is an input variable that can be set by the user
+         ! However, if parallel netcdf is not loaded, we need to save to multiple netcdf files
+         if (.not. parallel_netcdf) save_many = .true.
+         
+         write(*,*) 'COOKIEEE parallel_netcdf', parallel_netcdf
+         write(*,*) 'COOKIEEE save_many', save_many
+         
+      end if
+      
+      ! Read from multiple netcdf files or a single netcdf file
+# ifdef NETCDF
+      if (save_many) call read_stella_data_for_restart_from_multiple_files(g, scale, istatus)
+# ifdef NETCDF_PARALLEL
+      if (.not. save_many) call read_stella_data_for_restart_from_single_file(g, scale, istatus)
+# endif
+# else
+      write(*,*) 'Could not read restart data from a netcdf file, since netcdf is not loaded.'
+# endif
+      
+   end subroutine stella_restore
+
+# ifdef NETCDF
+
+   !****************************************************************************
+   !            Read distribution function from multiple netcdf files           
+   !****************************************************************************
+   subroutine read_stella_data_for_restart_from_multiple_files(g, scale, istatus)
+   
+      ! Parallelisation
+      use mp, only: iproc, broadcast, proc0
+      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
+      
+      ! Grids
+      use grids_kxky, only: naky, nakx
+      use grids_z, only: nzgrid, ntubes
+      use grids_velocity, only: nvpa, nmu
+      
+      ! Error file
+      use file_utils, only: error_unit
+      use file_units, only: unit_error_file
+      
+      ! Flow shear
+      use arrays, only: shift_state
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(out) :: g
+      real, intent(in) :: scale
+      integer, intent(out) :: istatus
+      
+      ! Local variables
+      character(306) :: path_netcdf_file_per_proc
+      character(10) :: suffix
+      integer :: i, n_elements, nvmulo_elements
+      logical :: has_vmulo
+
+      ! Temporary arrays
+      real, allocatable, dimension(:, :, :) :: g_real_temp, g_imag_temp
+
+      !-------------------------------------------------------------------------
+       
+      ! Number of ikxkyzs points and imuvpas points
+      n_elements = kxkyz_lo%ulim_proc - kxkyz_lo%llim_proc + 1
+      nvmulo_elements = vmu_lo%ulim_proc - vmu_lo%llim_proc + 1
+
+      ! Don't read if something went wrong with the parallelisation
+      if (n_elements <= 0) return
+
+      ! Check if we parallelised over velocity space
+      has_vmulo = nvmulo_elements > 0
+
+      !-------------------------------------------------------------------------
+      !                       Initialise the netcdf file                        
+      !-------------------------------------------------------------------------
+      if (.not. initialised_restart_module) then
+      
+         ! Path of the netcdf file for each processor
+         write (suffix, '(a1,i0)') '.', iproc
+         path_netcdf_file_per_proc = trim(restart_file) 
+         path_netcdf_file_per_proc = trim(trim(path_netcdf_file_per_proc)//adjustl(suffix))
+         
+         ! Open the netcdf file for each processor
+         istatus = nf90_open(path_netcdf_file_per_proc, NF90_NOWRITE, ncid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, file=path_netcdf_file_per_proc, abort=.true.)
+
+         ! Check code precision
+         if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
+         call check_netcdf_file_precision(ncid)
+
+         ! Inquire about the netcdf dimensions id
+         istatus = nf90_inq_dimid(ncid, "akx", kxid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, dim='akx')
+         istatus = nf90_inq_dimid(ncid, "aky", kyid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, dim='aky')
+         istatus = nf90_inq_dimid(ncid, "zed", zedid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, dim='zed')
+         istatus = nf90_inq_dimid(ncid, "tube", tubeid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, dim='tube')
+         
+         ! Number of ikxkyzs points
+         istatus = nf90_inq_dimid(ncid, "glo", gloid)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, dim='glo')
+         
+         ! Nmber of ivpamus points
+         if (has_vmulo) then
+            istatus = nf90_inq_dimid(ncid, "gvmulo", gvmuloid)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, dim='gvmulo')
+         end if
+
+         ! Check that the dimensions in the netcdf file match those specified in the input file
+         istatus = nf90_inquire_dimension(ncid, kxid, len=i)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=kxid)
+         if (i /= nakx) write (*, *) 'Restart error: nakx=? ', i, ' : ', nakx, ' : ', iproc
+         istatus = nf90_inquire_dimension(ncid, kyid, len=i)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=kyid)
+         if (i /= naky) write (*, *) 'Restart error: naky=? ', i, ' : ', naky, ' : ', iproc
+         istatus = nf90_inquire_dimension(ncid, zedid, len=i)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=zedid)
+         if (i /= 2 * nzgrid + 1) write (*, *) 'Restart error: nzgrid=? ', i, ' : ', nzgrid, ' : ', iproc
+         istatus = nf90_inquire_dimension(ncid, tubeid, len=i)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=tubeid)
+         if (i /= ntubes) write (*, *) 'Restart error: ntubes=? ', i, ' : ', ntubes, ' : ', iproc
+         istatus = nf90_inquire_dimension(ncid, gloid, len=i)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=gloid)
+         if (i /= n_elements) write (*, *) 'Restart error: glo=? ', i, ' : ', iproc
+         if (has_vmulo) then
+            istatus = nf90_inquire_dimension(ncid, gvmuloid, len=i)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=gvmuloid)
+            if (i /= nvmulo_elements) write (*, *) 'Restart error: gvmulo=? ', i, ' : ', iproc
+         end if
+
+         ! Distribution function ids
+         istatus = nf90_inq_varid(ncid, "gr", gr_id)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='gr')
+         istatus = nf90_inq_varid(ncid, "gi", gi_id)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='gi')
+         
+         ! Flow shear ids
+         istatus = nf90_inq_varid(ncid, "shiftstate", shift_id)
+         if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='shiftstate')
+
+         ! Radial variation and Sources ids
+         call read_radial_variation_from_netcdf_variable_ids()
+   
+      end if
+
+      !-------------------------------------------------------------------------
+      !                          Read the netcdf file                          
+      !-------------------------------------------------------------------------
+      
+      ! Allocate the arrays for the distribution function and set them to zero
+      if (.not. allocated(g_real_temp)) allocate (g_real_temp(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      if (.not. allocated(g_imag_temp)) allocate (g_imag_temp(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      g_real_temp = 0.; g_imag_temp = 0.
+      
+      ! Read the real part of the distribution function
+      istatus = nf90_get_var(ncid, gr_id, g_real_temp)
+      if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gr_id)
+
+      ! Read the imaginary part of the distribution function
+      istatus = nf90_get_var(ncid, gi_id, g_imag_temp)
+      if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gi_id)
+
+      ! Construct the distribution function vs (vpa, mu, ikxkyzs)
+      g = cmplx(g_real_temp, g_imag_temp)
+      
+      ! Deallocate temporary arrays
+      if (allocated(g_real_temp)) deallocate (g_real_temp)
+      if (allocated(g_imag_temp)) deallocate (g_imag_temp)
+
+      ! Flow shear
+      if (.not. allocated(shift_state)) allocate (shift_state(naky))
+      istatus = nf90_get_var(ncid, shift_id, shift_state)
+      if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
+      
+      ! Radial variation and sources
+      call read_radial_variation_from_netcdf_variables(scale)
+
+      ! When restarting linear simulations, we can rescale the potential
+      ! to avoid running into infinity numbers
+      if (scale > 0.) g = g * scale
+      
+   contains
+   
+      !-------------- Radial variation and Sources: Variable ids --------------
+      subroutine read_radial_variation_from_netcdf_variable_ids
+      
+         ! Radial variation and sources
+         use gk_sources, only: include_qn_source
+         use gk_sources, only: source_option_krook
+         use gk_sources, only: source_option_projection
+         use gk_sources, only: source_option_switch
+         
+         implicit none
+
+         !----------------------------------------------------------------------
+      
+         if (source_option_switch == source_option_krook .and. has_vmulo) then
+            istatus = nf90_inq_varid(ncid, "intkrook", intkrook_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='intkrook')
+            istatus = nf90_inq_varid(ncid, "krookr", krookr_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='krookr')
+            istatus = nf90_inq_varid(ncid, "krooki", krooki_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='krooki')
+         end if
+
+         ! Radial variation and Sources ids
+         if (source_option_switch == source_option_projection .and. has_vmulo) then
+            istatus = nf90_inq_varid(ncid, "intproj", intproj_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='intproj')
+            istatus = nf90_inq_varid(ncid, "projr", projr_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='projr')
+            istatus = nf90_inq_varid(ncid, "proji", proji_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='proji')
+         end if
+
+         ! Radial variation and Sources ids
+         if (include_qn_source .and. iproc == 0) then
+            istatus = nf90_inq_varid(ncid, "phiprojr", phiprojr_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='phiprojr')
+            istatus = nf90_inq_varid(ncid, "phiproji", phiproji_id)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='phiproji')
+         end if
+      
+      end subroutine read_radial_variation_from_netcdf_variable_ids
+      
+      !-------------- Radial variation and Sources: Read variables -------------
+      subroutine read_radial_variation_from_netcdf_variables(scale)
+      
+         ! Radial variation and sources
+         use gk_sources, only: include_qn_source
+         use gk_sources, only: source_option_krook, source_option_projection
+         use gk_sources, only: source_option_switch, int_krook, int_proj
+         use arrays_distribution_function, only: g_krook, g_proj
+         use arrays_fields, only: phi_proj
+         
+         implicit none
+         
+         ! Arguments
+         real, intent(in) :: scale
+         
+         ! Temporary arrays
+         real, allocatable, dimension(:, :, :, :) :: ktmpr, ktmpi
+         real, allocatable, dimension(:, :, :, :) :: ptmpr, ptmpi
+         real, allocatable, dimension(:, :, :) :: pptmpr, pptmpi
+
+         !----------------------------------------------------------------------
+
+         ! Radial variation and sources
+         if (source_option_switch == source_option_krook .and. has_vmulo) then
+            istatus = nf90_get_var(ncid, intkrook_id, int_krook)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, intkrook_id)
+            if (.not. allocated(ktmpr)) allocate (ktmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            if (.not. allocated(ktmpi)) allocate (ktmpi(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            ktmpr = 0.; ktmpi = 0.
+            istatus = nf90_get_var(ncid, krookr_id, ktmpr)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krookr_id)
+            istatus = nf90_get_var(ncid, krooki_id, ktmpi)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krooki_id)
+            g_krook = cmplx(ktmpr, ktmpi)
+            if (allocated(ktmpr)) deallocate (ktmpr)
+            if (allocated(ktmpi)) deallocate (ktmpi)
+         end if
+
+         ! Radial variation and sources
+         if (source_option_switch == source_option_projection .and. has_vmulo) then
+            istatus = nf90_get_var(ncid, intproj_id, int_proj)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, intproj_id)
+            if (.not. allocated(ptmpr)) allocate (ptmpr(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            if (.not. allocated(ptmpi)) allocate (ptmpi(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            ptmpr = 0.; ptmpi = 0.
+            istatus = nf90_get_var(ncid, projr_id, ptmpr)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, projr_id)
+            istatus = nf90_get_var(ncid, proji_id, ptmpi)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, proji_id)
+            g_proj = cmplx(ptmpr, ptmpi)
+            if (allocated(ptmpr)) deallocate (ptmpr)
+            if (allocated(ptmpi)) deallocate (ptmpi)
+         end if
+
+         ! Radial variation and sources
+         if (include_qn_source .and. iproc == 0) then
+            if (.not. allocated(pptmpr)) allocate (pptmpr(nakx, -nzgrid:nzgrid, ntubes))
+            if (.not. allocated(pptmpi)) allocate (pptmpi(nakx, -nzgrid:nzgrid, ntubes))
+            pptmpr = 0.; pptmpi = 0.
+            istatus = nf90_get_var(ncid, phiprojr_id, pptmpr)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiprojr_id)
+            istatus = nf90_get_var(ncid, phiproji_id, pptmpi)
+            if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiproji_id)
+            phi_proj = cmplx(pptmpr, pptmpi)
+            if (allocated(pptmpr)) deallocate (pptmpr)
+            if (allocated(pptmpi)) deallocate (pptmpi)
+         end if
+         
+         ! When restarting linear simulations, we can rescale the potential
+         if (scale > 0.) then
+            if (source_option_switch == source_option_krook) g_krook = g_krook * scale
+            if (source_option_switch == source_option_projection) g_proj = g_proj * scale
+         end if
+            
+         ! Broadcast phi_proj
+         if (include_qn_source) call broadcast(phi_proj)
+            
+      end subroutine read_radial_variation_from_netcdf_variables
+
+   end subroutine read_stella_data_for_restart_from_multiple_files
+# endif
+   
+
+# ifdef NETCDF_PARALLEL
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine stella_restore_many(g, scale, istatus)
-# ifdef NETCDF
+   subroutine read_stella_data_for_restart_from_single_file(g, scale, istatus)
       use arrays, only: shift_state
       use arrays_fields, only: phi_proj
       use arrays_distribution_function, only: g_krook, g_proj
       use grids_kxky, only: naky, nakx
-# endif
-# ifdef NETCDF_PARALLEL
       use grids_z, only: nztot
-# endif
-      use mp, only: iproc, broadcast
+      use mp, only: iproc, broadcast, proc0
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
@@ -1078,44 +1370,48 @@ contains
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(out) :: g
       real, intent(in) :: scale
       integer, intent(out) :: istatus
-# ifdef NETCDF
-# ifdef NETCDF_PARALLEL
       integer, dimension(3) :: counts, start_pos
-# endif
+      integer, dimension(4) :: counts_krook, start_pos_krook
       character(306) :: path_netcdf_file_per_proc
       character(10) :: suffix
       integer :: i, n_elements, nvmulo_elements
       logical :: has_vmulo
+      
+      real, allocatable, dimension(:, :, :) :: tmpr, tmpi
+      real, allocatable, dimension(:, :, :, :) :: ktmpr, ktmpi
+      real, allocatable, dimension(:, :, :, :) :: ptmpr, ptmpi
+      real, allocatable, dimension(:, :, :) :: pptmpr, pptmpi
 
       n_elements = kxkyz_lo%ulim_proc - kxkyz_lo%llim_proc + 1
       nvmulo_elements = vmu_lo%ulim_proc - vmu_lo%llim_proc + 1
 
       if (n_elements <= 0) return
 
-      has_vmulo = nvmulo_elements > 0 .or. .not. read_many
+      has_vmulo = nvmulo_elements > 0 .or. .not. save_many
 
       if (.not. initialised_restart_module) then
 !       initialised_restart_module = .true.
          path_netcdf_file_per_proc = trim(restart_file)
 
-# ifdef NETCDF_PARALLEL
-         if (read_many) then
-# endif
+         if (save_many) then
             write (suffix, '(a1,i0)') '.', iproc
             path_netcdf_file_per_proc = trim(trim(path_netcdf_file_per_proc)//adjustl(suffix))
             istatus = nf90_open(path_netcdf_file_per_proc, NF90_NOWRITE, ncid)
-# ifdef NETCDF_PARALLEL
          else
+            if (proc0) write(*,*) 'Read the netcdf file'
+            if (proc0) write(*,*) path_netcdf_file_per_proc
 ! If using netcdf version 4.1.2 deleted NF90_MPIIO and the associated IOR
-            istatus = nf90_open(path_netcdf_file_per_proc, IOR(NF90_NOWRITE, NF90_MPIIO), ncid, comm=mp_comm, info=mp_info)
+            istatus = nf90_open(path_netcdf_file_per_proc, IOR(NF90_NOWRITE, NF90_CLOBBER), ncid, comm=mp_comm, info=mp_info)
+            if (proc0) write(*,*) 'Read the netcdf file - DONE'
          end if
-# endif
 
+         if (proc0) write(*,*) 'Read the netcdf file - 2'
          if (istatus /= NF90_NOERR) then
             call netcdf_error(istatus, file=path_netcdf_file_per_proc, abort=.true.)
          end if
 
          ! check precision
+         if (proc0) write(*,*) 'Read the netcdf file - 3'
          if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
          call check_netcdf_file_precision(ncid)
 
@@ -1157,28 +1453,21 @@ contains
 
          istatus = nf90_inquire_dimension(ncid, gloid, len=i)
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=gloid)
-#ifdef NETCDF_PARALLEL
-         if (read_many) then
-#endif
+
+         if (save_many) then
             if (i /= n_elements) write (*, *) 'Restart error: glo=? ', i, ' : ', iproc
-#ifdef NETCDF_PARALLEL
          else
             if (i /= kxkyz_lo%ulim_world + 1) write (*, *) 'Restart error: glo=? ', i, ' : ', iproc
          end if
-#endif
 
          if (has_vmulo) then
             istatus = nf90_inquire_dimension(ncid, gvmuloid, len=i)
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, dimid=gvmuloid)
-#ifdef NETCDF_PARALLEL
-            if (read_many) then
-#endif
+            if (save_many) then
                if (i /= nvmulo_elements) write (*, *) 'Restart error: gvmulo=? ', i, ' : ', iproc
-#ifdef NETCDF_PARALLEL
             else
                if (i /= vmu_lo%ulim_world + 1) write (*, *) 'Restart error: gvmulo=? ', i, ' : ', iproc
             end if
-#endif
          end if
 
          if (source_option_switch == source_option_krook .and. has_vmulo) then
@@ -1215,19 +1504,6 @@ contains
          istatus = nf90_inq_varid(ncid, "shiftstate", shift_id)
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='shiftstate')
 
-!        if (fbpar > epsilon(0.)) then
-!           istatus = nf90_inq_varid (ncid, "bpar_r", bparr_id)
-!           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='bpar_r')
-
-!           istatus = nf90_inq_varid (ncid, "bpar_i", bpari_id)
-!           if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='bpar_i')
-!        end if
-
-!       if (allocated(kx_shift)) then   ! MR begin
-!          istatus = nf90_inq_varid (ncid, "kx_shift", kx_shift_id)
-!          if (istatus /= NF90_NOERR) call netcdf_error (istatus, var='kx_shift')
-!       endif   ! MR end
-
          istatus = nf90_inq_varid(ncid, "gr", gr_id)
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='gr')
 
@@ -1235,35 +1511,25 @@ contains
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, var='gi')
       end if
 
-      if (.not. allocated(tmpr)) &
-         allocate (tmpr(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-      if (.not. allocated(tmpi)) &
-         allocate (tmpi(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      if (.not. allocated(tmpr)) allocate (tmpr(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      if (.not. allocated(tmpi)) allocate (tmpi(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
       tmpr = 0.; tmpi = 0.
-# ifdef NETCDF_PARALLEL
-      if (read_many) then
-# endif
+      if (save_many) then
          istatus = nf90_get_var(ncid, gr_id, tmpr)
-#ifdef NETCDF_PARALLEL
       else
          start_pos = (/1, 1, kxkyz_lo%llim_proc + 1/)
          counts = (/nvpa, nmu, n_elements/)
          istatus = nf90_get_var(ncid, gr_id, tmpr, start=start_pos, count=counts)
       end if
-# endif
 
       if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gr_id)
 
-# ifdef NETCDF_PARALLEL
-      if (read_many) then
-# endif
+      if (save_many) then
          istatus = nf90_get_var(ncid, gi_id, tmpi)
-#ifdef NETCDF_PARALLEL
       else
-         istatus = nf90_get_var(ncid, gi_id, tmpi, start=start_pos, count=counts)
+         istatus = nf90_get_var(ncid, gi_id, tmpi, start=start_pos_krook, count=counts_krook)
       end if
-# endif
 
       if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gi_id)
 
@@ -1279,29 +1545,21 @@ contains
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, intkrook_id)
 
          ktmpr = 0.; ktmpi = 0.
-# ifdef NETCDF_PARALLEL
-         if (read_many) then
-# endif
+         if (save_many) then
             istatus = nf90_get_var(ncid, krookr_id, ktmpr)
-#ifdef NETCDF_PARALLEL
          else
-            start_pos = (/1, 1, 1, vmu_lo%llim_proc + 1/)
-            counts = (/nakx, nztot, ntubes, nvmulo_elements/)
-            istatus = nf90_get_var(ncid, krookr_id, ktmpr, start=start_pos, count=counts)
+            start_pos_krook = (/1, 1, 1, vmu_lo%llim_proc + 1/)
+            counts_krook = (/nakx, nztot, ntubes, nvmulo_elements/)
+            istatus = nf90_get_var(ncid, krookr_id, ktmpr, start=start_pos_krook, count=counts_krook)
          end if
-# endif
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krookr_id)
 
-# ifdef NETCDF_PARALLEL
-         if (read_many) then
-# endif
+         if (save_many) then
             istatus = nf90_get_var(ncid, krooki_id, ktmpi)
-#ifdef NETCDF_PARALLEL
          else
-            istatus = nf90_get_var(ncid, krooki_id, ktmpi, start=start_pos, count=counts)
+            istatus = nf90_get_var(ncid, krooki_id, ktmpi, start=start_pos_krook, count=counts_krook)
          end if
-# endif
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, krooki_id)
 
@@ -1319,29 +1577,21 @@ contains
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, intproj_id)
 
          ptmpr = 0.; ptmpi = 0.
-# ifdef NETCDF_PARALLEL
-         if (read_many) then
-# endif
+         if (save_many) then
             istatus = nf90_get_var(ncid, projr_id, ptmpr)
-#ifdef NETCDF_PARALLEL
          else
-            start_pos = (/1, 1, 1, vmu_lo%llim_proc + 1/)
-            counts = (/nakx, nztot, ntubes, nvmulo_elements/)
-            istatus = nf90_get_var(ncid, projr_id, ptmpr, start=start_pos, count=counts)
+            start_pos_krook = (/1, 1, 1, vmu_lo%llim_proc + 1/)
+            counts_krook = (/nakx, nztot, ntubes, nvmulo_elements/)
+            istatus = nf90_get_var(ncid, projr_id, ptmpr, start=start_pos_krook, count=counts_krook)
          end if
-# endif
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, projr_id)
 
-# ifdef NETCDF_PARALLEL
-         if (read_many) then
-# endif
+         if (save_many) then
             istatus = nf90_get_var(ncid, proji_id, ptmpi)
-#ifdef NETCDF_PARALLEL
          else
-            istatus = nf90_get_var(ncid, proji_id, ptmpi, start=start_pos, count=counts)
+            istatus = nf90_get_var(ncid, proji_id, ptmpi, start=start_pos_krook, count=counts_krook)
          end if
-# endif
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, proji_id)
 
@@ -1354,29 +1604,21 @@ contains
          if (.not. allocated(pptmpi)) allocate (pptmpi(nakx, -nzgrid:nzgrid, ntubes))
 
          pptmpr = 0.; pptmpi = 0.
-# ifdef NETCDF_PARALLEL
-         if (read_many) then
-# endif
+         if (save_many) then
             istatus = nf90_get_var(ncid, phiprojr_id, pptmpr)
-#ifdef NETCDF_PARALLEL
          else
             start_pos = (/1, 1, 1/)
             counts = (/nakx, nztot, ntubes/)
             istatus = nf90_get_var(ncid, phiprojr_id, pptmpr, start=start_pos, count=counts)
          end if
-# endif
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiprojr_id)
 
-# ifdef NETCDF_PARALLEL
-         if (read_many) then
-# endif
+         if (save_many) then
             istatus = nf90_get_var(ncid, phiproji_id, pptmpi)
-#ifdef NETCDF_PARALLEL
          else
             istatus = nf90_get_var(ncid, phiproji_id, pptmpi, start=start_pos, count=counts)
          end if
-# endif
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, phiproji_id)
 
@@ -1400,13 +1642,6 @@ contains
          write (unit_error_file, *) "nf90_close error: ", nf90_strerror(istatus), ' ', iproc
       end if
 
-# else
-
-      write (error_unit(), *) &
-         'ERROR: stella_restore_many is called without netcdf'
-
-# endif
-
       if (allocated(tmpr)) deallocate (tmpr)
       if (allocated(tmpi)) deallocate (tmpi)
       if (allocated(ptmpr)) deallocate (ptmpr)
@@ -1418,7 +1653,8 @@ contains
 
       if (include_qn_source) call broadcast(phi_proj)
 
-   end subroutine stella_restore_many
+   end subroutine read_stella_data_for_restart_from_single_file
+# endif
 
    !****************************************************************************
    !                                      Title
@@ -1451,7 +1687,7 @@ contains
          if (.not. initialised_restart_module) then
 
 # ifdef NETCDF_PARALLEL
-            if (read_many) then
+            if (save_many) then
 # endif
                path_netcdf_file_per_proc = trim(trim(restart_file)//'.0')
 # ifdef NETCDF_PARALLEL
@@ -1505,7 +1741,7 @@ contains
 
       if (proc0) then
 # ifdef NETCDF_PARALLEL
-         if (read_many) then
+         if (save_many) then
 # endif
             path_netcdf_file_per_proc = trim(trim(restart_file)//'.0')
 # ifdef NETCDF_PARALLEL
@@ -1577,15 +1813,5 @@ contains
       call mp_abort('Error while writing the netcdf file to restart a simulation. Aborting.')
       
    end subroutine process_nf90_error
-
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   subroutine finish_save
-
-      if (allocated(tmpr)) deallocate (tmpr)
-      if (allocated(tmpi)) deallocate (tmpi)
-
-   end subroutine finish_save
 
 end module save_stella_for_restart
