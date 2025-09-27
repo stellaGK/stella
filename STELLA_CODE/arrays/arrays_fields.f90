@@ -5,9 +5,12 @@
 !     - phi(kx,ky,z)
 !     - apar(kx,ky,z)
 !     - bpar(kx,ky,z)
+! 
 ! So that all stella modules can easily accesss it.
-! The fields have dimensions: (naky, nakx, -nzgrid:nzgrid, ntubes) - all spatial
-! information is local for every processor. 
+! 
+! The fields have dimensions: (naky, nakx, -nzgrid:nzgrid, ntubes)
+! 
+! All spatial information is local for every processor.
 !###############################################################################
 module arrays_fields
 

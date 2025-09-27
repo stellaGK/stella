@@ -540,7 +540,6 @@ contains
       if (allocated(aj1x)) deallocate (aj1x)
       if (allocated(j0_ffs)) deallocate (j0_ffs)
       if (allocated(j0_B_ffs)) deallocate (j0_B_ffs)
-
       if (allocated(j0_B_const)) deallocate (j0_B_const)
       if (allocated(j0_const)) deallocate (j0_const)
       if (allocated(j0max_const)) deallocate (j0max_const)
