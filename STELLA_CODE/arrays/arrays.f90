@@ -2,8 +2,8 @@
 !                                    ARRAYS                                    
 !###############################################################################
 ! This module stores any useful arrays which are used throughout the code.
-! These are often global arrays, or arrays that are used in multiple modules, so
-! they are stored here to make them easily accessible.
+! These are often global arrays, or arrays that are used in multiple modules,
+! so they are stored here to make them easily accessible.
 !###############################################################################
 module arrays
    
