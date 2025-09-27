@@ -111,7 +111,6 @@ stella_mod = \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/response_matrix.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o \
-	 $(OBJ_DIR)/save_stella_for_restart_parallel_netcdf.o \
 	 $(OBJ_DIR)/sfincs_interface.o \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/spl.o \
@@ -1323,23 +1322,10 @@ $(OBJ_DIR)/save_stella_for_restart.o: \
 	 $(OBJ_DIR)/netcdf_utils.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/save_stella_for_restart_parallel_netcdf.o 
-$(OBJ_DIR)/save_stella_for_restart_parallel_netcdf.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_distribution_function.o \
-	 $(OBJ_DIR)/arrays_fields.o \
-	 $(OBJ_DIR)/common_types.o \
-	 $(OBJ_DIR)/file_units.o \
-	 $(OBJ_DIR)/gk_sources.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/initialise_redistribute.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/netcdf_utils.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/redistribute.o 
+$(OBJ_DIR)/save_stella_for_restart_parallel_netcdf.o: \
+	 $(OBJ_DIR)/file_units.o \
+	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/sfincs_interface.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o 

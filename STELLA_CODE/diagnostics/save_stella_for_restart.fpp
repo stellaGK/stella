@@ -13,7 +13,7 @@ module save_stella_for_restart
    use mp, only: mp_info
 
    ! Import netcdf modules
-# ifdef NETCDF
+#ifdef NETCDF
    use netcdf, only: NF90_NOWRITE, NF90_CLOBBER, NF90_NOERR
    use netcdf, only: nf90_create, nf90_open, nf90_sync, nf90_close
    use netcdf, only: nf90_def_dim, nf90_def_var, nf90_enddef
@@ -25,7 +25,7 @@ module save_stella_for_restart
    use netcdf_utils, only: check_netcdf_file_precision
    use netcdf_utils, only: netcdf_error
    use netcdf_utils, only: netcdf_real, kind_nf
-# endif
+#endif
 
    implicit none
 
@@ -49,7 +49,7 @@ module save_stella_for_restart
    character(300), save :: restart_file
 
    ! Initialise local arrays
-# ifdef NETCDF
+#ifdef NETCDF
    integer(kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
    integer(kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
    integer(kind_nf) :: phiprojr_id, phiproji_id
@@ -57,7 +57,7 @@ module save_stella_for_restart
    integer(kind_nf) :: intkrook_id, intproj_id;
    integer(kind_nf) :: shift_id
    logical :: initialised_restart_module = .false.
-# endif
+#endif
    logical :: intialised_parallel_netcdf = .false.
    logical :: parallel_netcdf
 
@@ -73,9 +73,9 @@ contains
    !****************************************************************************
    subroutine save_stella_data_for_restart(istep0, t0, delt0, istatus, exit_in)
 
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
       use save_stella_for_restart_parallel_netcdf, only: save_stella_data_for_restart_to_a_single_file
-# endif
+#endif
       
       implicit none
 
@@ -98,9 +98,9 @@ contains
          ! To save to a single restart file, parallel netcdf needs to be loaded.
          ! The save to multiple restart files, set <save_many> = True.
          parallel_netcdf = .false.
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
          parallel_netcdf = .true.
-# endif
+#endif
          
          ! The <save_many> variable is an input variable that can be set by the user
          ! However, if parallel netcdf is not loaded, we need to save to multiple netcdf files
@@ -109,18 +109,18 @@ contains
       end if
       
       ! Save to multiple netcdf files or a single netcdf file
-# ifdef NETCDF
+#ifdef NETCDF
       if (save_many) call save_stella_data_for_restart_to_multiple_files(istep0, t0, delt0, istatus, exit_in)
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
       if (.not. save_many) call save_stella_data_for_restart_to_a_single_file(istep0, t0, delt0, istatus, exit_in, restart_file)
-# endif
-# else
+#endif
+#else
       write(*,*) 'Could not save restart data to a netcdf file, since netcdf is not loaded.'
-# endif
+#endif
       
    end subroutine save_stella_data_for_restart
 
-# ifdef NETCDF
+#ifdef NETCDF
    !****************************************************************************
    !    Save distribution function to a netcdf file (one file per processor)    
    !****************************************************************************
@@ -424,7 +424,7 @@ contains
       end subroutine save_radial_variation_to_netcdf_put_var
 
    end subroutine save_stella_data_for_restart_to_multiple_files
-# endif
+#endif
 
 !###############################################################################
 !############################### READ DISTRIBUTION #############################
@@ -436,9 +436,9 @@ contains
    subroutine stella_restore(g, scale, istatus)
    
       use parallelisation_layouts, only: kxkyz_lo
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
       use save_stella_for_restart_parallel_netcdf, only: read_stella_data_for_restart_from_single_file
-# endif
+#endif
 
       implicit none
 
@@ -460,9 +460,9 @@ contains
          ! To save to a single restart file, parallel netcdf needs to be loaded.
          ! The save to multiple restart files, set <save_many> = True.
          parallel_netcdf = .false.
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
          parallel_netcdf = .true.
-# endif
+#endif
          
          ! The <save_many> variable is an input variable that can be set by the user
          ! However, if parallel netcdf is not loaded, we need to save to multiple netcdf files
@@ -471,18 +471,18 @@ contains
       end if
       
       ! Read from multiple netcdf files or a single netcdf file
-# ifdef NETCDF
+#ifdef NETCDF
       if (save_many) call read_stella_data_for_restart_from_multiple_files(g, scale, istatus)
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
       if (.not. save_many) call read_stella_data_for_restart_from_single_file(g, scale, istatus, restart_file)
-# endif
-# else
+#endif
+#else
       write(*,*) 'Could not read restart data from a netcdf file, since netcdf is not loaded.'
-# endif
+#endif
       
    end subroutine stella_restore
 
-# ifdef NETCDF
+#ifdef NETCDF
 
    !****************************************************************************
    !            Read distribution function from multiple netcdf files           
@@ -764,7 +764,7 @@ contains
       end subroutine read_radial_variation_from_netcdf_variables
 
    end subroutine read_stella_data_for_restart_from_multiple_files
-# endif
+#endif
    
    !****************************************************************************
    !                                      Title
@@ -782,29 +782,29 @@ contains
    !****************************************************************************
    subroutine init_dt(delt0, istatus)
 
-# ifdef NETCDF
+#ifdef NETCDF
       use mp, only: proc0, broadcast
       use file_utils, only: error_unit
-# endif
+#endif
       implicit none
       real, intent(in out) :: delt0
       integer, intent(out) :: istatus
-# ifdef NETCDF
+#ifdef NETCDF
       character(306) :: path_netcdf_file_per_proc
 
       if (proc0) then
 
          if (.not. initialised_restart_module) then
 
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
             if (save_many) then
-# endif
+#endif
                path_netcdf_file_per_proc = trim(trim(restart_file)//'.0')
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
             else
                path_netcdf_file_per_proc = trim(trim(restart_file))
             end if
-# endif
+#endif
 
             istatus = nf90_open(path_netcdf_file_per_proc, NF90_NOWRITE, ncid)
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, file=path_netcdf_file_per_proc)
@@ -826,7 +826,7 @@ contains
       call broadcast(istatus)
       call broadcast(delt0)
 
-# endif
+#endif
 
    end subroutine init_dt
 
@@ -835,10 +835,10 @@ contains
    !****************************************************************************
    subroutine init_tstart(tstart, istep0, istatus)
 
-# ifdef NETCDF
+#ifdef NETCDF
       use mp, only: proc0, broadcast, mp_abort
       use file_utils, only: error_unit
-# endif
+#endif
 
       use parameters_numerical, only: nstep
       
@@ -846,19 +846,19 @@ contains
       real, intent(in out) :: tstart
       integer, intent(out) :: istep0
       integer, intent(out) :: istatus
-# ifdef NETCDF
+#ifdef NETCDF
       character(306) :: path_netcdf_file_per_proc
 
       if (proc0) then
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
          if (save_many) then
-# endif
+#endif
             path_netcdf_file_per_proc = trim(trim(restart_file)//'.0')
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
          else
             path_netcdf_file_per_proc = trim(trim(restart_file))
          end if
-# endif
+#endif
 
          if (.not. initialised_restart_module) then
 
@@ -899,7 +899,7 @@ contains
       call broadcast(istep0)
       call broadcast(tstart)
 
-# endif
+#endif
 
    end subroutine init_tstart
    

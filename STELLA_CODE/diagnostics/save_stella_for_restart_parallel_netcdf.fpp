@@ -18,7 +18,7 @@ module save_stella_for_restart_parallel_netcdf
 
    ! Import parallel netcdf modules
    ! If using netcdf version 4.1.2 or older replace NF90_MPIIO with NF90_CLOBBER
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
    use netcdf, only: NF90_HDF5, NF90_MPIIO
    use netcdf, only: nf90_var_par_access, NF90_COLLECTIVE
    use netcdf, only: nf90_put_att, NF90_GLOBAL, nf90_get_att
@@ -33,15 +33,15 @@ module save_stella_for_restart_parallel_netcdf
    use netcdf_utils, only: check_netcdf_file_precision
    use netcdf_utils, only: netcdf_error
    use netcdf_utils, only: netcdf_real, kind_nf
-# endif
+#endif
 
    implicit none
 
    ! Make the routines available to other modules
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
    public :: save_stella_data_for_restart_to_a_single_file
    public :: read_stella_data_for_restart_from_single_file
-# endif
+#endif
 
    private
 
@@ -58,7 +58,7 @@ module save_stella_for_restart_parallel_netcdf
    integer(kind_nf) :: intkrook_id, intproj_id;
    integer(kind_nf) :: shift_id
    logical :: initialised_restart_module = .false.
-# endif
+#endif
 
 contains
 
@@ -67,7 +67,7 @@ contains
 !############################### SAVE DISTRIBUTION #############################
 !###############################################################################
 
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
    !****************************************************************************
    !                 Save distribution function to a netcdf file                
    !****************************************************************************
@@ -366,13 +366,13 @@ contains
       if (allocated(pptmpi)) deallocate (pptmpi)
 
    end subroutine save_stella_data_for_restart_to_a_single_file
-# endif
+#endif
 
 !###############################################################################
 !############################### READ DISTRIBUTION #############################
 !###############################################################################
 
-# ifdef NETCDF_PARALLEL
+#ifdef NETCDF_PARALLEL
    !****************************************************************************
    !            Read distribution function from a single netcdf file            
    !****************************************************************************
@@ -637,8 +637,9 @@ contains
       if (include_qn_source) call broadcast(phi_proj)
 
    end subroutine read_stella_data_for_restart_from_single_file
-# endif
+#endif
 
+#ifdef NETCDF_PARALLEL
    !****************************************************************************
    !                        Abort if an error was encountered                   
    !****************************************************************************
@@ -658,5 +659,6 @@ contains
       call mp_abort('Error while writing the netcdf file to restart a simulation. Aborting.')
       
    end subroutine process_nf90_error
+#endif
 
 end module save_stella_for_restart_parallel_netcdf
