@@ -25,6 +25,11 @@ authors:
     given-names: Robert
     affiliation: University of York
 
+  - family-names: Thienpondt
+    given-names: Hanne
+    affiliation: CIEMAT
+    orcid: https://orcid.org/0000-0002-0327-0853
+
   - family-names: García Regaña
     given-names: José Manuel
     affiliation: CIEMAT
@@ -32,13 +37,13 @@ authors:
 
   - family-names: Dickinson
     given-names: David
-    orcid: https://orcid.org/0000-0002-0868-211X
     affiliation: University of York
+    orcid: https://orcid.org/0000-0002-0868-211X
 
   - family-names: Dorland
     given-names: William
-    orcid: https://orcid.org/0000-0003-2915-724X
     affiliation: University of Maryland
+    orcid: https://orcid.org/0000-0003-2915-724X
 
   - family-names: Hill
     given-names: Peter Alec
@@ -57,9 +62,6 @@ authors:
   - family-names: Landreman
     given-names: Matt
     orcid: https://orcid.org/0000-0002-7233-577X
-
-  - family-names: Thienpondt
-    given-names: Hanne
 
   - family-names: Numata
     given-names: Ryusuke
