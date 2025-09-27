@@ -1,10 +1,10 @@
-#!/usr/bin/python3   
+#!/usr/bin/python3
 import os
 import shutil
 import pathlib
 import difflib
 import platform
-import subprocess   
+import subprocess
 import configparser
 
 # Package to convert input files
