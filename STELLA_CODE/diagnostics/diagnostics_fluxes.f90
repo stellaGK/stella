@@ -294,7 +294,7 @@ contains
 
       ! Write fluxes to the netcdf file
       if (write_radial_fluxes .and. write_to_netcdf_file) then 
-         if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_radial_fluxes_nc'
+         if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_radial_fluxes_nc'
          if (proc0) call write_radial_fluxes_nc(nout, pflux_vs_kxs, vflux_vs_kxs, qflux_vs_kxs)
       end if
       

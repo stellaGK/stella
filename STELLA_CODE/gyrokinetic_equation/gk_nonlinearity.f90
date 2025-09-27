@@ -129,7 +129,7 @@ contains
       use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       
-      use arrays, only: time_gke
+      use timers, only: time_gke
       use arrays, only: shift_state
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
@@ -441,7 +441,7 @@ contains
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
       use grids_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
-      use arrays, only: time_parallel_nl
+      use timers, only: time_parallel_nl
       use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
       
       ! Calculations

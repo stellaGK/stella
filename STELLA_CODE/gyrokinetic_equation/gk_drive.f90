@@ -198,7 +198,7 @@ contains
       use calculations_kxky_derivatives, only: get_dchidy
       
       ! Time this routine
-      use arrays, only: time_gke
+      use timers, only: time_gke
       use job_manage, only: time_message
 
       implicit none
@@ -256,7 +256,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use calculations_add_explicit_terms, only: add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
-      use arrays, only: time_gke
+      use timers, only: time_gke
 
       implicit none
 

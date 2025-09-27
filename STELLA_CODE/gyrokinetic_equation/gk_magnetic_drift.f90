@@ -436,7 +436,7 @@ contains
       use arrays_distribution_function, only: g_scratch
       use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy
-      use arrays, only: time_gke
+      use timers, only: time_gke
 
       implicit none
 
@@ -552,7 +552,7 @@ contains
       use arrays_distribution_function, only: g_scratch
       use calculations_kxky_derivatives, only: get_dgdx
       use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
-      use arrays, only: time_gke
+      use timers, only: time_gke
 
       implicit none
 

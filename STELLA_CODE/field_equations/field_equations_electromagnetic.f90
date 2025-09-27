@@ -122,7 +122,7 @@ contains
       
       ! Arrays
       use arrays_distribution_function, only: g_scratch
-      use arrays, only: time_field_solve
+      use timers, only: time_field_solve
       
       ! Parameters
       use parameters_physics, only: beta
@@ -245,10 +245,11 @@ contains
       use job_manage, only: time_message
       use parallelisation_layouts, only: kxkyz_lo
       use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use timers, only: time_field_solve
       
       ! Arrays
       use arrays, only: kperp2 
-      use arrays, only: apar_denom, time_field_solve
+      use arrays, only: apar_denom
       
       ! Parameters
       use parameters_physics, only: beta
@@ -400,10 +401,14 @@ contains
       ! Parallelisation
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
+      use timers, only: time_field_solve
       
       ! Arrays
-      use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv33, denominator_fields_inv31
-      use arrays, only: denominator_fields_h, time_field_solve
+      use arrays, only: denominator_fields_inv11
+      use arrays, only: denominator_fields_inv13
+      use arrays, only: denominator_fields_inv33
+      use arrays, only: denominator_fields_inv31
+      use arrays, only: denominator_fields_h
 
       ! Grids
       use grids_z, only: nzgrid, ntubes

@@ -130,28 +130,28 @@ contains
          call write_time_nc(nout, code_time)
 
          ! Write the phi2(t) to the netcdf file (always on)
-         if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_phi2_nc'
+         if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_phi2_nc'
          call write_phi2_nc(nout, phi2)
          if (include_apar) call write_apar2_nc(nout, apar2)
          if (include_bpar) call write_bpar2_nc(nout, bpar2)
 
          ! Write phi(t,ky,kx,z,tube), apar(t,ky,kx,z,tube) and bpar(t,ky,kx,z,tube) to the netcdf file
          if (write_phi_vs_kxkyz) then
-            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_phi_nc'
+            if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_phi_nc'
             call write_phi_nc(nout, phi_vs_kykxzt)
          end if
          if (write_apar_vs_kxkyz .and. include_apar) then
-            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_apar_nc'
+            if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_apar_nc'
             call write_apar_nc(nout, apar_vs_kykxzt)
          end if
          if (write_bpar_vs_kxkyz .and. include_bpar) then
-            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_bpar_nc'
+            if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_bpar_nc'
             call write_bpar_nc(nout, bpar_vs_kykxzt)
          end if
 
          ! Write phi2(t,ky,kx) to the netcdf file
          if (write_phi2_vs_kxky) then
-            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_kspectra_nc' 
+            if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_kspectra_nc' 
             allocate (phi2_vs_kxky(naky, nakx)) 
             call fieldline_average(real(phi_vs_kykxzt * conjg(phi_vs_kykxzt)), phi2_vs_kxky)
             call write_kspectra_nc(nout, phi2_vs_kxky, "phi2_vs_kxky", "electrostatic potential")

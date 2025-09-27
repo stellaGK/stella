@@ -67,7 +67,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: full_flux_surface
       use grids_z, only: nzgrid
-      use arrays, only: time_field_solve
+      use timers, only: time_field_solve
       
       ! Routines from other field modules
       use field_equations_fluxtube, only: advance_fields_fluxtube
@@ -210,7 +210,7 @@ contains
       use grids_kxky, only: naky, nakx
       
       ! Time routines
-      use arrays, only: time_field_solve
+      use timers, only: time_field_solve
       
       implicit none
       

@@ -198,7 +198,7 @@ contains
       use arrays, only: wdriftpx_g, wdriftpy_g
       use arrays, only: wdriftpx_phi, wdriftpy_phi 
       use arrays, only: wstar, wstarp
-      use arrays, only: time_gke
+      use timers, only: time_gke
 
       use gk_mirror, only: add_mirror_radial_variation
       use gk_flow_shear, only: prl_shear, prl_shear_p

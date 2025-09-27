@@ -169,7 +169,7 @@ contains
       use mp, only: broadcast
       
       ! Start timer, so stella exits 5 minutes before <avail_cpu_time>
-      use job_manage, only: checktime
+      use job_manage, only: check_cpu_time
 
       ! Initialise file utils
       use file_utils, only: init_file_utils
@@ -208,7 +208,7 @@ contains
 
       ! Initialise timer, so that stella exits 5 minutes before <avail_cpu_time>
       if (debug) write (*, *) 'stella::init_stella::check_time'
-      call checktime(avail_cpu_time_dummy, exit)
+      call check_cpu_time(avail_cpu_time_dummy, exit)
 
       ! Initialise file utilities, this will open the input and error files
       if (proc0) then 
@@ -782,9 +782,9 @@ contains
       use gk_mirror, only: time_mirror
       use multibox, only: time_multibox
       use gk_sources, only: time_sources
-      use arrays, only: time_field_solve
-      use arrays, only: time_parallel_nl
-      use arrays, only: time_gke
+      use timers, only: time_field_solve
+      use timers, only: time_parallel_nl
+      use timers, only: time_gke
       
       ! Flags
       use file_utils, only: runtype_option_switch

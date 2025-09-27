@@ -85,10 +85,10 @@ contains
       use redistribute, only: scatter
       use initialise_redistribute, only: kxkyz2vmu
       use parallelisation_layouts, only: fields_kxkyz
+      use timers, only: time_field_solve
 
       ! Arrays
       use arrays_distribution_function, only: gvmu
-      use arrays, only: time_field_solve
 
       ! Grids
       use grids_z, only: nzgrid
@@ -149,10 +149,10 @@ contains
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx
+      use timers, only: time_field_solve
       
       ! Arrays
       use arrays_distribution_function, only: g_scratch
-      use arrays, only: time_field_solve
       
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
@@ -262,9 +262,7 @@ contains
       use job_manage, only: time_message
       use parallelisation_layouts, only: kxkyz_lo
       use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      
-      ! Arrays
-      use arrays, only: time_field_solve
+      use timers, only: time_field_solve
       
       ! Parameters
       use parameters_physics, only: fphi
@@ -394,13 +392,13 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use multibox, only: mb_calculate_phi
+      use timers, only: time_field_solve
       
       ! Arrays
       use arrays, only: denominator_fields
       use arrays, only: denominator_fields_MBR
       use arrays, only: denominator_fields_h
       use arrays, only: denominator_fields_MBR_h
-      use arrays, only: time_field_solve
       
       ! Grids
       use grids_z, only: nzgrid, ntubes

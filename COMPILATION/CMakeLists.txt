@@ -116,6 +116,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/parallelisation/initialise_redistribute.f90
   ../STELLA_CODE/parallelisation/common_types.f90
   ../STELLA_CODE/parallelisation/parallelisation_layouts.f90
+  ../STELLA_CODE/parallelisation/timers.f90
   ../STELLA_CODE/radial_variation/multibox.f90
   ../STELLA_CODE/radial_variation/gk_radial_variation.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90

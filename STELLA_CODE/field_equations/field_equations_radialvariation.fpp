@@ -54,7 +54,7 @@ contains
       use multibox, only: mb_calculate_phi
       use arrays, only: denominator_fields
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use arrays, only: time_field_solve
+      use timers, only: time_field_solve
 
       implicit none
 

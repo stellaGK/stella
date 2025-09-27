@@ -86,7 +86,7 @@ contains
       if (write_radial_moments) allocate (temp_kxs(nakx, nspec)) 
 
       ! Calculate the moments delta n(ky,kx,z,tube,s); delta T(ky,kx,z,tube,s); delta u_par(ky,kx,z,tube,s)
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_moments'
+      if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_moments'
 
       ! Calculate the moments if <radial_variation> = True
       if (radial_variation .or. write_radial_moments) then 

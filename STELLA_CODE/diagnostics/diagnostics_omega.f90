@@ -23,7 +23,7 @@ module diagnostics_omega
    
    ! This routine is called from stella.f90 to automatically stop
    ! stella if <omega> has saturated during linear simulations
-   public :: checksaturation
+   public :: check_saturation_omega
 
    private
 
@@ -182,7 +182,7 @@ contains
    !=========================================================================
    !=========================== CHECK SATURATION ============================
    !========================================================================= 
-   subroutine checksaturation(istep, stop_stella)
+   subroutine check_saturation_omega(istep, stop_stella)
    
       use parameters_numerical, only: autostop
       use parameters_diagnostics, only: navg
@@ -225,7 +225,7 @@ contains
 
       call broadcast(stop_stella)
 
-   end subroutine checksaturation
+   end subroutine check_saturation_omega
 
 !###############################################################################
 !############################# INITALIZE & FINALIZE ############################

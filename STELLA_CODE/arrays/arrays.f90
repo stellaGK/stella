@@ -20,11 +20,6 @@ module arrays
    public :: initialised_implicit_drifts
    public :: initialised_radial_variation
    
-   ! Time the  gyrokinetic equation and field equations routines
-   public :: time_gke
-   public :: time_field_solve
-   public :: time_parallel_nl
-   
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
    !----------------------------------------------------------------------------
@@ -129,10 +124,6 @@ module arrays
    ! For flow shear
    real, dimension(:), allocatable :: shift_state
 
-   ! Time the time advance routines
-   real, dimension(2, 10) :: time_gke = 0.
-   real, dimension(2, 2) :: time_parallel_nl = 0.
-
    !----------------------------------------------------------------------------
    ! For the Field Equations
    !----------------------------------------------------------------------------
@@ -153,8 +144,5 @@ module arrays
    
    ! For radial variation simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_dr
-   
-   ! Time the field equations routines
-   real, dimension(2, 5) :: time_field_solve = 0.
 
 end module arrays

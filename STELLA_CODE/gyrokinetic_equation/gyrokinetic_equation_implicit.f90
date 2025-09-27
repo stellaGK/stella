@@ -33,7 +33,7 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use parallelisation_layouts, only: vmu_lo
-      use arrays, only: time_gke
+      use timers, only: time_gke
       
       ! Fields
       use field_equations, only: advance_fields
