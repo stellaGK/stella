@@ -72,7 +72,7 @@ module save_stella_for_restart
    integer(kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
    integer(kind_nf) :: intkrook_id, intproj_id;
    integer(kind_nf) :: shift_id
-   logical :: intialised_restart_module = .false.
+   logical :: initialised_restart_module = .false.
 # endif
    logical :: intialised_parallel_netcdf = .false.
    logical :: parallel_netcdf
@@ -182,7 +182,6 @@ contains
       character(306) :: path_netcdf_file_per_proc
       character(10) :: suffix
       integer :: i, n_elements, nvmulo_elements
-      integer :: total_elements, total_vmulo_elements
       logical :: has_vmulo
       logical :: exit
 
@@ -201,9 +200,7 @@ contains
 
       ! Parallelisation
       n_elements = kxkyz_lo%ulim_proc - kxkyz_lo%llim_proc + 1
-      total_elements = kxkyz_lo%ulim_world + 1
       nvmulo_elements = vmu_lo%ulim_proc - vmu_lo%llim_proc + 1
-      total_vmulo_elements = vmu_lo%ulim_world + 1
       if (n_elements <= 0) return
 
       ! Create netcdf file for each vmulo element
@@ -212,171 +209,98 @@ contains
       !-------------------------------------------------------------------------
       !                       Initialise the netcdf file                        
       !-------------------------------------------------------------------------
-      if (.not. intialised_restart_module) then
+      if (.not. initialised_restart_module) then
 
          ! Only initialise once
-         intialised_restart_module = .true.
+         initialised_restart_module = .true.
 
-         ! Create a netcdf file for each processor
+         ! Path of the netcdf file for each processor
          WRITE (suffix, '(a1,i0)') '.', iproc
          path_netcdf_file_per_proc = trim(restart_file)
          path_netcdf_file_per_proc = trim(trim(path_netcdf_file_per_proc)//adjustl(suffix))
+         
+         ! Create a netcdf file for each processor
          istatus = nf90_create(path_netcdf_file_per_proc, NF90_CLOBBER, ncid)
+         if (istatus /= NF90_NOERR) call process_nf90_error("nf90_create error: ", istatus)
 
-         ! Exit if we have an error when creating the netcdf file
-         if (istatus /= NF90_NOERR) then
-            write (unit_error_file, *) "nf90_create error: ", nf90_strerror(istatus)
-            goto 1
-         end if
-
+         ! Save the (kx,ky,z,tube,nu,vpa) dimensions
          if (n_elements > 0) then
-            istatus = nf90_def_dim(ncid, "tube", ntubes, tubeid)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_dim tube error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
+         
+            ! Save the (kx,ky,z,tube,nu,vpa) dimensions
+            istatus = nf90_def_dim(ncid, "akx", nakx, kxid)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim akx error: ", istatus)
+            istatus = nf90_def_dim(ncid, "aky", naky, kyid)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim aky error: ", istatus)
             istatus = nf90_def_dim(ncid, "zed", 2 * nzgrid + 1, zedid)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_dim zed error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim zed error: ", istatus)
+            istatus = nf90_def_dim(ncid, "tube", ntubes, tubeid)
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim tube error: ", istatus)
             istatus = nf90_def_dim(ncid, "vpa", nvpa, vpaid)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_dim vpa error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim vpa error: ", istatus)
             istatus = nf90_def_dim(ncid, "mu", nmu, muid)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_dim mu error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim mu error: ", istatus)
+            
+            ! Save the number of ikxkyzs points
             istatus = nf90_def_dim(ncid, "glo", n_elements, gloid)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_dim glo error: ", nf90_strerror(istatus)
-               goto 1
-            end if
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim glo error: ", istatus)
 
+            ! Save the number of ivpamus points
             if (nvmulo_elements > 0) then
                istatus = nf90_def_dim(ncid, "gvmulo", nvmulo_elements, gvmuloid)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_dim gvmulo error: ", istatus)
             end if
 
-            istatus = nf90_def_dim(ncid, "aky", naky, kyid)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_dim aky error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
-            istatus = nf90_def_dim(ncid, "akx", nakx, kxid)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_dim akx error: ", nf90_strerror(istatus)
-               goto 1
-            end if
          end if
 
+         ! At initialisation there are various variables which we will set to zero
+         ! The zero is chosen to be code precision instead of absolute zero
          if (netcdf_real == 0) netcdf_real = get_netcdf_code_precision()
 
          istatus = nf90_def_var(ncid, "t0", netcdf_real, t0id)
-         if (istatus /= NF90_NOERR) then
-            write (unit_error_file, *) "nf90_def_var t0 error: ", nf90_strerror(istatus)
-            goto 1
-         end if
-
+         if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var t0 error: ", istatus)
          istatus = nf90_def_var(ncid, "istep0", nf90_int, istep0id)
-         if (istatus /= NF90_NOERR) then
-            write (unit_error_file, *) "nf90_def_var istep0 error: ", nf90_strerror(istatus)
-            goto 1
-         end if
-
+         if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var istep0 error: ", istatus)
          istatus = nf90_def_var(ncid, "delt0", netcdf_real, delt0id)
-         if (istatus /= NF90_NOERR) then
-            write (unit_error_file, *) "nf90_def_var delt0 error: ", nf90_strerror(istatus)
-            goto 1
-         end if
+         if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var delt0 error: ", istatus)
 
          if (n_elements > 0) then
+         
             istatus = nf90_def_var(ncid, "gr", netcdf_real, (/vpaid, muid, gloid/), gr_id)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_var g error: ", nf90_strerror(istatus)
-               goto 1
-            end if
-
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var g error: ", istatus)
             istatus = nf90_def_var(ncid, "gi", netcdf_real, (/vpaid, muid, gloid/), gi_id)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_var g error: ", nf90_strerror(istatus)
-               goto 1
-            end if
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var g error: ", istatus)
 
+            ! Radial variation and sources
             if (source_option_switch == source_option_krook .and. has_vmulo) then
                istatus = nf90_def_var(ncid, "intkrook", netcdf_real, intkrook_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var intkrook error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
-
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var intkrook error: ", istatus)
                istatus = nf90_def_var(ncid, "krookr", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), krookr_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var apar error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
-
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var krookr error: ", istatus)
                istatus = nf90_def_var(ncid, "krooki", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), krooki_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var krooki error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
-
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var krooki error: ", istatus)
             end if
 
+            ! Radial variation and sources
             if (include_qn_source .and. iproc == 0) then
-               istatus = nf90_def_var(ncid, "phiprojr", netcdf_real, &
-                                      (/kxid, zedid, tubeid/), phiprojr_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var phiprojr error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
-
-               istatus = nf90_def_var(ncid, "phiproji", netcdf_real, &
-                                      (/kxid, zedid, tubeid/), phiproji_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var phiproji error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
+               istatus = nf90_def_var(ncid, "phiprojr", netcdf_real, (/kxid, zedid, tubeid/), phiprojr_id)
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var phiprojr error: ", istatus)
+               istatus = nf90_def_var(ncid, "phiproji", netcdf_real, (/kxid, zedid, tubeid/), phiproji_id)
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var phiproji error: ", istatus)
             end if
 
+            ! Radial variation and sources
             if (source_option_switch == source_option_projection .and. has_vmulo) then
                istatus = nf90_def_var(ncid, "intproj", netcdf_real, intproj_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var intproj error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
-
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var intproj error: ", istatus)
                istatus = nf90_def_var(ncid, "projr", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), projr_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var projr error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
-
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var projr error: ", istatus)
                istatus = nf90_def_var(ncid, "proji", netcdf_real, (/kxid, zedid, tubeid, gvmuloid/), proji_id)
-               if (istatus /= NF90_NOERR) then
-                  write (unit_error_file, *) "nf90_def_var proji error: ", nf90_strerror(istatus)
-                  goto 1
-               end if
-
+               if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var proji error: ", istatus)
             end if
 
+            ! Flow shear
             istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, (/kyid/), shift_id)
-            if (istatus /= NF90_NOERR) then
-               write (unit_error_file, *) "nf90_def_var shiftstate error: ", nf90_strerror(istatus)
-               goto 1
-            end if
+            if (istatus /= NF90_NOERR) call process_nf90_error("nf90_def_var shiftstate error: ", istatus)
 
          end if
 
@@ -606,10 +530,10 @@ contains
       !-------------------------------------------------------------------------
       !                      Initialise the restart module                      
       !-------------------------------------------------------------------------
-      if (.not. intialised_restart_module) then
+      if (.not. initialised_restart_module) then
 
          ! Only initialise once
-         intialised_restart_module = .true.
+         initialised_restart_module = .true.
          
          ! The distribution function can be saved to a single restart file, or it
          ! can be saved to multiple restart file, using one file for each processor.
@@ -1179,8 +1103,8 @@ contains
 
       has_vmulo = nvmulo_elements > 0 .or. .not. read_many
 
-      if (.not. intialised_restart_module) then
-!       intialised_restart_module = .true.
+      if (.not. initialised_restart_module) then
+!       initialised_restart_module = .true.
          path_netcdf_file_per_proc = trim(restart_file)
 
 # ifdef NETCDF_PARALLEL
@@ -1533,7 +1457,7 @@ contains
 
       if (proc0) then
 
-         if (.not. intialised_restart_module) then
+         if (.not. initialised_restart_module) then
 
 # ifdef NETCDF_PARALLEL
             if (read_many) then
@@ -1559,7 +1483,7 @@ contains
             delt0 = -1.
          end if
 
-         if (.not. intialised_restart_module) istatus = nf90_close(ncid)
+         if (.not. initialised_restart_module) istatus = nf90_close(ncid)
       end if
 
       call broadcast(istatus)
@@ -1599,7 +1523,7 @@ contains
          end if
 # endif
 
-         if (.not. intialised_restart_module) then
+         if (.not. initialised_restart_module) then
 
             istatus = nf90_open(path_netcdf_file_per_proc, NF90_NOWRITE, ncid)
             if (istatus /= NF90_NOERR) call netcdf_error(istatus, file=path_netcdf_file_per_proc)
@@ -1623,7 +1547,7 @@ contains
             istep0 = -1
          end if
 
-         if (.not. intialised_restart_module) istatus = nf90_close(ncid)
+         if (.not. initialised_restart_module) istatus = nf90_close(ncid)
 
       end if
       
@@ -1641,6 +1565,25 @@ contains
 # endif
 
    end subroutine init_tstart
+   
+   
+   !****************************************************************************
+   !                        Abort if an error was encountered                   
+   !****************************************************************************
+   subroutine process_nf90_error(error_message, istatus)
+   
+      use mp, only: mp_abort, proc0
+      use file_units, only: unit_error_file
+     
+      integer, intent(in) :: istatus
+      character(*), intent(in) :: error_message
+      
+      if (.not. proc0) return
+      write (unit_error_file, *) error_message, nf90_strerror(istatus)
+      write (*, *) ' '; write (*, *) error_message, nf90_strerror(istatus)
+      call mp_abort('Error while writing the netcdf file to restart a simulation. Aborting.') 
+      
+   end subroutine process_nf90_error
 
    !****************************************************************************
    !                                      Title
