@@ -708,14 +708,16 @@ contains
          write (*, '(A)') "                     PARALLEL COMPUTING"
          write (*, '(A)') "############################################################"
       end if
-      if (nproc == 1) then
-         write (str, '(I10, A)') nproc, " processor."
-         write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
-      else
-         write (str, '(I10, A)') nproc, " processors."
-         write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+      if (print_extra_info_to_terminal) then
+         if (nproc == 1) then
+            write (str, '(I10, A)') nproc, " processor."
+            write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+         else
+            write (str, '(I10, A)') nproc, " processors."
+            write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+         end if
+         write (*, *)
       end if
-      write (*, *)
 
    end subroutine write_start_message
 

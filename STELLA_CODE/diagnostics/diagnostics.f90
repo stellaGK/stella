@@ -224,13 +224,6 @@ contains
    !========================= FINALIZE THE DIAGNOSTICS =========================
    !============================================================================ 
    subroutine finish_diagnostics(istep)
- 
-      ! Parallelisation
-      use redistribute, only: scatter
-      use initialise_redistribute, only: kxkyz2vmu
-      
-      ! Distribution function
-      use arrays_distribution_function, only: gnew, gvmu
       
       ! Grids 
       use grids_time, only: code_dt
@@ -255,8 +248,7 @@ contains
 
       ! Save stella to be restarted
       if (save_for_restart) then
-         call scatter(kxkyz2vmu, gnew, gvmu)
-         call save_stella_data_for_restart(gvmu, istep, code_time, code_dt, istatus, .true.)
+         call save_stella_data_for_restart(istep, code_time, code_dt, istatus, .true.)
       end if
 
       ! Close the netcdf file

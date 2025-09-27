@@ -311,13 +311,11 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/initialise_arrays.o \
 	 $(OBJ_DIR)/initialise_distribution_function.o \
-	 $(OBJ_DIR)/initialise_redistribute.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o \
 	 $(OBJ_DIR)/timers.o \
 	 $(OBJ_DIR)/write_diagnostics_to_netcdf.o 
@@ -1317,9 +1315,12 @@ $(OBJ_DIR)/save_stella_for_restart.o: \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/initialise_redistribute.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/netcdf_utils.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o 
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
+	 $(OBJ_DIR)/redistribute.o 
 $(OBJ_DIR)/sfincs_interface.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o 
@@ -1342,14 +1343,12 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/gyrokinetic_equation_explicit.o \
 	 $(OBJ_DIR)/gyrokinetic_equation_implicit.o \
 	 $(OBJ_DIR)/init_stella.o \
-	 $(OBJ_DIR)/initialise_redistribute.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o 
 $(OBJ_DIR)/system_fortran.o: 
 $(OBJ_DIR)/text_options.o: \

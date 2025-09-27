@@ -76,7 +76,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine save_stella_data_for_restart(g, istep0, t0, delt0, istatus, exit_in, fileopt)
+   subroutine save_stella_data_for_restart(istep0, t0, delt0, istatus, exit_in, fileopt)
 
 # ifdef NETCDF
       use arrays, only: shift_state
@@ -91,6 +91,7 @@ contains
       use grids_z, only: nztot
 # endif
       use grids_z, only: nzgrid, ntubes
+      
       ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
       ! diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
@@ -101,10 +102,15 @@ contains
       use gk_sources, only: source_option_switch, int_krook, int_proj
       use gk_sources, only: include_qn_source
       use file_units, only: unit_error_file
+      
+      ! Make sure we have the distribution function vs (nvpa, nmu, -kxkyz-layout-)
+      use redistribute, only: scatter
+      use initialise_redistribute, only: kxkyz2vmu
+      use arrays_distribution_function, only: gnew
+      use arrays_distribution_function, only: gvmu
 
       implicit none
 
-      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       real, intent(in) :: t0, delt0
       integer, intent(in) :: istep0
       integer, intent(out) :: istatus
@@ -129,12 +135,9 @@ contains
       else
          exit = .false.
       end if
-
-!    if (proc0) then
-!      write (*,*) "Starting save_for_restart in ", restart_file
-!      write (*,*) "List restart files"
-!      call system("echo 'start' >> filelist.txt; ls nc/* >> filelist.txt;  ")
-!    end if
+      
+      ! Make sure we have the distribution function vs (nvpa, nmu, -kxkyz-layout-)
+      call scatter(kxkyz2vmu, gnew, gvmu)
 
       n_elements = kxkyz_lo%ulim_proc - kxkyz_lo%llim_proc + 1
       total_elements = kxkyz_lo%ulim_world + 1
@@ -410,12 +413,6 @@ contains
 
          end if
 
-!    if (proc0) then
-!      write (*,*) "Finished definitions"
-         !      write (*,*) "List restart files"
-         !      call system("echo 'defs' >> filelist.txt; ls nc/* >> filelist.txt;  ")
-!    end if
-
          istatus = nf90_enddef(ncid)
          if (istatus /= NF90_NOERR) then
             write (unit_error_file, *) "nf90_enddef error: ", nf90_strerror(istatus)
@@ -465,7 +462,7 @@ contains
          if (.not. allocated(tmpr)) &
             allocate (tmpr(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
-         tmpr = real(g)
+         tmpr = real(gvmu)
 
 # ifdef NETCDF_PARALLEL
          if (save_many) then
@@ -485,7 +482,7 @@ contains
 
          if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, gr_id)
 
-         tmpr = aimag(g)
+         tmpr = aimag(gvmu)
 # ifdef NETCDF_PARALLEL
          if (save_many) then
 # endif
@@ -1121,9 +1118,12 @@ contains
    subroutine init_tstart(tstart, istep0, istatus)
 
 # ifdef NETCDF
-      use mp, only: proc0, broadcast
+      use mp, only: proc0, broadcast, mp_abort
       use file_utils, only: error_unit
 # endif
+
+      use parameters_numerical, only: nstep
+      
       implicit none
       real, intent(in out) :: tstart
       integer, intent(out) :: istep0
@@ -1169,7 +1169,14 @@ contains
          if (.not. initialized) istatus = nf90_close(ncid)
 
       end if
-
+      
+      ! Sanity checks
+      if (nstep > 0) then
+         if (nstep <= istep0) then
+            call mp_abort('Restarted simulation has nstep < istep. Aborting.')
+         end if
+      end if 
+      
       call broadcast(istatus)
       call broadcast(istep0)
       call broadcast(tstart)

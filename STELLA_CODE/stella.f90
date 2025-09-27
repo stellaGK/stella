@@ -50,6 +50,10 @@ program stella
    if (debug) write (*, *) 'stella::run_stella'
    call run_stella
    
+   ! If we stopped running stella, we did not have to increase the time step counter
+   ! This is important for restarted simulations, so they have the correct <istep> value
+   istep = istep - 1
+   
    ! Finish stella
    if (debug) write (*, *) 'stella::finish_stella'
    call finish_stella(istep, last_call=.true.)
@@ -68,15 +72,6 @@ contains
    ! every <nsave> time steps, the data necessary to restart a simulation is saved.
    !****************************************************************************
    subroutine run_stella
-   
-      ! Parallelisation
-      use redistribute, only: scatter
-      use initialise_redistribute, only: kxkyz2vmu
-      use job_manage, only: time_message
-      
-      ! Distribution function
-      use arrays_distribution_function, only: gnew
-      use arrays_distribution_function, only: gvmu
       
       ! Check whether stella should be stopped
       use grids_time, only: check_code_dt
@@ -142,8 +137,7 @@ contains
          
          ! Every <nsave> time steps, save the data necessary to restart stella
          if (nsave > 0 .and. mod(istep, nsave) == 0) then
-            call scatter(kxkyz2vmu, gnew, gvmu)
-            call save_stella_data_for_restart(gvmu, istep, code_time, code_dt, istatus)
+            call save_stella_data_for_restart(istep, code_time, code_dt, istatus)
          end if
          
          ! Calculate diagnostics, e.g., turbulent fluxes, growth rates, density fluctuations, ...
