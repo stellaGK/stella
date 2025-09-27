@@ -176,6 +176,8 @@ contains
       use arrays_distribution_function, only: gnew
       use gyrokinetic_equation_explicit, only: advance_distribution_function_using_explicit_gyrokinetic_terms
       use gyrokinetic_equation_implicit, only: advance_distribution_function_using_implicit_gyrokinetic_terms
+      use gk_radial_variation, only: advance_distribution_function_and_fields_radial_variation
+      use gk_radial_variation, only: advance_distribution_function_and_fields_radial_variation_init
       
       ! Fields
       use arrays_fields, only: phi, apar, bpar
@@ -190,18 +192,6 @@ contains
       use parameters_numerical, only: flip_flop
       use parameters_numerical, only: fully_explicit
       use parameters_numerical, only: fully_implicit
-      use parameters_multibox, only: rk_step
-      
-      ! Sources and sinks used in radial variation
-      ! TODO - move radial variation stuff to a subroutine
-      use gk_sources, only: include_qn_source
-      use gk_sources, only: update_quasineutrality_source
-      use gk_sources, only: source_option_switch
-      use gk_sources, only: source_option_projection
-      use gk_sources, only: source_option_krook
-      use gk_sources, only: update_tcorr_krook
-      use gk_sources, only: project_out_zero
-      use gk_radial_variation, only: mb_communicate
 
       implicit none
 
@@ -215,13 +205,8 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! Unless running in multibox mode, no need to worry about
-      ! mb_communicate calls as the subroutine is immediately exited
-      ! if not in multibox mode.
-      if (.not. rk_step) then
-         if (debug) write (*, *) 'time_advance::multibox'
-         call mb_communicate(gnew)
-      end if
+      ! Advance the distribution function and fields for radial variation runs
+      call advance_distribution_function_and_fields_radial_variation_init()
 
       ! Save value of phi & apar for use in diagnostics (to obtain frequency)
       phi_old = phi
@@ -301,24 +286,9 @@ contains
          end if
 
       end do
-
-      ! Presumably this is to do with the radially global version of the code?
-      ! perhaps it could be packaged together with the update_delay_krook code
-      ! below and made into a single call where all of this happens so that
-      ! users of the flux tube version of the code need not worry about it.
-      if (source_option_switch == source_option_projection) then
-         call project_out_zero(gold, gnew)
-         fields_updated = .false.
-      end if
-
-      gold = gnew
-
-      ! Ensure fields are updated so that omega calculation is correct.
-      call advance_fields(gnew, phi, apar, bpar, dist='g')
-
-      ! Update the delay parameters for the Krook operator
-      if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
-      if (include_qn_source) call update_quasineutrality_source
+      
+      ! Advance the distribution function and fields for radial variation runs
+      call advance_distribution_function_and_fields_radial_variation()
 
    end subroutine advance_distribution_function_and_fields
 

@@ -15,6 +15,8 @@ module gk_radial_variation
    ! Make routines available to other modules
    public :: init_radial_variation
    public :: advance_radial_variation
+   public :: advance_distribution_function_and_fields_radial_variation
+   public :: advance_distribution_function_and_fields_radial_variation_init
    public :: finish_radial_variation
    public :: mb_communicate
 
@@ -166,6 +168,75 @@ contains
       deallocate (energy, wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
    end subroutine init_radial_variation
+   
+   !******************************************************************************
+   !                        TIME ADVANCE FOR RADIAL VARIATION
+   !******************************************************************************
+   subroutine advance_distribution_function_and_fields_radial_variation_init()
+   
+      ! Distribution function
+      use arrays_distribution_function, only: gnew
+      
+      ! Multibox
+      use parameters_multibox, only: rk_step
+      
+      implicit none
+
+      !-------------------------------------------------------------------------
+
+      ! When running in multibox mode, do the mb_communicate calls
+      if (.not. rk_step) then
+         if (debug) write (*, *) 'time_advance::multibox'
+         call mb_communicate(gnew)
+      end if
+   
+   end subroutine advance_distribution_function_and_fields_radial_variation_init
+   
+   !******************************************************************************
+   !                        TIME ADVANCE FOR RADIAL VARIATION
+   !******************************************************************************
+   subroutine advance_distribution_function_and_fields_radial_variation()
+   
+      ! Distribution function
+      use arrays_distribution_function, only: gold
+      use arrays_distribution_function, only: gnew
+      
+      ! Fields
+      use arrays_fields, only: phi
+      use arrays_fields, only: apar
+      use arrays_fields, only: bpar
+      use field_equations, only: advance_fields
+      use field_equations, only: fields_updated
+   
+      ! Sources and sinks used in radial variation
+      use gk_sources, only: include_qn_source
+      use gk_sources, only: update_quasineutrality_source
+      use gk_sources, only: source_option_switch
+      use gk_sources, only: source_option_projection
+      use gk_sources, only: source_option_krook
+      use gk_sources, only: update_tcorr_krook
+      use gk_sources, only: project_out_zero
+      
+      implicit none
+
+      !-------------------------------------------------------------------------
+
+      ! Radial variation
+      if (source_option_switch == source_option_projection) then
+         call project_out_zero(gold, gnew)
+         fields_updated = .false.
+      end if
+
+      gold = gnew
+
+      ! Ensure fields are updated so that omega calculation is correct.
+      call advance_fields(gnew, phi, apar, bpar, dist='g')
+
+      ! Update the delay parameters for the Krook operator
+      if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
+      if (include_qn_source) call update_quasineutrality_source
+   
+   end subroutine advance_distribution_function_and_fields_radial_variation
 
    !******************************************************************************
    !                        TIME ADVANCE FOR RADIAL VARIATION

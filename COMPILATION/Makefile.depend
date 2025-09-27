@@ -872,6 +872,7 @@ $(OBJ_DIR)/gk_parallel_streaming.o: \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_radial_variation.o: \
 	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
@@ -884,6 +885,7 @@ $(OBJ_DIR)/gk_radial_variation.o: \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_mirror.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
+	 $(OBJ_DIR)/gk_sources.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_time.o \
@@ -1338,7 +1340,6 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
-	 $(OBJ_DIR)/gk_sources.o \
 	 $(OBJ_DIR)/grids_time.o \
 	 $(OBJ_DIR)/gyrokinetic_equation_explicit.o \
 	 $(OBJ_DIR)/gyrokinetic_equation_implicit.o \
