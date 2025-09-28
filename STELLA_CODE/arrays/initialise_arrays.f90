@@ -64,7 +64,7 @@ contains
    subroutine init_array_kperp2
 
       use arrays, only: kperp2
-      use geometry, only: gds2, gds21, gds22
+      use geometry, only: gds2, gds21, gradx_dot_gradx
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
       use grids_kxky, only: naky, nakx, nalpha
@@ -91,9 +91,9 @@ contains
          if (zonal_mode(iky)) then
             do ikx = 1, nakx
                if (q_as_x) then
-                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22
+                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gradx_dot_gradx * (geo_surf%shat**2)
                else
-                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22 / (geo_surf%shat**2)
+                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gradx_dot_gradx
                end if
             end do
             
@@ -102,7 +102,7 @@ contains
             do ikx = 1, nakx
                kperp2(iky, ikx, :, :) = aky(iky) * aky(iky) &
                    * (gds2 + 2.0 * theta0(iky, ikx) * gds21 &
-                   + theta0(iky, ikx) * theta0(iky, ikx) * gds22)
+                   + theta0(iky, ikx) * theta0(iky, ikx) * gradx_dot_gradx * (geo_surf%shat**2))
             end do
          end if
       end do

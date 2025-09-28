@@ -451,7 +451,15 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             else: 
                 
                 # Changed definitions
-                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift"]:
+                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22"]:
+                    if (key=="gds22"):
+                        gds22_old =  expected_netcdf["gds22"]
+                        gradx_dot_gradx_new = local_netcdf["gradx_dot_gradx"]
+                        gds22_new = gradx_dot_gradx_new * local_netcdf["shat"] * local_netcdf["shat"]
+                        if not (np.allclose(gds22_old, gds22_new, equal_nan=True)):
+                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
+                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                            compare_local_array_with_expected_array(gds22_old, gds22_new)
                     if (key=="gbdrift"):
                         gbdrift_old =  expected_netcdf["gbdrift"]
                         B_times_gradB_dot_grady_new = local_netcdf["B_times_gradB_dot_grady"]
@@ -571,7 +579,7 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     b_dot_gradz_new = data[:,4]
     gds2_new = data[:,5]
     gds21_new = data[:,6]
-    gds22_new = data[:,7]
+    gradx_dot_gradx_new = data[:,7]
     gds23_new = data[:,8]
     gds24_new = data[:,9]
     B_times_gradB_dot_grady_new = data[:,10]
@@ -587,6 +595,9 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     cvdrift_new = B_times_kappa_dot_grady_new * 2
     cvdrift_new = np.round(cvdrift_new, digits)
     cvdrift_old = np.round(cvdrift_old, digits)
+    gds22_new = gradx_dot_gradx_new * shat_new * shat_new
+    gds22_new = np.round(gds22_new, digits)
+    gds22_old = np.round(gds22_old, digits)
     if digits >= 2: digits = digits - 1
     gbdrift_new = B_times_gradB_dot_grady_new * 2
     gbdrift_new = np.round(gbdrift_new, digits)
@@ -867,18 +878,18 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     dgds2dr_new = data[:,50]
     gds21_new = data[:,51]
     dgds21dr_new = data[:,52]
-    gds22_new = data[:,53]
+    gradx_dot_gradx_new = data[:,53]
     dgds22dr_new = data[:,54]
     gds23_new = data[:,55]
     gds24_new = data[:,56]
     Zr_new = data[:,57]
     
     # New definitions
-    digits = 15
     gbdrift0_new = B_times_gradB_dot_gradx_new * 2 * shat
     cvdrift0_new = B_times_kappa_dot_gradx_new * 2 * shat
     gbdrift_new = B_times_gradB_dot_grady_new * 2
     cvdrift_new = B_times_kappa_dot_grady_new * 2
+    gds22_new = gradx_dot_gradx_new * shat * shat
     
     # Compare variables
     if not (np.allclose(dI_dr_old, dI_dr_new, equal_nan=True)): error = process_error('dI_dr')

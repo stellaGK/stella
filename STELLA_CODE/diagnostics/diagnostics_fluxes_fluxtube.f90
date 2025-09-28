@@ -39,7 +39,7 @@
 !            CONSTANT       VELOCITY_INTEGRAND
 ! pflux:       ñ_s                δf*J0 
 ! qflux:     ñ_s*T̃_s            δf*J0*v^2 
-! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(sqrt(T*m)/Z)/(q*shat*B^2))
+! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gradx_dot_gradx*shat^2)*(sqrt(T*m)/Z)/(q*shat*B^2))
 !  
 ! Note that for pflux and qflux, we can replace δf by g or h in the integrand.
 ! This has been tested numerically, and gives the same fluxes.
@@ -82,7 +82,7 @@ contains
    !            CONSTANT       VELOCITY_INTEGRAND
    ! pflux:       ñ_s                δf*J0 
    ! qflux:     ñ_s*T̃_s            δf*J0*v^2 
-   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(sqrt(T*m)/Z)/(q*shat*B^2))
+   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gradx_dot_gradx*shat^2)*(sqrt(T*m)/Z)/(q*shat*B^2))
    ! 
    ! For <flux>(s) we integrate over all the z-points so we need to add the factor <fluxnorm_vs_z> = < . >_ψ / <∇̃ρ>_ψ
    ! For <flux>(ky,kx,z,t,s) we do not integrate over z so we only add the factor 1/<∇̃ρ>_ψ 
@@ -108,7 +108,7 @@ contains
       use parameters_physics, only: fphi
       
       ! Geometry 
-      use geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 
+      use geometry, only: bmag, btor, gds2, gds21, gradx_dot_gradx, geo_surf
       use geometry, only: gradzeta_gradx_R2overB2
       use geometry, only: gradzeta_grady_R2overB2
       use geometry, only: b_dot_grad_zeta_RR 
@@ -203,7 +203,7 @@ contains
 
             ! For the parallel (first term) and perpendicular (second term) component of the momentum flux we have,
             ! <VELOCITY_INTEGRAND>(vpa,mu) = δf*J0*vpa*(b.∇ζ)*R^2 
-            !        - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
+            !        - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gradx_dot_gradx*shat^2)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
             !        + i*δf*J1*ky*vperp^2*rho*(theta0*gds21+gds2)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
             
             ! First add the parallel component of the momentum flux: δf*J0*vpa*(b.∇ζ)*R^2 
@@ -213,7 +213,7 @@ contains
             ! Next add the perpendicular component
             velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
                     * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) * (gds21(ia, iz) &
-                    + theta0(iky, ikx) * gds22(ia, iz)) / geo_surf%shat &
+                    + theta0(iky, ikx) * gradx_dot_gradx(ia, iz)) * geo_surf%shat &
                     - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             
@@ -260,8 +260,8 @@ contains
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             velocityintegrand_vs_vpamu = 2.0*spread(vpa, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
                     * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
-                    * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) * spec(is)%smz &
-                    / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
+                    * (gds21(ia, iz) + theta0(iky, ikx) * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
+                    / (geo_surf%qinp * bmag(ia, iz)**2)
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), vflux_vs_s(is))
@@ -372,7 +372,7 @@ contains
    !            CONSTANT       VELOCITY_INTEGRAND
    ! pflux:       ñ_s                δf*J0 
    ! qflux:     ñ_s*T̃_s            δf*J0*v^2 
-   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(sqrt(T*m)/Z)/(q*shat*B^2))
+   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gradx_dot_gradx*shat²)*(sqrt(T*m)/Z)/(q*shat*B^2))
    ! 
    ! If the goal is to integrate over z, then NORM = < . >_ψ[iz] / <∇̃ρ>_ψ if
    ! If we want to calculate the flux at every z-point, then NORM = 1 / <∇̃ρ>_ψ and the integral can be performed manually later

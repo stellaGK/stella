@@ -38,7 +38,7 @@ module geometry_miller
    real :: bi, dqdr, d2Idr2
    real, dimension(:), allocatable :: grho, bmag, grho_psi0, bmag_psi0, gradpar
    real, dimension(:), allocatable :: gradpararc, arc
-   real, dimension(:), allocatable :: gds2, gds21, gds22
+   real, dimension(:), allocatable :: gds2, gds21, gradx_dot_gradx
    real, dimension(:), allocatable :: gds23, gds24
    real, dimension(:), allocatable :: B_times_gradB_dot_gradx, B_times_gradB_dot_grady
    real, dimension(:), allocatable :: B_times_kappa_dot_gradx, B_times_kappa_dot_grady
@@ -355,7 +355,7 @@ contains
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
                             dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
                             bmag_out, bmag_psi0_out, &
-                            gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
+                            gds2_out, gds21_out, gradx_dot_gradx_out, gds23_out, gds24_out, gradpar_out, &
                             B_times_gradB_dot_gradx_out, B_times_gradB_dot_grady_out, &
                             B_times_kappa_dot_gradx_out, B_times_kappa_dot_grady_out, &
                             dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
@@ -377,7 +377,7 @@ contains
       real, intent(out) :: dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out
       real, dimension(-nzgrid:), intent(out) :: grho_out, &
                bmag_out, bmag_psi0_out, &
-               gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, &
+               gds2_out, gds21_out, gradx_dot_gradx_out, gds23_out, gds24_out, &
                gradpar_out, B_times_gradB_dot_gradx_out, &
                B_times_gradB_dot_grady_out, B_times_kappa_dot_gradx_out, B_times_kappa_dot_grady_out, &
                dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
@@ -570,7 +570,7 @@ contains
       call get_graddotgrad(dpsipdrho, grho)
       
       if (debug) write (*, *) 'geometry_miller::get_gds'
-      call get_gds(gds2, gds21, gds22, gds23, gds24)
+      call get_gds(gds2, gds21, gradx_dot_gradx, gds23, gds24)
 
       ! this is (grad alpha x B) . grad theta
       cross = dpsipdrho * (gradrho_gradalph * gradalph_gradthet - gradalph2 * gradrho_gradthet)
@@ -657,7 +657,7 @@ contains
          call geo_spline(theta, bmag_psi0, zed_arc, bmag_psi0_out)
          call geo_spline(theta, gds2, zed_arc, gds2_out)
          call geo_spline(theta, gds21, zed_arc, gds21_out)
-         call geo_spline(theta, gds22, zed_arc, gds22_out)
+         call geo_spline(theta, gradx_dot_gradx, zed_arc, gradx_dot_gradx_out)
          call geo_spline(theta, gds21, zed_arc, gds23_out)
          call geo_spline(theta, gds21, zed_arc, gds24_out)
          call geo_spline(theta, gradpararc, zed_arc, gradpar_out)
@@ -685,7 +685,7 @@ contains
          call geo_spline(theta, bmag_psi0, zed_in, bmag_psi0_out)
          call geo_spline(theta, gds2, zed_in, gds2_out)
          call geo_spline(theta, gds21, zed_in, gds21_out)
-         call geo_spline(theta, gds22, zed_in, gds22_out)
+         call geo_spline(theta, gradx_dot_gradx, zed_in, gradx_dot_gradx_out)
          call geo_spline(theta, gds21, zed_in, gds23_out)
          call geo_spline(theta, gds21, zed_in, gds24_out)
          call geo_spline(theta, gradpar, zed_in, gradpar_out)
@@ -769,7 +769,7 @@ contains
          dgds2dr(i) = round(dgds2dr(i), n)
          gds21(i) = round(gds21(i), n)
          dgds21dr(i) = round(dgds21dr(i), n)
-         gds22(i) = round(gds22(i), n)
+         gradx_dot_gradx(i) = round(gradx_dot_gradx(i), n)
          dgds22dr(i) = round(dgds22dr(i), n)
          gds23(i) = round(gds23(i), n)
          gds24(i) = round(gds24(i), n) 
@@ -814,7 +814,7 @@ contains
          '36.dcrossdr', '37.B_times_gradB_dot_gradx', '38.dgbdrift0', '39.B_times_kappa_dot_gradx', '40.dcvdrift0', &
          '41.B_times_gradB_dot_grady', '42.dgbdrift', '43.B_times_kappa_dot_grady', '44.dcvdrift', '45.drzdth', &
          '46.gradpar', '47.dgpardr', '48.gradparB', '49.dgparBdr', '50.gds2', &
-         '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gds22', '55.dgds22dr', &
+         '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gradx_dot_gradx', '55.dgds22dr', &
          '56.gds23', '57.gds24', '58.Zr'
 
       if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files::start_loop'
@@ -830,7 +830,7 @@ contains
          write(*,*) 'h', dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i)
          write(*,*) 'i', B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i)
          write(*,*) 'j', gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), gds2(i)
-         write(*,*) 'k', dgds2dr(i), gds21(i), dgds21dr(i), gds22(i), dgds22dr(i), gds23(i), gds24(i)
+         write(*,*) 'k', dgds2dr(i), gds21(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i)
          write(*,*) 'l', Zr(2, i)
       end if
       do i = -nz, nz
@@ -844,7 +844,7 @@ contains
             dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i), &
             B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i), &
             gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), gds2(i), &
-            dgds2dr(i), gds21(i), dgds21dr(i), gds22(i), dgds22dr(i), gds23(i), gds24(i), &
+            dgds2dr(i), gds21(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i), &
             Zr(2, i)
       end do
       close (1001)
@@ -867,8 +867,8 @@ contains
 
       ! periodic quantities can be computed on 2*pi grid and replicated
       allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
-      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
-      gds2 = 0.0; gds21 = 0.0; gds22 = 0.0; gds23 = 0.0; gds24 = 0.0
+      allocate (gds2(-nz:nz), gds21(-nz:nz), gradx_dot_gradx(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
+      gds2 = 0.0; gds21 = 0.0; gradx_dot_gradx = 0.0; gds23 = 0.0; gds24 = 0.0
       allocate (B_times_gradB_dot_gradx(-nz:nz), B_times_gradB_dot_grady(-nz:nz)); B_times_gradB_dot_gradx = 0.0; B_times_gradB_dot_grady = 0.0
       allocate (B_times_kappa_dot_gradx(-nz:nz), B_times_kappa_dot_grady(-nz:nz)); B_times_kappa_dot_gradx = 0.0; B_times_kappa_dot_grady = 0.0
       allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz)); Rr = 0.0; Zr = 0.0
@@ -916,7 +916,7 @@ contains
       deallocate (gradpar)
       deallocate (gds2)
       deallocate (gds21)
-      deallocate (gds22)
+      deallocate (gradx_dot_gradx)
       deallocate (gds23)
       deallocate (gds24)
       deallocate (B_times_gradB_dot_gradx)
@@ -1211,11 +1211,11 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine get_gds(gds2, gds21, gds22, gds23, gds24)
+   subroutine get_gds(gds2, gds21, gradx_dot_gradx, gds23, gds24)
 
       implicit none
 
-      real, dimension(-nz:), intent(out) :: gds2, gds21, gds22, gds23, gds24
+      real, dimension(-nz:), intent(out) :: gds2, gds21, gradx_dot_gradx, gds23, gds24
 
       !-------------------------------------------------------------------------
 
@@ -1224,14 +1224,14 @@ contains
       ! (grad q . grad alpha) * (dpsiN/drho)^2
       gds21 = gradrho_gradalph * dqdr * dpsipdrho_psi0**2
       ! |grad q|^2 * (dpsiN/drho)^2
-      gds22 = (grho * dpsipdrho_psi0 * dqdr)**2
+      gradx_dot_gradx = (grho * dpsipdrho_psi0 * dqdr)**2 / (shat)**2
       ! (grad rho . grad theta * |grad alpha|^2 - grad alpha . grad theta * grad rho . grad alpha) * (dpsiN/drho)^2 / B^2
       gds23 = (gradrho_gradthet * gradalph2 - gradalph_gradthet * gradrho_gradalph) * (dpsipdrho_psi0 / bmag)**2
       ! (grad rho . grad theta * grad rho . grad alpha - grad alpha . grad theta * |grad rho|^2) * (dpsiN/drho)^2 / B^2 * q/rho
       gds24 = (gradrho_gradthet * gradrho_gradalph - gradalph_gradthet * grho**2) &
               * (dpsipdrho_psi0 / bmag)**2 * (local%qinp_psi0 / local%rhoc_psi0)
 
-      ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(gds2 + 2*theta0*gds21 + theta0^2*gds22)
+      ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(gds2 + 2*theta0*gds21 + theta0^2*gradx_dot_gradx*shat^2)
       ! theta0 = kx/(ky*shat)
 
    end subroutine get_gds
