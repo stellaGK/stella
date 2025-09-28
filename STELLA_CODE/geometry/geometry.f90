@@ -28,7 +28,6 @@
 !    - cvdrift0  -->   B_times_kappa_dot_gradx * 2. * shat
 !    - cvdrift   -->   B_times_kappa_dot_grady * 2.
 ! 
-! TODO - Change B_times_gradB_dot_gradx_psit
 !###############################################################################
 module geometry
 
@@ -382,8 +381,8 @@ contains
       real, dimension(:, :), allocatable :: psit_displacement_fac, grad_alpha_grad_alpha
       real, dimension(:, :), allocatable :: grad_alpha_grad_psit, grad_alpha_grad_psi 
       real, dimension(:, :), allocatable :: grad_psit_grad_psit, grad_psi_grad_psi
-      real, dimension(:, :), allocatable :: B_times_gradB_dot_grady_alpha, B_times_kappa_dot_grady_alpha
-      real, dimension(:, :), allocatable :: B_times_gradB_dot_gradx_psit, B_times_kappa_dot_gradx_psit
+      real, dimension(:, :), allocatable :: B_times_gradB_dot_gradalpha, B_times_kappa_dot_gradalpha
+      real, dimension(:, :), allocatable :: B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradpsit
       real, dimension(:, :), allocatable :: gds23_alphapsit, gds24_alphapsit
       real, dimension(:, :), allocatable :: gds25_alphapsit, gds26_alphapsit
       real, dimension(:, :), allocatable :: grad_x_grad_x, grad_y_grad_y, grad_y_grad_x
@@ -412,7 +411,7 @@ contains
                b_dot_grad_z_averaged, b_dot_grad_z, & 
                grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
                gds23_alphapsit, gds24_alphapsit, gds25_alphapsit, gds26_alphapsit, & 
-               B_times_gradB_dot_grady_alpha, B_times_gradB_dot_gradx_psit, B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psit, &
+               B_times_gradB_dot_gradalpha, B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradalpha, B_times_kappa_dot_gradpsit, &
                gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
                sign_torflux, theta_vmec, dzetadz, aref, bref, alpha, zeta, &
                field_period_ratio, psit_displacement_fac)
@@ -458,10 +457,10 @@ contains
       gds24 = gds24_alphapsit * dydalpha * dxdpsit * dxdpsit
       gds25 = gds25_alphapsit * dydalpha * dydalpha * dxdpsit
       gds26 = gds26_alphapsit * dydalpha * dxdpsit * dxdpsit
-      B_times_gradB_dot_grady = B_times_gradB_dot_grady_alpha * dydalpha
-      B_times_gradB_dot_gradx = B_times_gradB_dot_gradx_psit * dxdpsit
-      B_times_kappa_dot_grady = B_times_kappa_dot_grady_alpha * dydalpha
-      B_times_kappa_dot_gradx = B_times_kappa_dot_gradx_psit * dxdpsit
+      B_times_gradB_dot_grady = B_times_gradB_dot_gradalpha * dydalpha
+      B_times_gradB_dot_gradx = B_times_gradB_dot_gradpsit * dxdpsit
+      B_times_kappa_dot_grady = B_times_kappa_dot_gradalpha * dydalpha
+      B_times_kappa_dot_gradx = B_times_kappa_dot_gradpsit * dxdpsit
       
       ! Deallocate all <psit> arrays since we have chosen our <psi> coordinate
 
@@ -585,10 +584,10 @@ contains
          allocate (grad_alpha_grad_psit(nalpha, -nzgrid:nzgrid))
          allocate (grad_psit_grad_psit(nalpha, -nzgrid:nzgrid))
          allocate (grad_psi_grad_psi(nalpha, -nzgrid:nzgrid))
-         allocate (B_times_gradB_dot_grady_alpha(nalpha, -nzgrid:nzgrid))
-         allocate (B_times_kappa_dot_grady_alpha(nalpha, -nzgrid:nzgrid))
-         allocate (B_times_gradB_dot_gradx_psit(nalpha, -nzgrid:nzgrid))
-         allocate (B_times_kappa_dot_gradx_psit(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_gradB_dot_gradalpha(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_kappa_dot_gradalpha(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_gradB_dot_gradpsit(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_kappa_dot_gradpsit(nalpha, -nzgrid:nzgrid))
          allocate (gds23_alphapsit(nalpha, -nzgrid:nzgrid))
          allocate (gds24_alphapsit(nalpha, -nzgrid:nzgrid))
          allocate (gds25_alphapsit(nalpha, -nzgrid:nzgrid))
@@ -613,8 +612,8 @@ contains
          deallocate (psit_displacement_fac, grad_alpha_grad_alpha)
          deallocate (grad_alpha_grad_psi, grad_psi_grad_psi)
          deallocate (grad_alpha_grad_psit, grad_psit_grad_psit)
-         deallocate (B_times_gradB_dot_grady_alpha, B_times_kappa_dot_grady_alpha)
-         deallocate (B_times_gradB_dot_gradx_psit, B_times_kappa_dot_gradx_psit)
+         deallocate (B_times_gradB_dot_gradalpha, B_times_kappa_dot_gradalpha)
+         deallocate (B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradpsit)
          deallocate (gds23_alphapsit, gds24_alphapsit)
          deallocate (gds25_alphapsit, gds26_alphapsit)
          deallocate (grad_y_grad_y, grad_x_grad_x, grad_y_grad_x)
