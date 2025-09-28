@@ -89,7 +89,7 @@ contains
       use parameters_numerical, only: maxwellian_normalization
       
       ! Geometry
-      use geometry, only: cvdrift, gbdrift
+      use geometry, only: cvdrift, B_times_gradB_dot_grady
       use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
       use geometry, only: geo_surf, q_as_x
       
@@ -161,7 +161,7 @@ contains
          ! We also add the input parameter <ydriftknob> to rescale the y-drifts
          fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
          wcvdrifty = fac * cvdrift * vpa(iv) * vpa(iv)
-         wgbdrifty = fac * gbdrift * 0.5 * vperp2(:, :, imu)
+         wgbdrifty = fac * B_times_gradB_dot_grady * vperp2(:, :, imu)
          
          ! Calculate <wdrifty_g>[ialpha, iz, ivmu] = <wcvdrifty> + <wgbdrifty>
          wdrifty_g(:, :, ivmu) = wcvdrifty + wgbdrifty
@@ -188,7 +188,7 @@ contains
             fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0 / geo_surf%shat
          end if
          wcvdriftx = fac * B_times_kappa_dot_gradx * 2. * geo_surf%shat * vpa(iv) * vpa(iv)
-         wgbdriftx = fac * B_times_gradB_dot_gradx * 2. * geo_surf%shat * 0.5 * vperp2(:, :, imu)
+         wgbdriftx = fac * B_times_gradB_dot_gradx * geo_surf%shat * vperp2(:, :, imu)
          
          ! Calculate <wdriftx_g>[ialpha, iz, ivmu] = <wcvdriftx> + <wgbdriftx>
          wdriftx_g(:, :, ivmu) = wcvdriftx + wgbdriftx
@@ -212,7 +212,7 @@ contains
    subroutine init_wdrift_with_neoclassical_terms
 
       use mp, only: mp_abort
-      use geometry, only: cvdrift, gbdrift
+      use geometry, only: cvdrift, B_times_gradB_dot_grady
       use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
       use geometry, only: gds23, gds24
       use geometry, only: geo_surf, q_as_x
@@ -275,7 +275,7 @@ contains
          wcvdrifty = fac * cvdrift * vpa(iv)
          
          ! This is the grad-B drift piece of wdrifty
-         wgbdrifty = fac * gbdrift * 0.5 * vperp2(:, :, imu)
+         wgbdrifty = fac * B_times_gradB_dot_grady * vperp2(:, :, imu)
          wdrifty_g(:, :, ivmu) = wcvdrifty * vpa(iv) + wgbdrifty
          
          ! if including neoclassical correction to equilibrium Maxwellian,
@@ -520,7 +520,7 @@ contains
                call gyro_average_j1(dbpardy, ivmu, g0k(:, :, :, :, ivmu))
                end do
                ! add vM . grad y (4 mu d<bpar>/dy) term to equation
-               call add_explicit_term(g0k, wdrifty_bpar(1, :, :), gout)            
+               call add_explicit_term(g0k, wdrifty_bpar(1, :, :), gout)
          end if
       end if
       deallocate (g0k, dphidy, dbpardy)

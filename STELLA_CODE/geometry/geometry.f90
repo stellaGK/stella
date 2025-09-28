@@ -53,7 +53,7 @@ module geometry
    public :: bmag, dbdzed, btor, bmag_psi0, grho, grho_norm, grad_x
    public :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26, gradpar
-   public :: cvdrift, B_times_kappa_dot_gradx, gbdrift, B_times_gradB_dot_gradx
+   public :: cvdrift, B_times_kappa_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
    public :: dgds2dr, dgds21dr, dgds22dr
    public :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
    public :: jacob, djacdrho, drhodpsi, drhodpsip, drhodpsip_psi0
@@ -100,7 +100,7 @@ module geometry
    real, dimension(:), allocatable :: gradpar, b_dot_grad_z_averaged
    real, dimension(:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho, btor, Rmajor 
    real, dimension(:, :), allocatable :: bmag, bmag_psi0, dbdzed 
-   real, dimension(:, :), allocatable :: cvdrift, B_times_kappa_dot_gradx, gbdrift, B_times_gradB_dot_gradx
+   real, dimension(:, :), allocatable :: cvdrift, B_times_kappa_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
    real, dimension(:, :), allocatable :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    real, dimension(:, :), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
    real, dimension(:, :), allocatable :: dgds2dr, dgds21dr, dgds22dr, x_displacement_fac
@@ -122,7 +122,7 @@ module geometry
  
    logical :: overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_geometry
    logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
-   logical :: overwrite_gds23, overwrite_gds24, overwrite_gbdrift
+   logical :: overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady
    logical :: overwrite_cvdrift, overwrite_B_times_gradB_dot_gradx, q_as_x
    
    character(100) :: geometry_file
@@ -181,7 +181,7 @@ contains
          if (geo_option_switch==geo_option_inputprof) then
             call read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, overwrite_b_dot_grad_zeta, &
                overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
-               overwrite_gbdrift, overwrite_cvdrift, overwrite_B_times_gradB_dot_gradx, set_bmag_const, overwrite_geometry)
+               overwrite_B_times_gradB_dot_grady, overwrite_cvdrift, overwrite_B_times_gradB_dot_gradx, set_bmag_const, overwrite_geometry)
          end if
 
          ! Use Miller parameters or VMEC to get the geometry needed for stella
@@ -382,7 +382,7 @@ contains
       real, dimension(:, :), allocatable :: psit_displacement_fac, grad_alpha_grad_alpha
       real, dimension(:, :), allocatable :: grad_alpha_grad_psit, grad_alpha_grad_psi 
       real, dimension(:, :), allocatable :: grad_psit_grad_psit, grad_psi_grad_psi
-      real, dimension(:, :), allocatable :: gbdrift_alpha, cvdrift_alpha
+      real, dimension(:, :), allocatable :: B_times_gradB_dot_grady_alpha, cvdrift_alpha
       real, dimension(:, :), allocatable :: B_times_gradB_dot_gradx_psit, B_times_kappa_dot_gradx_psit
       real, dimension(:, :), allocatable :: gds23_alphapsit, gds24_alphapsit
       real, dimension(:, :), allocatable :: gds25_alphapsit, gds26_alphapsit
@@ -412,7 +412,7 @@ contains
                b_dot_grad_z_averaged, b_dot_grad_z, & 
                grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
                gds23_alphapsit, gds24_alphapsit, gds25_alphapsit, gds26_alphapsit, & 
-               gbdrift_alpha, B_times_gradB_dot_gradx_psit, cvdrift_alpha, B_times_kappa_dot_gradx_psit, &
+               B_times_gradB_dot_grady_alpha, B_times_gradB_dot_gradx_psit, cvdrift_alpha, B_times_kappa_dot_gradx_psit, &
                gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
                sign_torflux, theta_vmec, dzetadz, aref, bref, alpha, zeta, &
                field_period_ratio, psit_displacement_fac)
@@ -458,7 +458,7 @@ contains
       gds24 = gds24_alphapsit * dydalpha * dxdpsit * dxdpsit
       gds25 = gds25_alphapsit * dydalpha * dydalpha * dxdpsit
       gds26 = gds26_alphapsit * dydalpha * dxdpsit * dxdpsit
-      gbdrift = gbdrift_alpha * dydalpha
+      B_times_gradB_dot_grady = B_times_gradB_dot_grady_alpha * dydalpha
       B_times_gradB_dot_gradx = B_times_gradB_dot_gradx_psit * dxdpsit
       cvdrift = cvdrift_alpha * dydalpha
       B_times_kappa_dot_gradx = B_times_kappa_dot_gradx_psit * dxdpsit
@@ -585,7 +585,7 @@ contains
          allocate (grad_alpha_grad_psit(nalpha, -nzgrid:nzgrid))
          allocate (grad_psit_grad_psit(nalpha, -nzgrid:nzgrid))
          allocate (grad_psi_grad_psi(nalpha, -nzgrid:nzgrid))
-         allocate (gbdrift_alpha(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_gradB_dot_grady_alpha(nalpha, -nzgrid:nzgrid))
          allocate (cvdrift_alpha(nalpha, -nzgrid:nzgrid))
          allocate (B_times_gradB_dot_gradx_psit(nalpha, -nzgrid:nzgrid))
          allocate (B_times_kappa_dot_gradx_psit(nalpha, -nzgrid:nzgrid))
@@ -613,7 +613,7 @@ contains
          deallocate (psit_displacement_fac, grad_alpha_grad_alpha)
          deallocate (grad_alpha_grad_psi, grad_psi_grad_psi)
          deallocate (grad_alpha_grad_psit, grad_psit_grad_psit)
-         deallocate (gbdrift_alpha, cvdrift_alpha)
+         deallocate (B_times_gradB_dot_grady_alpha, cvdrift_alpha)
          deallocate (B_times_gradB_dot_gradx_psit, B_times_kappa_dot_gradx_psit)
          deallocate (gds23_alphapsit, gds24_alphapsit)
          deallocate (gds25_alphapsit, gds26_alphapsit)
@@ -690,7 +690,7 @@ contains
       call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
                 dpsipdrho, dpsipdrho_psi0, dIdrho, grho(1, :), bmag(1, :), bmag_psi0(1, :), &
                 gds2(1, :), gds21(1, :), gds22(1, :), gds23(1, :), gds24(1, :), b_dot_grad_z(1, :), &
-                B_times_gradB_dot_gradx(1, :), gbdrift(1, :), B_times_kappa_dot_gradx(1, :), cvdrift(1, :), &
+                B_times_gradB_dot_gradx(1, :), B_times_gradB_dot_grady(1, :), B_times_kappa_dot_gradx(1, :), cvdrift(1, :), &
                 dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                 dcvdrift0drho(1, :), dcvdriftdrho(1, :), dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                 dgds2dr(1, :), dgds21dr(1, :), dgds22dr(1, :), djacdrho(1, :))
@@ -771,7 +771,7 @@ contains
       gds23 = spread(gds23(1, :), 1, nalpha)
       gds24 = spread(gds24(1, :), 1, nalpha)
       B_times_gradB_dot_gradx = spread(B_times_gradB_dot_gradx(1, :), 1, nalpha)
-      gbdrift = spread(gbdrift(1, :), 1, nalpha)
+      B_times_gradB_dot_grady = spread(B_times_gradB_dot_grady(1, :), 1, nalpha)
       B_times_kappa_dot_gradx = spread(B_times_kappa_dot_gradx(1, :), 1, nalpha)
       cvdrift = spread(cvdrift(1, :), 1, nalpha)
       dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
@@ -819,8 +819,8 @@ contains
 
       ! Calculate the geometric coefficients for a z-pinch magnetic equilibrium
       call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &
-          gds2(1, :), gds21(1, :), gds22(1, :), &
-          B_times_gradB_dot_gradx(1, :), gbdrift(1, :), B_times_kappa_dot_gradx(1, :), cvdrift(1, :), btor, rmajor)
+          gds2(1, :), gds21(1, :), gds22(1, :), B_times_gradB_dot_gradx(1, :), &
+          B_times_gradB_dot_grady(1, :), B_times_kappa_dot_gradx(1, :), cvdrift(1, :), btor, rmajor)
 
       !> b_dot_grad_z is the alpha-dependent b . grad z,
       !> and gradpar is the constant-in-alpha part of it.
@@ -866,7 +866,7 @@ contains
       integer :: ia, iz
       real :: bmag_file, b_dot_grad_zeta_file
       real :: gds2_file, gds21_file, gds22_file, gds23_file, gds24_file
-      real :: gbdrift_file, cvdrift_file, B_times_gradB_dot_gradx_file
+      real :: B_times_gradB_dot_grady_file, cvdrift_file, B_times_gradB_dot_gradx_file
 
       !-------------------------------------------------------------------------
 
@@ -877,13 +877,13 @@ contains
       read (geofile_unit, fmt=*) dum_char
       read (geofile_unit, fmt=*) dum_char
 
-      ! overwrite bmag, b_dot_grad_zeta, gds2, gds21, gds22, gds23, gds24, gbdrift, cvdrift, B_times_gradB_dot_gradx, and B_times_kappa_dot_gradx
+      ! overwrite bmag, b_dot_grad_zeta, gds2, gds21, gds22, gds23, gds24, B_times_gradB_dot_grady, cvdrift, B_times_gradB_dot_gradx, and B_times_kappa_dot_gradx
       ! with values from file
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
             read (geofile_unit, fmt='(13e12.4)') dum_real, dum_real, dum_real, bmag_file, b_dot_grad_zeta_file, &
                gds2_file, gds21_file, gds22_file, gds23_file, &
-               gds24_file, gbdrift_file, cvdrift_file, B_times_gradB_dot_gradx_file
+               gds24_file, B_times_gradB_dot_grady_file, cvdrift_file, B_times_gradB_dot_gradx_file
             if (overwrite_bmag) bmag(ia, iz) = bmag_file
             !if (overwrite_b_dot_grad_zeta) b_dot_grad_zeta(iz) = b_dot_grad_zeta_file
             ! assuming we are only reading in for a single alpha. Usually, b_dot_grad_zeta is the average of all b_dot_grad_z values.
@@ -893,7 +893,7 @@ contains
             if (overwrite_gds22) gds22(ia, iz) = gds22_file
             if (overwrite_gds23) gds23(ia, iz) = gds23_file
             if (overwrite_gds24) gds24(ia, iz) = gds24_file
-            if (overwrite_gbdrift) gbdrift(ia, iz) = gbdrift_file
+            if (overwrite_B_times_gradB_dot_grady) B_times_gradB_dot_grady(ia, iz) = B_times_gradB_dot_grady_file
             if (overwrite_cvdrift) cvdrift(ia, iz) = cvdrift_file
             if (overwrite_B_times_gradB_dot_gradx) B_times_gradB_dot_gradx(ia, iz) = B_times_gradB_dot_gradx_file
          end do
@@ -917,7 +917,7 @@ contains
 
       call set_coef_constant(B_times_gradB_dot_gradx, nalpha)
       call set_coef_constant(B_times_kappa_dot_gradx, nalpha)
-      call set_coef_constant(gbdrift, nalpha)
+      call set_coef_constant(B_times_gradB_dot_grady, nalpha)
       call set_coef_constant(cvdrift, nalpha)
       call set_coef_constant(grad_x, nalpha)
       call set_coef_constant(grho, nalpha)
@@ -979,7 +979,7 @@ contains
       if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid)); dgds2dr = 0.0
       if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid)); dgds21dr = 0.0
       if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid)); dgds22dr = 0.0
-      if (.not. allocated(gbdrift)) allocate (gbdrift(nalpha, -nzgrid:nzgrid)); gbdrift = 0.0
+      if (.not. allocated(B_times_gradB_dot_grady)) allocate (B_times_gradB_dot_grady(nalpha, -nzgrid:nzgrid)); B_times_gradB_dot_grady = 0.0
       if (.not. allocated(B_times_gradB_dot_gradx)) allocate (B_times_gradB_dot_gradx(nalpha, -nzgrid:nzgrid)); B_times_gradB_dot_gradx = 0.0
       if (.not. allocated(cvdrift)) allocate (cvdrift(nalpha, -nzgrid:nzgrid)); cvdrift = 0.0
       if (.not. allocated(B_times_kappa_dot_gradx)) allocate (B_times_kappa_dot_gradx(nalpha, -nzgrid:nzgrid)); B_times_kappa_dot_gradx = 0.0
@@ -1074,7 +1074,7 @@ contains
       call broadcast(dgds21dr)
       call broadcast(dgds22dr)
       call broadcast(B_times_gradB_dot_gradx)
-      call broadcast(gbdrift)
+      call broadcast(B_times_gradB_dot_grady)
       call broadcast(B_times_kappa_dot_gradx)
       call broadcast(cvdrift)
       call broadcast(dgbdrift0drho)
@@ -1315,13 +1315,13 @@ contains
       write (geometry_unit, *)
 
       write (geometry_unit, '(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'gds2', 'gds21', 'gds22', &
-         'gds23', 'gds24', 'gbdrift', 'cvdrift', 'B_times_gradB_dot_gradx', 'bmag_psi0', 'btor'
+         'gds23', 'gds24', 'B_times_gradB_dot_grady', 'cvdrift', 'B_times_gradB_dot_gradx', 'bmag_psi0', 'btor'
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
             !          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), b_dot_grad_zeta(iz), &
             write (geometry_unit, '(15e12.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_grad_z(ia, iz), &
                gds2(ia, iz), gds21(ia, iz), gds22(ia, iz), gds23(ia, iz), &
-               gds24(ia, iz), gbdrift(ia, iz), cvdrift(ia, iz), B_times_gradB_dot_gradx(ia, iz), &
+               gds24(ia, iz), B_times_gradB_dot_grady(ia, iz), cvdrift(ia, iz), B_times_gradB_dot_gradx(ia, iz), &
                bmag_psi0(ia, iz), btor(iz)
          end do
          write (geometry_unit, *)
@@ -1388,7 +1388,7 @@ contains
       if (allocated(dgds2dr)) deallocate (dgds2dr)
       if (allocated(dgds21dr)) deallocate (dgds21dr)
       if (allocated(dgds22dr)) deallocate (dgds22dr)
-      if (allocated(gbdrift)) deallocate (gbdrift)
+      if (allocated(B_times_gradB_dot_grady)) deallocate (B_times_gradB_dot_grady)
       if (allocated(B_times_gradB_dot_gradx)) deallocate (B_times_gradB_dot_gradx)
       if (allocated(cvdrift)) deallocate (cvdrift)
       if (allocated(B_times_kappa_dot_gradx)) deallocate (B_times_kappa_dot_gradx)
