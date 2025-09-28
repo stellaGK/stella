@@ -30,7 +30,7 @@ contains
    !****************************************************************************
    subroutine get_zpinch_geometry_coefficients(nzgrid, bmag, gradpar, grad_rho, surf, &
       grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-      B_times_gradB_dot_gradx, B_times_gradB_dot_grady, B_times_kappa_dot_gradx, cvdrift, btor, rmajor)
+      B_times_gradB_dot_gradx, B_times_gradB_dot_grady, B_times_kappa_dot_gradx, B_times_kappa_dot_grady, btor, rmajor)
 
       use common_types, only: flux_surface_type
       use namelist_geometry, only: read_namelist_geometry_zpinch
@@ -40,7 +40,7 @@ contains
       integer, intent(in) :: nzgrid
       real, dimension(-nzgrid:), intent(out) :: bmag, gradpar, grad_rho, &
          grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-         B_times_gradB_dot_gradx, B_times_gradB_dot_grady, B_times_kappa_dot_gradx, cvdrift, btor, rmajor
+         B_times_gradB_dot_gradx, B_times_gradB_dot_grady, B_times_kappa_dot_gradx, B_times_kappa_dot_grady, btor, rmajor
       type(flux_surface_type), intent(out) :: surf
 
       !-------------------------------------------------------------------------
@@ -78,8 +78,9 @@ contains
       ! We redefined B_times_gradB_dot_grady = gbdrift / 2
       B_times_gradB_dot_grady = 1.0
       
-      ! cvdrift = 2 * bhat / B_norm x (bhat . grad_norm bhat) . grad y = 2
-      cvdrift = B_times_gradB_dot_grady * 2. + 2.0 * betaprim
+      ! B_times_kappa_dot_grady = bhat / B_norm x (bhat . grad_norm bhat) . grad y = 2
+      ! We redefined B_times_kappa_dot_grady = cvdrift / 2
+      B_times_kappa_dot_grady = B_times_gradB_dot_grady + betaprim
 
       ! btor and rmajor used for flow shear calculations;
       ! choosing btor = 0 means all flow shear is perpendicular rather than parallel

@@ -451,7 +451,7 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             else: 
                 
                 # Changed definitions
-                if key in ["gbdrift0", "cvdrift0", "gbdrift"]:
+                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift"]:
                     if (key=="gbdrift"):
                         gbdrift_old =  expected_netcdf["gbdrift"]
                         B_times_gradB_dot_grady_new = local_netcdf["B_times_gradB_dot_grady"]
@@ -460,6 +460,14 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
                             print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
                             print('\nCompare the {key} arrays in the local and expected netCDF files:')
                             compare_local_array_with_expected_array(gbdrift_old, gbdrift_new)
+                    if (key=="cvdrift"):
+                        cvdrift_old =  expected_netcdf["cvdrift"]
+                        B_times_kappa_dot_grady_new = local_netcdf["B_times_kappa_dot_grady"]
+                        cvdrift_new = B_times_kappa_dot_grady_new * 2
+                        if not (np.allclose(cvdrift_old, cvdrift_new, equal_nan=True)):
+                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
+                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                            compare_local_array_with_expected_array(cvdrift_old, cvdrift_new)
                     if (key=="gbdrift0"):
                         gbdrift0_old =  expected_netcdf["gbdrift0"]
                         B_times_gradB_dot_gradx_new = local_netcdf["B_times_gradB_dot_gradx"] 
@@ -567,7 +575,7 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     gds23_new = data[:,8]
     gds24_new = data[:,9]
     B_times_gradB_dot_grady_new = data[:,10]
-    cvdrift_new = data[:,11]
+    B_times_kappa_dot_grady_new = data[:,11]
     B_times_gradB_dot_gradx_new = data[:,12]
     bmag_psi0_new = data[:,13]
     if with_btor: btor_new = data[:,14]
@@ -576,8 +584,11 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     gbdrift0_new = B_times_gradB_dot_gradx_new * 2 * shat_new
     gbdrift0_new = np.round(gbdrift0_new, digits)
     gbdrift0_old = np.round(gbdrift0_old, digits)
-    gbdrift_new = B_times_gradB_dot_grady_new * 2
+    cvdrift_new = B_times_kappa_dot_grady_new * 2
+    cvdrift_new = np.round(cvdrift_new, digits)
+    cvdrift_old = np.round(cvdrift_old, digits)
     if digits >= 2: digits = digits - 1
+    gbdrift_new = B_times_gradB_dot_grady_new * 2
     gbdrift_new = np.round(gbdrift_new, digits)
     gbdrift_old = np.round(gbdrift_old, digits)
     
@@ -845,7 +856,7 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     dcvdrift0_new = data[:,39]
     B_times_gradB_dot_grady_new = data[:,40]
     dgbdrift_new = data[:,41]
-    cvdrift_new = data[:,42]
+    B_times_kappa_dot_grady_new = data[:,42]
     dcvdrift_new = data[:,43]
     drzdth_new = data[:,44]
     gradpar_new = data[:,45]
@@ -867,6 +878,7 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     gbdrift0_new = B_times_gradB_dot_gradx_new * 2 * shat
     cvdrift0_new = B_times_kappa_dot_gradx_new * 2 * shat
     gbdrift_new = B_times_gradB_dot_grady_new * 2
+    cvdrift_new = B_times_kappa_dot_grady_new * 2
     
     # Compare variables
     if not (np.allclose(dI_dr_old, dI_dr_new, equal_nan=True)): error = process_error('dI_dr')
@@ -1003,7 +1015,7 @@ def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=Fal
     gds24_new = data[:,9]
     B_times_gradB_dot_grady_new = data[:,10]
     B_times_gradB_dot_gradx_psi_new = data[:,11]
-    cvdrift_new = data[:,12]
+    B_times_kappa_dot_grady_new = data[:,12]
     B_times_kappa_dot_gradx_psi_new = data[:,13]
     theta_vmec_new = data[:,14]
     B_sub_theta_new = data[:,15]
@@ -1023,6 +1035,9 @@ def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=Fal
     cvdrift0_new = np.round(cvdrift0_new, digits)
     cvdrift0_old = np.round(cvdrift0_old, digits)
     digits = 3
+    cvdrift_new = B_times_kappa_dot_grady_new * 2
+    cvdrift_new = np.round(cvdrift_new, digits)
+    cvdrift_old = np.round(cvdrift_old, digits)
     gbdrift_new = B_times_gradB_dot_grady_new * 2
     gbdrift_new = np.round(gbdrift_new, digits)
     gbdrift_old = np.round(gbdrift_old, digits)

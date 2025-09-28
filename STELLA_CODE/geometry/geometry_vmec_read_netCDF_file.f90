@@ -9,7 +9,7 @@
 !    b_dot_grad_z, grad_alpha_grad_alpha, &
 !    grad_alpha_grad_psit, grad_psit_grad_psitt, &
 !    gds23, gds24, gds25, gds26, B_times_gradB_dot_grady_alpha, B_times_gradB_dot_gradx_psit, &
-!    cvdrift_alpha, B_times_kappa_dot_gradx_psit, sign_torflux, &
+!    B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psit, sign_torflux, &
 !    theta, dzetadz, aref, bref, alpha, zeta, &
 !    field_period_ratio, psit_displacement_fac)
 ! 
@@ -232,7 +232,7 @@ contains
                   s, safety_factor_q, shat, L_reference, B_reference, nfp_out, & 
                   sign_toroidal_flux, alpha, zeta, bmag, b_dot_grad_zeta, grad_alpha_grad_alpha, &
                   grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, & 
-                  gds25_psitalpha, gds26_psitalpha, B_times_gradB_dot_grady_alpha, B_times_gradB_dot_gradx_psit, cvdrift_alpha, & 
+                  gds25_psitalpha, gds26_psitalpha, B_times_gradB_dot_grady_alpha, B_times_gradB_dot_gradx_psit, B_times_kappa_dot_grady_alpha, & 
                   B_times_kappa_dot_gradx_psit,theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, &
                   gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, &
                   b_dot_grad_zeta_RR, ierr)
@@ -301,7 +301,7 @@ contains
       !     <grad_alpha_grad_psit> = (1/Bref) ∇α . ∇ψt  
       !     <grad_psit_grad_psit> = 1/(a^2 Bref^2) ∇ψt . ∇ψt  
       !     <B_times_gradB_dot_grady_alpha> = a^2*Bref/B^3 * B x ∇B . ∇α 
-      !     <cvdrift_alpha> = 2*a*Bref/B^2 * B x kappa . ∇α 
+      !     <B_times_kappa_dot_grady_alpha> = a*Bref/B^2 * B x kappa . ∇α 
       !     <kappa> = (bhat . ∇bhat) 
 
       integer, intent(out) :: sign_toroidal_flux, ierr  
@@ -310,7 +310,11 @@ contains
       real, dimension(:, -nzgrid:), intent(out) :: theta, bmag, b_dot_grad_zeta, psit_displacement_fac
       real, dimension(:, -nzgrid:), intent(out) :: grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit
       real, dimension(:, -nzgrid:), intent(out) :: gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha
-      real, dimension(:, -nzgrid:), intent(out) :: B_times_gradB_dot_grady_alpha, cvdrift_alpha, B_times_gradB_dot_gradx_psit, B_times_kappa_dot_gradx_psit, B_sub_theta, B_sub_zeta 
+      real, dimension(:, -nzgrid:), intent(out) :: B_times_gradB_dot_grady_alpha
+      real, dimension(:, -nzgrid:), intent(out) :: B_times_kappa_dot_grady_alpha
+      real, dimension(:, -nzgrid:), intent(out) :: B_times_gradB_dot_gradx_psit
+      real, dimension(:, -nzgrid:), intent(out) :: B_times_kappa_dot_gradx_psit
+      real, dimension(:, -nzgrid:), intent(out) :: B_sub_theta, B_sub_zeta
       real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2 
       real, dimension(:, -nzgrid:), intent(out) :: b_dot_grad_zeta_RR
       real, dimension(-nzgrid:), intent(out) :: zeta
@@ -358,7 +362,8 @@ contains
       real, dimension(:, :), allocatable :: grad_zeta_X, grad_zeta_Y, grad_zeta_Z
       real, dimension(:, :), allocatable :: grad_psit_X, grad_psit_Y, grad_psit_Z
       real, dimension(:, :), allocatable :: grad_alpha_X, grad_alpha_Y, grad_alpha_Z
-      real, dimension(:, :), allocatable :: B_cross_grad_s_dot_grad_alpha, B_cross_grad_B_dot_grad_psit
+      real, dimension(:, :), allocatable :: B_cross_grad_s_dot_grad_alpha
+      real, dimension(:, :), allocatable :: B_cross_grad_B_dot_grad_psit
       real, dimension(:, :), allocatable :: B_cross_grad_B_dot_grad_alpha
       real, dimension(:, :), allocatable :: grad_B_X, grad_B_Y, grad_B_Z
       real, dimension(:, :), allocatable :: B_X, B_Y, B_Z
@@ -485,11 +490,11 @@ contains
 
       ! <B_times_gradB_dot_grady_alpha> = a^2*Bref/B^3 (B x ∇B . ∇α)
       ! <B_times_gradB_dot_gradx_psit> = 1/B^3 (B x ∇B . ∇ψt) 
-      ! <cvdrift_alpha> = 2*a^2*Bref/B^2 (B x kappa . ∇α) = 2*B_times_gradB_dot_grady_alpha + 2*a^2*Bref*mu0/B^4 (dp/ds) B x ∇s . ∇α
+      ! <B_times_kappa_dot_grady_alpha> = a^2*Bref/B^2 (B x kappa . ∇α) = B_times_gradB_dot_grady_alpha + a^2*Bref*mu0/B^4 (dp/ds) B x ∇s . ∇α
       ! <B_times_kappa_dot_gradx_psit> = 1/B^2 (B x kappa . ∇ψt) = 1/B^3 (B x ∇B . ∇ψt) = B_times_gradB_dot_gradx_psit
       B_times_gradB_dot_grady_alpha = a*a*Bref/(B*B*B) * B_cross_grad_B_dot_grad_alpha
       B_times_gradB_dot_gradx_psit = 1./(B*B*B) * B_cross_grad_B_dot_grad_psit 
-      cvdrift_alpha = 2.*B_times_gradB_dot_grady_alpha + 2.*a*a*Bref*mu_0/(B*B*B*B) * d_pressure_d_s * B_cross_grad_s_dot_grad_alpha 
+      B_times_kappa_dot_grady_alpha = B_times_gradB_dot_grady_alpha + a*a*Bref*mu_0/(B*B*B*B) * d_pressure_d_s * B_cross_grad_s_dot_grad_alpha 
       B_times_kappa_dot_gradx_psit = B_times_gradB_dot_gradx_psit
 
       ! Ratio of the physical displacement due to movement in the stella 
@@ -1748,7 +1753,7 @@ contains
          ! Set the already allocated arrays to zero (these enter the <calculate_vmec_geometry> routine) 
          gds23_psitalpha = 0.0; gds24_psitalpha = 0.0; gds25_psitalpha = 0.0; gds26_psitalpha = 0.0
          bmag = 0; b_dot_grad_zeta = 0.0; B_sub_theta = 0; B_sub_zeta = 0.0
-         B_times_gradB_dot_grady_alpha = 0.0; B_times_gradB_dot_gradx_psit = 0.0; cvdrift_alpha = 0; B_times_kappa_dot_gradx_psit = 0.0
+         B_times_gradB_dot_grady_alpha = 0.0; B_times_gradB_dot_gradx_psit = 0.0; B_times_kappa_dot_grady_alpha = 0; B_times_kappa_dot_gradx_psit = 0.0
          grad_alpha_grad_alpha = 0.0; grad_alpha_grad_psit = 0.0; grad_psit_grad_psit = 0.0
          gradzeta_gradpsit_R2overB2 = 0.0; gradzeta_gradpsit_R2overB2 = 0.0
          

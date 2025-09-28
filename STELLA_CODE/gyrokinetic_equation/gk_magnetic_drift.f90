@@ -14,7 +14,7 @@
 ! 
 ! Split up the magnetic drift frequencies in the contributions from curvature and ∇B
 !     omega_{curvature,d,k,s} = Ts/Zs 1/B (v_parallel² v_kappa) (ky ∇y + kx ∇x)
-!                             = v_parallel² 0.5 Ts/Zs (2*kx*<B_times_kappa_dot_gradx> + ky*<cvdrift>)
+!                             = v_parallel² 0.5 Ts/Zs (2*kx*<B_times_kappa_dot_gradx> + ky*2*<B_times_kappa_dot_grady>)
 !                             = -1/code_dt (kx*<wcvdriftx> + ky*<wcvdrifty>)
 !            omega_{∇B,d,k,s} = Ts/Zs 1/B (mu_s v_∇B) (ky ∇y + kx ∇x)
 !                             = v_perp² 0.25 Ts/Zs (kx/shat*<gbvdrift0> + ky*<gbdrift>)
@@ -25,7 +25,7 @@
 ! Curvature (cv) components of the magnetic drift along (kx,ky):
 !    kx*<wcvdriftx> + ky*<wcvdrifty> = - code_dt * omega_{curvature,d,k,s}
 !    <wcvdriftx> = -0.5 * code_dt * v_parallel² * Ts/Zs * 2 * <B_times_kappa_dot_gradx>
-!    <wcvdrifty> = -0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift>
+!    <wcvdrifty> = -0.5 * code_dt * v_parallel² * Ts/Zs * 2 * <B_times_kappa_dot_grady>
 ! 
 ! Gradient B (gb) components of the magnetic drift along (kx,ky):
 !    kx*<wgbdriftx> + ky*<wgbdrifty> = - code_dt * omega_{∇B,d,k,s}
@@ -89,7 +89,7 @@ contains
       use parameters_numerical, only: maxwellian_normalization
       
       ! Geometry
-      use geometry, only: cvdrift, B_times_gradB_dot_grady
+      use geometry, only: B_times_kappa_dot_grady, B_times_gradB_dot_grady
       use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
       use geometry, only: geo_surf, q_as_x
       
@@ -126,7 +126,7 @@ contains
       !-------------------------------------------------------------------------
       ! In this routine we calculate the following arrays with dimensions [ialpha, iz, ivmu]
       !    <wcvdriftx> = 0.5 * code_dt * v_parallel² * Ts/Zs * 2 * <B_times_kappa_dot_gradx>
-      !    <wcvdrifty> = 0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift>
+      !    <wcvdrifty> = 0.5 * code_dt * v_parallel² * Ts/Zs * 2 * <B_times_kappa_dot_grady>
       !    <wgbdriftx> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift0>/shat
       !    <wgbdrifty> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift>
       ! 
@@ -160,7 +160,7 @@ contains
          ! and <wgbdrifty> = 0.25 * code_dt * Ts/Zs * v_perp² * <gbvdrift>
          ! We also add the input parameter <ydriftknob> to rescale the y-drifts
          fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
-         wcvdrifty = fac * cvdrift * vpa(iv) * vpa(iv)
+         wcvdrifty = fac * 2 * B_times_kappa_dot_grady * vpa(iv) * vpa(iv)
          wgbdrifty = fac * B_times_gradB_dot_grady * vperp2(:, :, imu)
          
          ! Calculate <wdrifty_g>[ialpha, iz, ivmu] = <wcvdrifty> + <wgbdrifty>
@@ -212,7 +212,7 @@ contains
    subroutine init_wdrift_with_neoclassical_terms
 
       use mp, only: mp_abort
-      use geometry, only: cvdrift, B_times_gradB_dot_grady
+      use geometry, only: B_times_kappa_dot_grady, B_times_gradB_dot_grady
       use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
       use geometry, only: gds23, gds24
       use geometry, only: geo_surf, q_as_x
@@ -268,11 +268,11 @@ contains
          
          fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
          
-         ! Calculate <wcvdrifty> = 0.5 * code_dt * Ts/Zs * v_parallel² * <cvdrift>
+         ! Calculate <wcvdrifty> = 0.5 * code_dt * Ts/Zs * v_parallel² * 2 * <B_times_kappa_dot_grady>
          ! This is the curvature drift piece of wdrifty with missing factor of vpa
          ! vpa factor is missing to avoid singularity when including
          ! non-Maxwellian corrections to equilibrium
-         wcvdrifty = fac * cvdrift * vpa(iv)
+         wcvdrifty = fac * 2 * B_times_kappa_dot_grady * vpa(iv)
          
          ! This is the grad-B drift piece of wdrifty
          wgbdrifty = fac * B_times_gradB_dot_grady * vperp2(:, :, imu)

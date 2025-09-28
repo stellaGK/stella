@@ -52,8 +52,8 @@
 !     overwrite_gds22 = .false.
 !     overwrite_gds23 = .false.
 !     overwrite_gds24 = .false.
-!     overwrite_gbdrift = .false.
-!     overwrite_cvdrift = .false.
+!     overwrite_B_times_gradB_dot_grady = .false.
+!     overwrite_B_times_kappa_dot_grady = .false.
 !     overwrite_B_times_gradB_dot_gradx = .false.
 !     set_bmag_const = .false.
 ! 
@@ -234,7 +234,7 @@ contains
 
    subroutine read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, &
       overwrite_b_dot_grad_zeta, overwrite_gds2, overwrite_gds21, overwrite_gds22, &
-      overwrite_gds23, overwrite_gds24, overwrite_gbdrift, overwrite_cvdrift, &
+      overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
       overwrite_B_times_gradB_dot_gradx, set_bmag_const, overwrite_geometry)
 
       use mp, only: proc0
@@ -245,8 +245,8 @@ contains
       character (100), intent (out) :: geometry_file
       logical, intent (out) :: overwrite_bmag, overwrite_b_dot_grad_zeta, &
          overwrite_gds2, overwrite_gds21, overwrite_gds22, &
-         overwrite_gds23, overwrite_gds24, overwrite_gbdrift, &
-         overwrite_cvdrift, overwrite_B_times_gradB_dot_gradx, set_bmag_const
+         overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady, &
+         overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_gradx, set_bmag_const
       logical, intent (out) :: overwrite_geometry
 
       !-------------------------------------------------------------------------
@@ -272,8 +272,8 @@ contains
          overwrite_gds22 = .false.
          overwrite_gds23 = .false.
          overwrite_gds24 = .false.
-         overwrite_gbdrift = .false.
-         overwrite_cvdrift = .false.
+         overwrite_B_times_gradB_dot_grady = .false.
+         overwrite_B_times_kappa_dot_grady = .false.
          overwrite_B_times_gradB_dot_gradx = .false.
          set_bmag_const = .false.
          overwrite_geometry = .false.
@@ -291,7 +291,7 @@ contains
          namelist /geometry_from_txt/ geometry_file, &
             overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_gds2, &
             overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
-            overwrite_cvdrift, overwrite_gbdrift, overwrite_B_times_gradB_dot_gradx, set_bmag_const
+            overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_grady, overwrite_B_times_gradB_dot_gradx, set_bmag_const
 
          !----------------------------------------------------------------------
 
@@ -310,7 +310,7 @@ contains
          overwrite_geometry = overwrite_bmag .or. overwrite_b_dot_grad_zeta &
              .or. overwrite_gds2 .or. overwrite_gds21 .or. overwrite_gds22 &
              .or. overwrite_gds23 .or. overwrite_gds24 &
-             .or. overwrite_cvdrift .or. overwrite_gbdrift .or. overwrite_B_times_gradB_dot_gradx
+             .or. overwrite_B_times_kappa_dot_grady .or. overwrite_B_times_gradB_dot_grady .or. overwrite_B_times_gradB_dot_gradx
 
      end subroutine check_namelist_geometry_from_txt
       
@@ -332,8 +332,8 @@ contains
          write (unit, '(A, L0)') '  overwrite_gds22 = ', overwrite_gds22
          write (unit, '(A, L0)') '  overwrite_gds23 = ', overwrite_gds23
          write (unit, '(A, L0)') '  overwrite_gds24 = ', overwrite_gds24
-         write (unit, '(A, L0)') '  overwrite_cvdrift = ', overwrite_cvdrift
-         write (unit, '(A, L0)') '  overwrite_gbdrift = ', overwrite_gbdrift
+         write (unit, '(A, L0)') '  overwrite_B_times_kappa_dot_grady = ', overwrite_B_times_kappa_dot_grady
+         write (unit, '(A, L0)') '  overwrite_B_times_gradB_dot_grady = ', overwrite_B_times_gradB_dot_grady
          write (unit, '(A, L0)') '  overwrite_B_times_gradB_dot_gradx = ', overwrite_B_times_gradB_dot_gradx
          write (unit, '(A, L0)') '  set_bmag_const = ', set_bmag_const
          write (unit, '(A)') '/'
