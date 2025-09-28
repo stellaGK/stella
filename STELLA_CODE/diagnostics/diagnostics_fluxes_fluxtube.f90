@@ -214,7 +214,7 @@ contains
             ! Next add the perpendicular component
             velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
                     * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) * (gradx_dot_grady(ia, iz) * geo_surf%shat &
-                    + theta0(iky, ikx) * gradx_dot_gradx(ia, iz)) * geo_surf%shat &
+                    + theta0(iky, ikx) * gradx_dot_gradx (ia, iz) * geo_surf%shat * geo_surf%shat ) / geo_surf%shat &
                     - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gradx_dot_grady(ia, iz) * geo_surf%shat + grady_dot_grady(ia, iz)))
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             
@@ -261,8 +261,8 @@ contains
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             velocityintegrand_vs_vpamu = 2.0*spread(vpa, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
                     * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
-                    * (gradx_dot_grady(ia, iz) * geo_surf%shat + theta0(iky, ikx) * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
-                    / (geo_surf%qinp * bmag(ia, iz)**2)
+                    * (gradx_dot_grady(ia, iz) * geo_surf%shat + theta0(iky, ikx) * gradx_dot_gradx(ia, iz) * geo_surf%shat * geo_surf%shat) * spec(is)%smz &
+                    / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), vflux_vs_s(is))
