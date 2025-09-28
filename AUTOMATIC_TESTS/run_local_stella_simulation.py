@@ -451,7 +451,15 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             else: 
                 
                 # Changed definitions
-                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22"]:
+                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22", "gds21"]:
+                    if (key=="gds21"):
+                        gds21_old =  expected_netcdf["gds21"]
+                        gradx_dot_grady_new = local_netcdf["gradx_dot_grady"]
+                        gds21_new = gradx_dot_grady_new * local_netcdf["shat"]
+                        if not (np.allclose(gds21_old, gds21_new, equal_nan=True)):
+                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
+                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                            compare_local_array_with_expected_array(gds21_old, gds21_new)
                     if (key=="gds22"):
                         gds22_old =  expected_netcdf["gds22"]
                         gradx_dot_gradx_new = local_netcdf["gradx_dot_gradx"]
@@ -578,7 +586,7 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     bmag_new = data[:,3]
     b_dot_gradz_new = data[:,4]
     gds2_new = data[:,5]
-    gds21_new = data[:,6]
+    gradx_dot_grady_new = data[:,6]
     gradx_dot_gradx_new = data[:,7]
     gds23_new = data[:,8]
     gds24_new = data[:,9]
@@ -602,6 +610,10 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     gbdrift_new = B_times_gradB_dot_grady_new * 2
     gbdrift_new = np.round(gbdrift_new, digits)
     gbdrift_old = np.round(gbdrift_old, digits)
+    if digits >= 1: digits = digits - 1
+    gds21_new = gradx_dot_grady_new * shat_new
+    gds21_new = np.round(gds21_new, digits)
+    gds21_old = np.round(gds21_old, digits)
     
     # Compare values
     if not (np.allclose(rhoc_old, rhoc_new, equal_nan=True)): error = process_error('rhoc')
@@ -624,8 +636,6 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     if not (np.allclose(b_dot_gradz_new, b_dot_gradz_new, equal_nan=True)): error = process_error('b_dot_gradz')
     if not (np.allclose(gds2_old, gds2_new, equal_nan=True)): error = process_error('gds2')
     if not (np.allclose(gds21_old, gds21_new, equal_nan=True)): error = process_error('gds21')
-    if not (np.allclose(gds23_old, gds23_new, equal_nan=True)): error = process_error('gds23')
-    if not (np.allclose(gds24_old, gds24_new, equal_nan=True)): error = process_error('gds24')
     if not (np.allclose(gbdrift_old, gbdrift_new, equal_nan=True)): error = process_error('gbdrift')
     if not (np.allclose(cvdrift_old, cvdrift_new, equal_nan=True)): error = process_error('cvdrift')
     if not (np.allclose(gbdrift0_old, gbdrift0_new, equal_nan=True)): error = process_error('gbdrift0')
@@ -633,6 +643,10 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     if with_btor: 
         if not (np.allclose(btor_old, btor_new, equal_nan=True)): error = process_error('btor')
     assert (not error), f'The geometry data does not match in the *.geometry file.'
+    
+    # Do not compare gds23 and gds24 it was badly defined in Miller and VMEC
+    #if not (np.allclose(gds23_old, gds23_new, equal_nan=True)): error = process_error('gds23')
+    #if not (np.allclose(gds24_old, gds24_new, equal_nan=True)): error = process_error('gds24')
     return
 
 #-------------------------------------------------------------------------------  
@@ -876,7 +890,7 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     dgparBdr_new = data[:,48]
     gds2_new = data[:,49]
     dgds2dr_new = data[:,50]
-    gds21_new = data[:,51]
+    gradx_dot_grady_new = data[:,51]
     dgds21dr_new = data[:,52]
     gradx_dot_gradx_new = data[:,53]
     dgds22dr_new = data[:,54]
@@ -890,6 +904,7 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     gbdrift_new = B_times_gradB_dot_grady_new * 2
     cvdrift_new = B_times_kappa_dot_grady_new * 2
     gds22_new = gradx_dot_gradx_new * shat * shat
+    gds21_new = gradx_dot_grady_new * shat
     
     # Compare variables
     if not (np.allclose(dI_dr_old, dI_dr_new, equal_nan=True)): error = process_error('dI_dr')

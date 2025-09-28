@@ -231,7 +231,7 @@ contains
 
       ! For momentum flux
       use arrays_gyro_averages, only: j0_ffs, j1_ffs
-      use geometry, only: gds21, gradx_dot_gradx, gds2
+      use geometry, only: gradx_dot_grady, gradx_dot_gradx, gds2
       use geometry, only: geo_surf
       use geometry, only: gradzeta_grady_R2overB2, gradzeta_gradx_R2overB2, b_dot_grad_zeta_RR
 
@@ -343,8 +343,8 @@ contains
                ! Integrate over v-space to get the pressure, normalised by the reference pressure.
                call integrate_vmu_ffs(integrand, pres_wgts, iy, iz, pres(iy, ikx, iz, :))
 
-               fac1 = gradzeta_grady_R2overB2(iy, iz) * gds21(iy, iz) / geo_surf%shat - gradzeta_gradx_R2overB2(iy, iz) * gds2(iy, iz)
-               fac2 = gradzeta_grady_R2overB2(iy, iz) * gradx_dot_gradx(iy, iz) * geo_surf%shat - gradzeta_gradx_R2overB2(iy, iz) * gds21(iy, iz)
+               fac1 = gradzeta_grady_R2overB2(iy, iz) * gradx_dot_grady(iy, iz) - gradzeta_gradx_R2overB2(iy, iz) * gds2(iy, iz)
+               fac2 = gradzeta_grady_R2overB2(iy, iz) * gradx_dot_gradx(iy, iz) * geo_surf%shat - gradzeta_gradx_R2overB2(iy, iz) * gradx_dot_grady(iy, iz) * geo_surf%shat
                
                ! The integrand for the parallel flow moment is the parallel velocity
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

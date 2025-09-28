@@ -41,7 +41,7 @@ contains
       use grids_species, only: spec
       use geometry, only: grho_norm, bmag, btor
       use geometry, only: drhodpsi
-      use geometry, only: gds21, gradx_dot_gradx
+      use geometry, only: gradx_dot_grady, gradx_dot_gradx
       use geometry, only: dgds21dr, dgds22dr
       use geometry, only: geo_surf
       use geometry, only: dBdrho, dIdrho
@@ -256,7 +256,7 @@ contains
 
                   ! Perpendicular component
                   g0k = -g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                        * (gds21(ia, iz) + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
+                        * (gradx_dot_grady(ia, iz) * geo_surf%shat + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
                         / (geo_surf%qinp * bmag(ia, iz)**2)
 
                   call gyro_average_j1(g0k, iz, ivmu, g2(:, :, iz, it, ivmu))
@@ -266,7 +266,7 @@ contains
                            / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
 
                      g0k = g0k - g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (gds21(ia, iz) + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
+                           * (gradx_dot_grady(ia, iz) * geo_surf%shat + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
                            / (geo_surf%qinp  * bmag(ia, iz)**2) &
                            * (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))
@@ -283,7 +283,7 @@ contains
                   ! Subtract adiabatic contribution part of g
                   g0k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
                         * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                        * (gds21(ia, iz) + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
+                        * (gradx_dot_grady(ia, iz) * geo_surf%shat + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
                         / (geo_surf%qinp * bmag(ia, iz)**2)
                   if (.not. maxwellian_normalization) then
                      g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
@@ -299,7 +299,7 @@ contains
                      g1k = g1k - spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) &
                            * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                            * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (gds21(ia, iz) + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
+                           * (gradx_dot_grady(ia, iz) * geo_surf%shat + theta0 * gradx_dot_gradx(ia, iz)) * geo_surf%shat * spec(is)%smz &
                            / (geo_surf%qinp * bmag(ia, iz)**2) &
                            * (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))
