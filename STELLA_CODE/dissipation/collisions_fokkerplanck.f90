@@ -1,10 +1,25 @@
 !###############################################################################
-!                                                                               
+!                   Linearised Fokker-Planck Collision Model                    
 !###############################################################################
 ! 
-! This module ...
+! This module adds collisions to the gyrokinetic equation, based on gyrokinetic, 
+! linearised Fokker–Planck collision model
+! 
+! See [2024 - Von Boetticher - Linearised Fokker–Planck collision model for gyrokinetic simulations]
+! 
+! Collisions have only been implemented for kinetic ions and electrons. It is
+! important that ions are the first species, and electrons the second species.
+! 
+! The basic Spitzer collision frequency nu^ab is given by equation (12) in [2024 - Von Boetticher]:
+!     nu^ab = n_b * e_a^2 * e_b^2 * ln Lambda / (4 * pi * varepsilon_0^2 * m_a^2 * v_{th,a}^3)
 ! 
 ! TODO - Write docs and split up in smaller modules
+! 
+! TODO - stella changed a lot since collisions have been implemented
+!        compare the collisions with an older stella version!
+! 
+! TODO - Abort stella if electrons aren't the second species
+!        since the collision routines assume this!
 ! 
 !###############################################################################
 module collisions_fokkerplanck

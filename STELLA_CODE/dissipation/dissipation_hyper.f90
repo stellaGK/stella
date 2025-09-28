@@ -2,7 +2,7 @@
 !                               HYPER DISSIPATION                               
 !###############################################################################
 ! 
-! This module ...
+! This module ass hyper dissipation to the gyrokinetic equation.
 ! 
 !###############################################################################
 module dissipation_hyper
