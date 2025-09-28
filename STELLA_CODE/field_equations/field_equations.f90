@@ -3,10 +3,17 @@
 !###############################################################################
 ! 
 ! This module is used to advance the fields. It calls the appropriate routines
-! depending on the physics included, and the simulation domain. 
+! depending on the physics included, and the simulation domain.
+! 
+! The following fields are evolved within stella:
+!   - The perturbed electrostatic potential (phi)
+!   - The perturbed parallel magnetic potential (apar)
+!   - The perturbed parallel magnetic field (bpar)
+! 
 ! Physics options:
 !        - Electrostatic
 !        - Electromagnetic
+! 
 ! Simulation domains:
 !        - Flux tube -> Supports electrostatic and electromagnetic
 !        - Full flux annulus -> Supports only electrostatic

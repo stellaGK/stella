@@ -2,71 +2,75 @@
 !###################### ADVANCE ELECTROMAGNETIC FIELDS #########################
 !###############################################################################
 ! 
-! Module for advancing and initialising the fields when electromagnetic 
+! Module for advancing and initialising the fields when electromagnetic
 ! effects are included, i.e., when evolving the apar and bpar fields.
 ! 
-! Here, the addition to QN is solved for, when bpar is included.
-! Parallel and perpendicular Ampere's Law are also solved.
+! Here, the addition to the quasi-neutrality condition is solved when bpar is included.
+! Moreover, the parallel and perpendicular Ampere's Law are solved.
 ! 
 ! -----------------------------------------------------------------------------
 !                                Equations
 ! -----------------------------------------------------------------------------
 ! Quasineturality:
-! sum_s Z_s n_s (2*B0)/sqrt{π} int d^2v J_0 g + Z_s² n_s/T_s (Gamma0 - 1) phi + Z_s n_s/B0 Gamma1 Bpar = 0
+!    sum_s Z_s n_s (2*B0)/sqrt{π} int d^2v J_0 g + Z_s² n_s/T_s (Gamma0 - 1) phi + Z_s n_s/B0 Gamma1 Bpar = 0
 ! 
 ! Parallel Ampere's Law:
-! β/(kperp*ρ)² sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g_s = [1 + β/(kperp*ρ)² sum_s (Z_s n_s)/m_s Gamma_0] Apar
-!
+!    β/(kperp*ρ)² sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g_s = [1 + β/(kperp*ρ)² sum_s (Z_s n_s)/m_s Gamma_0] Apar
+! 
 ! Perpendicular Ampere's Law:
-! 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v \mu_{\s} J_1/a_s g 
-!                       + [β/2*B0 sum_s Z_s n_s Gamma1] phi + [1 + β/2*B0 sum_s Z_s n_s T_s \Gamma2 ] = 0
+!    2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v \mu_{\s} J_1/a_s g
+!      + [β/2*B0 sum_s Z_s n_s Gamma1] phi + [1 + β/2*B0 sum_s Z_s n_s T_s \Gamma2 ] = 0
+! 
 ! -----------------------------------------------------------------------------
 !                                 Definitions
 ! -----------------------------------------------------------------------------
-!
-! Temporary arrays: 
+! 
+! Temporary arrays
 ! -----------------
-! (formally gamtot13):
 ! denominator_fields13 = - 4 * beta * sum_s (Z_s n_s) int d^3v mu (J0 J1/gamma) F_0s
-!
-! apar_denom = k_perp^2 + 2 beta sum_s (Z_s^2 n_s / T_s) int d^3v (v_perp^2/2) J0^2 F_0s
-!            = k_perp^2 + sum_s (Z_s^2 n_s / T_s) Gamma_1s
-!
-! (formally gamtot31):
 ! denominator_fields31 = - 4 * beta * sum_s (Z_s n_s) int d^3v (v_perp^2) (J0 J1/gamma) F_0s
-!
-! (formally gamtot33):
 ! denominator_fields33 = 1.0 + 8 * beta * sum_s (n_s T_s) int d^3v (mu^2) (J1/gamma)^2 F_0s
-!
-! Stored arrays:
+! apar_denom = k_perp^2 + 2 beta sum_s (Z_s^2 n_s / T_s) int d^3v (v_perp^2/2) J0^2 F_0s
+! apar_denom = k_perp^2 + sum_s (Z_s^2 n_s / T_s) Gamma_1s
+! 
+! Stored arrays
 ! --------------
 ! denominator_fields_inv11 = 1/[denominator_fields-(denominator_fields13*denominator_fields31)/denominator_fields33)]
-! 
 ! denominator_fields_inv13 = - denominator_fields13 /[denominator_fields*denominator_fields33 - denominator_fields13*denominator_fields31]
-!
 ! denominator_fields_inv33 = denominator_fields/[denominator_fields*denominator_fields33 - denominator_fields13*denominator_fields31]
-!
 ! denominator_fields_inv31 = - denominator_fields31/[denominator_fields*denominator_fields33 - denominator_fields13*denominator_fields31]
-!
-! Computed arrays:
+! 
+! Computed arrays
 ! ----------------
 ! antot1 = sum_s Z_s n_s (2*B0)/sqrt{π} int d^2v J_0 g
 ! antot2 = β sum_s Z_s n_s vth (2*B0)/sqrt{π} int d^2v vpar J_0 g
 ! antot3 = -2 β sum_s n_s T_s (2*B0)/sqrt{π} int d^2v mu J_1/a_s g
-!
+! 
 ! -----------------------------------------------------------------------------
 !                               Equations solved
 ! -----------------------------------------------------------------------------
 ! 
-! phi = [antot1 - (denominator_fields13/denominator_fields33) * antot3]/[denominator_fields - (denominator_fields13*denominator_fields31)/denominator_fields33]
-! => phi = denominator_fields_inv11 * antot1 + denominator_fields_inv13 * antot3
+! The perturbed electrostatic potential (phi)
+!     phi = [antot1 - (denominator_fields13/denominator_fields33) * antot3]/[denominator_fields 
+!           - (denominator_fields13*denominator_fields31)/denominator_fields33]
+!     phi = denominator_fields_inv11 * antot1 + denominator_fields_inv13 * antot3
 ! 
-! apar = antot2 / apar_denom
-!
-! bpar = [antot3 + (denominator_fields31/denominator_fields33) * antot1]/[denominator_fields33 - (denominator_fields13*denominator_fields31)/denominator_fields]
-! => bpar = denominator_fields_inv31 * antot1 + denominator_fields_inv33 * antot3
+! The perturbed parallel magnetic potential (apar)
+!     apar = antot2 / apar_denom
+! 
+! The perturbed parallel magnetic field (bpar)
+!     bpar = [antot3 + (denominator_fields31/denominator_fields33) * antot1]/[denominator_fields33 
+!            - (denominator_fields13*denominator_fields31)/denominator_fields]
+!     bpar = denominator_fields_inv31 * antot1 + denominator_fields_inv33 * antot3
+! 
 ! -----------------------------------------------------------------------------
-!
+!                           Backwards compatibility
+! -----------------------------------------------------------------------------
+! We quickly summarise the name changes implemented in 2025:
+!   - gamtot33 --> denominator_fields33
+!   - gamtot31 --> denominator_fields31
+!   - gamtot13 --> denominator_fields13
+! 
 !###############################################################################
 module field_equations_electromagnetic
 
@@ -97,7 +101,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                       ADVANCE ELECTROMAGNETIC FIELDS    
+   !                       ADVANCE ELECTROMAGNETIC FIELDS                       
    !****************************************************************************
    ! The fields (electrostatic potential and electromagnetic fields) are evolved
    ! in time though the quasineutrality equation and Ampere's law.

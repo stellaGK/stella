@@ -2,7 +2,7 @@
 !################### ADVANCE FIELDS IN FLUXTUBE SIMULATION #####################
 !###############################################################################
 ! 
-! Evolve the fields in time using the field equations in a fluxtube. 
+! Evolve the fields in time using the field equations in a fluxtube.
 ! In this module, the quasi-neutrality condition is solved, and if electromagnetic
 ! effects or radial variation are included, then the appropriate routines are called.
 !
