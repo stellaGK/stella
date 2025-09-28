@@ -112,8 +112,14 @@ contains
 
       !------------------------- Check input parameters ------------------------
       subroutine check_inputs_neoclassical_input
+      
+         use mp, only: mp_abort
 
          implicit none
+         
+         if (include_neoclassical_terms) then
+            call mp_abort("Many mistakes are present in the definitions of gds23 and gds25. Aborting.")
+         end if 
 
          if (nradii /= 3 .and. nradii /= 5) then
              write (*, *) 'WARNING: only nradii of 3 or 5 is currently supported in neoclassical_input namelist'
