@@ -1,9 +1,0 @@
-&species_parameters
-  dens = 1.0
-  fprim = 1.0
-  mass = 0.0005446
-  temp = 1.0
-  tprim = 3.0
-  type = 'electron'
-  z = -1.0
-/

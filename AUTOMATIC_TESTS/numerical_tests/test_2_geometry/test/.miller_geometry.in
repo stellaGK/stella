@@ -5,10 +5,17 @@
 
 
 
+<<<<<<< Updated upstream
 &geometry_options
   geometry_option = 'miller'
 /
 &geometry_miller
+=======
+&geo_knobs
+  geo_option = 'miller'
+/
+&millergeo_parameters
+>>>>>>> Stashed changes
   betadbprim = 0.0
   betaprim = 0.058
   d2psidr2 = 0.0
@@ -30,15 +37,24 @@
 
 
 
+<<<<<<< Updated upstream
 &gyrokinetic_terms
   include_nonlinear = .false.
+=======
+&physics_flags
+  nonlinear = .true.
+>>>>>>> Stashed changes
 /
 
 
 
 
 
+<<<<<<< Updated upstream
 &species_options
+=======
+&species_knobs
+>>>>>>> Stashed changes
   nspec = 2
 /
 &species_parameters_1
@@ -64,15 +80,23 @@
 
 
 
+<<<<<<< Updated upstream
 &kxky_grid_option
   grid_option = 'box'
 /
 &kxky_grid_box
+=======
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&parameters_kxky_grids_box
+>>>>>>> Stashed changes
   jtwist = 5
   nx = 6
   ny = 9
   y0 = 15
 /
+<<<<<<< Updated upstream
 &z_grid
   nzed = 24
 /
@@ -80,6 +104,14 @@
   boundary_option = 'linked'
 /
 &velocity_grids
+=======
+&zgrid_parameters
+  boundary_option = 'linked'
+  nperiod = 1
+  nzed = 24
+/
+&vpamu_grids_parameters
+>>>>>>> Stashed changes
   nmu = 2
   nvgrid = 3
 /
@@ -88,7 +120,11 @@
 
 
 
+<<<<<<< Updated upstream
 &diagnostics
+=======
+&stella_diagnostics_knobs
+>>>>>>> Stashed changes
   nsave = 10
   nwrite = 1
 /
@@ -97,12 +133,18 @@
 
 
 
+<<<<<<< Updated upstream
 &initialize_distribution
   initialize_distribution_option = 'default'
   phiinit = 0.01
 /
 
 &initialize_distribution_maxwellian
+=======
+&init_g_knobs
+  ginit_option = 'default'
+  phiinit = 0.01
+>>>>>>> Stashed changes
   width0 = 1.0
 /
 
@@ -110,6 +152,7 @@
 
 
 
+<<<<<<< Updated upstream
 &time_trace_options
   nstep = 10
 /
@@ -126,3 +169,11 @@
   print_extra_info_to_terminal = .false.
 /
 
+=======
+&parameters_numerical
+  delt = 0.01
+  explicit_option = 'rk2'
+  nstep = 10
+  print_extra_info_to_terminal = .false.
+/
+>>>>>>> Stashed changes
