@@ -9,8 +9,8 @@
 !            nzgrid, nalpha, naky, geo_surf, grho, bmag, b_dot_grad_z, &
 !            b_dot_grad_z_averaged, grad_alpha_grad_alpha, &
 !            grad_alpha_grad_psit, grad_psit_grad_psit, &
-!            gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, gbdrift0_psi, &
-!            cvdrift_alpha, cvdrift0_psi, sign_torflux, &
+!            gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
+!            cvdrift_alpha, B_times_kappa_dot_gradx_psi, sign_torflux, &
 !            theta_vmec, dzetadz, aref, bref, alpha, zeta, &
 !            field_period_ratio, psit_displacement_fac)
 ! 
@@ -107,7 +107,7 @@ contains
       b_dot_grad_z_averaged, b_dot_grad_z, &
       grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
       gds23_psitalpha , gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
-      gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
+      gbdrift_alpha, B_times_gradB_dot_gradx_psi, cvdrift_alpha, B_times_kappa_dot_gradx_psi, &
       gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
       sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
       field_period_ratio, psit_displacement_fac)
@@ -134,8 +134,8 @@ contains
       real, dimension(-nzgrid:), intent(out) :: b_dot_grad_z_averaged
       real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_grad_z, &
                grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
-               gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, gbdrift0_psi, &
-               cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta, psit_displacement_fac, &
+               gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
+               cvdrift_alpha, B_times_kappa_dot_gradx_psi, theta_vmec, zeta, psit_displacement_fac, &
                gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR
 
 
@@ -146,19 +146,19 @@ contains
       integer :: tmpunit
       integer :: i, j, ia, iz
       integer :: nzgrid_vmec
-      integer :: zetamax_idx 
+      integer :: zetamax_idx
 
       real :: dzeta_vmec, zmin, nfp
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
-      real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_theta_vmec, B_sub_zeta 
+      real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_theta_vmec, B_sub_zeta
       real, dimension(:), allocatable :: zeta_vmec, zed_domain_size
       real, dimension(:, :), allocatable :: thetamod_vmec, arc_length 
-      real, dimension(:, :), allocatable :: B_sub_theta_vmec_mod, B_sub_zeta_mod  
+      real, dimension(:, :), allocatable :: B_sub_theta_vmec_mod, B_sub_zeta_mod
       real, dimension(:, :), allocatable :: bmag_vmec, b_dot_grad_zeta_vmec
       real, dimension(:, :), allocatable :: grad_alpha_grad_alpha_vmec, grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec
       real, dimension(:, :), allocatable :: gds23_psitalpha_vmec, gds24_psitalpha_vmec, gds25_psitalpha_vmec, gds26_psitalpha_vmec
-      real, dimension(:, :), allocatable :: gbdrift_alpha_vmec, gbdrift0_psi_vmec, cvdrift_alpha_vmec, cvdrift0_psi_vmec 
-      real, dimension(:, :), allocatable :: psit_displacement_fac_vmec       
+      real, dimension(:, :), allocatable :: gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec, cvdrift_alpha_vmec, B_times_kappa_dot_gradx_psi_vmec
+      real, dimension(:, :), allocatable :: psit_displacement_fac_vmec
       real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2_vmec
       real, dimension(:, :), allocatable :: gradzeta_gradalpha_R2overB2_vmec
       real, dimension(:, :), allocatable :: b_dot_grad_zeta_RR_vmec
@@ -188,9 +188,9 @@ contains
       allocate (gds25_psitalpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gds25_psitalpha_vmec = 0.0
       allocate (gds26_psitalpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gds26_psitalpha_vmec = 0.0
       allocate (gbdrift_alpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gbdrift_alpha_vmec = 0.0
-      allocate (gbdrift0_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gbdrift0_psi_vmec = 0.0
+      allocate (B_times_gradB_dot_gradx_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); B_times_gradB_dot_gradx_psi_vmec = 0.0
       allocate (cvdrift_alpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); cvdrift_alpha_vmec = 0.0
-      allocate (cvdrift0_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); cvdrift0_psi_vmec = 0.0
+      allocate (B_times_kappa_dot_gradx_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); B_times_kappa_dot_gradx_psi_vmec = 0.0
       allocate (psit_displacement_fac_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); psit_displacement_fac_vmec = 0.0
       allocate (gradzeta_gradpsit_R2overB2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradpsit_R2overB2_vmec = 0.0
       allocate (gradzeta_gradalpha_R2overB2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradalpha_R2overB2_vmec = 0.0
@@ -215,8 +215,8 @@ contains
                surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
                sign_torflux, alpha, zeta_vmec, bmag_vmec, b_dot_grad_zeta_vmec, grad_alpha_grad_alpha_vmec, &
                grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec, gds23_psitalpha_vmec, gds24_psitalpha_vmec, &
-               gds25_psitalpha_vmec, gds26_psitalpha_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, cvdrift_alpha_vmec, &
-               cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, psit_displacement_fac_vmec, &
+               gds25_psitalpha_vmec, gds26_psitalpha_vmec, gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec, cvdrift_alpha_vmec, &
+               B_times_kappa_dot_gradx_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, psit_displacement_fac_vmec, &
                gradzeta_gradpsit_R2overB2_vmec, gradzeta_gradalpha_R2overB2_vmec, &
                b_dot_grad_zeta_RR_vmec, ierr)
 
@@ -293,9 +293,9 @@ contains
             call geo_spline(arc_length(ia, :), gds25_psitalpha_vmec(ia, :), zed, gds25_psitalpha (ia, :))
             call geo_spline(arc_length(ia, :), gds26_psitalpha_vmec(ia, :), zed, gds26_psitalpha (ia, :))
             call geo_spline(arc_length(ia, :), gbdrift_alpha_vmec(ia, :), zed, gbdrift_alpha(ia, :))
-            call geo_spline(arc_length(ia, :), gbdrift0_psi_vmec(ia, :), zed, gbdrift0_psi(ia, :))
+            call geo_spline(arc_length(ia, :), B_times_gradB_dot_gradx_psi_vmec(ia, :), zed, B_times_gradB_dot_gradx_psi(ia, :))
             call geo_spline(arc_length(ia, :), cvdrift_alpha_vmec(ia, :), zed, cvdrift_alpha(ia, :))
-            call geo_spline(arc_length(ia, :), cvdrift0_psi_vmec(ia, :), zed, cvdrift0_psi(ia, :))
+            call geo_spline(arc_length(ia, :), B_times_kappa_dot_gradx_psi_vmec(ia, :), zed, B_times_kappa_dot_gradx_psi(ia, :))
             call geo_spline(arc_length(ia, :), thetamod_vmec(ia, :), zed, theta_vmec(ia, :))
             call geo_spline(arc_length(ia, :), B_sub_zeta_mod(ia, :), zed, B_sub_zeta(ia, :)) 
             call geo_spline(arc_length(ia, :), B_sub_theta_vmec_mod(ia, :), zed, B_sub_theta_vmec(ia, :)) 
@@ -332,9 +332,9 @@ contains
                call filter_geo_coef(naky, gds25_psitalpha (:, iz))
                call filter_geo_coef(naky, gds26_psitalpha (:, iz))
                call filter_geo_coef(naky, gbdrift_alpha(:, iz))
-               call filter_geo_coef(naky, gbdrift0_psi(:, iz))
+               call filter_geo_coef(naky, B_times_gradB_dot_gradx_psi(:, iz))
                call filter_geo_coef(naky, cvdrift_alpha(:, iz))
-               call filter_geo_coef(naky, cvdrift0_psi(:, iz))
+               call filter_geo_coef(naky, B_times_kappa_dot_gradx_psi(:, iz))
                call filter_geo_coef(naky, b_dot_grad_arclength(:, iz))
             end do
          end if
@@ -359,9 +359,9 @@ contains
          gds25_psitalpha = gds25_psitalpha_vmec
          gds26_psitalpha = gds26_psitalpha_vmec
          gbdrift_alpha = gbdrift_alpha_vmec
-         gbdrift0_psi = gbdrift0_psi_vmec
+         B_times_gradB_dot_gradx_psi = B_times_gradB_dot_gradx_psi_vmec
          cvdrift_alpha = cvdrift_alpha_vmec
-         cvdrift0_psi = cvdrift0_psi_vmec
+         B_times_kappa_dot_gradx_psi = B_times_kappa_dot_gradx_psi_vmec
          gradzeta_gradpsit_R2overB2 = gradzeta_gradpsit_R2overB2_vmec
          gradzeta_gradalpha_R2overB2 = gradzeta_gradalpha_R2overB2_vmec
          b_dot_grad_zeta_RR = b_dot_grad_zeta_RR_vmec
@@ -397,19 +397,19 @@ contains
       deallocate (grad_alpha_grad_alpha_vmec, grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec)
       deallocate (B_sub_theta_vmec_mod, B_sub_zeta_mod, bmag_vmec, b_dot_grad_zeta_vmec)
       deallocate (gds23_psitalpha_vmec, gds24_psitalpha_vmec, gds25_psitalpha_vmec, gds26_psitalpha_vmec)
-      deallocate (b_dot_grad_arclength_averaged, b_dot_grad_arclength, b_dot_grad_zeta_averaged, b_dot_grad_zeta) 
+      deallocate (b_dot_grad_arclength_averaged, b_dot_grad_arclength, b_dot_grad_zeta_averaged, b_dot_grad_zeta)
       deallocate (zed_domain_size, zeta_vmec, thetamod_vmec)
-      deallocate (gbdrift_alpha_vmec, gbdrift0_psi_vmec)
-      deallocate (cvdrift_alpha_vmec, cvdrift0_psi_vmec)
-      deallocate (psit_displacement_fac_vmec, arc_length) 
+      deallocate (gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec)
+      deallocate (cvdrift_alpha_vmec, B_times_kappa_dot_gradx_psi_vmec)
+      deallocate (psit_displacement_fac_vmec, arc_length)
       deallocate (gradzeta_gradpsit_R2overB2_vmec)
-      deallocate (gradzeta_gradalpha_R2overB2_vmec) 
-      deallocate (b_dot_grad_zeta_RR_vmec) 
+      deallocate (gradzeta_gradalpha_R2overB2_vmec)
+      deallocate (b_dot_grad_zeta_RR_vmec)
 
       !> calculate_vmec_geometry returns psitor/psitor_lcfs as rhoc
       !> stella uses rhoc = rho = sqrt(psitor/psitor_lcfs) = rhotor
       surf%rhoc = sqrt(surf%rhoc)
-      surf%rhotor = surf%rhoc 
+      surf%rhotor = surf%rhoc
 
       ! Use rho = sqrt(psi_t / psi_{t,LCFS}) and Bref = 2 |psi_LCFS|/a^2
       ! drho/dpsi_t = 1/(2*sqrt(psi_t*psi_{t,LCFS})) * 2 |psi_LCFS|/ (a^2*Bref) = sgn(psi_t)/(rho*a^2*Bref)
@@ -448,14 +448,14 @@ contains
       write (tmpunit, '(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'dzetadz'
       write (tmpunit, '(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, dzetadz
       write (tmpunit, '(17a12)') '#    alpha', 'zeta', 'bmag', 'b_dot_grad_z_avg', 'bdot_grad_z', 'grad_alpha2', &
-         'gd_alph_psi', 'grad_psi2', 'gds23_psitalpha ', 'gds24_psitalpha ', 'gbdriftalph', 'gbdrift0psi', 'cvdriftalph', &
-         'cvdrift0psi', 'theta_vmec', 'B_sub_theta', 'B_sub_zeta' 
+         'gd_alph_psi', 'grad_psi2', 'gds23_psitalpha ', 'gds24_psitalpha ', 'gbdriftalph', 'B_times_gradB_dot_gradx_psi', 'cvdriftalph', &
+         'B_times_kappa_dot_gradx_psi', 'theta_vmec', 'B_sub_theta', 'B_sub_zeta' 
       do j = -nzgrid, nzgrid
          do i = 1, nalpha
             write (tmpunit, '(17e12.4)') alpha(i), zeta(i, j), bmag(i, j), b_dot_grad_z_averaged(j), b_dot_grad_z(i, j), &
                grad_alpha_grad_alpha(i, j), grad_alpha_grad_psit(i, j), grad_psit_grad_psit(i, j), &
-               gds23_psitalpha (i, j), gds24_psitalpha (i, j),  gbdrift_alpha(i, j), gbdrift0_psi(i, j), & 
-               cvdrift_alpha(i, j), cvdrift0_psi(i, j), theta_vmec(i, j), B_sub_theta_vmec(i, j), B_sub_zeta(i, j)  
+               gds23_psitalpha (i, j), gds24_psitalpha (i, j),  gbdrift_alpha(i, j), B_times_gradB_dot_gradx_psi(i, j), & 
+               cvdrift_alpha(i, j), B_times_kappa_dot_gradx_psi(i, j), theta_vmec(i, j), B_sub_theta_vmec(i, j), B_sub_zeta(i, j)  
          end do
          write (tmpunit, *)
       end do

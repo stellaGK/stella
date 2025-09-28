@@ -40,8 +40,8 @@ module geometry_miller
    real, dimension(:), allocatable :: gradpararc, arc
    real, dimension(:), allocatable :: gds2, gds21, gds22
    real, dimension(:), allocatable :: gds23, gds24
-   real, dimension(:), allocatable :: gbdrift0, gbdrift
-   real, dimension(:), allocatable :: cvdrift0, cvdrift
+   real, dimension(:), allocatable :: B_times_gradB_dot_gradx, gbdrift
+   real, dimension(:), allocatable :: B_times_kappa_dot_gradx, cvdrift
    real, dimension(:), allocatable :: d2Rdth2, d2Zdth2, d2Rdrdth, d2Zdrdth
    real, dimension(:), allocatable :: gpsi, dBdrho, d2Bdrdth
    real, dimension(:), allocatable :: dgradpardrho, dgradparBdrho, dBdth, gradparb
@@ -356,7 +356,7 @@ contains
                             dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
                             bmag_out, bmag_psi0_out, &
                             gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
-                            gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
+                            B_times_gradB_dot_gradx_out, gbdrift_out, B_times_kappa_dot_gradx_out, cvdrift_out, &
                             dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
                             btor_out, rmajor_out, &
                             dcvdrift0drho_out, dcvdriftdrho_out, &
@@ -375,17 +375,17 @@ contains
       logical, intent(in) :: zed_equal_arc
       real, intent(out) :: dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out
       real, dimension(-nzgrid:), intent(out) :: grho_out, &
-                                                bmag_out, bmag_psi0_out, &
-                                                gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, &
-                                                gradpar_out, gbdrift0_out, &
-                                                gbdrift_out, cvdrift0_out, cvdrift_out, &
-                                                dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
-                                                btor_out, rmajor_out, &
-                                                dcvdrift0drho_out, dcvdriftdrho_out, &
-                                                dgbdrift0drho_out, dgbdriftdrho_out, &
-                                                dgds2dr_out, dgds21dr_out, &
-                                                dgds22dr_out, &
-                                                djacdrho_out
+               bmag_out, bmag_psi0_out, &
+               gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, &
+               gradpar_out, B_times_gradB_dot_gradx_out, &
+               gbdrift_out, B_times_kappa_dot_gradx_out, cvdrift_out, &
+               dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
+               btor_out, rmajor_out, &
+               dcvdrift0drho_out, dcvdriftdrho_out, &
+               dgbdrift0drho_out, dgbdriftdrho_out, &
+               dgds2dr_out, dgds21dr_out, &
+               dgds22dr_out, &
+               djacdrho_out
 
       integer :: nr, np
       integer :: i, j
@@ -574,9 +574,8 @@ contains
       ! this is (grad alpha x B) . grad theta
       cross = dpsipdrho * (gradrho_gradalph * gradalph_gradthet - gradalph2 * gradrho_gradthet)
 
-      ! note that the definitions of gbdrift, gbdrift0, dgbdriftdr and dgbdrift0dr
-      ! are such that it gets multiplied by vperp2, not mu.  This is in contrast to
-      ! Michael's GS3 notes
+      ! note that the definitions of gbdrift, B_times_gradB_dot_gradx, dgbdriftdr and dgbdrift0dr
+      ! are such that it gets multiplied by vperp2, not mu.  This is in contrast to Michael's GS3 notes
 
       ! this is bhat/B x (grad B/B) . grad alpha * 2 * dpsiN/drho
       gbdrift = 2.0 * (-dBdrho + cross * dBdth * dpsipdrho / bmag**2) / bmag
@@ -586,19 +585,22 @@ contains
 
       ! this is 2 *(bhat/B x grad B / B) . (grad q) * dpsiN/drho / (bhat . grad B)
       ! same as usual GS2 definition once bhat . grad B is added in below
-      cvdrift0 = -2.*bi * dqdr / bmag**2
+      ! We redefined B_times_kappa_dot_gradx = cvdrift0 / 2 / shat
+      B_times_kappa_dot_gradx = -2.*bi * dqdr / bmag**2 / 2. / local%shat
 
       ! this is 2*dpsiN/drho times the rho derivative (bhat/B x grad B / B) . (grad q)
-      dcvdrift0drho = cvdrift0 * (dgradparbdrho + gradparb * (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
-                      - 2.*bi * gradparb * local%d2qdr2 / bmag**2
+      dcvdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * (dgradparbdrho + gradparb * &
+             (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
+             - 2.*bi * gradparb * local%d2qdr2 / bmag**2
       ! this is 2*dpsiN/drho/B times the rho derivative of (bhat x gradB/B) . (grad q)
       ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
-      dgbdrift0drho = cvdrift0 * (dgradparbdrho + gradparb * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
-                      - 2.*bi * gradparb * local%d2qdr2 / bmag**2
+      dgbdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * &
+             (dgradparbdrho + gradparb * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
+             - 2.*bi * gradparb * local%d2qdr2 / bmag**2
 
-      cvdrift0 = cvdrift0 * gradparb
+      B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * gradparb
       ! this is 2 * dpsiN/drho * (bhat/B x gradB/B) . (grad q)
-      gbdrift0 = cvdrift0
+      B_times_gradB_dot_gradx = B_times_kappa_dot_gradx
 
       ! get d^2I/drho^2 and d^2 Jac / dr^2
       if (debug) write (*, *) 'geometry_miller::get_d2Idr2_d2jacdr2'
@@ -624,11 +626,11 @@ contains
 
       !the next two sets of lines are corrections needed for the side boxes in a multibox simulation
       !gbdrift  = gbdrift *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
-      !gbdrift0 = gbdrift0*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      !B_times_gradB_dot_gradx = B_times_gradB_dot_gradx*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
       gbdrift = gbdrift * (dpsipdrho_psi0 / dpsipdrho)
-      gbdrift0 = gbdrift0 * (dpsipdrho_psi0 / dpsipdrho)
+      B_times_gradB_dot_gradx = B_times_gradB_dot_gradx * (dpsipdrho_psi0 / dpsipdrho)
       cvdrift = cvdrift * (dpsipdrho_psi0 / dpsipdrho)
-      cvdrift0 = cvdrift0 * (dpsipdrho_psi0 / dpsipdrho)
+      B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * (dpsipdrho_psi0 / dpsipdrho)
 
       !dgbdriftdrho  = dgbdriftdrho *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
       !dgbdrift0drho = dgbdrift0drho*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
@@ -657,9 +659,9 @@ contains
          call geo_spline(theta, gds21, zed_arc, gds24_out)
          call geo_spline(theta, gradpararc, zed_arc, gradpar_out)
          call geo_spline(theta, gbdrift, zed_arc, gbdrift_out)
-         call geo_spline(theta, gbdrift0, zed_arc, gbdrift0_out)
+         call geo_spline(theta, B_times_gradB_dot_gradx, zed_arc, B_times_gradB_dot_gradx_out)
          call geo_spline(theta, cvdrift, zed_arc, cvdrift_out)
-         call geo_spline(theta, cvdrift0, zed_arc, cvdrift0_out)
+         call geo_spline(theta, B_times_kappa_dot_gradx, zed_arc, B_times_kappa_dot_gradx_out)
          call geo_spline(theta, dBdrho, zed_arc, dBdrho_out)
          call geo_spline(theta, d2Bdrdth, zed_arc, d2Bdrdth_out)
          call geo_spline(theta, dgradpardrho, zed_arc, dgradpardrho_out)
@@ -685,9 +687,9 @@ contains
          call geo_spline(theta, gds21, zed_in, gds24_out)
          call geo_spline(theta, gradpar, zed_in, gradpar_out)
          call geo_spline(theta, gbdrift, zed_in, gbdrift_out)
-         call geo_spline(theta, gbdrift0, zed_in, gbdrift0_out)
+         call geo_spline(theta, B_times_gradB_dot_gradx, zed_in, B_times_gradB_dot_gradx_out)
          call geo_spline(theta, cvdrift, zed_in, cvdrift_out)
-         call geo_spline(theta, cvdrift0, zed_in, cvdrift0_out)
+         call geo_spline(theta, B_times_kappa_dot_gradx, zed_in, B_times_kappa_dot_gradx_out)
          call geo_spline(theta, dBdrho, zed_in, dBdrho_out)
          call geo_spline(theta, d2Bdrdth, zed_in, d2Bdrdth_out)
          call geo_spline(theta, dgradpardrho, zed_in, dgradpardrho_out)
@@ -748,8 +750,8 @@ contains
          dga2(i) = round(dga2(i), n)
          cross(i) = round(cross(i), n) 
          dcrossdr(i) = round(dcrossdr(i), n) 
-         gbdrift0(i) = round(gbdrift0(i), n) 
-         cvdrift0(i) = round(cvdrift0(i), n) 
+         B_times_gradB_dot_gradx(i) = round(B_times_gradB_dot_gradx(i), n) 
+         B_times_kappa_dot_gradx(i) = round(B_times_kappa_dot_gradx(i), n) 
          dcvdrift0drho(i) = round(dcvdrift0drho(i), n)
          gbdrift(i) = round(gbdrift(i), n)
          dgbdriftdrho(i) = round(dgbdriftdrho(i), n)
@@ -806,7 +808,7 @@ contains
          '21.djacdrho', '22.d2jacdr2', '23.grho2', '24.dgr2dr', '25.gthet2', &
          '26.dgt2', '27.grgthet', '28.dgrgt', '29.galphgth', '30.dgagt', &
          '31.grgalph', '32.dgagr', '33.galph2', '34.dga2', '35.cross', &
-         '36.dcrossdr', '37.gbdrift0', '38.dgbdrift0', '39.cvdrift0', '40.dcvdrift0', &
+         '36.dcrossdr', '37.B_times_gradB_dot_gradx', '38.dgbdrift0', '39.B_times_kappa_dot_gradx', '40.dcvdrift0', &
          '41.gbdrift', '42.dgbdrift', '43.cvdrift', '44.dcvdrift', '45.drzdth', &
          '46.gradpar', '47.dgpardr', '48.gradparB', '49.dgparBdr', '50.gds2', &
          '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gds22', '55.dgds22dr', &
@@ -822,7 +824,7 @@ contains
          write(*,*) 'e', djacdrho(i), d2jacdr2(i), grho(i)**2, dgr2dr(i), gradthet2(i)
          write(*,*) 'f', dgt2(i), gradrho_gradthet(i), dgrgt(i), gradalph_gradthet(i), dgagt(i)
          write(*,*) 'g', gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i)
-         write(*,*) 'h', dcrossdr(i), gbdrift0(i), dgbdrift0drho(i), cvdrift0(i), dcvdrift0drho(i)
+         write(*,*) 'h', dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i)
          write(*,*) 'i', gbdrift(i), dgbdriftdrho(i), cvdrift(i), dcvdriftdrho(i), drzdth(i)
          write(*,*) 'j', gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), gds2(i)
          write(*,*) 'k', dgds2dr(i), gds21(i), dgds21dr(i), gds22(i), dgds22dr(i), gds23(i), gds24(i)
@@ -836,7 +838,7 @@ contains
             djacdrho(i), d2jacdr2(i), grho(i)**2, dgr2dr(i), gradthet2(i), &
             dgt2(i), gradrho_gradthet(i), dgrgt(i), gradalph_gradthet(i), dgagt(i), &
             gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i), &
-            dcrossdr(i), gbdrift0(i), dgbdrift0drho(i), cvdrift0(i), dcvdrift0drho(i), &
+            dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i), &
             gbdrift(i), dgbdriftdrho(i), cvdrift(i), dcvdriftdrho(i), drzdth(i), &
             gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), gds2(i), &
             dgds2dr(i), gds21(i), dgds21dr(i), gds22(i), dgds22dr(i), gds23(i), gds24(i), &
@@ -864,8 +866,8 @@ contains
       allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
       allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
       gds2 = 0.0; gds21 = 0.0; gds22 = 0.0; gds23 = 0.0; gds24 = 0.0
-      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz)); gbdrift0 = 0.0; gbdrift = 0.0
-      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz)); cvdrift0 = 0.0; cvdrift = 0.0
+      allocate (B_times_gradB_dot_gradx(-nz:nz), gbdrift(-nz:nz)); B_times_gradB_dot_gradx = 0.0; gbdrift = 0.0
+      allocate (B_times_kappa_dot_gradx(-nz:nz), cvdrift(-nz:nz)); B_times_kappa_dot_gradx = 0.0; cvdrift = 0.0
       allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz)); Rr = 0.0; Zr = 0.0
       allocate (jacrho(-nz:nz), djacdrho(-nz:nz), djacrdrho(-nz:nz), d2jacdr2(-nz:nz))
       jacrho = 0.0; djacdrho = 0.0; djacrdrho = 0.0; d2jacdr2 = 0.0
@@ -914,9 +916,9 @@ contains
       deallocate (gds22)
       deallocate (gds23)
       deallocate (gds24)
-      deallocate (gbdrift0)
+      deallocate (B_times_gradB_dot_gradx)
       deallocate (gbdrift)
-      deallocate (cvdrift0)
+      deallocate (B_times_kappa_dot_gradx)
       deallocate (cvdrift)
       deallocate (Rr, Zr)
       deallocate (jacrho, djacdrho, djacrdrho, d2jacdr2)

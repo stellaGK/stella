@@ -30,7 +30,7 @@ contains
    !****************************************************************************
    subroutine get_zpinch_geometry_coefficients(nzgrid, bmag, gradpar, grad_rho, surf, &
       grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-      gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor)
+      B_times_gradB_dot_gradx, gbdrift, B_times_kappa_dot_gradx, cvdrift, btor, rmajor)
 
       use common_types, only: flux_surface_type
       use namelist_geometry, only: read_namelist_geometry_zpinch
@@ -40,7 +40,7 @@ contains
       integer, intent(in) :: nzgrid
       real, dimension(-nzgrid:), intent(out) :: bmag, gradpar, grad_rho, &
          grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-         gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor
+         B_times_gradB_dot_gradx, gbdrift, B_times_kappa_dot_gradx, cvdrift, btor, rmajor
       type(flux_surface_type), intent(out) :: surf
 
       !-------------------------------------------------------------------------
@@ -66,11 +66,11 @@ contains
       ! grad_x_dot_grad_x = 1
       grad_x_dot_grad_x = 1.0
       
-      ! the x-component of the grad-B drift is proportional to gbdrift0; zero in a z-pinch
-      gbdrift0 = 0.0
+      ! the x-component of the grad-B drift is proportional to B_times_gradB_dot_gradx; zero in a z-pinch
+      B_times_gradB_dot_gradx = 0.0
       
-      ! the x-component of the curvature drift is proportional to cvdrift0; zero in a z-pinch
-      cvdrift0 = 0.0
+      ! the x-component of the curvature drift is proportional to B_times_kappa_dot_gradx; zero in a z-pinch
+      B_times_kappa_dot_gradx = 0.0
       
       ! gbdrift = 2 * bhat / B_norm x (grad_norm B_norm / B_norm) . grad y
       ! = 2 * bhat / B_norm x (grad_norm x * d ln B_norm / dx) . grad y

@@ -59,7 +59,7 @@
   overwrite_gds24 = .false.
   overwrite_gbdrift = .false.
   overwrite_cvdrift = .false.
-  overwrite_gbdrift0 = .false.
+  overwrite_B_times_gradB_dot_gradx = .false.
   set_bmag_const = .false.
 /
 

@@ -31,7 +31,7 @@
 ! 
 ! The following geometric quantities are written to the NetCDF file:
 !   - beta, q, shat, drhodpsi, jtwist, d2psidr2, d2qrd2,
-!   - gbdrift, bmag, gbdrift0, cvdrift, cvdrifr0, gds2, gds21, gds22, 
+!   - gbdrift, bmag, B_times_gradB_dot_gradx, cvdrift, cvdrifr0, gds2, gds21, gds22, 
 !   - grho, jacob, djacdrho, b_dot_grad_z
 !   - gradpar, kperp2
 ! 
@@ -606,8 +606,8 @@ contains
    subroutine nc_geo(file_id)
       
       ! Geometric quantities
-      use geometry, only: bmag, gradpar, gbdrift, gbdrift0
-      use geometry, only: cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob
+      use geometry, only: bmag, gradpar, gbdrift, B_times_gradB_dot_gradx
+      use geometry, only: cvdrift, B_times_kappa_dot_gradx, gds2, gds21, gds22, grho, jacob
       use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
       use parameters_physics, only: beta
       use arrays, only: kperp2
@@ -638,9 +638,9 @@ contains
       ! Vectors on the flux surface
       call neasyf_write(file_id, "gbdrift", gbdrift, dim_names=flux_surface_dim, long_name="Magnetic gradient drift")
       call neasyf_write(file_id, "bmag", bmag, dim_names=flux_surface_dim, long_name="Magnitude of magnetic field", units="B_0")
-      call neasyf_write(file_id, "gbdrift0", gbdrift0, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "B_times_gradB_dot_gradx", B_times_gradB_dot_gradx, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "cvdrift", cvdrift, dim_names=flux_surface_dim)
-      call neasyf_write(file_id, "cvdrift0", cvdrift0, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "B_times_kappa_dot_gradx", B_times_kappa_dot_gradx, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "gds2", gds2, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "gds21", gds21, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "gds22", gds22, dim_names=flux_surface_dim)

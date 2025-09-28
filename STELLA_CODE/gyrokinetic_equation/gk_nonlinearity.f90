@@ -44,7 +44,7 @@ contains
 
       use geometry, only: geo_surf, drhodpsi, q_as_x
       use geometry, only: gradpar, dbdzed, bmag
-      use geometry, only: cvdrift, cvdrift0
+      use geometry, only: cvdrift, B_times_kappa_dot_gradx
       use geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
       use geometry, only: dcvdriftdrho, dcvdrift0drho
       
@@ -65,9 +65,9 @@ contains
       par_nl_drifty = 0.25 * rhostar * cvdrift(1, :)
       if (.not. allocated(par_nl_driftx)) allocate (par_nl_driftx(-nzgrid:nzgrid))
       if (q_as_x) then
-         par_nl_driftx = 0.25 * rhostar * cvdrift0(1, :)
+         par_nl_driftx = 0.25 * rhostar * B_times_kappa_dot_gradx(1, :) * 2. * geo_surf%shat
       else
-         par_nl_driftx = 0.25 * rhostar * cvdrift0(1, :) / geo_surf%shat
+         par_nl_driftx = 0.25 * rhostar * B_times_kappa_dot_gradx(1, :) * 2.
       end if
 
       if (radial_variation) then

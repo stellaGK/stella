@@ -14,7 +14,7 @@
 ! 
 ! Split up the magnetic drift frequencies in the contributions from curvature and ∇B
 !     omega_{curvature,d,k,s} = Ts/Zs 1/B (v_parallel² v_kappa) (ky ∇y + kx ∇x)
-!                             = v_parallel² 0.5 Ts/Zs (kx/shat*<cvdrift0> + ky*<cvdrift>)
+!                             = v_parallel² 0.5 Ts/Zs (2*kx*<B_times_kappa_dot_gradx> + ky*<cvdrift>)
 !                             = -1/code_dt (kx*<wcvdriftx> + ky*<wcvdrifty>)
 !            omega_{∇B,d,k,s} = Ts/Zs 1/B (mu_s v_∇B) (ky ∇y + kx ∇x)
 !                             = v_perp² 0.25 Ts/Zs (kx/shat*<gbvdrift0> + ky*<gbdrift>)
@@ -24,7 +24,7 @@
 ! ---------------------------------
 ! Curvature (cv) components of the magnetic drift along (kx,ky):
 !    kx*<wcvdriftx> + ky*<wcvdrifty> = - code_dt * omega_{curvature,d,k,s}
-!    <wcvdriftx> = -0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift0>/shat
+!    <wcvdriftx> = -0.5 * code_dt * v_parallel² * Ts/Zs * 2 * <B_times_kappa_dot_gradx>
 !    <wcvdrifty> = -0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift>
 ! 
 ! Gradient B (gb) components of the magnetic drift along (kx,ky):
@@ -90,7 +90,7 @@ contains
       
       ! Geometry
       use geometry, only: cvdrift, gbdrift
-      use geometry, only: cvdrift0, gbdrift0
+      use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
       use geometry, only: geo_surf, q_as_x
       
       ! Grids
@@ -125,7 +125,7 @@ contains
       
       !-------------------------------------------------------------------------
       ! In this routine we calculate the following arrays with dimensions [ialpha, iz, ivmu]
-      !    <wcvdriftx> = 0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift0>/shat
+      !    <wcvdriftx> = 0.5 * code_dt * v_parallel² * Ts/Zs * 2 * <B_times_kappa_dot_gradx>
       !    <wcvdrifty> = 0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift>
       !    <wgbdriftx> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift0>/shat
       !    <wgbdrifty> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift>
@@ -179,7 +179,7 @@ contains
          !----------------------- Calculate x-components -----------------------
          !----------------------------------------------------------------------
 
-         ! Calculate <wcvdriftx> = 0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift0>/shat
+         ! Calculate <wcvdriftx> = 0.5 * code_dt * v_parallel² * Ts/Zs * 2 * <B_times_kappa_dot_gradx>
          ! and <wgbdriftx> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift0>/shat
          ! Note that if x = q instead of x = r, we do not need the shat term here
          if (q_as_x) then
@@ -187,8 +187,8 @@ contains
          else
             fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0 / geo_surf%shat
          end if
-         wcvdriftx = fac * cvdrift0 * vpa(iv) * vpa(iv)
-         wgbdriftx = fac * gbdrift0 * 0.5 * vperp2(:, :, imu)
+         wcvdriftx = fac * B_times_kappa_dot_gradx * 2. * geo_surf%shat * vpa(iv) * vpa(iv)
+         wgbdriftx = fac * B_times_gradB_dot_gradx * 2. * geo_surf%shat * 0.5 * vperp2(:, :, imu)
          
          ! Calculate <wdriftx_g>[ialpha, iz, ivmu] = <wcvdriftx> + <wgbdriftx>
          wdriftx_g(:, :, ivmu) = wcvdriftx + wgbdriftx
@@ -213,7 +213,7 @@ contains
 
       use mp, only: mp_abort
       use geometry, only: cvdrift, gbdrift
-      use geometry, only: cvdrift0, gbdrift0
+      use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
       use geometry, only: gds23, gds24
       use geometry, only: geo_surf, q_as_x
       use geometry, only: dxdpsi, drhodpsi, dydalpha
@@ -318,10 +318,10 @@ contains
          ! This is the curvature drift piece of wdriftx with missing factor of vpa
          ! vpa factor is missing to avoid singularity when including
          ! non-Maxwellian corrections to equilibrium
-         wcvdriftx = fac * cvdrift0 * vpa(iv)
+         wcvdriftx = fac * B_times_kappa_dot_gradx * 2. * geo_surf%shat * vpa(iv)
          
          ! This is the grad-B drift piece of wdriftx
-         wgbdriftx = fac * gbdrift0 * 0.5 * vperp2(:, :, imu)
+         wgbdriftx = fac * B_times_gradB_dot_gradx * 2. * geo_surf%shat * 0.5 * vperp2(:, :, imu)
          wdriftx_g(:, :, ivmu) = wcvdriftx * vpa(iv) + wgbdriftx
          
          ! if including neoclassical correction to equilibrium Maxwellian,
