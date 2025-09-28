@@ -1,7 +1,9 @@
-# `field_equations` Directory
+# The `field_equations` directory
 
 This directory contains the code for solving the main field equations used in stella.
 
+
+<br />
 
 ## Normalisations
 
@@ -19,9 +21,16 @@ $$
 \delta \tilde{B}_{\parallel} = \frac{L_r}{B_r \rho_r} \delta B_{\parallel}
 $$
 
+
+<br />
+
 ## Equations Solved
 
 The following equations are implemented:
+
+
+
+<br />
 
 ### 1. Quasineutrality Equation
 
@@ -60,6 +69,9 @@ $$
 (where everything is writen in terms of normalised quantities, and tildes have been ignored).
 
 
+
+<br />
+
 ### 2. Parallel Amperè's Law
 
 Amperè's law is $\nabla \times \delta \mathbf{B} = \frac{4 \pi}{c} \delta \mathbf{J}$. We can take parallel component to get 
@@ -76,6 +88,9 @@ $$
 
 (where everything is writen in terms of normalised quantities, and tildes have been ignored).
 
+
+
+<br />
 
 ### 3. Perpendicular Amperè's Law
 
