@@ -27,7 +27,7 @@ run_data = {}
 @pytest.fixture(scope="session")
 def stella_version(pytestconfig):
     return pytestconfig.getoption("stella_version")
-
+    
 #-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
@@ -35,10 +35,14 @@ def test_whether_VMEC_output_files_are_present(tmp_path, stella_version, error=F
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
-    global stella_local_run_directory, run_data
+    global stella_local_run_directory, input_filename, run_data
     stella_local_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
+    if stella_version!='master': 
+        input_filename = input_filename.replace('.in', f'_v{stella_version}.in') 
+        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
+        return 
     run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
     
     # Gather the output files generated during the local stella run inside <tmp_path>
@@ -66,20 +70,13 @@ def test_whether_VMEC_output_files_are_present(tmp_path, stella_version, error=F
 #-------------------------------------------------------------------------------
 #                     Check whether VMEC output files match                    #
 #-------------------------------------------------------------------------------
-def offtest_whether_vmec_output_files_are_correct():  
-    # TODO-HT Fix this test
+def test_whether_vmec_output_files_are_correct():
 
     # Initialize
     geometry_files_match = True
     vmec_files_match = True 
     
     # File names 
-    local_geometry_file = stella_local_run_directory / 'vmec_geometry.geometry' 
-    expected_geometry_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.geometry'
-    local_vmec_file = stella_local_run_directory / 'vmec_geometry.vmec.geo' 
-    expected_vmec_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.vmec.geo'
-    
-    # File names
     local_geometry_file = stella_local_run_directory / 'vmec_geometry.geometry' 
     expected_geometry_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.geometry'
     local_vmec_file = stella_local_run_directory / 'vmec_geometry.vmec.geo' 
@@ -92,7 +89,7 @@ def offtest_whether_vmec_output_files_are_correct():
     # If we made it here the test was run correctly 
     print(f'  -->  The geometry output file matches.')
     return
-    
+ 
 #-------------------------------------------------------------------------------
 #              Check whether the data in the netcdf file matches               #
 #-------------------------------------------------------------------------------
@@ -100,4 +97,3 @@ def test_whether_vmec_geometry_data_in_netcdf_file_is_correct(error=False):
     compare_geometry_in_netcdf_files(run_data, error=False)
     print('  -->  All VMEC geometry data in the netcdf file matches the expected output.')
     return
-
