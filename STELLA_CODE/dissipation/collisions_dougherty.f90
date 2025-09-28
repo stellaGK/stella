@@ -1,8 +1,9 @@
 !###############################################################################
-!                                                                               
+!                    Dougherty model Fokker-Planck operator                     
 !###############################################################################
 ! 
-! This module ...
+! This module adds collisions to the gyrokinetic equation, based on the Dougherty 
+! model Fokker-Planck operator.
 ! 
 ! TODO - Write docs and split up in smaller modules
 ! 
@@ -47,7 +48,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !                               Read input file                              
    !****************************************************************************
    subroutine read_parameters_dougherty
 
@@ -59,7 +60,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! Read collisions namelist from input file
-      call read_namelist_collisions_dougherty(momentum_conservation, energy_conservation, vpa_operator, mu_operator) 
+      call read_namelist_collisions_dougherty(momentum_conservation, energy_conservation, vpa_operator, mu_operator)
 
       ! Broadcast the parameters to all processors
       call broadcast(momentum_conservation)
@@ -74,7 +75,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !                       Initialise the collision model                       
    !****************************************************************************
    subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
 
@@ -118,6 +119,7 @@ contains
          cfl_dt_vpadiff = 2.0 * dvpa**2 / vnew_max
          cfl_dt_mudiff = minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2))
       end if
+      
    end subroutine init_collisions_dougherty
 
    !****************************************************************************

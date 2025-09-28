@@ -9,6 +9,39 @@
 !     with <omega> = real(<Omega>) and <gamma> = imag(<Omega>)
 ! We take the running average of <Omega> over the last <navg> time points.
 ! 
+!---------------------------------- Input file ---------------------------------
+! 
+! The diagnostics are writen to text files after every <nwrite> time steps. Moreover,
+! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps. The 
+! frequency and growth rates are calculated for linear simulations at every time 
+! step, and are also averaged over <navg> time steps.
+! 
+!&diagnostics
+!   nwrite = 50.0
+!   nc_mult = 1.0
+!   navg = 50.0
+!   write_all = .false.
+!   write_all_omega = .false.
+!/
+!&diagnostics_omega
+!   write_omega_vs_kxky = .not. include_nonlinear
+!   write_omega_avg_vs_kxky = .not. include_nonlinear
+!/
+! 
+!---------------------------------- Diagnostics --------------------------------
+! 
+! The complex frequency Omega is calculated within stella for linear simulations:
+!   - <phi> = exp(-i*<0mega>*t) = exp(-i*(<omega>+i<gamma>)*t)
+!   - <Omega> = log(dphi)/(-i*dt) = i*log(dphi)/dt
+!   - <omega> = real(<Omega>)
+!   - <gamma> = imag(<Omega>)
+!   
+! The frequency and growth rate are calculated automatically for linear simulations:
+!   - omega(t, kx, ky)      -->  Written to the *.omega text file
+!   - gamma(t, kx, ky)      -->  Written to the *.omega text file
+!   - Omega(t, kx, ky, ri)  -->  Written as "omega" to the NetCDF file
+! 
+! 
 !###############################################################################
 module diagnostics_omega
 
@@ -17,8 +50,10 @@ module diagnostics_omega
    implicit none
 
    ! These routines are called from diagnostics.f90
-   public :: calculate_omega, write_omega_to_netcdf_file
-   public :: init_diagnostics_omega, finish_diagnostics_omega 
+   public :: calculate_omega
+   public :: write_omega_to_netcdf_file
+   public :: init_diagnostics_omega
+   public :: finish_diagnostics_omega
    
    ! This routine is called from stella.f90 to automatically stop
    ! stella if <omega> has saturated during linear simulations
@@ -29,7 +64,7 @@ module diagnostics_omega
    ! The <units> are used to identify the external ascii files
    integer :: omega_unit
 
-   ! Keep track of <omega>(t, ky, kx) to calculate the running average   
+   ! Keep track of <omega>(t, ky, kx) to calculate the running average
    ! These arrays are only allocated on the first processor
    complex, dimension(:, :, :), allocatable :: omega_vs_tkykx
    complex, dimension(:, :), allocatable :: omega_vs_kykx
@@ -56,30 +91,34 @@ contains
       use arrays_fields, only: apar, apar_old
       
       ! Grids
-      use grids_kxky, only: nakx, naky 
+      use grids_kxky, only: nakx, naky
       use grids_time, only: code_dt
       use constants, only: zi
       
-      ! Calculations 
+      ! Calculations
       use calculations_volume_averages, only: fieldline_average
       
       ! Input file
       use parameters_diagnostics, only: navg
 
-      implicit none 
+      implicit none
 
-      integer, intent(in) :: istep  ! The current time step   
-      real, dimension(:), intent(in out) :: timer  
+      ! Arguments
+      integer, intent(in) :: istep  ! The current time step
+      real, dimension(:), intent(in out) :: timer
 
-      ! Temporary arrays 
-      complex, dimension(:, :), allocatable :: phi_vs_kykx, phiold_vs_kykx, aparavg, aparoldavg
+      ! Local variables
+      complex, dimension(:, :), allocatable :: phi_vs_kykx
+      complex, dimension(:, :), allocatable :: phiold_vs_kykx
+      complex, dimension(:, :), allocatable :: aparavg
+      complex, dimension(:, :), allocatable :: aparoldavg
       integer :: it_runningaverage
       real :: zero
 
       !----------------------------------------------------------------------
       
       ! We only calculate omega on the first processor and if <write_omega> = True
-      if (.not. write_omega) return  
+      if (.not. write_omega) return
 
       ! Start the timer
       if (proc0) call time_message(.false., timer(:), 'calculate omega')
@@ -89,19 +128,19 @@ contains
       allocate (phiold_vs_kykx(naky, nakx)); phiold_vs_kykx = 0.0
       allocate (aparavg(naky, nakx)); aparavg = 0.0
       allocate (aparoldavg(naky, nakx)); aparoldavg = 0.0
-      zero = 100.*epsilon(0.) 
+      zero = 100.*epsilon(0.)
 
       ! Field line average <phi>(ky,kx,z,tube) to obtain <phi>(ky,kx)
       call fieldline_average(phi, phi_vs_kykx)
       call fieldline_average(phi_old, phiold_vs_kykx)
       
       ! If we include electromagnetic terms, field line average <apar> and <par_old>
-      if (include_apar) then 
+      if (include_apar) then
           call fieldline_average(apar, aparavg)
           call fieldline_average(apar_old, aparoldavg)
           ! add <apar> to <phi> in the case <phi> = 0 because the mode has tearing parity
           ! if the mode is a purely growing mode then 
-          ! (<phi^n+1> + <apar^n+1> )/(<phi^n> + <apar^n>) = exp (-i delta t omega)  
+          ! (<phi^n+1> + <apar^n+1> )/(<phi^n> + <apar^n>) = exp (-i delta t omega)
           phi_vs_kykx = phi_vs_kykx + aparavg
           phiold_vs_kykx = phiold_vs_kykx + aparoldavg
       end if
@@ -110,7 +149,7 @@ contains
       it_runningaverage = mod(istep, navg) + 1
 
       ! The potential can be written as <phi> = exp(-i*<0mega>*t) = exp(-i*(<omega>+i<gamma>)*t)
-      ! Thus <Omega> = log(dphi)/(-i*dt) = i*log(dphi)/dt with <omega> = real(<Omega>) and <gamma> = imag(<Omega>)  
+      ! Thus <Omega> = log(dphi)/(-i*dt) = i*log(dphi)/dt with <omega> = real(<Omega>) and <gamma> = imag(<Omega>)
       where (abs(phi_vs_kykx) < zero .or. abs(phiold_vs_kykx) < zero)
          omega_vs_tkykx(it_runningaverage, :, :) = 0.0
       elsewhere
@@ -118,42 +157,44 @@ contains
       end where
 
       ! Deallocate temporary arrays
-      deallocate (phi_vs_kykx, phiold_vs_kykx) 
+      deallocate (phi_vs_kykx, phiold_vs_kykx)
       deallocate (aparavg, aparoldavg)
 
       ! End the timer
       if (proc0) call time_message(.false., timer(:), 'calculate omega')
 
-   end subroutine calculate_omega  
+   end subroutine calculate_omega 
 
    !=========================================================================
    !=============== WRITE OMEGA AT EVERY <NWRITE> TIME STEPS ================
    !========================================================================= 
    subroutine write_omega_to_netcdf_file(istep, nout, timer, write_to_netcdf_file)
- 
-      ! Input file
-      use parameters_diagnostics, only: navg
-      
-      ! Write to netCDF file
-      use write_diagnostics_to_netcdf, only: write_omega_nc
       
       ! Parallelisation
       use job_manage, only: time_message
       use mp, only: proc0
+      
+      ! Write to netCDF file
+      use write_diagnostics_to_netcdf, only: write_omega_nc
+ 
+      ! Input file
+      use parameters_diagnostics, only: navg
 
-      implicit none 
+      implicit none
 
-      integer, intent(in) :: istep  ! The current time step  
+      ! Arguments
+      integer, intent(in) :: istep  ! The current time step
       integer, intent(in) :: nout   ! The pointer in the netcdf file
-      logical, intent(in) :: write_to_netcdf_file    
-      real, dimension(:), intent(in out) :: timer  
+      logical, intent(in) :: write_to_netcdf_file
+      real, dimension(:), intent(in out) :: timer
 
+      ! Local variables
       integer :: it_runningaverage
 
       !----------------------------------------------------------------------
 
       ! We only calculate omega on the first processor
-      if (.not. write_omega) return     
+      if (.not. write_omega) return
       
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'write omega')
@@ -161,33 +202,35 @@ contains
       ! Get the index of the current time point in <omega_vs_tkykx>
       it_runningaverage = mod(istep, navg) + 1
 
-      ! Calculate the running average of <omega_vs_tkykx>  
-      omega_vs_kykx = sum(omega_vs_tkykx, dim=1) / real(navg) 
+      ! Calculate the running average of <omega_vs_tkykx>
+      omega_vs_kykx = sum(omega_vs_tkykx, dim=1) / real(navg)
 
       ! Write omega and the running average of omega to the ascii file
-      call write_omega_to_ascii_file(istep, omega_vs_tkykx(it_runningaverage, :, :), omega_vs_kykx) 
+      call write_omega_to_ascii_file(istep, omega_vs_tkykx(it_runningaverage, :, :), omega_vs_kykx)
 
-      ! Write omega to the netcdf file  
-      if (write_to_netcdf_file) call write_omega_nc(nout, omega_vs_tkykx(it_runningaverage, :, :)) 
+      ! Write omega to the netcdf file
+      if (write_to_netcdf_file) call write_omega_nc(nout, omega_vs_tkykx(it_runningaverage, :, :))
 
       ! Deallocate temporary arrays
-      deallocate (omega_vs_kykx) 
+      deallocate (omega_vs_kykx)
 
-     ! End timer 
-      if (proc0) call time_message(.false., timer(:), 'write omega') 
+     ! End timer
+      if (proc0) call time_message(.false., timer(:), 'write omega')
 
-   end subroutine write_omega_to_netcdf_file   
+   end subroutine write_omega_to_netcdf_file
 
    !=========================================================================
    !=========================== CHECK SATURATION ============================
    !========================================================================= 
    subroutine check_saturation_omega(istep, stop_stella)
    
+      use mp, only: proc0, broadcast
       use parameters_numerical, only: autostop
       use parameters_diagnostics, only: navg
-      use mp, only: proc0, broadcast
 
-      integer, intent(in) :: istep  
+      implicit none
+
+      integer, intent(in) :: istep
       logical, intent(in out) :: stop_stella
 
       logical :: equal
@@ -197,30 +240,30 @@ contains
       !----------------------------------------------------------------------
 
       ! Only check if gamma is saturated if we want stella to stop automatically
-      if (.not. autostop) return 
+      if (.not. autostop) return
 
       ! Check whether (omega, gamma) has saturated
-      if (proc0) then 
+      if (proc0) then
          if (istep > navg+1) then
 
             ! Check whether all elements in <omega_vs_tkykx> are the same
-            equal = .true. 
+            equal = .true.
             do i = 1, navg
                max_difference = maxval(abs(omega_vs_tkykx(i,:,:) - omega_vs_tkykx(1,:,:))) 
-               if (max_difference > 0.000001) then 
-                  equal = .false.; exit 
+               if (max_difference > 0.000001) then
+                  equal = .false.; exit
                end if
-            end do  
+            end do
 
             ! If gamma has saturated, stop stella
-            if (equal) then 
+            if (equal) then
                write (*, *)
-               write (*, '(A, I0, A)') 'EXITING STELLA BECAUSE (OMEGA, GAMMA) HAS SATURATED OVER ', navg, ' TIMESTEPS' 
+               write (*, '(A, I0, A)') 'EXITING STELLA BECAUSE (OMEGA, GAMMA) HAS SATURATED OVER ', navg, ' TIMESTEPS'
                stop_stella = .true.
             end if
       
-         end if 
-      end if 
+         end if
+      end if
 
       call broadcast(stop_stella)
 
@@ -233,22 +276,22 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnostics_omega(restart) 
+   subroutine init_diagnostics_omega(restart)
+      
+      ! Parallelisation
+      use mp, only: proc0
+      
+      ! Grids
+      use grids_kxky, only: nakx, naky
    
       ! Input file
       use parameters_diagnostics, only: write_omega_avg_vs_kxky
       use parameters_diagnostics, only: write_omega_vs_kxky
       use parameters_diagnostics, only: navg
-      
-      ! Grids
-      use grids_kxky, only: nakx, naky
-      
-      ! Multiprocessing
-      use mp, only: proc0
 
-      implicit none 
+      implicit none
  
-      logical, intent(in) :: restart 
+      logical, intent(in) :: restart
 
       !----------------------------------------------------------------------
       
@@ -258,31 +301,31 @@ contains
       if (.not. proc0) write_omega = .false.
 
       ! If we don't write omega, we don't need to open the ASCII or allocate arrays
-      if (.not. write_omega) return     
+      if (.not. write_omega) return
 
-      ! Allocate omega versus (<navg>, ky, kx) to calculate the running average 
+      ! Allocate omega versus (<navg>, ky, kx) to calculate the running average
       allocate (omega_vs_tkykx(navg, naky, nakx)); omega_vs_tkykx = 0.0
       allocate (omega_vs_kykx(naky, nakx)); omega_vs_kykx = 0.0
 
-      ! Open the '.omega' ascii file  
+      ! Open the '.omega' ascii file
       call open_omega_ascii_file(restart)
 
-   end subroutine init_diagnostics_omega  
+   end subroutine init_diagnostics_omega
 
    !============================================================================
    !======================== FINALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine finish_diagnostics_omega  
+   subroutine finish_diagnostics_omega
 
       use file_utils, only: close_output_file
 
-      implicit none  
+      implicit none
 
       !----------------------------------------------------------------------
 
-      if (.not. write_omega) return     
-      if (allocated(omega_vs_tkykx)) deallocate (omega_vs_tkykx)   
-      if (allocated(omega_vs_kykx)) deallocate (omega_vs_kykx)  
+      if (.not. write_omega) return
+      if (allocated(omega_vs_tkykx)) deallocate (omega_vs_tkykx)
+      if (allocated(omega_vs_kykx)) deallocate (omega_vs_kykx)
       call close_output_file(omega_unit)
 
    end subroutine finish_diagnostics_omega
@@ -293,9 +336,10 @@ contains
 
    !============================================================================
    !============================= OPEN ASCII FILES =============================
-   !============================================================================ 
+   !============================================================================
    ! Open the '.omega' ascii files. When running a new simulation, create a new file
    ! or replace an old file. When restarting a simulation, append to the old files.
+   !============================================================================
    subroutine open_omega_ascii_file(restart)
  
       ! Input file
@@ -303,18 +347,18 @@ contains
       use parameters_diagnostics, only: write_omega_vs_kxky
       
       ! ASCII files
-      use file_utils, only: open_output_file  
+      use file_utils, only: open_output_file
 
       implicit none
 
-      logical, intent(in) :: restart 
-      logical :: overwrite 
+      logical, intent(in) :: restart
+      logical :: overwrite
 
       !---------------------------------------------------------------------- 
 
       ! For a new simulation <overwrite> = True since we wish to create a new ascii file.   
       ! For a restart <overwrite> = False since we wish to append to the existing file. 
-      overwrite = .not. restart 
+      overwrite = .not. restart
 
       ! Open the '.omega' file
       call open_output_file(omega_unit, '.omega', overwrite)
@@ -334,18 +378,18 @@ contains
 
    !=========================================================================
    !======================== WRITE LOOP ASCII FILES =========================
-   !=========================================================================  
+   !=========================================================================
    subroutine write_omega_to_ascii_file(istep, omega_vs_kykx, omega_runningavg_vs_kykx)
  
       use parameters_diagnostics, only: write_omega_avg_vs_kxky
       use parameters_diagnostics, only: write_omega_vs_kxky
-      use grids_time, only: code_time 
+      use grids_time, only: code_time
       use grids_kxky, only: naky, nakx
-      use grids_kxky, only: aky, akx 
+      use grids_kxky, only: aky, akx
 
       implicit none
 
-      integer, intent(in) :: istep ! The current time step   
+      integer, intent(in) :: istep ! The current time step
       complex, dimension(:, :), intent(in) :: omega_vs_kykx, omega_runningavg_vs_kykx
       integer :: ikx, iky
 
@@ -357,24 +401,24 @@ contains
       ! For each mode (kx,ky) write <omega>(ky,kx) to the ascii file
       do iky = 1, naky
          do ikx = 1, nakx
-            if (write_omega_avg_vs_kxky .and. write_omega_vs_kxky) then 
+            if (write_omega_avg_vs_kxky .and. write_omega_vs_kxky) then
                write (omega_unit, '(7e16.8)') code_time, aky(iky), akx(ikx), &
                   real(omega_vs_kykx(iky, ikx)), aimag(omega_vs_kykx(iky, ikx)), &
                   real(omega_runningavg_vs_kykx(iky, ikx)), aimag(omega_runningavg_vs_kykx(iky, ikx))
-            else if (write_omega_avg_vs_kxky) then 
+            else if (write_omega_avg_vs_kxky) then
                write (omega_unit, '(5e16.8)') code_time, aky(iky), akx(ikx), &
                   real(omega_runningavg_vs_kykx(iky, ikx)), aimag(omega_runningavg_vs_kykx(iky, ikx))
-            else if (write_omega_vs_kxky) then 
+            else if (write_omega_vs_kxky) then
                write (omega_unit, '(5e16.8)') code_time, aky(iky), akx(ikx), &
                   real(omega_vs_kykx(iky, ikx)), aimag(omega_vs_kykx(iky, ikx))
-            end if 
+            end if
          end do
          if (nakx > 1) write (omega_unit, *)
       end do
       if (naky > 1) write (omega_unit, *)
 
       ! Flush the data from the buffer to the actual ascii file
-      call flush(omega_unit) 
+      call flush(omega_unit)
 
    end subroutine write_omega_to_ascii_file
 

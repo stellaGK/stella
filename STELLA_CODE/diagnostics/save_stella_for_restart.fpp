@@ -4,7 +4,12 @@
 !###############################################################################
 ! This module saves the distribution function g(mu,vpa,ikxkyzs) to a netcdf
 ! file, as well as the dimensions (kx,ky,z,nu,vpa,s,tube). This allows us to
-! restart the simulation in the future, to continue the time evolution.
+! restart the simulation in the future, in order to continue the time evolution.
+! 
+! Note that we also need to save the <shift_state> for Flow shear, otherwise
+! errors will pop up. For radial variation simulations or for simulations 
+! including sources, we also need to save <int_krook>, <int_proj>, <g_krook>,
+! <g_proj> and <phi_proj>, in order to restart a simulation.
 !###############################################################################
 module save_stella_for_restart
 

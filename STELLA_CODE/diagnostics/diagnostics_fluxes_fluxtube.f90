@@ -5,8 +5,8 @@
 ! Routines for calculating and writing the turbulent fluxes.
 ! 
 ! 
-! DEFINITION DISTRIBUTION
-! -----------------------
+! DEFINITION DISTRIBUTION FUNCTION
+! --------------------------------
 ! δf = h - Zs*e/Ts * phi * F0
 ! h = <h>_gyroaverage
 ! g = <delta f>_gyroaverage 

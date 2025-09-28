@@ -6,6 +6,11 @@
 ! file, as well as the dimensions (kx,ky,z,nu,vpa,s,tube). This allows us to
 ! restart the simulation in the future, to continue the time evolution.
 ! 
+! Note that we also need to save the <shift_state> for Flow shear, otherwise
+! errors will pop up. For radial variation simulations or for simulations 
+! including sources, we also need to save <int_krook>, <int_proj>, <g_krook>,
+! <g_proj> and <phi_proj>, in order to restart a simulation.
+! 
 ! WARNING: This module has not been cleaned completely, since parallel netcdf 
 ! does not seem to work. Therefore, one should always run with <save_many> = .true.
 ! until this module has been debugged and fixed.

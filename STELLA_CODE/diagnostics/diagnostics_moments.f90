@@ -4,9 +4,43 @@
 ! 
 ! Routines for calculating and writing the moments.
 ! 
-! The dens_vs_kykxzts is denoted by dens.
-! The temp_vs_kykxzts is denoted by temp.
+! The density is denoted by dens.
+! The temperature is denoted by temp.
 ! The parallel velocity is denoted by upar.
+! 
+!---------------------------------- Input file ---------------------------------
+! 
+! The diagnostics are writen to text files after every <nwrite> time steps. Moreover,
+! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps.
+! 
+!&diagnostics
+!   nwrite = 50.0
+!   nc_mult = 1.0
+!   write_all = .false.
+!   write_all_time_traces = .true.
+!   write_all_moments = .false.
+!/
+!&diagnostics_moments
+!   write_moments = .false.
+!   write_radial_moments = .false.
+!/
+! 
+!---------------------------------- Diagnostics --------------------------------
+! 
+! The following moments can be calculated within stella:
+!   - Density (dens)
+!   - Temperature (temp)
+!   - Parallel velocity (upar)
+! 
+! If <write_moments> = .true. the following complex quantities are calculated:
+!   - dens(t, kx, ky, z, s, ri)  -->  density in the NetCDF file
+!   - temp(t, kx, ky, z, s, ri)  -->  temperature in the NetCDF file
+!   - upar(t, kx, ky, z, s, ri)  -->  upar in the NetCDF file
+! 
+! If <write_radial_moments> = .true. the following complex quantities are calculated:
+!   - dens(t, kx, s, ri)  -->  dens_x in the NetCDF file
+!   - temp(t, kx, s, ri)  -->  upar_x in the NetCDF file
+!   - upar(t, kx, s, ri)  -->  temp_x in the NetCDF file
 ! 
 !###############################################################################
 module diagnostics_moments
@@ -93,7 +127,7 @@ contains
       end if
 
       ! Calculate the moments if <full_flux_surface> = True
-      if (full_flux_surface .and. write_moments) then  
+      if (full_flux_surface .and. write_moments) then
          
          ! TODO-GA The moments for FFS are calculated in the fluxes routine
          ! Since the fluxes rely on the moments
@@ -128,27 +162,37 @@ contains
    ! g     = h     - Ze*<phi>_R/T * F0
    ! <f>_r = g J_0 + Ze*(J_0<phi>_R-phi)/T * F0
    !============================================================================
-   subroutine get_moments_fluxtube(g, density, upar_vs_kykxzts, temperature, spitzer2_vs_kykxzts)
+   subroutine get_moments_fluxtube(g, density, upar, temperature, spitzer2_vs_kykxzts)
 
-      use grids_z, only: nzgrid, ntubes
-      use grids_species, only: spec
-      use calculations_velocity_integrals, only: integrate_vmu
-      use grids_velocity, only: vpa, vperp2
-      use grids_velocity, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use grids_kxky, only: naky, nakx
-      use calculations_kxky, only: multiply_by_rho
+      ! Parallelisation
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+      
+      ! Grids
+      use grids_kxky, only: naky, nakx
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: spec
+      use grids_velocity, only: vpa, vperp2
+      
+      ! Maxwellian
+      use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac, ztmax
+      use calculations_transforms, only: transform_kx2x_unpadded
+      
+      ! Calculations
+      use calculations_velocity_integrals, only: integrate_vmu
+      use calculations_kxky, only: multiply_by_rho
       use calculations_gyro_averages, only: gyro_average
+      use calculations_transforms, only: transform_kx2x_unpadded
       use arrays_gyro_averages, only: aj0x
+      
+      ! Fields
       use arrays_fields, only: phi
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
-      use calculations_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-      use arrays_distribution_function, only: g_gyro => g1 
-      use arrays_distribution_function, only: integrand => g2 
+      use arrays_distribution_function, only: g_gyro => g1
+      use arrays_distribution_function, only: integrand => g2
 
       implicit none
 
@@ -156,7 +200,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       
       ! The moments are returned with dimensions (ky, kx, z, tube, s)
-      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: density, temperature, upar_vs_kykxzts, spitzer2_vs_kykxzts
+      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: density, temperature, upar, spitzer2_vs_kykxzts
 
       ! Local variables
       integer :: ivmu, iv, imu, is, ia
@@ -234,7 +278,7 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          integrand(:,:,:,:,ivmu) = g(:,:,:,:,ivmu) * ( vpa(iv) * (vpa(iv)**2 + &
-                  spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2. * vpa(iv) )
+            spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2. * vpa(iv) )
       end do
       call integrate_vmu(integrand, spec%stm, spitzer2_vs_kykxzts) ! AVB: stm is the thermal speed
 
@@ -247,51 +291,66 @@ contains
          is = is_idx(vmu_lo, ivmu)
          integrand(:, :, :, :, ivmu) = vpa(iv) * g_gyro(:, :, :, :, ivmu)
       end do
-      call integrate_vmu(integrand, spec%stm_psi0, upar_vs_kykxzts)
+      call integrate_vmu(integrand, spec%stm_psi0, upar)
 
    end subroutine get_moments_fluxtube
  
    !============================================================================
    !==================== GET MOMENTS FOR RADIAL VARIATION =====================
    !============================================================================
-   subroutine get_moments_radial_variation(g, dens, upar_vs_kykxzts, temp, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
+   subroutine get_moments_radial_variation(g, dens, upar, temp, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
 
-      use grids_z, only: nzgrid, ntubes
-      use grids_species, only: spec, nspec
-      use calculations_velocity_integrals, only: integrate_vmu
-      use grids_velocity, only: vpa, vperp2, mu
-      use grids_velocity, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use grids_kxky, only: naky, nakx
-      use grids_kxky, only: rho_d_clamped
-      use calculations_kxky, only: multiply_by_rho
+      ! Parallelisation
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
-      use arrays_distribution_function, only: g1, g2
+      
+      ! Grids
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: spec, nspec
+      use grids_kxky, only: naky, nakx
+      use grids_kxky, only: rho_d_clamped
+      use grids_velocity, only: vpa, vperp2, mu
+      
+      ! Calculations
+      use calculations_transforms, only: transform_kx2x_unpadded
+      use calculations_velocity_integrals, only: integrate_vmu
+      use calculations_kxky, only: multiply_by_rho
+      use calculations_gyro_averages, only: gyro_average
+      use arrays_gyro_averages, only: aj0x, aj1x
+      
+      ! Maxwellian
+      use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac, ztmax
+      use parameters_numerical, only: maxwellian_normalization
+      
+      ! Geometry
       use arrays, only: kperp2, dkperp2dr
       use geometry, only: bmag, dBdrho
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use calculations_gyro_averages, only: gyro_average
-      use arrays_gyro_averages, only: aj0x, aj1x
+      
+      ! Fields
       use arrays_fields, only: phi, phi_corr_QN, phi_proj
       use parameters_physics, only: fphi
-      use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: radial_variation
-      use calculations_transforms, only: transform_kx2x_unpadded
       
-      ! Input file
+      ! Flags
+      use parameters_physics, only: radial_variation
       use parameters_diagnostics, only: write_radial_moments
+      
+      ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
+      use arrays_distribution_function, only: g1, g2
 
       implicit none
 
+      ! The distribution function enters with dimensions (ky, kx, z, tube, ivmus)
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: dens, upar_vs_kykxzts, temp, spitzer2_vs_kykxzts
+      
+      ! The moments are returned with dimensions (ky, kx, z, tube, s) or (kx, s)
+      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: dens, upar, temp, spitzer2_vs_kykxzts
       real, dimension(:, :), intent(out) :: dens_kxs, upar_kxs, temp_kxs
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: g0k, g1k, g1x
+      integer :: ivmu, iv, imu, is, ia, iz, it
       real :: zero
-
-      integer :: ivmu, iv, imu, is, ia
-      integer :: iz, it
 
       !-------------------------------------------------------------------------
 
@@ -481,13 +540,13 @@ contains
             end do
          end if
       end do
-      call integrate_vmu(g2, spec%stm_psi0, upar_vs_kykxzts)
+      call integrate_vmu(g2, spec%stm_psi0, upar)
       if (write_radial_moments) then
          upar_kxs = 0.0
          do is = 1, nspec
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  g1k(1, :) = upar_vs_kykxzts(1, :, iz, it, is)
+                  g1k(1, :) = upar(1, :, iz, it, is)
                   call transform_kx2x_unpadded(g1k, g1x)
                   upar_kxs(:, is) = upar_kxs(:, is) &
                                   + real(g1x(1, :) * (dl_over_b(ia, iz) + rho_d_clamped * d_dl_over_b_drho(ia, iz)))

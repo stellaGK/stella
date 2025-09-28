@@ -3,7 +3,105 @@
 !######################### WRITE OUTPUT TO NETCDF FILE #########################
 !###############################################################################
 ! 
-! The variable <nout> keeps track of the current time step.
+! Various diagnostics are written to the NetCDF file, depending on which 
+! diagnostics flags have been turned on in the input file.
+! 
+! The variable <nout> keeps track of the time step pointer in the NetCDF file.
+! 
+! Some stella information is written to the NetCDF file:
+!   - GitHub commit number
+!   - GitHub commit date
+!   - Simulation date
+!   - Simulation time
+!   - NetCDF version
+! 
+! The complete input file is written to the NetCDF file.
+!     TODO - Perhaps we should write the full input file, including default variables.
+! 
+! The following variables, related to the dimensions, are written to the NetCDF file:
+!   - Dimensions (kx, ky, z, mu, vpa, s, t)
+!   - Other dimensions like (tube, alpha, ri)
+!   - Dimension variables like (nkx, nky, ntubes, nzed, nspecies, nvpa, nmu)
+!   - Other variables like (phase_shift_angle, theta0)
+!   - Number of processors (nproc)
+!   - The number of mesh points, i.e., nmesh = (2*nzgrid + 1) * ntubes * nvpa * nmu * nakx * naky * nspec
+! 
+! The species characteristics are written to the NetCDF file:
+!   - charge, mass, dens, temp, vnew, tprim, fprim, type
+! 
+! The following geometric quantities are written to the NetCDF file:
+!   - beta, q, shat, drhodpsi, jtwist, d2psidr2, d2qrd2,
+!   - gbdrift, bmag, gbdrift0, cvdrift, cvdrifr0, gds2, gds21, gds22, 
+!   - grho, jacob, djacdrho, b_dot_grad_z
+!   - gradpar, kperp2
+! 
+! The fields are written to the NetCDF file:
+!   - |phi|^2(t)                    -->      phi2
+!   - |apar|^2(t)                   -->      apar2
+!   - |bpar|^2(t)                   -->      bpar2
+!   - |phi|^2(t, kx, ky)            -->      phi2_vs_kxky
+!   - |apar|^2(t, kx, ky)           -->      apar2_vs_kxky
+!   - |bpar|^2(t, kx, ky)           -->      bpar2_vs_kxky
+!   - phi(t, kx, ky, z, ri)         -->      phi_vs_t
+!   - apar(t, kx, ky, z, ri)        -->      apar_vs_t
+!   - bpar(t, kx, ky, z, ri)        -->      bpar_vs_t
+! 
+! The complex frequency (Omega = <omega>+i<gamma>) is written to the NetCDF file:
+!   - Omega(t, kx, ky, ri)          -->      omega
+! 
+! The fluxes are written to the NetCDF file:
+!   - pflux(t, s)                   -->      pflux_vs_s
+!   - qflux(t, s)                   -->      qflux_vs_s
+!   - vflux(t, s)                   -->      vflux_vs_s
+!   - pflux(t, kx, ky, s)           -->      pflux_vs_kxkys
+!   - qflux(t, kx, ky, s)           -->      qflux_vs_kxkys
+!   - vflux(t, kx, ky, s)           -->      vflux_vs_kxkys
+!   - pflux(t, kx, ky, z, s)        -->      pflux_vs_kxkyzs
+!   - qflux(t, kx, ky, z, s)        -->      qflux_vs_kxkyzs
+!   - vflux(t, kx, ky, z, s)        -->      vflux_vs_kxkyzs
+!   - pflux(t, kx, s)               -->      pflux_x
+!   - qflux(t, kx, s)               -->      qflux_x
+!   - vflux(t, kx, s)               -->      vflux_x
+! 
+! The moments are written to the NetCDF file:
+!   - dens(t, kx, ky, z, s, ri)     -->      density
+!   - temp(t, kx, ky, z, s, ri)     -->      temperature
+!   - upar(t, kx, ky, z, s, ri)     -->      upar
+!   - dens(t, kx, s, ri)            -->      dens_x
+!   - temp(t, kx, s, ri)            -->      upar_x
+!   - upar(t, kx, s, ri)            -->      temp_x
+! 
+! The distribution functions are written to the NetCDF file:
+!   - |g|^2(t, mu, vpa, s)             -->   g2_vs_vpamus
+!   - |g|^2(t, z, vpa, s)              -->   g2_vs_zvpas
+!   - |g|^2(t, z, mu, s)               -->   g2_vs_zmus
+!   - |g|^2(t, kx, ky, z, s)           -->   g2_vs_zkykxs
+!   - |g|^2(t, z, vpa, mu, s)          -->   g2_vs_zvpamus
+!   - |g_nozonal|^2(t, mu, vpa, s)     -->   g2nozonal_vs_vpamus
+!   - |g_nozonal|^2(t, z, vpa, s)      -->   g2nozonal_vs_zvpas
+!   - |g_nozonal|^2(t, z, mu, s)       -->   g2nozonal_vs_zmus
+!   - |g_nozonal|^2(t, kx, ky, z, s)   -->   g2nozonal_vs_zkykxs
+!   - |g_nozonal|^2(t, z, vpa, mu, s)  -->   g2nozonal_vs_zvpamus
+!   - |h|^2(t, mu, vpa, s)             -->   h2_vs_vpamus
+!   - |h|^2(t, z, vpa, s)              -->   h2_vs_zvpas
+!   - |h|^2(t, z, mu, s)               -->   h2_vs_zmus
+!   - |h|^2(t, kx, ky, z, s)           -->   h2_vs_zkykxs
+!   - |h|^2(t, z, vpa, mu, s)          -->   h2_vs_zvpamus
+!   - |h_nozonal|^2(t, mu, vpa, s)     -->   h2nozonal_vs_vpamus
+!   - |h_nozonal|^2(t, z, vpa, s)      -->   h2nozonal_vs_zvpas
+!   - |h_nozonal|^2(t, z, mu, s)       -->   h2nozonal_vs_zmus
+!   - |h_nozonal|^2(t, kx, ky, z, s)   -->   h2nozonal_vs_zkykxs
+!   - |h_nozonal|^2(t, z, vpa, mu, s)  -->   h2nozonal_vs_zvpamus
+!   - |f|^2(t, mu, vpa, s)             -->   f2_vs_vpamus
+!   - |f|^2(t, z, vpa, s)              -->   f2_vs_zvpas
+!   - |f|^2(t, z, mu, s)               -->   f2_vs_zmus
+!   - |f|^2(t, kx, ky, z, s)           -->   f2_vs_zkykxs
+!   - |f|^2(t, z, vpa, mu, s)          -->   f2_vs_zvpamus
+!   - |f_nozonal|^2(t, mu, vpa, s)     -->   f2nozonal_vs_vpamus
+!   - |f_nozonal|^2(t, z, vpa, s)      -->   f2nozonal_vs_zvpas
+!   - |f_nozonal|^2(t, z, mu, s)       -->   f2nozonal_vs_zmus
+!   - |f_nozonal|^2(t, kx, ky, z, s)   -->   f2nozonal_vs_zkykxs
+!   - |f_nozonal|^2(t, z, vpa, mu, s)  -->   f2nozonal_vs_zvpamus
 ! 
 ! TODO-GA: Print input parameters to netcdf file
 ! 
@@ -620,7 +718,7 @@ contains
 #endif
    end subroutine write_bpar2_nc
 
-   !------------------------------- phi2(ky,kx,t) ------------------------------
+   !--------------- phi2(ky,kx,t), apar2(ky,kx,t), bpar2(ky,kx,t) --------------
    subroutine write_kspectra_nc(nout, phi2_vs_kxky, keyname, longname)
       implicit none
       integer, intent(in) :: nout
@@ -781,26 +879,6 @@ contains
    !================================= MOMENTS ==================================
    !============================================================================
 
-   !------------------------------ dens_x(kx,s,t) ------------------------------
-   subroutine write_radial_moments_nc(nout, dens_x, upar_x, temp_x)
-      implicit none
-      integer, intent(in) :: nout
-      real, dimension(:, :), intent(in) :: dens_x, upar_x, temp_x
-#ifdef NETCDF
-
-      ! Define the dimensions and starting pointer
-      character(*), dimension(*), parameter :: dims = [character(len=7)::"kx", "species", "t"]
-      integer, dimension(3) :: start
-      start = [1, 1, nout]
-
-      ! Write the radial moments for density, parallel velocity, temperature
-      call neasyf_write(ncid, "dens_x", dens_x, dim_names=dims, start=start)
-      call neasyf_write(ncid, "upar_x", upar_x, dim_names=dims, start=start)
-      call neasyf_write(ncid, "temp_x", temp_x, dim_names=dims, start=start)
-
-#endif
-   end subroutine write_radial_moments_nc
-
    !----------------------- density(kx,ky,z,tube,s,t,ri) -----------------------
    subroutine write_moments_nc(nout, density, upar, temperature, spitzer2)
       implicit none
@@ -824,6 +902,25 @@ contains
 #endif
    end subroutine write_moments_nc
 
+   !------------------------------ dens_x(kx,s,t) ------------------------------
+   subroutine write_radial_moments_nc(nout, dens_x, upar_x, temp_x)
+      implicit none
+      integer, intent(in) :: nout
+      real, dimension(:, :), intent(in) :: dens_x, upar_x, temp_x
+#ifdef NETCDF
+
+      ! Define the dimensions and starting pointer
+      character(*), dimension(*), parameter :: dims = [character(len=7)::"kx", "species", "t"]
+      integer, dimension(3) :: start
+      start = [1, 1, nout]
+
+      ! Write the radial moments for density, parallel velocity, temperature
+      call neasyf_write(ncid, "dens_x", dens_x, dim_names=dims, start=start)
+      call neasyf_write(ncid, "upar_x", upar_x, dim_names=dims, start=start)
+      call neasyf_write(ncid, "temp_x", temp_x, dim_names=dims, start=start)
+
+#endif
+   end subroutine write_radial_moments_nc
 
    !============================================================================
    !=============================== DISTRIBUTION ===============================

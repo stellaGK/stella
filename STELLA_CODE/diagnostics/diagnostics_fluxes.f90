@@ -8,6 +8,61 @@
 ! The momentum flux is denoted by vflux.
 ! The heat flux is denoted by qflux.
 ! 
+!---------------------------------- Input file ---------------------------------
+! 
+! The diagnostics are writen to text files after every <nwrite> time steps. Moreover,
+! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps.
+! 
+!&diagnostics
+!   nwrite = 50.0
+!   nc_mult = 1.0
+!   write_all = .false.
+!   write_all_time_traces = .true.
+!   write_all_spectra_kxkyz = .false.
+!   write_all_spectra_kxky = .false.
+!   write_all_fluxes = .false.
+!/
+!&diagnostics_fluxes
+!   flux_norm = .true.
+!   write_fluxes_vs_time = .true.
+!   write_radial_fluxes = radial_variation
+!   write_fluxes_kxkyz = .false.
+!   write_fluxes_kxky = .false.
+!/
+! 
+!---------------------------------- Diagnostics --------------------------------
+! 
+! If <write_fluxes_vs_time> = .true. the following time traces are calculated:
+!   - pflux(t, s)  -->  pflux_vs_s in the NetCDF file, and written to *.fluxes
+!   - qflux(t, s)  -->  qflux_vs_s in the NetCDF file, and written to *.fluxes
+!   - vflux(t, s)  -->  vflux_vs_s in the NetCDF file, and written to *.fluxes
+! 
+! If <write_fluxes_kxky> = .true. the flux spectra are calculated, note that these
+! do not represent the Fourier components of the fluxes, but rather the contribution 
+! of each (kx,ky) mode to the flux. To obtain the total flux, simply sum over all 
+! contributions, since the reality condition has already been taking into account.
+!   - pflux(t, kx, ky, s)  -->  pflux_vs_kxkys in the NetCDF file
+!   - qflux(t, kx, ky, s)  -->  qflux_vs_kxkys in the NetCDF file
+!   - vflux(t, kx, ky, s)  -->  vflux_vs_kxkys in the NetCDF file
+!   
+! If <write_fluxes_kxkyz> = .true. the following quantities are calculated:
+!   - pflux(t, kx, ky, z, s)  -->  pflux_vs_kxkyzs in the NetCDF file
+!   - qflux(t, kx, ky, z, s)  -->  qflux_vs_kxkyzs in the NetCDF file
+!   - vflux(t, kx, ky, z, s)  -->  vflux_vs_kxkyzs in the NetCDF file
+!   
+! If <write_radial_fluxes> = .true. the following quantities are calculated:
+!   - pflux(t, kx, s)  -->  pflux_x in the NetCDF file
+!   - qflux(t, kx, s)  -->  qflux_x in the NetCDF file
+!   - vflux(t, kx, s)  -->  vflux_x in the NetCDF file
+! 
+! 
+!------------------------------------ Modules ----------------------------------
+! 
+! To fluxes are calculated depending on the selected simulation domain:
+!    - diagnostics_fluxes_fluxtube.f90
+!    - diagnostics_fluxes_fullfluxsurface.f90
+!    - diagnostics_fluxes_radialvariation.f90
+
 !###############################################################################
 module diagnostics_fluxes
   
@@ -142,28 +197,28 @@ contains
       ! and they have been calculated inside write_fluxes_for_fluxtube() 
       if (write_fluxes_vs_time) then 
          if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_nc'
-         if (proc0) call write_fluxes_vs_time_nc(nout, pflux_vs_s, vflux_vs_s, qflux_vs_s)  
+         if (proc0) call write_fluxes_vs_time_nc(nout, pflux_vs_s, vflux_vs_s, qflux_vs_s)
       end if
 
       ! Write fluxes(kx,ky,s) to the netcdf file
       if (write_fluxes_kxky) then 
          if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_kxky_nc'
-         if (proc0) call write_fluxes_kxkys_nc(nout, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)  
+         if (proc0) call write_fluxes_kxkys_nc(nout, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
       end if
 
       ! Write fluxes(kx,ky,z,s) to the netcdf file
       if (write_fluxes_kxkyz) then 
          if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_kxkyzs_nc'
-         if (proc0) call write_fluxes_kxkyzs_nc(nout, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)  
+         if (proc0) call write_fluxes_kxkyzs_nc(nout, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)
       end if
 
-      ! Deallocate the temporary arrays 
+      ! Deallocate the temporary arrays
       if (allocated(pflux_vs_kxkyzts)) deallocate (pflux_vs_kxkyzts)
       if (allocated(vflux_vs_kxkyzts)) deallocate (vflux_vs_kxkyzts)
-      if (allocated(qflux_vs_kxkyzts)) deallocate (qflux_vs_kxkyzts) 
+      if (allocated(qflux_vs_kxkyzts)) deallocate (qflux_vs_kxkyzts)
       if (allocated(pflux_vs_kxkys)) deallocate (pflux_vs_kxkys)
       if (allocated(vflux_vs_kxkys)) deallocate (vflux_vs_kxkys)
-      if (allocated(qflux_vs_kxkys)) deallocate (qflux_vs_kxkys) 
+      if (allocated(qflux_vs_kxkys)) deallocate (qflux_vs_kxkys)
 
       ! End timer
       if (proc0) call time_message(.false., timer(:), 'Write fluxes')
@@ -210,7 +265,7 @@ contains
       ! <qflux> or <pflux>, but it does matter for <vflux>! Only <δf> is the correct options for <vflux> TODO is it?
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
       !> TODO-GA: use g to f routine rather than g to h -- but check first 
-     if (include_apar .or. include_bpar) then
+      if (include_apar .or. include_bpar) then
          call g_to_h(gvmu, phi, bpar, fphi)
       else if (.not. include_apar .and. .not. include_bpar) then
          call g_to_f(gvmu, phi, fphi)

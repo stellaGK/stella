@@ -1324,7 +1324,6 @@ $(OBJ_DIR)/save_stella_for_restart.o: \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/redistribute.o 
 $(OBJ_DIR)/save_stella_for_restart_parallel_netcdf.o: \
-	 $(OBJ_DIR)/file_units.o \
 	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/sfincs_interface.o: \
 	 $(OBJ_DIR)/grids_z.o \

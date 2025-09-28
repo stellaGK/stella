@@ -4,6 +4,112 @@
 ! 
 ! Routines for calculating and writing various physical diagnostics.
 ! 
+!---------------------------------- Input file ---------------------------------
+! 
+! The diagnostics are writen to text files after every <nwrite> time steps. Moreover, 
+! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps. At
+! every <nsave> time steps, the distribution function is saved to a NetCDF file, 
+! which allows the user to restart a simulation in the future, if <save_for_restart>
+! if toggled to True. The frequency and growth rates are calculated for linear 
+! simulations at every time step, and are also averaged over <navg> time steps.
+! 
+!&diagnostics
+!   nwrite = 50.0
+!   navg = 50.0
+!   nsave = -1.0
+!   nc_mult = 1.0
+!   save_for_restart = .false.
+!   write_all = .false.
+!   write_all_time_traces = .true.
+!   write_all_spectra_kxkyz = .false.
+!   write_all_spectra_kxky = .false.
+!   write_all_velocity_space = .false.
+!   write_all_potential = .false.
+!   write_all_omega = .false.
+!   write_all_distribution = .false.
+!   write_all_fluxes = .false.
+!   write_all_moments = .false.
+!/
+!&diagnostics_potential
+!   write_all_potential_time_traces = .false.
+!   write_all_potential_spectra = .false.
+!   write_phi2_vs_time = .true.
+!   write_apar2_vs_time = .true.
+!   write_bpar2_vs_time = .true.
+!   write_phi_vs_kxkyz = .false.
+!   write_apar_vs_kxkyz = .false.
+!   write_bpar_vs_kxkyz = .false.
+!   write_phi2_vs_kxky = .false.
+!   write_apar2_vs_kxky = .false.
+!   write_bpar2_vs_kxky = .false.
+!/
+!&diagnostics_omega
+!   write_omega_vs_kxky = .not. include_nonlinear
+!   write_omega_avg_vs_kxky = .not. include_nonlinear
+!/
+!&diagnostics_distribution
+!   write_g2_vs_vpamus = .false.
+!   write_g2_vs_zvpas = .false.
+!   write_g2_vs_zmus = .false.
+!   write_g2_vs_kxkyzs = .false.
+!   write_g2_vs_zvpamus = .false.
+!   write_distribution_g = .true.
+!   write_distribution_h = .false.
+!   write_distribution_f = .false.
+!/
+!&diagnostics_fluxes
+!   flux_norm = .true.
+!   write_fluxes_vs_time = .true.
+!   write_radial_fluxes = radial_variation
+!   write_fluxes_kxkyz = .false.
+!   write_fluxes_kxky = .false.
+!/
+!&diagnostics_moments
+!   write_moments = .false.
+!   write_radial_moments = .false.
+!/
+! 
+!---------------------------------- Time traces --------------------------------
+! 
+! By default, the following time traces are always calculated:
+!  - |phi|^2(t)
+!  - |apar|^2(t)
+!  - |bpar|^2(t)
+! 
+! Moreover, for linear simulations the frequency and growth rate are calculated by default:
+!  - omega(t)
+!  - gamma(t)
+! 
+!------------------------------------ Fluxes -----------------------------------
+! 
+! The following fluxes can be calculated within stella:
+!   - Particle flux (pflux)
+!   - Heat flux (qflux)
+!   - Momentum flux (vflux)
+! 
+! If <write_fluxes_vs_time> = .true. the following time traces are calculated:
+!   - pflux(t, s)  -->  pflux_vs_s in the NetCDF file, and written to *.fluxes
+!   - qflux(t, s)  -->  qflux_vs_s in the NetCDF file, and written to *.fluxes
+!   - vflux(t, s)  -->  vflux_vs_s in the NetCDF file, and written to *.fluxes
+! 
+! If <write_fluxes_kxky> = .true. the flux spectra are calculated, note that these
+! do not represent the Fourier components of the fluxes, but rather the contribution 
+! of each (kx,ky) mode to the flux. To obtain the total flux, simply sum over all 
+! contributions, since the reality condition has already been taking into account.
+!   - pflux(t, kx, ky, s)  -->  pflux_vs_kxkys in the NetCDF file
+!   - qflux(t, kx, ky, s)  -->  qflux_vs_kxkys in the NetCDF file
+!   - vflux(t, kx, ky, s)  -->  vflux_vs_kxkys in the NetCDF file
+!   
+! If <write_fluxes_kxkyz> = .true. the following quantities are calculated:
+!   - pflux(t, kx, ky, z, s)  -->  pflux_vs_kxkyzs in the NetCDF file
+!   - qflux(t, kx, ky, z, s)  -->  qflux_vs_kxkyzs in the NetCDF file
+!   - vflux(t, kx, ky, z, s)  -->  vflux_vs_kxkyzs in the NetCDF file
+!   
+! If <write_radial_fluxes> = .true. the following quantities are calculated:
+!   - pflux(t, kx, s)  -->  pflux_x in the NetCDF file
+!   - qflux(t, kx, s)  -->  qflux_x in the NetCDF file
+!   - vflux(t, kx, s)  -->  vflux_x in the NetCDF file
+! 
 !###############################################################################
 module diagnostics
 

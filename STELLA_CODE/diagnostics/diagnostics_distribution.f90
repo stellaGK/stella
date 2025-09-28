@@ -4,8 +4,89 @@
 ! 
 ! Routines for calculating and writing the distribution.
 ! 
+! The following distribution functions are evolved within stella:
+!  - The perturbed distribution function (f)
+!  - The perturbed gyroaveraged distribution function (g)
+!  - The non-adiabatic part of the perturbed distribution function (h)
+! 
+!---------------------------------- Input file ---------------------------------
+! 
+! The diagnostics are writen to text files after every <nwrite> time steps. Moreover,
+! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps. 
+! 
+! It is important to toggle which dimensions you wish to write, e.g., choose
+! <write_g2_vs_vpamus> = True, and the distribution function, <write_distribution_h> = True.
+! 
+!&diagnostics
+!   nwrite = 50.0
+!   nc_mult = 1.0
+!   navg = 50.0
+!   write_all = .false.
+!   write_all_spectra_kxkyz = .false.
+!   write_all_spectra_kxky = .false.
+!   write_all_velocity_space = .false.
+!   write_all_distribution = .false.
+!/
+!&diagnostics_distribution
+!   write_g2_vs_vpamus = .false.
+!   write_g2_vs_zvpas = .false.
+!   write_g2_vs_zmus = .false.
+!   write_g2_vs_kxkyzs = .false.
+!   write_g2_vs_zvpamus = .false.
+!   write_distribution_g = .true.
+!   write_distribution_h = .false.
+!   write_distribution_f = .false.
+!/
+! 
+! 
+!---------------------------------- Diagnostics --------------------------------
+! 
+! If <write_g2_vs_vpamus> = .true. the following quantities are calculated:
+!   - |g|^2(t, mu, vpa, s)           -->  g2_vs_vpamus in the NetCDF file
+!   - |g_nozonal|^2(t, mu, vpa, s)   -->  g2nozonal_vs_vpamus in the NetCDF file
+! 
+! If <write_g2_vs_zvpas> = .true. the following quantities are calculated:
+!   - |g|^2(t, z, vpa, s)            -->  g2_vs_zvpas in the NetCDF file
+!   - |g_nozonal|^2(t, z, vpa, s)    -->  g2nozonal_vs_zvpas in the NetCDF file
+! 
+! If <write_g2_vs_zmus> = .true. the following quantities are calculated:
+!   - |g|^2(t, z, mu, s)             -->  g2_vs_zmus in the NetCDF file
+!   - |g_nozonal|^2(t, z, mu, s)     -->  g2nozonal_vs_zmus in the NetCDF file
+! 
+! If <write_g2_vs_kxkyzs> = .true. the following quantities are calculated:
+!   - |g|^2(t, kx, ky, z, s)          -->  g2_vs_zkykxs in the NetCDF file
+!   - |g_nozonal|^2(t, kx, ky, z, s)  -->  g2nozonal_vs_zkykxs in the NetCDF file
+! 
+! If <write_g2_vs_zvpamus> = .true. the following quantities are calculated:
+!   - |g|^2(t, z, vpa, mu, s)          -->  g2_vs_zvpamus in the NetCDF file
+!   - |g_nozonal|^2(t, z, vpa, mu, s)  -->  g2nozonal_vs_zvpamus in the NetCDF file
+! 
+! If <write_distribution_h> = .true., and depending on the previous flags, we calculate:
+!   - |h|^2(t, mu, vpa, s)             -->  h2_vs_vpamus in the NetCDF file
+!   - |h|^2(t, z, vpa, s)              -->  h2_vs_zvpas in the NetCDF file
+!   - |h|^2(t, z, mu, s)               -->  h2_vs_zmus in the NetCDF file
+!   - |h|^2(t, kx, ky, z, s)           -->  h2_vs_zkykxs in the NetCDF file
+!   - |h|^2(t, z, vpa, mu, s)          -->  h2_vs_zvpamus in the NetCDF file
+!   - |h_nozonal|^2(t, mu, vpa, s)     -->  h2nozonal_vs_vpamus in the NetCDF file
+!   - |h_nozonal|^2(t, z, vpa, s)      -->  h2nozonal_vs_zvpas in the NetCDF file
+!   - |h_nozonal|^2(t, z, mu, s)       -->  h2nozonal_vs_zmus in the NetCDF file
+!   - |h_nozonal|^2(t, kx, ky, z, s)   -->  h2nozonal_vs_zkykxs in the NetCDF file
+!   - |h_nozonal|^2(t, z, vpa, mu, s)  -->  h2nozonal_vs_zvpamus in the NetCDF file
+! 
+! If <write_distribution_f> = .true., and depending on the previous flags, we calculate:
+!   - |f|^2(t, mu, vpa, s)             -->  f2_vs_vpamus in the NetCDF file
+!   - |f|^2(t, z, vpa, s)              -->  f2_vs_zvpas in the NetCDF file
+!   - |f|^2(t, z, mu, s)               -->  f2_vs_zmus in the NetCDF file
+!   - |f|^2(t, kx, ky, z, s)           -->  f2_vs_zkykxs in the NetCDF file
+!   - |f|^2(t, z, vpa, mu, s)          -->  f2_vs_zvpamus in the NetCDF file
+!   - |f_nozonal|^2(t, mu, vpa, s)     -->  f2nozonal_vs_vpamus in the NetCDF file
+!   - |f_nozonal|^2(t, z, vpa, s)      -->  f2nozonal_vs_zvpas in the NetCDF file
+!   - |f_nozonal|^2(t, z, mu, s)       -->  f2nozonal_vs_zmus in the NetCDF file
+!   - |f_nozonal|^2(t, kx, ky, z, s)   -->  f2nozonal_vs_zkykxs in the NetCDF file
+!   - |f_nozonal|^2(t, z, vpa, mu, s)  -->  f2nozonal_vs_zvpamus in the NetCDF file
+! 
 !###############################################################################
- 
+
 module diagnostics_distribution
 
    ! Load debug flags
@@ -30,14 +111,19 @@ contains
    !============================================================================
    subroutine write_distribution_to_netcdf_file(nout, timer)
 
-      ! Data
-      use arrays_distribution_function, only: gnew, gvmu
-      use arrays_fields, only: phi, bpar
-      use parameters_physics, only: fphi
-
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s]
       use redistribute, only: scatter
       use initialise_redistribute, only: kxkyz2vmu
+      use job_manage, only: time_message
+      use mp, only: proc0
+
+      ! Distribution function
+      use arrays_distribution_function, only: gnew
+      use arrays_distribution_function, only: gvmu
+      
+      ! Fields
+      use arrays_fields, only: phi, bpar
+      use parameters_physics, only: fphi
 
       ! Dimensions
       use grids_kxky, only: nakx, naky
@@ -84,12 +170,10 @@ contains
       use parameters_diagnostics, only: write_g2_vs_kxkyzs
       use parameters_diagnostics, only: write_g2_vs_zvpamus
       
-      ! Routines
+      ! Calculations
       use calculations_tofrom_ghf, only: g_to_f, g_to_h
-      use job_manage, only: time_message
-      use mp, only: proc0
 
-      implicit none 
+      implicit none
 
       ! The pointer in the netcdf file and a timer
       real, dimension(:), intent(in out) :: timer
@@ -106,28 +190,28 @@ contains
       ! Only continue if we write data 
       if ((.not. write_distribution_g) .and. (.not. write_distribution_h) .and. (.not. write_distribution_f)) return
       if ((.not. write_g2_vs_vpamus) .and. (.not. write_g2_vs_zvpas) .and. (.not. write_g2_vs_zmus) &
-            .and. (.not. write_g2_vs_kxkyzs) .and. (.not. write_g2_vs_zvpamus)) return 
+            .and. (.not. write_g2_vs_kxkyzs) .and. (.not. write_g2_vs_zvpamus)) return
 
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'Write distribution')
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_to_netcdf_file' 
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_to_netcdf_file'
 
       ! Allocate arrays
-      if (write_g2_vs_vpamus) allocate (g2_vs_vpamus(nvpa, nmu, nspec)) 
-      if (write_g2_vs_vpamus) allocate (g2nozonal_vs_vpamus(nvpa, nmu, nspec)) 
+      if (write_g2_vs_vpamus) allocate (g2_vs_vpamus(nvpa, nmu, nspec))
+      if (write_g2_vs_vpamus) allocate (g2nozonal_vs_vpamus(nvpa, nmu, nspec))
       if (write_g2_vs_zvpas) allocate (g2_vs_zvpas(ntubes, nztot, nvpa, nspec))
       if (write_g2_vs_zvpas) allocate (g2nozonal_vs_zvpas(ntubes, nztot, nvpa, nspec))
-      if (write_g2_vs_zmus) allocate (g2_vs_zmus(ntubes, nztot, nmu, nspec)) 
-      if (write_g2_vs_zmus) allocate (g2nozonal_vs_zmus(ntubes, nztot, nmu, nspec)) 
-      if (write_g2_vs_zvpamus) allocate (g2_vs_zvpamus(nztot, ntubes, nvpa, nmu, nspec)) 
-      if (write_g2_vs_zvpamus) allocate (g2nozonal_vs_zvpamus(nztot, ntubes, nvpa, nmu, nspec)) 
-      if (write_g2_vs_kxkyzs) allocate (g2_vs_zkykxs(ntubes, nztot, naky, nakx, nspec))   
+      if (write_g2_vs_zmus) allocate (g2_vs_zmus(ntubes, nztot, nmu, nspec))
+      if (write_g2_vs_zmus) allocate (g2nozonal_vs_zmus(ntubes, nztot, nmu, nspec))
+      if (write_g2_vs_zvpamus) allocate (g2_vs_zvpamus(nztot, ntubes, nvpa, nmu, nspec))
+      if (write_g2_vs_zvpamus) allocate (g2nozonal_vs_zvpamus(nztot, ntubes, nvpa, nmu, nspec))
+      if (write_g2_vs_kxkyzs) allocate (g2_vs_zkykxs(ntubes, nztot, naky, nakx, nspec))
 
       ! Redistribute the data from <gnew>(ky,kx,z,tube,i[vpa,mu,s]) to <gvmu>(vpa,mu,i[kx,ky,z,s]) for |g|^2(z,kx,ky,s)
-      if (write_g2_vs_kxkyzs) call scatter(kxkyz2vmu, gnew, gvmu) 
+      if (write_g2_vs_kxkyzs) call scatter(kxkyz2vmu, gnew, gvmu)
 
       ! Write distribution data for g
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_g' 
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_g'
       if (write_distribution_g) then
 
          ! Use gnew(ky, kx, z, tube, ivmus) to calculate |g|^2(z, vpa, s), |g|^2(z, mu, s) and |g|^2(vpa, mu, s)
@@ -135,20 +219,20 @@ contains
                   g2nozonal_vs_zmus, g2nozonal_vs_zvpas, g2nozonal_vs_vpamus, g2nozonal_vs_zvpamus)
 
          ! Write the distribution data to the netcdf file
-         if (write_g2_vs_vpamus .and. proc0) call write_g2_vs_vpamus_nc(nout, g2_vs_vpamus)  
-         if (write_g2_vs_zvpas .and. proc0) call write_g2_vs_zvpas_nc(nout, g2_vs_zvpas) 
-         if (write_g2_vs_zmus .and. proc0) call write_g2_vs_zmus_nc(nout, g2_vs_zmus)  
-         if (write_g2_vs_kxkyzs .and. proc0) call write_g2_vs_zkykxs_nc(nout, g2_vs_zkykxs)  
-         if (write_g2_vs_zvpamus .and. proc0) call write_g2_vs_zvpamus_nc(nout, g2_vs_zvpamus) 
-         if (write_g2_vs_vpamus .and. proc0) call write_g2nozonal_vs_vpamus_nc(nout, g2nozonal_vs_vpamus)  
-         if (write_g2_vs_zvpas .and. proc0) call write_g2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas) 
-         if (write_g2_vs_zmus .and. proc0) call write_g2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)   
-         if (write_g2_vs_zvpamus .and. proc0) call write_g2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)   
+         if (write_g2_vs_vpamus .and. proc0) call write_g2_vs_vpamus_nc(nout, g2_vs_vpamus)
+         if (write_g2_vs_zvpas .and. proc0) call write_g2_vs_zvpas_nc(nout, g2_vs_zvpas)
+         if (write_g2_vs_zmus .and. proc0) call write_g2_vs_zmus_nc(nout, g2_vs_zmus)
+         if (write_g2_vs_kxkyzs .and. proc0) call write_g2_vs_zkykxs_nc(nout, g2_vs_zkykxs)
+         if (write_g2_vs_zvpamus .and. proc0) call write_g2_vs_zvpamus_nc(nout, g2_vs_zvpamus)
+         if (write_g2_vs_vpamus .and. proc0) call write_g2nozonal_vs_vpamus_nc(nout, g2nozonal_vs_vpamus)
+         if (write_g2_vs_zvpas .and. proc0) call write_g2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas)
+         if (write_g2_vs_zmus .and. proc0) call write_g2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)
+         if (write_g2_vs_zvpamus .and. proc0) call write_g2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
-      end if 
+      end if
 
       ! Write distribution data for h 
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_h' 
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_h'
       if (write_distribution_h) then
 
          ! Switch to h
@@ -160,24 +244,24 @@ contains
                   g2nozonal_vs_zmus, g2nozonal_vs_zvpas, g2nozonal_vs_vpamus, g2nozonal_vs_zvpamus)
  
          ! Write the distribution data to the netcdf file
-         if (write_g2_vs_vpamus .and. proc0) call write_h2_vs_vpamus_nc(nout, g2_vs_vpamus)  
-         if (write_g2_vs_zvpas .and. proc0) call write_h2_vs_zvpas_nc(nout, g2_vs_zvpas) 
-         if (write_g2_vs_zmus .and. proc0) call write_h2_vs_zmus_nc(nout, g2_vs_zmus)  
-         if (write_g2_vs_kxkyzs .and. proc0) call write_h2_vs_zkykxs_nc(nout, g2_vs_zkykxs)  
-         if (write_g2_vs_zvpamus .and. proc0) call write_h2_vs_zvpamus_nc(nout, g2_vs_zvpamus)  
-         if (write_g2_vs_vpamus .and. proc0) call write_h2nozonal_vs_vpamus_nc(nout, g2nozonal_vs_vpamus)  
-         if (write_g2_vs_zvpas .and. proc0) call write_h2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas) 
-         if (write_g2_vs_zmus .and. proc0) call write_h2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)   
-         if (write_g2_vs_zvpamus .and. proc0) call write_h2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)   
+         if (write_g2_vs_vpamus .and. proc0) call write_h2_vs_vpamus_nc(nout, g2_vs_vpamus)
+         if (write_g2_vs_zvpas .and. proc0) call write_h2_vs_zvpas_nc(nout, g2_vs_zvpas)
+         if (write_g2_vs_zmus .and. proc0) call write_h2_vs_zmus_nc(nout, g2_vs_zmus)
+         if (write_g2_vs_kxkyzs .and. proc0) call write_h2_vs_zkykxs_nc(nout, g2_vs_zkykxs)
+         if (write_g2_vs_zvpamus .and. proc0) call write_h2_vs_zvpamus_nc(nout, g2_vs_zvpamus)
+         if (write_g2_vs_vpamus .and. proc0) call write_h2nozonal_vs_vpamus_nc(nout, g2nozonal_vs_vpamus)
+         if (write_g2_vs_zvpas .and. proc0) call write_h2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas)
+         if (write_g2_vs_zmus .and. proc0) call write_h2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)
+         if (write_g2_vs_zvpamus .and. proc0) call write_h2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
          ! Switch back to g
          if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
          call g_to_h(gnew, phi, bpar, -fphi)
 
-      end if 
+      end if
 
       ! Write distribution data for g
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_f' 
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_f'
       if (write_distribution_f) then
 
          ! Switch to f
@@ -189,15 +273,15 @@ contains
                   g2nozonal_vs_zmus, g2nozonal_vs_zvpas, g2nozonal_vs_vpamus, g2nozonal_vs_zvpamus)
 
          ! Write the distribution data to the netcdf file
-         if (write_g2_vs_vpamus .and. proc0) call write_f2_vs_vpamus_nc(nout, g2_vs_vpamus)  
-         if (write_g2_vs_zvpas .and. proc0) call write_f2_vs_zvpas_nc(nout, g2_vs_zvpas) 
-         if (write_g2_vs_zmus .and. proc0) call write_f2_vs_zmus_nc(nout, g2_vs_zmus)  
-         if (write_g2_vs_kxkyzs .and. proc0) call write_f2_vs_zkykxs_nc(nout, g2_vs_zkykxs)  
-         if (write_g2_vs_zvpamus .and. proc0) call write_f2_vs_zvpamus_nc(nout, g2_vs_zvpamus)  
-         if (write_g2_vs_vpamus .and. proc0) call write_f2nozonal_vs_vpamus_nc(nout, g2nozonal_vs_vpamus)  
-         if (write_g2_vs_zvpas .and. proc0) call write_f2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas) 
-         if (write_g2_vs_zmus .and. proc0) call write_f2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)   
-         if (write_g2_vs_zvpamus .and. proc0) call write_f2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)   
+         if (write_g2_vs_vpamus .and. proc0) call write_f2_vs_vpamus_nc(nout, g2_vs_vpamus)
+         if (write_g2_vs_zvpas .and. proc0) call write_f2_vs_zvpas_nc(nout, g2_vs_zvpas)
+         if (write_g2_vs_zmus .and. proc0) call write_f2_vs_zmus_nc(nout, g2_vs_zmus)
+         if (write_g2_vs_kxkyzs .and. proc0) call write_f2_vs_zkykxs_nc(nout, g2_vs_zkykxs)
+         if (write_g2_vs_zvpamus .and. proc0) call write_f2_vs_zvpamus_nc(nout, g2_vs_zvpamus)
+         if (write_g2_vs_vpamus .and. proc0) call write_f2nozonal_vs_vpamus_nc(nout, g2nozonal_vs_vpamus)
+         if (write_g2_vs_zvpas .and. proc0) call write_f2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas)
+         if (write_g2_vs_zmus .and. proc0) call write_f2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)
+         if (write_g2_vs_zvpamus .and. proc0) call write_f2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
          ! Switch back to g
          if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
@@ -206,14 +290,14 @@ contains
       end if
 
       ! Deallocate arrays
-      if (write_g2_vs_vpamus) deallocate (g2_vs_vpamus) 
+      if (write_g2_vs_vpamus) deallocate (g2_vs_vpamus)
       if (write_g2_vs_zvpas) deallocate (g2_vs_zvpas)
-      if (write_g2_vs_zmus) deallocate (g2_vs_zmus)  
-      if (write_g2_vs_kxkyzs) deallocate (g2_vs_zkykxs)   
-      if (write_g2_vs_zvpamus) deallocate (g2_vs_zvpamus)  
+      if (write_g2_vs_zmus) deallocate (g2_vs_zmus)
+      if (write_g2_vs_kxkyzs) deallocate (g2_vs_zkykxs)
+      if (write_g2_vs_zvpamus) deallocate (g2_vs_zvpamus)
 
       ! End timer
-      if (proc0) call time_message(.false., timer(:), 'Write distribution') 
+      if (proc0) call time_message(.false., timer(:), 'Write distribution')
 
    end subroutine write_distribution_to_netcdf_file
 
@@ -223,7 +307,7 @@ contains
    ! Calculate int dxdydmu  |g(x,y,z,mu,vpa,s)|^2 = |g(vpa,z,s)|^2
    ! We use Parsevals theorem: int dxdy |g(x,y)|^2 = sum_{kx,ky} |g(kx,ky)|^2 
    ! And the mirror condition: int dxdy |g(x,y)|^2 = sum_ky |g(ky=0,kx)|^2 + 2 * sum_{kx,ky} |g(ky>0,kx)|^2
-   !===========================================================================
+   !============================================================================
    subroutine calculate_distribution(g_vs_kykxztube, g_vs_vpamuikxkyzs, g2_vs_tzmus, &
       g2_vs_zvpas, g2_vs_vpamus, g2_vs_zkykxs, g2_vs_zvpamus, &
       g2nozonal_vs_tzmus, g2nozonal_vs_zvpas, g2nozonal_vs_vpamus, g2nozonal_vs_zvpamus)
@@ -246,18 +330,18 @@ contains
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use mp, only: nproc, sum_reduce
       
-      ! Input file 
-      use parameters_diagnostics, only: write_g2_vs_vpamus 
-      use parameters_diagnostics, only: write_g2_vs_zvpas 
+      ! Input file
+      use parameters_diagnostics, only: write_g2_vs_vpamus
+      use parameters_diagnostics, only: write_g2_vs_zvpas
       use parameters_diagnostics, only: write_g2_vs_zmus
-      use parameters_diagnostics, only: write_g2_vs_kxkyzs 
-      use parameters_diagnostics, only: write_g2_vs_zvpamus 
+      use parameters_diagnostics, only: write_g2_vs_kxkyzs
+      use parameters_diagnostics, only: write_g2_vs_zvpamus
 
       implicit none
 
       ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g_vs_kykxztube
-      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g_vs_vpamuikxkyzs 
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g_vs_vpamuikxkyzs
       real, dimension(:, :, :, :, :), intent(out) :: g2_vs_zkykxs, g2_vs_zvpamus, g2nozonal_vs_zvpamus
       real, dimension(:, :, :, :), intent(out) :: g2_vs_tzmus, g2_vs_zvpas, g2nozonal_vs_tzmus, g2nozonal_vs_zvpas
       real, dimension(:, :, :), intent(out) :: g2_vs_vpamus, g2nozonal_vs_vpamus
@@ -270,12 +354,12 @@ contains
       !---------------------------------------------------------------------- 
 
       ! Allocate local arrays
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution' 
-      if (write_g2_vs_zvpas .or. write_g2_vs_zmus) then 
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution'
+      if (write_g2_vs_zvpas .or. write_g2_vs_zmus) then
          allocate (g2_vs_ztubeivmus(-nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g2_vs_ztubeivmus = 0.
          allocate (g2nozonal_vs_ztubeivmus(-nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g2nozonal_vs_ztubeivmus = 0.
-      end if   
-      if (write_g2_vs_kxkyzs) then; allocate (g2_vs_vpamu(nvpa, nmu)); g2_vs_vpamu = 0.; end if 
+      end if
+      if (write_g2_vs_kxkyzs) then; allocate (g2_vs_vpamu(nvpa, nmu)); g2_vs_vpamu = 0.; end if
       allocate (g2_vs_ztube(-nzgrid:nzgrid, ntubes)); g2_vs_ztube = 0.
 
       ! We add contributions to <g2_vs_tzmus, g2_vs_zvpas, g2_vs_vpamus> so make sure they are zero first 
@@ -283,7 +367,7 @@ contains
       if (write_g2_vs_zmus) then; g2_vs_tzmus = 0.; g2nozonal_vs_tzmus = 0.; end if
       if (write_g2_vs_vpamus) then; g2_vs_vpamus = 0.; g2nozonal_vs_vpamus = 0.; end if
       if (write_g2_vs_zvpamus) then; g2_vs_zvpamus = 0.; g2nozonal_vs_zvpamus = 0.; end if
-      if (write_g2_vs_kxkyzs) then; g2_vs_zkykxs = 0.; end if 
+      if (write_g2_vs_kxkyzs) then; g2_vs_zkykxs = 0.; end if
 
       ! Assume we only have one flux tube (assume <radial_variation> = False)
       ia = 1
@@ -296,23 +380,23 @@ contains
          imu = imu_idx(vmu_lo, ivmus)
          is = is_idx(vmu_lo, ivmus)
          do ikx = 1, nakx
-            do iky = 1, naky 
+            do iky = 1, naky
 
                ! Calculate int dxdy |g(x,y)|^2 for each z-point
                g2_vs_ztube = real(g_vs_kykxztube(iky, ikx, :, :, ivmus) * conjg(g_vs_kykxztube(iky, ikx, :, :, ivmus))) * mode_fac(iky)
                if (write_g2_vs_zvpamus) g2_vs_zvpamus(:, :, iv, imu, is) = g2_vs_zvpamus(:, :, iv, imu, is) + g2_vs_ztube(:, :)
-               if (write_g2_vs_zvpas .or. write_g2_vs_zmus) g2_vs_ztubeivmus(:, :, ivmus) = g2_vs_ztubeivmus(:, :, ivmus) + g2_vs_ztube(:, :)  
-               if (.not. zonal_mode(iky)) then 
+               if (write_g2_vs_zvpas .or. write_g2_vs_zmus) g2_vs_ztubeivmus(:, :, ivmus) = g2_vs_ztubeivmus(:, :, ivmus) + g2_vs_ztube(:, :)
+               if (.not. zonal_mode(iky)) then
                   if (write_g2_vs_zvpamus) g2nozonal_vs_zvpamus(:, :, iv, imu, is) = g2nozonal_vs_zvpamus(:, :, iv, imu, is) + g2_vs_ztube(:, :)
-                  if (write_g2_vs_zvpas .or. write_g2_vs_zmus) g2nozonal_vs_ztubeivmus(:, :, ivmus) = g2nozonal_vs_ztubeivmus(:, :, ivmus) + g2_vs_ztube(:, :)  
+                  if (write_g2_vs_zvpas .or. write_g2_vs_zmus) g2nozonal_vs_ztubeivmus(:, :, ivmus) = g2nozonal_vs_ztubeivmus(:, :, ivmus) + g2_vs_ztube(:, :)
                end if
 
-               ! Now take the field line average 
+               ! Now take the field line average
                if (write_g2_vs_vpamus) then
                   do it = 1, ntubes
-                     g2_vs_vpamus(iv, imu, is) = g2_vs_vpamus(iv, imu, is) + sum(g2_vs_ztube(:, it) * dl_over_b(ia, :)) 
-                     if (.not. zonal_mode(iky)) then 
-                        g2nozonal_vs_vpamus(iv, imu, is) = g2nozonal_vs_vpamus(iv, imu, is) + sum(g2_vs_ztube(:, it) * dl_over_b(ia, :)) 
+                     g2_vs_vpamus(iv, imu, is) = g2_vs_vpamus(iv, imu, is) + sum(g2_vs_ztube(:, it) * dl_over_b(ia, :))
+                     if (.not. zonal_mode(iky)) then
+                        g2nozonal_vs_vpamus(iv, imu, is) = g2nozonal_vs_vpamus(iv, imu, is) + sum(g2_vs_ztube(:, it) * dl_over_b(ia, :))
                      end if
                   end do
                end if
@@ -322,7 +406,7 @@ contains
       end do
 
       ! Perform the velocity integration for each (kx,ky,z)-point
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::write_g2_vs_kxkyzs' 
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::write_g2_vs_kxkyzs'
       if (write_g2_vs_kxkyzs) then
          do ikxkyzs = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
 
@@ -332,52 +416,52 @@ contains
             iz = iz_idx(kxkyz_lo, ikxkyzs)
             it = it_idx(kxkyz_lo, ikxkyzs)
             is = is_idx(kxkyz_lo, ikxkyzs)
-            izp = iz + nzgrid + 1 
+            izp = iz + nzgrid + 1
 
-            ! Velocity integration allocate (g2_vs_zkykxs(ntubes, nztot, nakx, naky, nspec))  
+            ! Velocity integration allocate (g2_vs_zkykxs(ntubes, nztot, nakx, naky, nspec))
             g2_vs_vpamu = real(g_vs_vpamuikxkyzs(:, :, ikxkyzs) * conjg(g_vs_vpamuikxkyzs(:, :, ikxkyzs))) * mode_fac(iky)
             call integrate_vmu(g2_vs_vpamu, iz, g2_vs_zkykxs(it, izp, iky, ikx, is))
 
-         end do 
+         end do
       end if
  
       ! Next integrate over the perpendicular/parallel velocity vpa for each z-point
       ! The velocity perpendicular integration takes |g|^2(ivmus) and returns int dmu |g|^2(ivmus) = |g|^2(vpa,s)
       ! The velocity parallel integration takes |g|^2(ivmus) and returns int dvpa |g|^2(ivmus) = |g|^2(mu,s)
       ! There is a sum_reduce() inside of the velocity integration, so <g2_vs_tzmus> holds the total sum
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::write_g2_vs_zvpas .or. write_g2_vs_zmus' 
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::write_g2_vs_zvpas .or. write_g2_vs_zmus'
       if (write_g2_vs_zvpas .or. write_g2_vs_zmus) then
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
-               izp = iz + nzgrid + 1 
+               izp = iz + nzgrid + 1
                if (write_g2_vs_zvpas) call integrate_mu(iz, g2_vs_ztubeivmus(iz, it, :), g2_vs_zvpas(it, izp, :, :))
-               if (write_g2_vs_zmus) call integrate_vpa(g2_vs_ztubeivmus(iz, it, :), g2_vs_tzmus(it, izp, :, :)) 
+               if (write_g2_vs_zmus) call integrate_vpa(g2_vs_ztubeivmus(iz, it, :), g2_vs_tzmus(it, izp, :, :))
                if (write_g2_vs_zvpas) call integrate_mu(iz, g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_zvpas(it, izp, :, :))
-               if (write_g2_vs_zmus) call integrate_vpa(g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_tzmus(it, izp, :, :)) 
+               if (write_g2_vs_zmus) call integrate_vpa(g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_tzmus(it, izp, :, :))
             end do
          end do
       end if
 
-      ! For the field line average normalise to account for contributions from multiple flux tubes 
+      ! For the field line average normalise to account for contributions from multiple flux tubes
       ! in a flux tube train, and sum the values on all processors and to send them to <proc0>
-      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::sum_all_reduce' 
-      if (write_g2_vs_vpamus) then   
-         g2_vs_vpamus = g2_vs_vpamus / real(ntubes)   
-         if (nproc > 1) call sum_reduce(g2_vs_vpamus, 0)  
-         if (nproc > 1) call sum_reduce(g2nozonal_vs_vpamus, 0)   
+      if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::sum_all_reduce'
+      if (write_g2_vs_vpamus) then
+         g2_vs_vpamus = g2_vs_vpamus / real(ntubes)
+         if (nproc > 1) call sum_reduce(g2_vs_vpamus, 0)
+         if (nproc > 1) call sum_reduce(g2nozonal_vs_vpamus, 0)
       end if
-      if (write_g2_vs_zvpamus) then 
-         if (nproc > 1) call sum_reduce(g2_vs_zvpamus, 0) 
-         if (nproc > 1) call sum_reduce(g2nozonal_vs_zvpamus, 0) 
+      if (write_g2_vs_zvpamus) then
+         if (nproc > 1) call sum_reduce(g2_vs_zvpamus, 0)
+         if (nproc > 1) call sum_reduce(g2nozonal_vs_zvpamus, 0)
       end if
-      if (write_g2_vs_kxkyzs) then 
-         if (nproc > 1) call sum_reduce(g2_vs_zkykxs, 0) 
+      if (write_g2_vs_kxkyzs) then
+         if (nproc > 1) call sum_reduce(g2_vs_zkykxs, 0)
       end if
 
       ! Deallocate local arrays
-      if (write_g2_vs_zvpas) deallocate (g2nozonal_vs_ztubeivmus) 
-      if (write_g2_vs_zvpas) deallocate (g2_vs_ztubeivmus) 
-      if (write_g2_vs_kxkyzs) deallocate (g2_vs_vpamu)  
+      if (write_g2_vs_zvpas) deallocate (g2nozonal_vs_ztubeivmus)
+      if (write_g2_vs_zvpas) deallocate (g2_vs_ztubeivmus)
+      if (write_g2_vs_kxkyzs) deallocate (g2_vs_vpamu)
       deallocate (g2_vs_ztube)
 
    end subroutine calculate_distribution
@@ -388,10 +472,10 @@ contains
 
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
-   !============================================================================  
+   !============================================================================
    subroutine init_diagnostics_distribution()
 
-      implicit none 
+      implicit none
 
    end subroutine init_diagnostics_distribution
 
