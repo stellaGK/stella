@@ -90,7 +90,7 @@ def test_whether_correct_quantities_are_present_in_netcdf_file(stella_version, e
         expected_species = ['charge', 'mass', 'dens', 'temp', 'tprim', 'fprim', 'vnew', 'type_of_species']
         expected_geometry = ['bmag', 'b_dot_grad_z', 'gradpar', 'B_times_gradB_dot_grady', 'B_times_gradB_dot_gradx', \
         'B_times_kappa_dot_grady', 'B_times_kappa_dot_gradx', 'kperp2', \
-        'gds2', 'gradx_dot_grady', 'gradx_dot_gradx', 'grho', 'jacob', 'djacdrho', 'beta', 'q', 'shat', 'd2qdr2', 'drhodpsi', 'd2psidr2', 'jtwist']
+        'grady_dot_grady', 'gradx_dot_grady', 'gradx_dot_gradx', 'grho', 'jacob', 'djacdrho', 'beta', 'q', 'shat', 'd2qdr2', 'drhodpsi', 'd2psidr2', 'jtwist']
         expected_diagnostics = ['t', 'phi2', 'phi_vs_t', 'phi2_vs_kxky', 'pflx_kxky', 'vflx_kxky', 'qflx_kxky', \
             'gvmus', 'gzvs', 'density', 'upar', 'temperature', 'spitzer2', 'phase_shift_angle']
         if stella_version=='master': 

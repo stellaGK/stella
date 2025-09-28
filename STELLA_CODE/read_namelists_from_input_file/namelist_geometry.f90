@@ -47,7 +47,7 @@
 !     geometry_file = 'input.geometry'
 !     overwrite_bmag = .false.
 !     overwrite_b_dot_grad_zeta = .false.
-!     overwrite_gds2 = .false.
+!     overwrite_grady_dot_grady = .false.
 !     overwrite_gradx_dot_grady = .false.
 !     overwrite_gradx_dot_gradx = .false.
 !     overwrite_gds23 = .false.
@@ -233,7 +233,7 @@ contains
    !****************************************************************************
 
    subroutine read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, &
-      overwrite_b_dot_grad_zeta, overwrite_gds2, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, &
+      overwrite_b_dot_grad_zeta, overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, &
       overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
       overwrite_B_times_gradB_dot_gradx, set_bmag_const, overwrite_geometry)
 
@@ -244,7 +244,7 @@ contains
       ! Variables that are read from the input file
       character (100), intent (out) :: geometry_file
       logical, intent (out) :: overwrite_bmag, overwrite_b_dot_grad_zeta, &
-         overwrite_gds2, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, &
+         overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, &
          overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady, &
          overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_gradx, set_bmag_const
       logical, intent (out) :: overwrite_geometry
@@ -267,7 +267,7 @@ contains
          geometry_file = 'input.geometry'
          overwrite_bmag = .false.
          overwrite_b_dot_grad_zeta = .false.
-         overwrite_gds2 = .false.
+         overwrite_grady_dot_grady = .false.
          overwrite_gradx_dot_grady = .false.
          overwrite_gradx_dot_gradx = .false.
          overwrite_gds23 = .false.
@@ -289,7 +289,7 @@ contains
 
          ! Variables in the <geometry_from_txt> namelist
          namelist /geometry_from_txt/ geometry_file, &
-            overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_gds2, &
+            overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_grady_dot_grady, &
             overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
             overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_grady, overwrite_B_times_gradB_dot_gradx, set_bmag_const
 
@@ -308,7 +308,7 @@ contains
 
          ! If one of the geometry arrays needs to be overwritten, then <overwrite_geometry> = True
          overwrite_geometry = overwrite_bmag .or. overwrite_b_dot_grad_zeta &
-             .or. overwrite_gds2 .or. overwrite_gradx_dot_grady .or. overwrite_gradx_dot_gradx &
+             .or. overwrite_grady_dot_grady .or. overwrite_gradx_dot_grady .or. overwrite_gradx_dot_gradx &
              .or. overwrite_gds23 .or. overwrite_gds24 &
              .or. overwrite_B_times_kappa_dot_grady .or. overwrite_B_times_gradB_dot_grady .or. overwrite_B_times_gradB_dot_gradx
 
@@ -327,7 +327,7 @@ contains
          write (unit, '(A, A, A)') '  geometry_file = "', trim(geometry_file),'"'
          write (unit, '(A, L0)') '  overwrite_bmag = ', overwrite_bmag
          write (unit, '(A, L0)') '  overwrite_b_dot_grad_zeta = ', overwrite_b_dot_grad_zeta
-         write (unit, '(A, L0)') '  overwrite_gds2 = ', overwrite_gds2
+         write (unit, '(A, L0)') '  overwrite_grady_dot_grady = ', overwrite_grady_dot_grady
          write (unit, '(A, L0)') '  overwrite_gradx_dot_grady = ', overwrite_gradx_dot_grady
          write (unit, '(A, L0)') '  overwrite_gradx_dot_gradx = ', overwrite_gradx_dot_gradx
          write (unit, '(A, L0)') '  overwrite_gds23 = ', overwrite_gds23

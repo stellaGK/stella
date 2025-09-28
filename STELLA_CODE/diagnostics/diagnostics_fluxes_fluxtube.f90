@@ -108,7 +108,8 @@ contains
       use parameters_physics, only: fphi
       
       ! Geometry 
-      use geometry, only: bmag, btor, gds2, gradx_dot_grady, gradx_dot_gradx, geo_surf
+      use geometry, only: bmag, btor, geo_surf
+      use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: gradzeta_gradx_R2overB2
       use geometry, only: gradzeta_grady_R2overB2
       use geometry, only: b_dot_grad_zeta_RR 
@@ -204,7 +205,7 @@ contains
             ! For the parallel (first term) and perpendicular (second term) component of the momentum flux we have,
             ! <VELOCITY_INTEGRAND>(vpa,mu) = δf*J0*vpa*(b.∇ζ)*R^2 
             !        - i*δf*J1*ky*vperp^2*rho*(gradx_dot_grady*shat+theta0*gradx_dot_gradx*shat^2)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
-            !        + i*δf*J1*ky*vperp^2*rho*(theta0*gradx_dot_grady*shat+gds2)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
+            !        + i*δf*J1*ky*vperp^2*rho*(theta0*gradx_dot_grady*shat+grady_dot_grady)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
             
             ! First add the parallel component of the momentum flux: δf*J0*vpa*(b.∇ζ)*R^2 
             velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_grad_zeta_RR(ia, iz)
@@ -214,7 +215,7 @@ contains
             velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
                     * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) * (gradx_dot_grady(ia, iz) * geo_surf%shat &
                     + theta0(iky, ikx) * gradx_dot_gradx(ia, iz)) * geo_surf%shat &
-                    - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gradx_dot_grady(ia, iz) * geo_surf%shat + gds2(ia, iz)))
+                    - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gradx_dot_grady(ia, iz) * geo_surf%shat + grady_dot_grady(ia, iz)))
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             
             ! Sum parallel and perpendicular components together

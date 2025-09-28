@@ -451,7 +451,14 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             else: 
                 
                 # Changed definitions
-                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22", "gds21"]:
+                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22", "gds21", "gds2"]:
+                    if (key=="gds2"):
+                        gds2_old =  expected_netcdf["gds2"]
+                        gds2_new = local_netcdf["grady_dot_grady"]
+                        if not (np.allclose(gds2_old, gds2_new, equal_nan=True)):
+                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
+                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                            compare_local_array_with_expected_array(gds2_old, gds2_new)
                     if (key=="gds21"):
                         gds21_old =  expected_netcdf["gds21"]
                         gradx_dot_grady_new = local_netcdf["gradx_dot_grady"]
@@ -585,7 +592,7 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     zeta_new = data[:,2]
     bmag_new = data[:,3]
     b_dot_gradz_new = data[:,4]
-    gds2_new = data[:,5]
+    grady_dot_grady_new = data[:,5]
     gradx_dot_grady_new = data[:,6]
     gradx_dot_gradx_new = data[:,7]
     gds23_new = data[:,8]
@@ -597,6 +604,7 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     if with_btor: btor_new = data[:,14]
     
     # New definitions
+    gds2_new = grady_dot_grady_new
     gbdrift0_new = B_times_gradB_dot_gradx_new * 2 * shat_new
     gbdrift0_new = np.round(gbdrift0_new, digits)
     gbdrift0_old = np.round(gbdrift0_old, digits)
@@ -888,7 +896,7 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     dgpardr_new = data[:,46]
     gradparB_new = data[:,47]
     dgparBdr_new = data[:,48]
-    gds2_new = data[:,49]
+    grady_dot_grady_new = data[:,49]
     dgds2dr_new = data[:,50]
     gradx_dot_grady_new = data[:,51]
     dgds21dr_new = data[:,52]
@@ -905,6 +913,7 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     cvdrift_new = B_times_kappa_dot_grady_new * 2
     gds22_new = gradx_dot_gradx_new * shat * shat
     gds21_new = gradx_dot_grady_new * shat
+    gds2_new = grady_dot_grady_new
     
     # Compare variables
     if not (np.allclose(dI_dr_old, dI_dr_new, equal_nan=True)): error = process_error('dI_dr')
