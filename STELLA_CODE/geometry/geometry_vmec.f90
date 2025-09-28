@@ -9,7 +9,8 @@
 !            nzgrid, nalpha, naky, geo_surf, grho, bmag, b_dot_grad_z, &
 !            b_dot_grad_z_averaged, grad_alpha_grad_alpha, &
 !            grad_alpha_grad_psit, grad_psit_grad_psit, &
-!            gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
+!            gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
+!            gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
 !            B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, sign_torflux, &
 !            theta_vmec, dzetadz, aref, bref, alpha, zeta, &
 !            field_period_ratio, psit_displacement_fac)
@@ -102,12 +103,13 @@ contains
 
    !============================================================================
    !==================== GET THE GEOMETRY VECTORS FROM VMEC ====================
-   !============================================================================   
+   !============================================================================
    subroutine get_vmec_geometry(nzgrid, nalpha, naky, surf, grho, bmag, &
       b_dot_grad_z_averaged, b_dot_grad_z, &
       grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
       gds23_psitalpha , gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
-      gbdrift_alpha, B_times_gradB_dot_gradx_psi, B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, &
+      gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
+      B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, &
       gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
       sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
       field_period_ratio, psit_displacement_fac)
@@ -133,8 +135,8 @@ contains
       real, intent(out) :: dzetadz, L_reference, B_reference, field_period_ratio
       real, dimension(-nzgrid:), intent(out) :: b_dot_grad_z_averaged
       real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_grad_z, &
-               grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
-               gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
+               grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, &
+               gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
                B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, theta_vmec, zeta, psit_displacement_fac, &
                gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR
 
@@ -157,7 +159,8 @@ contains
       real, dimension(:, :), allocatable :: bmag_vmec, b_dot_grad_zeta_vmec
       real, dimension(:, :), allocatable :: grad_alpha_grad_alpha_vmec, grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec
       real, dimension(:, :), allocatable :: gds23_psitalpha_vmec, gds24_psitalpha_vmec, gds25_psitalpha_vmec, gds26_psitalpha_vmec
-      real, dimension(:, :), allocatable :: gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec, B_times_kappa_dot_grady_alpha_vmec, B_times_kappa_dot_gradx_psi_vmec
+      real, dimension(:, :), allocatable :: gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec
+      real, dimension(:, :), allocatable :: B_times_kappa_dot_grady_alpha_vmec, B_times_kappa_dot_gradx_psi_vmec
       real, dimension(:, :), allocatable :: psit_displacement_fac_vmec
       real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2_vmec
       real, dimension(:, :), allocatable :: gradzeta_gradalpha_R2overB2_vmec

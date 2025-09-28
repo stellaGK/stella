@@ -356,7 +356,8 @@ contains
                             dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
                             bmag_out, bmag_psi0_out, &
                             gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
-                            B_times_gradB_dot_gradx_out, B_times_gradB_dot_grady_out, B_times_kappa_dot_gradx_out, B_times_kappa_dot_grady_out, &
+                            B_times_gradB_dot_gradx_out, B_times_gradB_dot_grady_out, &
+                            B_times_kappa_dot_gradx_out, B_times_kappa_dot_grady_out, &
                             dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
                             btor_out, rmajor_out, &
                             dcvdrift0drho_out, dcvdriftdrho_out, &

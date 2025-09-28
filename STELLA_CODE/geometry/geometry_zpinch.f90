@@ -29,8 +29,8 @@ contains
    !                                      Title
    !****************************************************************************
    subroutine get_zpinch_geometry_coefficients(nzgrid, bmag, gradpar, grad_rho, surf, &
-      grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-      B_times_gradB_dot_gradx, B_times_gradB_dot_grady, B_times_kappa_dot_gradx, B_times_kappa_dot_grady, btor, rmajor)
+      grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, B_times_gradB_dot_gradx, &
+      B_times_gradB_dot_grady, B_times_kappa_dot_gradx, B_times_kappa_dot_grady, btor, rmajor)
 
       use common_types, only: flux_surface_type
       use namelist_geometry, only: read_namelist_geometry_zpinch
@@ -39,8 +39,8 @@ contains
 
       integer, intent(in) :: nzgrid
       real, dimension(-nzgrid:), intent(out) :: bmag, gradpar, grad_rho, &
-         grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-         B_times_gradB_dot_gradx, B_times_gradB_dot_grady, B_times_kappa_dot_gradx, B_times_kappa_dot_grady, btor, rmajor
+         grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, B_times_gradB_dot_gradx, &
+         B_times_gradB_dot_grady, B_times_kappa_dot_gradx, B_times_kappa_dot_grady, btor, rmajor
       type(flux_surface_type), intent(out) :: surf
 
       !-------------------------------------------------------------------------

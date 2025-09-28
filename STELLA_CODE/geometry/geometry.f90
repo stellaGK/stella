@@ -52,7 +52,8 @@ module geometry
    public :: bmag, dbdzed, btor, bmag_psi0, grho, grho_norm, grad_x
    public :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26, gradpar
-   public :: B_times_kappa_dot_grady, B_times_kappa_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
+   public :: B_times_kappa_dot_grady, B_times_kappa_dot_gradx
+   public :: B_times_gradB_dot_grady, B_times_gradB_dot_gradx
    public :: dgds2dr, dgds21dr, dgds22dr
    public :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
    public :: jacob, djacdrho, drhodpsi, drhodpsip, drhodpsip_psi0
@@ -689,13 +690,14 @@ contains
       call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
                 dpsipdrho, dpsipdrho_psi0, dIdrho, grho(1, :), bmag(1, :), bmag_psi0(1, :), &
                 gds2(1, :), gds21(1, :), gds22(1, :), gds23(1, :), gds24(1, :), b_dot_grad_z(1, :), &
-                B_times_gradB_dot_gradx(1, :), B_times_gradB_dot_grady(1, :), B_times_kappa_dot_gradx(1, :), B_times_kappa_dot_grady(1, :), &
+                B_times_gradB_dot_gradx(1, :), B_times_gradB_dot_grady(1, :), &
+                B_times_kappa_dot_gradx(1, :), B_times_kappa_dot_grady(1, :), &
                 dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                 dcvdrift0drho(1, :), dcvdriftdrho(1, :), dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                 dgds2dr(1, :), dgds21dr(1, :), dgds22dr(1, :), djacdrho(1, :))
       if (debug) write (*, *) 'geometry::Miller::get_local_geo_finished'
 
-      ! <drhodpsip> = drho/d(psip/a^2*Bref) = (a^2*Bref) * drho/dpsip = (a*Bref) * dr/dpsip   
+      ! <drhodpsip> = drho/d(psip/a^2*Bref) = (a^2*Bref) * drho/dpsip = (a*Bref) * dr/dpsip
       drhodpsip = 1./dpsipdrho 
       drhodpsip_psi0 = 1./dpsipdrho_psi0
       drhodpsi = drhodpsip
