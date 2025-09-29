@@ -1,25 +1,24 @@
 !###############################################################################
-!                                   Z-GRID MODULE                                                  
+!                                 Z-GRID MODULE                                 
 !###############################################################################
-!
+! 
 ! This module defines and manages the grid structures and related operations
 ! for the z (parallel) direction in stella.
-!
+! 
 ! Z is a field-aligned coordinate, often defined as the distance along a magnetic
-! field line, normalized to the poloidal angle. It is used in gyrokinetic simulations
-! to represent the parallel direction along the magnetic field. Common choices for
-! z include:
-!           - arc length along the field line
-!           - poloidal angle, θ
-!           - toroidal angle, ζ
-!
-! This module handles grid spacing, boundary conditions, and mapping between physical 
+! field line, normalized to the poloidal angle. It is used in gyrokinetic simulations to
+! represent the parallel direction along the magnetic field. Common choices for z include:
+!    - arc length along the field line, ℓ
+!    - poloidal angle, θ
+!    - toroidal angle, ζ
+! 
+! This module handles grid spacing, boundary conditions, and mapping between physical
 ! and the choice for the coordinates in the z-direction.
-!
-! The parallel coordinate, z, is the field-aligned coordinate, measuring the distance 
-! along the magnetic field. The parallel dynamics are treated using the real space 
+! 
+! The parallel coordinate, z, is the field-aligned coordinate, measuring the distance
+! along the magnetic field. The parallel dynamics are treated using the real space
 ! coordinate z to correctly capture the parallel boundary conditions.
-!
+! 
 !###############################################################################
 module grids_z
 
