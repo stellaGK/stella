@@ -68,8 +68,7 @@ contains
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
       use grids_kxky, only: naky, nakx, nalpha
-      use grids_kxky, only: akx, aky, theta0
-      use grids_kxky, only: zonal_mode
+      use grids_kxky, only: akx, aky
 
       implicit none
 
@@ -86,25 +85,26 @@ contains
 
       ! Calculate |k_perp|^2
       do iky = 1, naky
-      
-         ! Take care of the zonal modes, i.e., modes with ky=0
-         if (zonal_mode(iky)) then
+
+         ! Calculate |k_perp|^2 = kx² |∇x|² + 2 kx ky ∇x . ∇y + ky² |∇y|²
+         if (.not. q_as_x) then
             do ikx = 1, nakx
-               if (q_as_x) then
-                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gradx_dot_gradx * (geo_surf%shat**2)
-               else
-                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gradx_dot_gradx
-               end if
-            end do
-            
-         ! Calculate |k_perp|^2
-         else
-            do ikx = 1, nakx
-               kperp2(iky, ikx, :, :) = aky(iky) * aky(iky) &
-                   * (grady_dot_grady + 2.0 * theta0(iky, ikx) * gradx_dot_grady * (geo_surf%shat) &
-                   + theta0(iky, ikx) * theta0(iky, ikx) * gradx_dot_gradx * (geo_surf%shat**2))
+               kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gradx_dot_gradx &
+                   + 2.0 * akx(ikx) * aky(iky) * gradx_dot_grady &
+                   + aky(iky) * aky(iky) * grady_dot_grady
             end do
          end if
+         
+         ! Calculate |k_perp|^2 = q'² kr² |∇r|² + 2 q' kr kα ∇r . ∇α + kα² |∇α|²
+         ! See equation A.28 in [2022 - St-Onge - A novel approach to radially global gyrokinetic simulations]
+         if (q_as_x) then
+            do ikx = 1, nakx
+               kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gradx_dot_gradx * (geo_surf%shat**2) &
+                   + 2.0 * akx(ikx) * aky(iky) * gradx_dot_grady * (geo_surf%shat) &
+                   + aky(iky) * aky(iky) * grady_dot_grady
+            end do
+         end if
+         
       end do
 
       ! Ensure kperp2 is positive everywhere (only might go negative if using full-flux-surface due to interpolation)
@@ -132,8 +132,7 @@ contains
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
       use grids_kxky, only: naky, nakx, nalpha
-      use grids_kxky, only: akx, aky, theta0
-      use grids_kxky, only: zonal_mode
+      use grids_kxky, only: akx, aky
 
       implicit none
 
@@ -150,31 +149,31 @@ contains
       
       ! Calculate dkperp2dr
       do iky = 1, naky
-         if (zonal_mode(iky)) then
-            do ikx = 1, nakx
-               if (q_as_x) then
-                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
-                     dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / kperp2(iky, ikx, :, :)
+
+         if (q_as_x) then
+             do ikx = 1, nakx
+                where (kperp2(iky, ikx, :, :) > epsilon(0.0))
+                   dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) * dgds2dr &
+                        + 2.0 * aky(iky) * akx(ikx) * dgds21dr &
+                        + akx(ikx) * akx(ikx) * dgds22dr
+                   dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
                   elsewhere
                      dkperp2dr(iky, ikx, :, :) = 0.0
                   end where
-               else
-                  where (kperp2(iky, ikx, :, :) > epsilon(0.0))
-                     dkperp2dr(iky, ikx, :, :) = akx(ikx) * akx(ikx) * dgds22dr / (geo_surf%shat**2 * kperp2(iky, ikx, :, :))
-                  elsewhere
-                     dkperp2dr(iky, ikx, :, :) = 0.0
-                  end where
-               end if
-            end do
+             end do
          else
-            do ikx = 1, nakx
-               dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) &
-                   * (dgds2dr + 2.0 * theta0(iky, ikx) * dgds21dr &
-                      + theta0(iky, ikx) * theta0(iky, ikx) * dgds22dr)
-               dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
-               if (any(kperp2(iky, ikx, :, :) < epsilon(0.))) dkperp2dr(iky, ikx, :, :) = 0.
-            end do
+             do ikx = 1, nakx
+                where (kperp2(iky, ikx, :, :) > epsilon(0.0))
+                   dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) * dgds2dr &
+                       + 2.0 * aky(iky) * akx(ikx) * dgds21dr / geo_surf%shat &
+                       + akx(ikx) * akx(ikx) * dgds22dr / (geo_surf%shat)**2
+                   dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
+                  elsewhere
+                     dkperp2dr(iky, ikx, :, :) = 0.0
+                  end where
+             end do
          end if
+         
       end do
 
    end subroutine init_array_dkperp2dr
