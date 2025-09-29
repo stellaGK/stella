@@ -38,8 +38,6 @@
 !    - cvdrift0  -->   B_times_kappa_dot_gradx * 2. * shat
 !    - cvdrift   -->   B_times_kappa_dot_grady * 2.
 ! 
-! TODO - Get rid of theta0
-! 
 !###############################################################################
 module geometry
 
@@ -97,8 +95,15 @@ module geometry
 
    private
    
+   !----------------------------------------------------------------------------
+   
+   ! Define the geometric quantities of the chosen magnetic flux surface in <geo_surf>:
+   ! rmaj, rgeo, kappa, kapprim, tri, triprim, rhoc, dr, shift, qinp
+   ! shat, betaprim, betadbprim, d2qdr2, d2psidr2, dpsitordrho, d2psitordrho2
+   ! rhotor, drhotordrho, psitor_lcfs, zed0_fac, rhoc_psi0, qinp_psi0, shat_psi0
    type(flux_surface_type) :: geo_surf
 
+   ! Geometric quantities
    real :: grad_x_grad_y_end, clebsch_factor
    real :: aref, bref, dxdpsi, dydalpha
    real :: dqdrho, dIdrho, grho_norm
@@ -106,6 +111,8 @@ module geometry
    real :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
    real :: b_dot_grad_z_averaged_eqarc, dzetadz
    real :: twist_and_shift_geo_fac, gfac
+   integer :: sign_torflux
+   integer :: geo_option_switch
 
    ! Geometric quantities for the gyrokinetic equations
    real, dimension(:), allocatable :: zed_eqarc, alpha
@@ -129,17 +136,18 @@ module geometry
    real, dimension(:, :), allocatable :: gradzeta_grady_R2overB2
    real, dimension(:, :), allocatable :: b_dot_grad_zeta_RR
 
-   integer :: sign_torflux
-   integer :: geo_option_switch
  
+   ! The geometric quantities can be read from an old geometry file
    logical :: overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_geometry
    logical :: overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx
    logical :: overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady
    logical :: overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_gradx, q_as_x
-   
    character(100) :: geometry_file
   
+   ! Only initialise once
    logical :: initialised_geometry = .false.
+   
+   ! Debug options
    logical :: set_bmag_const
    
 
@@ -375,20 +383,21 @@ contains
    ! We need to define the normalized dx/dψ, dy/dalpha, dpsi_t/dpsi, drho/dψ...
    !     <dxdpsi> = (ρref/a)(dx̃/dψ̃) = (ρref/a)(d(x/ρref)/d(ψ/(a^2 Bref)) = a Bref (dx/dψ)     (if psi is a flux)
    !     <dxdpsi> = (ρref/a)(dx̃/dψ̃) = (ρref/a)(d(x/ρref)/d(ψ/a) = (dx/dψ)                     (if psi is a length)
-   !     <dydalpha> = (ρref/a)(dỹ/dα̃) = (ρref/a)(d(y/ρref)/dα) = (1/a) (dy/dα)  
+   !     <dydalpha> = (ρref/a)(dỹ/dα̃) = (ρref/a)(d(y/ρref)/dα) = (1/a) (dy/dα)
    ! 
    !======================================================================
-   subroutine get_geometry_arrays_from_VMEC(nalpha, naky) 
+   subroutine get_geometry_arrays_from_VMEC(nalpha, naky)
 
       use mp, only: mp_abort
-      use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
+      use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry
       use vmec_geometry, only: radial_coordinate_switch, radial_coordinate_sgnpsitpsit
-      use vmec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r 
+      use vmec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r
       use debug_flags, only: const_alpha_geo
-      use grids_z, only: nzgrid 
+      use grids_z, only: nzgrid
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: nalpha, naky
 
       ! Local geometric arrays to construct <grady_dot_grady>, <gradx_dot_grady>, <gradx_dot_gradx>, ...
@@ -402,6 +411,7 @@ contains
       real, dimension(:, :), allocatable :: grad_x_grad_x, grad_y_grad_y, grad_y_grad_x
       real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2
 
+      ! Local variables
       real :: rho, shat, iota, field_period_ratio
       real :: dpsidpsit, dpsidx, dpsitdx, dxdpsit 
 
@@ -475,8 +485,6 @@ contains
       B_times_gradB_dot_gradx = B_times_gradB_dot_gradpsit * dxdpsit
       B_times_kappa_dot_grady = B_times_kappa_dot_gradalpha * dydalpha
       B_times_kappa_dot_gradx = B_times_kappa_dot_gradpsit * dxdpsit
-      
-      ! Deallocate all <psit> arrays since we have chosen our <psi> coordinate
 
       ! <grad_x> = |∇x|
       ! <gradx_dot_grady> = ∇x . ∇y
@@ -513,7 +521,7 @@ contains
       drhodpsip_psi0 = -1000.
       bmag_psi0 = bmag 
       
-   contains 
+   contains
 
       !**********************************************************************
       !                     BOUNDARY CONDITIONS IN VMEC                     !
@@ -604,7 +612,7 @@ contains
          allocate (gds23_alphapsit(nalpha, -nzgrid:nzgrid))
          allocate (gds24_alphapsit(nalpha, -nzgrid:nzgrid))
          allocate (gds25_alphapsit(nalpha, -nzgrid:nzgrid))
-         allocate (gds26_alphapsit(nalpha, -nzgrid:nzgrid)) 
+         allocate (gds26_alphapsit(nalpha, -nzgrid:nzgrid))
          allocate (grad_x_grad_x(nalpha, -nzgrid:nzgrid))
          allocate (grad_y_grad_y(nalpha, -nzgrid:nzgrid))
          allocate (grad_y_grad_x(nalpha, -nzgrid:nzgrid))
@@ -664,7 +672,7 @@ contains
       use grids_z, only: zed, nzed, nzgrid, zed_equal_arc
       use constants, only: pi
 
-      implicit none   
+      implicit none
 
       integer, intent(in) :: nalpha 
       real :: dpsipdrho, dpsipdrho_psi0
@@ -723,7 +731,7 @@ contains
       dydalpha = dpsipdrho
 
       ! For psi = psi_p we have B = - ∇ψ x ∇α 
-      clebsch_factor = -1. 
+      clebsch_factor = -1.
 
       ! Since the profile gradients are given with respect to r we also need (dr/dx) evaluated at the field line
       ! We defined x = q0/(r0*Bref) (psip - psip0) and r^2 = 2*q0*psi_p/Bref
@@ -750,8 +758,8 @@ contains
       ! We use zed = theta, so zeta = q*theta = q*zed
       zeta(1, :) = zed * geo_surf%qinp_psi0
 
-      ! If <radial_variation> = True than <q_as_x> = True 
-      ! x = (1/Bref)(dpsip/dr) (q - q0) and psi = q  
+      ! If <radial_variation> = True than <q_as_x> = True
+      ! x = (1/Bref)(dpsip/dr) (q - q0) and psi = q
       ! hat{s} = r/q (dq/dr) = rho/q (dq/drho)
       ! B = - (dpsi_p/dq) ∇ψ x ∇α 
       ! <dqdrho> = dq/drho = hat{s} * q/rho 
@@ -821,6 +829,7 @@ contains
 
       use zpinch, only: get_zpinch_geometry_coefficients
       use grids_z, only: nzgrid
+      
       implicit none
 
       integer, intent (in) :: nalpha
@@ -828,6 +837,7 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Allocate the arrays
       call allocate_arrays(nalpha, nzgrid)
 
       ! Calculate the geometric coefficients for a z-pinch magnetic equilibrium
@@ -835,28 +845,33 @@ contains
           grady_dot_grady(1, :), gradx_dot_grady(1, :), gradx_dot_gradx(1, :), B_times_gradB_dot_gradx(1, :), &
           B_times_gradB_dot_grady(1, :), B_times_kappa_dot_gradx(1, :), B_times_kappa_dot_grady(1, :), btor, rmajor)
 
-      !> b_dot_grad_z is the alpha-dependent b . grad z,
-      !> and gradpar is the constant-in-alpha part of it.
-      !> for a z-pinch, b_dot_grad_z is independent of alpha.
+      ! Note that <b_dot_grad_z> is the alpha-dependent b . grad z, and <gradpar> 
+      ! or <b_dot_grad_z_averaged> is the constant-in-alpha part of it.
+      ! For a z-pinch, <b_dot_grad_z> is independent of alpha.
       b_dot_grad_z_averaged = gradpar
       b_dot_grad_z(1, :) = gradpar
 
-      ! effectively choose psi = x * B * a_ref = x * B * L_B
-      dpsipdrho = 1.0; dpsipdrho_psi0 = 1.0
+      ! Effectively choose psi = x * B * a_ref = x * B * L_B
+      dpsipdrho = 1.0
+      dpsipdrho_psi0 = 1.0
       bmag_psi0 = bmag
-      ! note that psi here is meaningless
+      
+      ! Note that psi here is meaningless
       drhodpsi = 1./dpsipdrho
       drhodpsip_psi0 = 1./dpsipdrho_psi0
-
-      dxdpsi = 1.0 ; dydalpha = 1.0
+      dxdpsi = 1.0
+      dydalpha = 1.0
       sign_torflux = -1
       clebsch_factor = sign_torflux
       grad_x = sqrt(gradx_dot_gradx)
-      ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
+      
+      ! There is no magnetic shear in the z-pinch and thus no need for twist-and-shift
       twist_and_shift_geo_fac = 1.0
-      ! aref and bref should not be needed, so set to 1
+      
+      ! The reference quantities aref and bref should not be needed, so set to 1
       aref = 1.0; bref = 1.0
-      ! zeta should not be needed
+      
+      ! The array zeta should not be needed
       zeta(1, :) = 0.0
      
    end subroutine get_geometry_arrays_from_zpinch
@@ -871,11 +886,13 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: nalpha
+      
+      ! Local variables
       integer :: geofile_unit
       character(100) :: dum_char
       real :: dum_real
-
       integer :: ia, iz
       real :: bmag_file, b_dot_grad_zeta_file
       real :: grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file, gds23_file, gds24_file
@@ -883,25 +900,28 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Open the geometry file
       call get_unused_unit(geofile_unit)
       open (geofile_unit, file=trim(geometry_file), status='old', action='read')
 
+      ! Deal with the first lines
       read (geofile_unit, fmt=*) dum_char
       read (geofile_unit, fmt=*) dum_char
       read (geofile_unit, fmt=*) dum_char
 
-      ! overwrite bmag, b_dot_grad_zeta, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24,
-      ! B_times_gradB_dot_grady, B_times_kappa_dot_grady, B_times_gradB_dot_gradx, and B_times_kappa_dot_gradx
-      ! with values from file
+      ! Overwrite the following geometric quantities:
+      !   - bmag, b_dot_grad_zeta, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24,
+      !   - B_times_gradB_dot_grady, B_times_kappa_dot_grady, B_times_gradB_dot_gradx, and B_times_kappa_dot_gradx
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
+         
+            ! Read the (alpha,z) point in the geometry file
             read (geofile_unit, fmt='(13e12.4)') dum_real, dum_real, dum_real, bmag_file, b_dot_grad_zeta_file, &
                grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file, gds23_file, &
                gds24_file, B_times_gradB_dot_grady_file, B_times_kappa_dot_grady_file, B_times_gradB_dot_gradx_file
+               
+            ! If an overwrite flag is turned on, overwrite the geometric quantity
             if (overwrite_bmag) bmag(ia, iz) = bmag_file
-            !if (overwrite_b_dot_grad_zeta) b_dot_grad_zeta(iz) = b_dot_grad_zeta_file
-            ! assuming we are only reading in for a single alpha. Usually, b_dot_grad_zeta is the average of all b_dot_grad_z values.
-            if (overwrite_b_dot_grad_zeta) b_dot_grad_z(1, iz) = b_dot_grad_zeta_file 
             if (overwrite_grady_dot_grady) grady_dot_grady(ia, iz) = grady_dot_grady_file
             if (overwrite_gradx_dot_grady) gradx_dot_grady(ia, iz) = gradx_dot_grady_file
             if (overwrite_gradx_dot_gradx) gradx_dot_gradx(ia, iz) = gradx_dot_gradx_file
@@ -910,10 +930,18 @@ contains
             if (overwrite_B_times_gradB_dot_grady) B_times_gradB_dot_grady(ia, iz) = B_times_gradB_dot_grady_file
             if (overwrite_B_times_kappa_dot_grady) B_times_kappa_dot_grady(ia, iz) = B_times_kappa_dot_grady_file
             if (overwrite_B_times_gradB_dot_gradx) B_times_gradB_dot_gradx(ia, iz) = B_times_gradB_dot_gradx_file
+            
+            ! Assume we are only reading in for a single alpha. 
+            ! Usually, b_dot_grad_zeta is the average of all b_dot_grad_z values.
+            if (overwrite_b_dot_grad_zeta) b_dot_grad_z(1, iz) = b_dot_grad_zeta_file
+            
          end do
       end do
+      
+      ! For any static ideal MHD equilibrium B × κ · ∇ψ = b × ∇B · ∇ψ
       B_times_kappa_dot_gradx = B_times_gradB_dot_gradx
 
+      ! Close the geometry file
       close (geofile_unit)
 
    end subroutine overwrite_selected_geometric_coefficients
@@ -978,7 +1006,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! It is possible to call <init_geometry> multiple times so we do not want to 
+      ! It is possible to call <init_geometry> multiple times so we do not want to
       ! create more copies of the geometric arrays if they already exist, hence
       ! we need to use if (.not. allocated(...)) statements
       if (.not. allocated(bmag)) allocate (bmag(nalpha, -nzgrid:nzgrid)); bmag = 0.0 
@@ -1022,7 +1050,7 @@ contains
       if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.0
       if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
       
-      ! Needed for the momentum flux diagnostic for non-axisymmetric devices  
+      ! Needed for the momentum flux diagnostic for non-axisymmetric devices
       if (.not. allocated(gradzeta_gradx_R2overB2)) allocate (gradzeta_gradx_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_gradx_R2overB2 = 0.0
       if (.not. allocated(gradzeta_grady_R2overB2)) allocate (gradzeta_grady_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_grady_R2overB2 = 0.0
       if (.not. allocated(b_dot_grad_zeta_RR)) allocate (b_dot_grad_zeta_RR(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta_RR = 0.0 
@@ -1038,7 +1066,7 @@ contains
 
       implicit none
 
-      ! Flags 
+      ! Flags
       call broadcast(q_as_x)
       call broadcast(set_bmag_const)
 
@@ -1048,16 +1076,16 @@ contains
       call broadcast(drhodpsip)
       call broadcast(drhodpsip_psi0)
       call broadcast(dxdpsi)
-      call broadcast(dydalpha) 
+      call broadcast(dydalpha)
 
-      ! Z-grid 
+      ! Z-grid
       call broadcast(zeta)
       call broadcast(alpha)
       call broadcast(dzetadz)
       call broadcast(twist_and_shift_geo_fac)
-      call broadcast(grad_x_grad_y_end) 
+      call broadcast(grad_x_grad_y_end)
 
-      ! Geometric variables 
+      ! Geometric variables
       call broadcast(rmajor)
    
       ! Factors needed in the gyrokinetic equation
@@ -1067,7 +1095,7 @@ contains
       ! Factor needed in the fluxes
       call broadcast(flux_fac)
 
-      ! Geometric arrays 
+      ! Geometric arrays
       call broadcast(dIdrho)
       call broadcast(grho)
       call broadcast(grad_x)
@@ -1107,7 +1135,7 @@ contains
    
       ! Geometric variables at the chosen radial location
       call broadcast(qinp)
-      call broadcast(shat) 
+      call broadcast(shat)
       call broadcast(geo_surf%rmaj)
       call broadcast(geo_surf%rgeo)
       call broadcast(geo_surf%kappa)
@@ -1142,8 +1170,8 @@ contains
    !============================================================================
    subroutine communicate_geo_multibox(l_edge, r_edge)
 
-      use geometry_miller, only: communicate_parameters_multibox
       use mp, only: proc0
+      use geometry_miller, only: communicate_parameters_multibox
 
       implicit none
 
@@ -1163,6 +1191,7 @@ contains
    ! given function f(z:-pi->pi), calculate z derivative
    ! second order accurate, with equal grid spacing assumed
    ! assumes periodic in z -- may need to change this in future
+   !============================================================================
    subroutine get_dzed(nz, dz, f, df)
 
       implicit none
@@ -1202,11 +1231,10 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! first get int dz b . grad z
+      ! First get int dz b . grad z
       call integrate_zed(dz, 1./gp, gp_eqarc)
       
-      ! then take (zmax-zmin)/int (dz b . gradz)
-      ! to get b . grad z'
+      ! Then take (zmax-zmin)/int (dz b . gradz) to get b . grad z'
       gp_eqarc = (z(nzgrid) - z(-nzgrid)) / gp_eqarc
 
    end subroutine get_b_dot_grad_z_averaged_eqarc
@@ -1239,7 +1267,8 @@ contains
    !============================================================================ 
    !============================== INTEGRATE ZED ===============================
    !============================================================================
-   ! trapezoidal rule to integrate in zed
+   ! Trapezoidal rule to integrate in zed.
+   !============================================================================
    subroutine integrate_zed(dz, f, intf)
 
       use grids_z, only: nzgrid
@@ -1320,19 +1349,21 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Open a *.geometry text file
       call open_output_file(geometry_unit, '.geometry')
 
-      write (geometry_unit, '(a1,11a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', 'aref', 'bref', 'dxdpsi', 'dydalpha', &
-         'exb_nonlin', 'flux_fac'
-      write (geometry_unit, '(a1,11e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, geo_surf%shat, geo_surf%rhotor, aref, bref, &
-         dxdpsi, dydalpha, exb_nonlin_fac, flux_fac
+      ! Write the most important geometric variables to a text file
+      write (geometry_unit, '(a1,11a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', &
+         'aref', 'bref', 'dxdpsi', 'dydalpha', 'exb_nonlin', 'flux_fac'
+      write (geometry_unit, '(a1,11e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, &
+         geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac
       write (geometry_unit, *)
 
+      ! Write the most important geometric arrays to a text file
       write (geometry_unit, '(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'grady_dot_grady', 'gradx_dot_grady', 'gradx_dot_gradx', &
          'gds23', 'gds24', 'B_times_gradB_dot_grady', 'B_times_kappa_dot_grady', 'B_times_gradB_dot_gradx', 'bmag_psi0', 'btor'
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
-            !          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), b_dot_grad_zeta(iz), &
             write (geometry_unit, '(15e12.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_grad_z(ia, iz), &
                grady_dot_grady(ia, iz), gradx_dot_grady(ia, iz), gradx_dot_gradx(ia, iz), gds23(ia, iz), &
                gds24(ia, iz), B_times_gradB_dot_grady(ia, iz), B_times_kappa_dot_grady(ia, iz), B_times_gradB_dot_gradx(ia, iz), &
@@ -1341,6 +1372,7 @@ contains
          write (geometry_unit, *)
       end do
 
+      ! Close the *.geometry text file
       call close_output_file(geometry_unit)
 
    end subroutine write_geometric_coefficients
@@ -1423,6 +1455,7 @@ contains
       if (allocated(gradzeta_grady_R2overB2)) deallocate (gradzeta_grady_R2overB2)
       if (allocated(b_dot_grad_zeta_RR)) deallocate (b_dot_grad_zeta_RR)
 
+      ! Only initialise once
       initialised_geometry = .false.
 
    end subroutine finish_geometry

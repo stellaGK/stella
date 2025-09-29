@@ -65,7 +65,8 @@ module common_types
       real :: drhotordrho
       real :: psitor_lcfs
       real :: zed0_fac
-
+      
+      ! The next few variables are for multibox simulations
       real :: rhoc_psi0
       real :: qinp_psi0
       real :: shat_psi0
@@ -88,7 +89,7 @@ module common_types
       real, dimension(10) :: vnew
       integer :: type
 
-      !the next few variables are for multibox simulations
+      ! The next few variables are for multibox simulations
       real :: dens_psi0, temp_psi0
       real :: stm_psi0, zstm_psi0, tz_psi0, smz_psi0, zt_psi0
    end type spec_type
