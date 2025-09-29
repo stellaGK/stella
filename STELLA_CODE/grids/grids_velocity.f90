@@ -13,7 +13,7 @@
 !       <maxwell_fac> = (n/n_psi0)*(T_psi0/T)**3/2
 !       <maxwell_vpa> = exp(-vpa**2*(T_psi0/T))
 !       <maxwell_mu> = exp(-2*mu*B*(T_psi0/T))
-!
+! 
 ! The quantity vpa is the parallel velocity at grid points and wgts_vpa are the
 ! integration weights assigned to the parallel velocity grid points.
 ! The velocity grid goes from -vpa_max to vpa_max without a point at vpa = 0.
