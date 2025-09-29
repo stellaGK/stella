@@ -198,10 +198,18 @@ contains
 
          use parameters_physics, only: radial_variation
          use file_utils, only: runtype_option_switch, runtype_multibox
-         use mp, only: job 
+         use grids_z, only: nperiod
+         use mp, only: job, mp_abort
 
          implicit none
          
+         ! Abort if nperiod > 1 for VMEC geometries
+         if (geometry_option_switch==geo_option_vmec) then
+            if (nperiod/=1) then
+               call mp_abort('If geometry_option = "VMEC" then nperiod should be set to 1. Aborting.')
+            end if
+         end if
+            
          ! Multibox run
          if (radial_variation .and. runtype_option_switch == runtype_multibox .and. job /= 1) then
              geometry_option_switch = geo_option_multibox
