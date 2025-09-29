@@ -439,8 +439,8 @@ contains
 
       ! When we plot the modes on the extended z-grid from the ballooning transformation
       ! We need to move the z-domains by a factor zed0, i.e., we plot |phi|^2 versus zed(iz) - zed0(iky, ikx)
-      ! with zed0(ky,kx) = theta0 * geo_surf%zed0_fac; theta0(ky,kx) = kx/(ky*shat) and theta = q*zeta
-      ! The (zed/theta)-value at the end of the z-domain is
+      ! with zed0(ky,kx) = theta0 * geo_surf%zed0_fac; theta0(ky,kx) = kx/(ky*shat) and q = dzeta/dtheta
+      ! The (zed/theta)-value at the end of the z-domain is,
       surf%zed0_fac = -zed(nzgrid) / zeta(1, nzgrid) * surf%qinp
 
       ! VMEC theta is the cylindrical theta-angle (not straight-field-line coordinate) scaled between [-pi:pi]
