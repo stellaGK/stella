@@ -69,15 +69,15 @@
   grid_option = 'range'
 /
 &kxky_grid_range
-  akx_max = 0.5
-  akx_min = -0.5
+  akx_max = 0.0
+  akx_min = 0.0
   aky_max = 1.5
   aky_min = 0.5
-  nakx = 3
-  naky = 3
+  nakx = 1
+  naky = 5
 /
 &z_grid
-  nzed = 24
+  nzed = 12
 /
 &z_boundary_condition
   boundary_option = 'linked'

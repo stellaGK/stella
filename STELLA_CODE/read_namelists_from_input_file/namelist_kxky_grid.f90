@@ -364,6 +364,7 @@ contains
       call read_default_kxky_grid_range
       call read_input_file_kxky_grid_range
       call calculate_kxky_grid_range_parameters
+      call check_kxky_grid_range_parameters
       call write_parameters_to_input_file
 
    contains
@@ -442,6 +443,87 @@ contains
          ikx_max = nakx
 
       end subroutine calculate_kxky_grid_range_parameters
+      
+      !---------------------------- Check parameters ---------------------------
+      ! Note that we can launch a range of ky-modes for kx = 0, where each
+      ! mode is unconnected. Or we can launch a range of kx-modes for a fixed
+      ! value of ky, where the modes will form a single eigenmode if jtwist = 1.
+      !-------------------------------------------------------------------------
+      subroutine check_kxky_grid_range_parameters
+      
+         use mp, only: mp_abort
+
+         implicit none
+         
+         ! Make nakx and naky are positive
+         if (nakx<1) call mp_abort('A range of (kx,ky) modes is selected, but nakx <= 0. Aborting')
+         if (naky<1) call mp_abort('A range of (kx,ky) modes is selected, but naky <= 0. Aborting')
+         
+         ! Make sure upper and lower limits match if we launch a single value
+         if (nakx==1) then
+            if (akx_min/=0.0 .or. akx_max/=-1.0) then
+               if (akx_min/=akx_max) then
+                  call mp_abort('A range of (kx,ky) modes has been selected with nakx=1 but akx_min!=akx_max. Aborting')
+               end if 
+            else if (theta0_min/=0.0 .or. theta0_max/=-1.0) then
+               if (theta0_min/=theta0_max) then
+                  call mp_abort('A range of (kx,ky) modes has been selected with nakx=1 but theta0_min!=theta0_max. Aborting')
+               end if
+            end if
+         end if
+         if (naky==1) then
+            if (aky_min/=0.0 .or. aky_max/=0.0) then
+               if (aky_min/=aky_max) then
+                  call mp_abort('A range of (kx,ky) modes has been selected with naky=1 but aky_min!=aky_max. Aborting')
+               end if
+             end if
+         end if
+         
+         ! Make sure upper and lower limits are different if we launch a range of modes
+         if (nakx/=1) then
+            if (akx_min==akx_max) then
+               call mp_abort('A range of kx-modes has been selected since nakx>1 but akx_min==akx_max. Aborting')
+            end if 
+            if (theta0_min==theta0_max) then
+               call mp_abort('A range of kx-modes has been selected since nakx>1 but theta0_min==theta0_max. Aborting')
+            end if
+         end if
+         if (naky/=1) then
+            if (aky_min==aky_max) then
+               call mp_abort('A range of ky-modes has been selected since naky>1 but aky_min==aky_max. Aborting')
+            end if
+         end if
+         
+         ! We can always launch a single unconnected mode
+         if ((nakx==1) .and. (naky==1)) return
+         
+         ! We can launch a range of ky modes only if kx = 0
+         ! Otherwise the theta0 grid would not be constructed correctly
+         if (nakx==1) then
+            if (akx_min/=0.0 .or. akx_max/=-1.0) then
+               if (akx_min/=0.0) then
+                  call mp_abort('A range of ky-modes has been selected but kx!=0. Aborting')
+               end if 
+            else if (theta0_min/=0.0 .or. theta0_max/=-1.0) then
+               if (theta0_min/=0.0) then
+                  call mp_abort('A range of ky-modes has been selected but theta0!=0. Aborting')
+               end if
+            end if
+         end if
+         
+         ! We can not launch a range of modes with only ky=0
+         if (naky==1) then
+            if (aky_min==0.0 .or. aky_max==0.0) then
+               call mp_abort('Can not launch only the ky=0 mode. Aborting')
+            end if
+         end if
+         
+         ! If we launch a range in kx and ky, the box mode should be used instead
+         if (nakx/=1 .and. naky/=1) then
+            call mp_abort('To launch a box of (kx,ky) modes use grid_option = "box" instead of "range".')
+         end if
+      
+      end subroutine check_kxky_grid_range_parameters
       
       !------------------------- Write input parameters ------------------------
       subroutine write_parameters_to_input_file
