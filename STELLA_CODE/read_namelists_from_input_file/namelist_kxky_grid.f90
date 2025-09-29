@@ -459,6 +459,9 @@ contains
          if (nakx<1) call mp_abort('A range of (kx,ky) modes is selected, but nakx <= 0. Aborting')
          if (naky<1) call mp_abort('A range of (kx,ky) modes is selected, but naky <= 0. Aborting')
          
+         ! The ky-modes are assumed to be positive (or zero)
+         if (aky_min<0.0 .or. aky_max<0.0) call mp_abort('In range mode the ky-modes should be positive. Aborting')
+         
          ! Make sure upper and lower limits match if we launch a single value
          if (nakx==1) then
             if (akx_min/=0.0 .or. akx_max/=-1.0) then
