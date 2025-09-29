@@ -51,7 +51,6 @@ module grids_species
    ! Allow other routines to check whether we are using multibox
    public :: species_option_switch
    
-
    private
    
    ! Flags for radial variation
