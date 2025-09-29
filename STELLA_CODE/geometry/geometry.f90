@@ -13,13 +13,23 @@
 ! 
 ! The following geometric quantities are defined in this module:
 !    <bmag> = B / B_ref
+!    <gradx_dot_gradx> = |∇x|²
+!    <grady_dot_grady> = |∇y|²
+!    <gradx_dot_grady> = ∇x . ∇y
+!    <B_times_gradB_dot_gradx> = B × ∇B · ∇x (a*B_ref/B^3)
+!    <B_times_gradB_dot_grady> = B × ∇B · ∇y (a*B_ref/B^3)
+!    <B_times_kappa_dot_gradx> = B × κ · ∇x (a*B_ref/B^2)
+!    <B_times_kappa_dot_grady> = B × κ · ∇y (a*B_ref/B^2)
 !    <gradpar> = a nabla_parallel z
-!    <gds22> = shat^2 * |nabla x|^2
+! 
+! The normalized derivatives are defined as,
+!    <dxdpsi> = (rho_r/a) (d tilde{x} / d tilde{psi})
+!    <dydalpha> = (rho_r/a) (d tilde{y} / d tilde{alpha})
 ! 
 ! 
 !--------------------------- Backwards Compatibility ---------------------------
 ! 
-! An overview of the name changes is given here,
+! An overview of the name changes implemented in September 2025 are given here,
 !    - gds22     -->   gradx_dot_gradx * shat * shat
 !    - gds2      -->   grady_dot_grady
 !    - gds21     -->   gradx_dot_grady * shat
