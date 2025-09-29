@@ -74,23 +74,23 @@ The gyrokinetic equation is evolved in time in 'gk_time_advance.f90'.
    
 ## Clebsch form
 
-! We assume the equations are derived using
-!     B = C ∇ψ x ∇α
-! 
-! If the radial coordinate is chosen to be psi = psi_t
-!     B = sign_torflux ∇ψ x ∇α 
-!     <clebsch_factor> = sign_torflux
-!     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha)
-!     <drhodpsi> = drho/dψ̃ = d(r/a)/d(psi/(a^2*Br)) = (a*Bref) * dr/dpsi
-! 
-! If the radial coordinate is chosen to be psi = psi_p
-!     B = - ∇ψ x ∇α
-!     <clebsch_factor> = -1
-!     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
-!     <drhodpsi> = drho/dψ̃ = d(r/a)/d(psi/(a^2*Br)) = (a*Bref) * dr/dpsi
-! 
-! If the radial coordinate is chosen to be psi = q 
-!     B = - (dpsi_p/dq) ∇ψ x ∇α 
-!     1/<clebsch_factor> = - dq/d(psip/(a^2*Br)) = - (a^2*Bref) (qd/dpsi_p)
-!     <drhodpsi> = drho/dq = d(r/a)/dq = (1/a) * dr/dq
-!     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
+We assume the equations are derived using
+    B = C ∇ψ x ∇α
+
+If the radial coordinate is chosen to be psi = psi_t
+    B = sign_torflux ∇ψ x ∇α 
+    <clebsch_factor> = sign_torflux
+    <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha)
+    <drhodpsi> = drho/dψ̃ = d(r/a)/d(psi/(a^2*Br)) = (a*Bref) * dr/dpsi
+
+If the radial coordinate is chosen to be psi = psi_p
+    B = - ∇ψ x ∇α
+    <clebsch_factor> = -1
+    <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
+    <drhodpsi> = drho/dψ̃ = d(r/a)/d(psi/(a^2*Br)) = (a*Bref) * dr/dpsi
+
+If the radial coordinate is chosen to be psi = q 
+    B = - (dpsi_p/dq) ∇ψ x ∇α 
+    1/<clebsch_factor> = - dq/d(psip/(a^2*Br)) = - (a^2*Bref) (qd/dpsi_p)
+    <drhodpsi> = drho/dq = d(r/a)/dq = (1/a) * dr/dq
+    <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
