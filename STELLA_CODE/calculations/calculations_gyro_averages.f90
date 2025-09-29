@@ -488,11 +488,11 @@ contains
          if (proc0) write (*, *) 'gyro_average_j1_kxkyzv_local does not support full_flux_surface'
          call mp_abort('gyro_average_j1_kxkyzv_local does not support full_flux_surface. aborting')
          return
-         !> if simulating a full flux surface, the alpha dependence present
-         !> in kperp makes gyro-averaging non-local in k-space
+         ! if simulating a full flux surface, the alpha dependence present
+         ! in kperp makes gyro-averaging non-local in k-space
          ! call gyro_average(field, gyro_field, j0_ffs)
       else
-         !> if simulating a flux tube, a gyro-average is local in k-space
+         ! if simulating a flux tube, a gyro-average is local in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average_j1(field(:, :, :, :, ivmu), ivmu, gyro_field(:, :, :, :, ivmu))
          end do
@@ -803,8 +803,8 @@ contains
    ! end subroutine test_band_lu_factorisation
 
 
-   !> inverse fourier transform coefs%fourier for several phase space points and compare with
-        !> unfiltered version in alpha-space
+   ! inverse fourier transform coefs%fourier for several phase space points and compare with
+        ! unfiltered version in alpha-space
         ! subroutine test_ffs_bessel_coefs (coefs, f_alpha, iky, ikx, iz, unit, ivmu)
 
         !     use parallelisation_layouts, only: vmu_lo, iv_idx, is_idx, imu_idx
@@ -820,10 +820,10 @@ contains
         !     integer :: iv, imu, is
 
         !     if (present(ivmu)) then
-        !     !> coefficients should all be independent of vpa, so only do comparison for one vpa point
+        !     ! coefficients should all be independent of vpa, so only do comparison for one vpa point
         !     iv = iv_idx(vmu_lo,ivmu)
         !     if (iv == 1) then
-        !         !> only sample subset of mu locations
+        !         ! only sample subset of mu locations
         !         imu = imu_idx(vmu_lo,ivmu)
         !         if (mod(imu-1,nmu/2-1)==0) then
         !             is = is_idx(vmu_lo,ivmu)
