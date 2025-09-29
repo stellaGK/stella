@@ -331,33 +331,33 @@ contains
    !     alpha = theta - iota*zeta
    !     iota = 1/q
    ! 
-   ! The original stella implementation used the following coordinates, 
+   ! The original stella implementation used the following coordinates,
    ! However, for clockwise VMECs the coordinate x would point inwards
-   !     ψ = -ψt = -psi_toroidal = - enclosed toroidal flux divided by 2pi 
+   !     ψ = -ψt = -psi_toroidal = - enclosed toroidal flux divided by 2pi
    !     x = - sgn(ψt)/(r*Bref) (ψ - ψ0)
    !     y = r (α - α0)
-   !     dx/dψ = -sgn(ψt)/(r*Bref)           (ρref/a) dx̃/dψ̃ = -sgn(ψt)/rho 
-   !     dy/dα = r                           (ρref/a) dỹ/dα̃ = r/a = rho 
+   !     dx/dψ = -sgn(ψt)/(r*Bref)           (ρref/a) dx̃/dψ̃ = -sgn(ψt)/rho
+   !     dy/dα = r                           (ρref/a) dỹ/dα̃ = r/a = rho
    !     dψ/dψt = -1                         dψ̃/dψ̃t = -1
-   !     drho/dψ = -sgn(ψt)/(a^2*Bref*rho)   drho/dψ̃ = -sgn(ψt)/rho 
-   !     B = - ∇ψ x ∇α                       B/Bref = - (a∇)ψ̃ x (a∇)α̃   
+   !     drho/dψ = -sgn(ψt)/(a^2*Bref*rho)   drho/dψ̃ = -sgn(ψt)/rho
+   !     B = - ∇ψ x ∇α                       B/Bref = - (a∇)ψ̃ x (a∇)α̃
    ! 
    ! We implemented a better option, so that the coordinate x always points radially outwards
    !     ψ = sgn(ψt) * ψt
    !     x = 1/(r*Bref) (ψ - ψ0)
    !     y = r (α - α0)
-   !     dx/dψ = 1/(r*Bref)                  (ρref/a) dx̃/dψ̃ = a/r = 1/rho                   
-   !     dy/dα = r                           (ρref/a) dỹ/dα̃ = r/a = rho 
-   !     dψ/dψt = sgn(ψt)                    dψ̃/dψ̃t = sgn(ψt)  
-   !     drho/dψ = 1/(a^2*Bref*rho)          drho/dψ̃ = 1/rho 
-   !     B = sgn(ψt) ∇ψ x ∇α                 B/Bref = sgn(ψt) (a∇)ψ̃ x (a∇)α̃    
+   !     dx/dψ = 1/(r*Bref)                  (ρref/a) dx̃/dψ̃ = a/r = 1/rho
+   !     dy/dα = r                           (ρref/a) dỹ/dα̃ = r/a = rho
+   !     dψ/dψt = sgn(ψt)                    dψ̃/dψ̃t = sgn(ψt)
+   !     drho/dψ = 1/(a^2*Bref*rho)          drho/dψ̃ = 1/rho
+   !     B = sgn(ψt) ∇ψ x ∇α                 B/Bref = sgn(ψt) (a∇)ψ̃ x (a∇)α̃
    ! 
    ! The most intuitive option is to choose psi = r
    !     ψ = r
    !     x = (ψ - ψ0)
    !     y = r (α - α0)
-   !     dx/dψ = 1                           (ρref/a) dx̃/dψ̃ = 1         
-   !     dy/dα = r                           (ρref/a) dỹ/dα̃ = r/a = rho 
+   !     dx/dψ = 1                           (ρref/a) dx̃/dψ̃ = 1
+   !     dy/dα = r                           (ρref/a) dỹ/dα̃ = r/a = rho
    !     dψ/dψt = sgn(ψt)/(a*Bref*rho)       dψ̃/dψ̃t = sgn(ψt)/rho
    !     drho/dψ = 1/a                       drho/dψ̃ = 1
    !     B = sgn(ψt)*r*Bref ∇ψ x ∇α          B/Bref = sgn(ψt)*(r/a) (a∇)(r/a) x (a∇)α̃ 

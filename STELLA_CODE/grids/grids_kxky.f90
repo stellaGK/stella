@@ -312,10 +312,9 @@ contains
                if (nakx > 1) dtheta0 = (theta0_max - theta0_min) / real(nakx - 1)
 
                do j = 1, naky
-                  theta0(j, :) &
-                        = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
+                  theta0(j, :) = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
                end do
-               akx= theta0(1, :) * tfac * aky(1)
+               akx = theta0(1, :) * tfac * aky(1)
             else if (akx_max > akx_min - zero .or. nakx == 1) then
                dkx = 0.0
                if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
