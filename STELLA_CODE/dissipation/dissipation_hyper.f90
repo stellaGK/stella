@@ -81,7 +81,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! Read hyper dissipation namelist from input file
-      call read_namelist_hyper_dissipation (D_hyper, D_zed, D_vpa, & 
+      call read_namelist_hyper_dissipation (D_hyper, D_zed, D_vpa, &
          hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard)
 
       ! Broadcast the parameters to all processors
@@ -132,8 +132,8 @@ contains
       ! Add a warning for the <scale_to_outboard> flag since it assumes alpha=0 and zeta_center=0
       if (scale_to_outboard) then
          if (geo_option_switch==geo_option_vmec) then
-            if (zeta_center/=0.0 .or. alpha0/=0.0 then
-               write (*,*) 'Warning: <scale_to_outboard> = True, but z=0 does not correspond to the outboard midplance for the chosen field line.')
+            if (zeta_center/=0.0 .or. alpha0/=0.0) then
+               write (*,*) 'Warning: <scale_to_outboard> = True, but z=0 does not correspond to the outboard midplance for the chosen field line.'
             end if
          end if
       end if
