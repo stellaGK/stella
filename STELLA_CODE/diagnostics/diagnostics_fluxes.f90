@@ -264,7 +264,7 @@ contains
       ! It's been tested numerically, and whether we give <g>, <h> or <δf> does not make a difference for 
       ! <qflux> or <pflux>, but it does matter for <vflux>! Only <δf> is the correct options for <vflux> TODO is it?
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
-      !> TODO-GA: use g to f routine rather than g to h -- but check first 
+      ! TODO-GA: use g to f routine rather than g to h -- but check first 
       if (include_apar .or. include_bpar) then
          call g_to_h(gvmu, phi, bpar, fphi)
       else if (.not. include_apar .and. .not. include_bpar) then
@@ -277,7 +277,7 @@ contains
 
       ! Convert <δf> back to <g> since it will be used by other routines 
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
-      !> TODO-GA: use g to f routine rather than g to h -- but check first 
+      ! TODO-GA: use g to f routine rather than g to h -- but check first 
       if (include_apar .or. include_bpar) then
          call g_to_h(gvmu, phi, bpar, -fphi)
       else if (.not. include_apar .and. .not. include_bpar) then
