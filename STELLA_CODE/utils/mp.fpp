@@ -532,9 +532,9 @@ contains
    end subroutine init_job_topology
 
 #ifdef ISO_C_BINDING
-!> creates a shared memory window of the specific size
-!> Returns the MPI window, as well as the pointer to the specific
-!> address in memory to be used with c_f_pointer
+! creates a shared memory window of the specific size
+! Returns the MPI window, as well as the pointer to the specific
+! address in memory to be used with c_f_pointer
    subroutine create_shared_memory_window(win_size, window, cur_pos)
 
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
@@ -580,8 +580,8 @@ contains
    end subroutine create_shared_memory_window
 #endif
 
-!> split n tasks over current communicator. Returns the low and high
-!> indices for a given processor. Assumes indices start at 1
+! split n tasks over current communicator. Returns the low and high
+! indices for a given processor. Assumes indices start at 1
    subroutine split_n_tasks(n, lo, hi)
 
       implicit none
