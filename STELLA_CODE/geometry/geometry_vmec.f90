@@ -43,14 +43,20 @@ module vmec_geometry
    public :: read_vmec_parameters
    public :: get_vmec_geometry
 
-   ! Although the parameters are available through namelist_geometry, 
+   ! Although the parameters are available through namelist_geometry,
    ! make them available through vmec_geometry as well
    public :: radial_coordinate_switch
    public :: radial_coordinate_sgnpsitpsit
    public :: radial_coordinate_minuspsit
    public :: radial_coordinate_r
-
+   
+   ! To check the field line, make alpha0 and zeta_center public
+   public :: zeta_center
+   public :: alpha0
+   
    private
+   
+   !----------------------------------------------------------------------------
    
    integer :: radial_coordinate_switch
  
@@ -128,9 +134,9 @@ contains
       
       implicit none
 
-      integer, intent(in) :: nzgrid, nalpha, naky 
+      integer, intent(in) :: nzgrid, nalpha, naky
       integer, intent(out) :: sign_torflux
-      type(flux_surface_type), intent(out) :: surf      
+      type(flux_surface_type), intent(out) :: surf
       real, dimension(:), intent(out) :: alpha
       real, intent(out) :: dzetadz, L_reference, B_reference, field_period_ratio
       real, dimension(-nzgrid:), intent(out) :: b_dot_grad_z_averaged

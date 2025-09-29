@@ -2,30 +2,65 @@
 !                               HYPER DISSIPATION                               
 !###############################################################################
 ! 
-! This module ass hyper dissipation to the gyrokinetic equation.
+! This module adds hyper dissipation to the gyrokinetic equation.
+! 
+! A small amount of hyper-viscosity is typically employed in simulations to 
+! avoid spectral pile-up. The form for hyper-viscosity is
+! 
+!   dg/dt = - <d_hyper> * k_perp**4 / k_perp_max**4 * g
+! 
+!--------------------------------- Questions -----------------------------------
+! 
+! TODO - If <use_physical_ksqr> = .false. which is used for FFS, the form
+! of kperp2 assumes a simple s-alpha model, is this correct for stellarators?
+! 
+! TODO - Write documentation for advance_hyper_vpa() and advance_hyper_zed().
+! 
+!--------------------------------- Input file ----------------------------------
+! 
+!&dissipation_and_collisions_options
+!   hyper_dissipation = .false
+!/
+!&hyper_dissipation
+!   d_hyper = 0.05
+!   d_zed = 0.05
+!   d_vpa = 0.05
+!   hyp_zed = .false.
+!   hyp_vpa = .false.
+!   use_physical_ksqr = .true.
+!   scale_to_outboard = .false.
+!/
 ! 
 !###############################################################################
 module dissipation_hyper
 
    implicit none
 
-   ! Make routines available to other modules
+   ! Initialise the hyper dissipation in dissipation_and_collisions.f90
    public :: read_parameters_hyper
    public :: init_hyper
+   
+   ! Routines for the implicit gyrokinetic equation
    public :: advance_hyper_dissipation
+   
+   ! Routines for the explicit gyrokinetic equation
    public :: advance_hyper_vpa
    public :: advance_hyper_zed
+   
+   ! Variables specified in the input file
    public :: D_hyper, D_zed, D_vpa
    public :: hyp_vpa, hyp_zed
-   public :: k2max
 
    private
 
+   ! Variables specified in the input file
    logical :: use_physical_ksqr, scale_to_outboard
    real :: D_hyper, D_zed, D_vpa
    logical :: hyp_vpa, hyp_zed
-   real :: tfac
-   real :: k2max
+   
+   ! Variables calculated at initialisation
+   real :: k2max  ! Maximum of the perpendicular wanumber squared, i.e., max(kperp**2)
+   real :: tfac   ! Factor to define the ballooning angle theta0
 
 contains
 
@@ -34,7 +69,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !            Read the hyper dissipation namelist in the input file
    !****************************************************************************
    subroutine read_parameters_hyper
 
@@ -65,15 +100,23 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !                        Initialise hyper dissipation                        
    !****************************************************************************
    subroutine init_hyper
 
+      ! Grids
       use grids_kxky, only: ikx_max, nakx, naky
       use grids_kxky, only: aky, akx, theta0
       use grids_z, only: nzgrid, zed
-      use geometry, only: geo_surf, q_as_x
+      
+      ! Geometry
+      use geometry, only: geo_surf
+      use geometry, only: q_as_x
       use arrays, only: kperp2
+      
+      ! Warning for VMEC and <scale_to_outboard> = True
+      use geometry, only: geo_option_switch, geo_option_vmec
+      use vmec_geometry, only: zeta_center, alpha0
 
       implicit none
 
@@ -83,20 +126,52 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Assume we only have a single field line
       ia = 1
+      
+      ! Add a warning for the <scale_to_outboard> flag since it assumes alpha=0 and zeta_center=0
+      if (scale_to_outboard) then
+         if (geo_option_switch==geo_option_vmec) then
+            if (zeta_center/=0.0 .or. alpha0/=0.0 then
+               write (*,*) 'Warning: <scale_to_outboard> = True, but z=0 does not correspond to the outboard midplance for the chosen field line.')
+            end if
+         end if
+      end if
 
-      ! Avoid spatially dependent kperp (through the geometric coefficients)
-      ! Still allowed to vary along zed with global magnetic shear
-      ! Useful for full_flux_surface and radial_variation runs
-      if (.not. use_physical_ksqr) then
+      ! Use kperp**2(kx,ky,alpha,z) to determine max(kperp**2)
+      if (use_physical_ksqr) then
+      
+         ! Get max(kperp**2) at z=0 which typically corresponds to the outboard midplane
+         ! However if alpha!=0  or zeta_center!=0, then z=0 does not correspond to the outboard midplane
+         if (scale_to_outboard) then
+            k2max = maxval(kperp2(:, :, ia, 0))
+            
+         ! Get max(kperp**2) along the entire field line
+         else
+            k2max = maxval(kperp2)
+         end if
+         
+      ! Avoid spatially dependent kperp (through the geometric coefficients).
+      ! Nonetheless, kperp is still allowed to vary along zed with global magnetic shear.
+      ! This is useful for full_flux_surface and radial_variation runs.
+      else
+      
+         ! Define the ballooning angle as theta0 =  kx / (ky*shat)
+         ! and we define tfac = (1 / theta0**2) * (kx**2 / ky**2) = shat**2
          tfac = geo_surf%shat**2
 
-         ! q_as_x uses a different definition of theta0
+         ! If x = q we define the ballooning angle as theta0 =  kx / ky
+         ! and we define tfac = (1 / theta0**2) * (kx**2 / ky**2) = 1
          if (q_as_x) tfac = 1.0
 
-         ! Get k2max at outboard midplane
+         ! Get max(kperp**2) at the outboard midplane
+         ! Here we basically assume that |∇x|² = |∇y|² = 1 and ∇x . ∇y = 0
          if (scale_to_outboard) then
             k2max = akx(ikx_max)**2 + aky(naky)**2
+            
+         ! Get max(kperp**2) along the field line
+         ! Here we use a simple s-alpha model which gives:
+         ! k_perp**2 = ky**2 ( 1 + hat{s}**2 (theta - theta0)**2 )
          else
             k2max = -1.0
             do iz = -nzgrid, nzgrid
@@ -108,14 +183,9 @@ contains
                end do
             end do
          end if
-      else
-         ! Get k2max at outboard midplane
-         if (scale_to_outboard) then
-            k2max = maxval(kperp2(:, :, ia, 0))
-         else
-            k2max = maxval(kperp2)
-         end if
       end if
+      
+      ! If we failed to set max(kperp**2), set it to 1.0
       if (k2max < epsilon(0.0)) k2max = 1.0
 
    end subroutine init_hyper
@@ -125,20 +195,25 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !             Add hyper dissipation to the gyrokinetic equation              
    !****************************************************************************
    subroutine advance_hyper_dissipation(g)
 
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      
+      ! Grids
+      use grids_kxky, only: aky, akx, naky
+      use grids_kxky, only: theta0, zonal_mode
       use grids_time, only: code_dt
       use grids_z, only: nzgrid, ntubes, zed
-      use parallelisation_layouts, only: vmu_lo
+      
+      ! Geometry
       use arrays, only: kperp2
-      use grids_kxky, only: naky
-      use grids_kxky, only: aky, akx, theta0, zonal_mode
 
       implicit none
 
-      ! Arguments
+      ! The distribution function g(kx,ky,z,tube,imuvpas)
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       ! Local variables
@@ -146,11 +221,20 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Assume we only have a single field line
       ia = 1
 
-      ! Avoid spatially dependent kperp
-      ! Add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
-      if (.not. use_physical_ksqr) then
+     ! Add hyper-dissipation of the form dg/dt = -D * (k/kmax)^4 * g
+     if (use_physical_ksqr) then
+     
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            g(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) / (1. + code_dt * (spread(kperp2(:, :, ia, :), 4, ntubes) / k2max)**2 * D_hyper)
+         end do
+         
+      ! Avoid spatially dependent kperp if <use_physical_ksqr> = .false.
+      ! Use a simple s-alpha model: k_perp**2 = ky**2 ( 1 + hat{s}**2 (theta - theta0)**2 )
+      ! Add in hyper-dissipation of the form dg/dt = -D * (k/kmax)^4 * g
+      else
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -158,20 +242,13 @@ contains
                      if (zonal_mode(iky)) then
                         g(iky, :, iz, it, ivmu) = g(iky, :, iz, it, ivmu) / (1.+code_dt * (akx(:)**2 / k2max)**2 * D_hyper)
                      else
-                        g(iky, :, iz, it, ivmu) = g(iky, :, iz, it, ivmu) / (1.+code_dt * (aky(iky)**2 &
-                                                                                 * (1.0 + tfac * (zed(iz) - theta0(iky, :))**2) / k2max)**2 * D_hyper)
+                        g(iky, :, iz, it, ivmu) = g(iky, :, iz, it, ivmu) / &
+                            (1. + code_dt * (aky(iky)**2 * (1.0 + tfac * (zed(iz) - theta0(iky, :))**2) / k2max)**2 * D_hyper)
                      end if
                   end do
                end do
             end do
-         end do
-      else
-      
-         ! Add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            g(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) / (1.+code_dt * (spread(kperp2(:, :, ia, :), 4, ntubes) / k2max)**2 * D_hyper)
-         end do
-         
+         end do 
       end if
 
    end subroutine advance_hyper_dissipation
