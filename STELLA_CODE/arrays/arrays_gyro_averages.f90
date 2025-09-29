@@ -73,10 +73,10 @@ contains
 !###############################################################################
 ! Store the Bessel functions J0(x) and J1(x) only for the points <ivmu> and
 ! <ikxkyz> that are located on the current processor <iproc>.
-!
+! 
 ! For the (v,mu,s)-grid we have aj0x and aj1x(iky, ikx, iz, ivmu)
 ! For the (kx,ky,z)-grod we have aj0v and aj1v(imu, ikxkyz)
-!
+! 
 ! The argument of the bessel function is a_k = k_perp*rho_s     Eq.(19)
 ! if we use v_th = sqrt(2*T/m) and w = q*B/m we find:
 !    a_k = k_perpN/rho_r*rho_s = k_perpN/(v_thr/w_r)*(v_perps/w_s)
@@ -109,7 +109,7 @@ contains
    end subroutine init_arrays_bessel_functions
    
    !****************************************************************************
-   !                  Initialise Bessel functions versus mu
+   !                    Initialise Bessel functions versus mu                   
    !****************************************************************************
    subroutine init_bessel_versus_mu_aj0v_aj1v
 
@@ -175,7 +175,7 @@ contains
    end subroutine init_bessel_versus_mu_aj0v_aj1v
 
    !****************************************************************************
-   !                  Initialise Bessel functions versus (kx,ky)
+   !                 Initialise Bessel functions versus (kx,ky)                 
    !****************************************************************************
    subroutine init_bessel_versus_kxky_aj0x_aj1x
 
@@ -255,7 +255,7 @@ contains
    end subroutine init_bessel_versus_kxky_aj0x_aj1x
    
    !****************************************************************************
-   !              Initialise Bessel function for full-flux-surface
+   !              Initialise Bessel function for full-flux-surface              
    !****************************************************************************
    subroutine init_bessel_ffs
 
@@ -313,10 +313,10 @@ contains
       wgts = spec%dens * spec%z**2 / spec%temp
 
       if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::allocate_arrays'
-      !> aj0_alpha will contain J_0 as a function of k_alpha and alpha
+      ! aj0_alpha will contain J_0 as a function of k_alpha and alpha
       allocate (aj0_alpha(nalpha))
       allocate (aj0_kalpha(naky))
-      !> j0_B will contain J_0*B*exp(-v^2) as a function of k_alpha and alpha
+      ! j0_B will contain J_0*B*exp(-v^2) as a function of k_alpha and alpha
       allocate (j0_B(nalpha))
       allocate (j0_B_kalpha(naky))
       allocate (kperp2_swap(naky_all, ikx_max, nalpha))
@@ -348,9 +348,9 @@ contains
       ia_max_j0_count = 0; ia_max_j0_B_count = 0
       do iz = -nzgrid, nzgrid
    !         if (proc0) write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
-         !> for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
-         !> and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
-         !> this makes later convolutions involving sums over all ky more straightforward
+         ! for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
+         ! and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
+         ! this makes later convolutions involving sums over all ky more straightforward
          if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::swap_kxky'
          do ia = 1, nalpha
                call swap_kxky_ordered(kperp2(:, :, ia, iz), kperp2_swap(:, :, ia))
@@ -363,20 +363,20 @@ contains
                do ikx = 1, ikx_max
                do iky = 1, naky_all
                   do ia = 1, nalpha
-                     !> calculate the argument of the Bessel function, which depends on both alpha and k_alpha
+                     ! calculate the argument of the Bessel function, which depends on both alpha and k_alpha
                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2_swap(iky, ikx, ia)) / bmag(ia, iz)
                      ! compute the value of the Bessel function J0 corresponding to argument arg
                      aj0_alpha(ia) = j0(arg)
-                     !> compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
-                     !> due to B in v-space Jacobian
+                     ! compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
+                     ! due to B in v-space Jacobian
                      j0_B(ia) = aj0_alpha(ia) * bmag(ia, iz)
                      j0max = aj0_alpha(ia) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                      aj1_alpha(ia) = j1(arg)
                   end do
 
-                  !> fourier transform aj0_alpha and j0_B.
-                  !> note that fourier coefficients aj0_kalpha and j0_B_kalpha have
-                  !> been filtered to avoid aliasing
+                  ! fourier transform aj0_alpha and j0_B.
+                  ! note that fourier coefficients aj0_kalpha and j0_B_kalpha have
+                  ! been filtered to avoid aliasing
                   call transform_alpha2kalpha(aj0_alpha, aj0_kalpha)
                   call transform_alpha2kalpha(j0_B, j0_B_kalpha)
                   call transform_alpha2kalpha(aj1_alpha, aj1_kalpha)
@@ -385,31 +385,31 @@ contains
                   j0_B_const_in_kalpha(iky, ikx) = j0_B_kalpha(1)
                   j0max_const_in_kalpha(iky, ikx) = j0max(1)
                      
-                  !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
-                  !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+                  ! given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
+                  ! called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
                   !if (debug) write (*,*) 'arrays_gyro_averages:init_bessel::full_flux_surface::find_max_required_kalpha_index'
                   !                ! TMP FOR TESTING
                   !                j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                   call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
-                  !> given the Fourier coefficients j0_B_kalpha, calculate the minimum number of coefficients needed,
-                  !> called j0_B_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+                  ! given the Fourier coefficients j0_B_kalpha, calculate the minimum number of coefficients needed,
+                  ! called j0_B_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
                   call find_max_required_kalpha_index(j0_B_kalpha, j0_B_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   call find_max_required_kalpha_index(aj1_kalpha, j1_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
-                  !> keep track of the total number of coefficients that must be retained across different phase space points
+                  ! keep track of the total number of coefficients that must be retained across different phase space points
                   ia_max_j0_count = ia_max_j0_count + j0_ffs(iky, ikx, iz, ivmu)%max_idx
-                  !> keep track of the total number of coefficients that must be retained across different phase space points
+                  ! keep track of the total number of coefficients that must be retained across different phase space points
                   ia_max_j0_B_count = ia_max_j0_B_count + j0_B_ffs(iky, ikx, iz, ivmu)%max_idx
                   ia_max_j1_count = ia_max_j1_count + j1_ffs(iky, ikx, iz, ivmu)%max_idx
 
-                  !> allocate array to hold the reduced number of Fourier coefficients
+                  ! allocate array to hold the reduced number of Fourier coefficients
                   if (.not. associated(j0_ffs(iky, ikx, iz, ivmu)%fourier)) &
                      allocate (j0_ffs(iky, ikx, iz, ivmu)%fourier(j0_ffs(iky, ikx, iz, ivmu)%max_idx))
-                  !> fill the array with the requisite coefficients
+                  ! fill the array with the requisite coefficients
                   j0_ffs(iky, ikx, iz, ivmu)%fourier = aj0_kalpha(:j0_ffs(iky, ikx, iz, ivmu)%max_idx)
                   ! if (debug_test_gyro_average) call test_ffs_bessel_coefs (j0_ffs(iky,ikx,iz,ivmu)%fourier, aj0_alpha, iky, ikx, iz, j0_ffs_unit, ivmu)
                   if (.not. associated(j0_B_ffs(iky, ikx, iz, ivmu)%fourier)) &
                      allocate (j0_B_ffs(iky, ikx, iz, ivmu)%fourier(j0_B_ffs(iky, ikx, iz, ivmu)%max_idx))
-                  !> fill the array with the requisite coefficients
+                  ! fill the array with the requisite coefficients
                   j0_B_ffs(iky, ikx, iz, ivmu)%fourier = j0_B_kalpha(:j0_B_ffs(iky, ikx, iz, ivmu)%max_idx)
                   ! if (debug_test_gyro_average) call test_ffs_bessel_coefs (j0_B_ffs(iky,ikx,iz,ivmu)%fourier, j0_B, iky, ikx, iz, j0_B_ffs_unit, ivmu)
                   if (.not. associated(j1_ffs(iky, ikx, iz, ivmu)%fourier)) &
@@ -428,15 +428,13 @@ contains
 
       deallocate (j0_B, j0_B_kalpha)
       deallocate (aj0_alpha)
-
       deallocate (j0_const_in_kalpha, j0_const_c)
       deallocate (j0_B_const_in_kalpha, j0_B_const_c)
-
       deallocate (j0max_const_in_kalpha, j0max_const_c, j0max)
 
-      !> calculate the reduction factor of Fourier modes
-      !> used to represent J0
-      !> avoid overflow by converting integers to reals before multiplying
+      ! calculate the reduction factor of Fourier modes
+      ! used to represent J0
+      ! avoid overflow by converting integers to reals before multiplying
       rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot) * real(nmu) * real(nvpa) * real(nspec)
       call sum_allreduce(ia_max_j0_count)
       ia_max_j0_reduction_factor = real(ia_max_j0_count) / rtmp
