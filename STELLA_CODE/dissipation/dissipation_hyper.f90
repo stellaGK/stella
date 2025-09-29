@@ -156,11 +156,11 @@ contains
       ! This is useful for full_flux_surface and radial_variation runs.
       else
       
-         ! Define the ballooning angle as theta0 =  kx / (ky*shat)
+         ! Define the ballooning angle as theta0 = kx / (ky*shat)
          ! and we define tfac = (1 / theta0**2) * (kx**2 / ky**2) = shat**2
          tfac = geo_surf%shat**2
 
-         ! If x = q we define the ballooning angle as theta0 =  kx / ky
+         ! If x = q we define the ballooning angle as theta0 = kx / ky
          ! and we define tfac = (1 / theta0**2) * (kx**2 / ky**2) = 1
          if (q_as_x) tfac = 1.0
 
