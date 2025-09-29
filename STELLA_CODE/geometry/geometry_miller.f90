@@ -1,10 +1,15 @@
 !###############################################################################
-!                                                                               
+!      Construct a magnetic equilibrium based on a set of Miller parameters     
 !###############################################################################
-! This module ...
+! 
+! This module constructs a magnetic equilibrium based on a set of Miller parameters.
+! 
+! TODO - write documentation on Miller equilibria.
+! 
 !###############################################################################
 module geometry_miller
 
+   ! Load debug flags
    use debug_flags, only: debug => geometry_debug
    use common_types, only: flux_surface_type
 
@@ -63,6 +68,7 @@ module geometry_miller
 
    type(flux_surface_type) :: local
 
+   ! Only initialise once
    logical :: initialised_miller = .false.
 
 contains

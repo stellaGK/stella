@@ -27,13 +27,17 @@
 !###############################################################################
 module geometry_vmec_read_netCDF_file
 
+   ! Load debug flags
+   use debug_flags, only: debug => geometry_debug
+
    implicit none
 
+   ! Make routines available to other modules
    public :: calculate_vmec_geometry
 
-   private
-
-   logical, parameter :: debug = .false.
+   private 
+   
+   !----------------------------------------------------------------------------
 
    logical :: lasym
    integer :: nfp, isigng
@@ -108,18 +112,17 @@ contains
       use read_wout_mod, only: iotas_vmec => iotas
       use read_wout_mod, only: iotaf_vmec => iotaf
       use read_wout_mod, only: presf_vmec => presf
+      use debug_flags, only: print_extra_info_to_terminal
       use mp, only: mp_abort
 
       implicit none
       
-      ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
-      logical :: print_extra_info_to_terminal = .false.
-
-      ! vmec_filename is the vmec wout_* file that will be read.
+      ! Arguments
       logical, intent(in) :: verbose
       character(*), intent(in) :: vmec_filename
-
       integer, intent(out) :: ierr
+      
+      ! Local variables
       integer :: iopen
 
       !---------------------------------------------------------------------- 
@@ -225,18 +228,18 @@ contains
    !=============== CALCULATE GEOMETRIC ARRAYS NEEDED FOR STELLA ===============
    !============================================================================ 
    subroutine calculate_vmec_geometry(&
-                  ! Input parameters
-                  vmec_filename, nalpha, alpha0, nzgrid, zeta_center, rectangular_cross_section, & 
-                  number_of_field_periods_inputfile, s_inputfile, vmec_surface_option, verbose, & 
-                  ! Output parameters
-                  s, safety_factor_q, shat, L_reference, B_reference, nfp_out, & 
-                  sign_toroidal_flux, alpha, zeta, bmag, b_dot_grad_zeta, grad_alpha_grad_alpha, &
-                  grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, & 
-                  gds25_psitalpha, gds26_psitalpha, B_times_gradB_dot_gradalpha, & 
-                  B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradalpha, & 
-                  B_times_kappa_dot_gradpsit,theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, &
-                  gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, &
-                  b_dot_grad_zeta_RR, ierr)
+      ! Input parameters
+      vmec_filename, nalpha, alpha0, nzgrid, zeta_center, rectangular_cross_section, & 
+      number_of_field_periods_inputfile, s_inputfile, vmec_surface_option, verbose, & 
+      ! Output parameters
+      s, safety_factor_q, shat, L_reference, B_reference, nfp_out, & 
+      sign_toroidal_flux, alpha, zeta, bmag, b_dot_grad_zeta, grad_alpha_grad_alpha, &
+      grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, & 
+      gds25_psitalpha, gds26_psitalpha, B_times_gradB_dot_gradalpha, & 
+      B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradalpha, & 
+      B_times_kappa_dot_gradpsit,theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, &
+      gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, &
+      b_dot_grad_zeta_RR, ierr)
 
       use mp, only: mp_abort
 
@@ -263,6 +266,7 @@ contains
       ! If <vmec_surface_option> = 1, the magnetic surface on vmec's HALF radial mesh will be used that is closest to <s_inputfile>.
       ! If <vmec_surface_option> = 2, the magnetic surface on vmec's FULL radial mesh will be used that is closest to <s_inputfile>.
       ! Other values of <vmec_surface_option> will cause the program to abort with an error.
+      !*************************************************************************
 
       logical, intent(in) :: rectangular_cross_section, verbose 
       integer, intent(in) :: nalpha, nzgrid, vmec_surface_option
@@ -304,8 +308,9 @@ contains
       !     <B_times_gradB_dot_gradalpha> = a^2*Bref/B^3 * B x ∇B . ∇α 
       !     <B_times_kappa_dot_gradalpha> = a*Bref/B^2 * B x kappa . ∇α 
       !     <kappa> = (bhat . ∇bhat) 
+      !*************************************************************************
 
-      integer, intent(out) :: sign_toroidal_flux, ierr  
+      integer, intent(out) :: sign_toroidal_flux, ierr
       real, intent(out) :: L_reference, B_reference, nfp_out
       real, intent(out) :: s, safety_factor_q, shat
       real, dimension(:, -nzgrid:), intent(out) :: theta, bmag, b_dot_grad_zeta, psit_displacement_fac
@@ -324,8 +329,6 @@ contains
       !*************************************************************************
       !                           Internal variables                           !
       !*************************************************************************
-      !-------------------------------------------------------------------------
-      !*********************************************************************
       ! VMEC variables of interest:
       ! ns = number of flux surfaces used by VMEC
       ! nfp = number of field periods, e.g. 5 for W7-X, 4 for HSX
@@ -517,7 +520,7 @@ contains
 !############################################################################### 
 
       !*************************************************************************
-      !                 CALCULATE TRIPLE PRODUCTS OF B, ∇s, ∇α                !
+      !                 CALCULATE TRIPLE PRODUCTS OF B, ∇s, ∇α                 !
       !*************************************************************************
       subroutine calculate_triple_products()
   
@@ -651,18 +654,17 @@ contains
       !     ∇s . e_Y = 1/sqrt(g) ( dZ/dθ * dX/dζ - dX/dθ * dZ/dζ )
       !     ∇s . e_Z = 1/sqrt(g) ( dX/dθ * dY/dζ - dY/dθ * dX/dζ ) 
       !*************************************************************************
-
       subroutine calculate_cartesian_gradient_vectors()
   
-         implicit none 
+         implicit none
 
          integer :: izeta
          real :: cos_angle, sin_angle
 
          !---------------------------------------------------------------------- 
 
-         ! Track the code  
-         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_cartesian_gradient_vectors' 
+         ! Track the code
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_cartesian_gradient_vectors'
    
          ! Iterate over the <zeta> grid
          do izeta = -nzgrid, nzgrid
@@ -784,7 +786,7 @@ contains
       !     R = sum_{imn} R_{imn}*cos(angle)
       !     dR/dtheta = sum_{imn} d(R_{imn}*cos(angle))/dtheta = - m * sum_{imn} R_{imn}*sin(angle)
       !     dR/dzeta = sum_{imn} d(R_{imn}*cos(angle))/dzeta = n * sum_{imn} R_{imn}*sin(angle)
-      !************************************************************************* 
+      !*************************************************************************
 
       subroutine perform_sinecosine_fouriertransforms()
   
@@ -1082,26 +1084,29 @@ contains
       !*************************************************************************
       !                     QUANTITIES ON THE FLUX SURFACE                     !
       !*************************************************************************
-      ! Evaluate several radial-profile functions at the flux surface we ended up choosing
-      ! in the <get_chosen_flux_surface> routine. Here <ns>, <iotas>, <iotaf> and 
-      ! <presf> and is a module variables
+      ! Evaluate several radial-profile functions at the flux surface we ended 
+      ! up choosing in the <get_chosen_flux_surface> routine. Here <ns>, <iotas>, 
+      ! <iotaf> and <presf> are module variables.
       !*************************************************************************
 
       subroutine calculate_quantities_on_fluxsurface(s, iota, safety_factor_q, shat)
 
          use debug_flags, only: print_extra_info_to_terminal
 
-         implicit none 
+         implicit none
   
+         ! Arguments
          real, intent(in) :: s
          real, intent(out) :: iota, safety_factor_q, shat
  
-         real, dimension(:), allocatable :: d_pressure_d_s_on_half_grid, d_iota_d_s_on_half_grid
+         ! Local variables
+         real, dimension(:), allocatable :: d_pressure_d_s_on_half_grid
+         real, dimension(:), allocatable :: d_iota_d_s_on_half_grid
 
          !---------------------------------------------------------------------- 
 
-         ! Track the code  
-         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_quantities_on_fluxsurface' 
+         ! Track the code
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_quantities_on_fluxsurface'
 
          ! Allocate the local arrays
          allocate (d_iota_d_s_on_half_grid(ns)); d_iota_d_s_on_half_grid = 0
@@ -1155,28 +1160,30 @@ contains
 
          use mp, only: mp_abort
 
-         implicit none 
+         implicit none
  
+         ! Arguments
          integer, intent(in) :: vmec_surface_option
          real, intent(in) :: s_inputfile 
          real, intent(out) :: s, sqrt_s 
          integer, intent(inout) :: ierr
 
+         ! Local variables
          real, dimension(:), allocatable :: dr2, s_full_grid, s_half_grid 
          integer :: j, index_of_minimum_error
          real :: min_dr2
 
-         !---------------------------------------------------------------------- 
+         !----------------------------------------------------------------------
 
-         ! Track the code  
-         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::get_chosen_flux_surface' 
+         ! Track the code
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::get_chosen_flux_surface'
 
-         ! Select the flux surface                    
+         ! Select the flux surface
          ! The radial coordinate used in VMEC is the normalized toroidal flux
-         !     <s> = psi_toroidal / psi_{toroidal,edge} 
+         !     <s> = psi_toroidal / psi_{toroidal,edge}
          ! There are <ns> flux surfaces, <s> ranges from 0 to 1, and <ds> is the step size
          allocate (s_full_grid(ns))
-         s_full_grid = [(real(j - 1) / (ns - 1), j=1, ns)] 
+         s_full_grid = [(real(j - 1) / (ns - 1), j=1, ns)]
          ds = s_full_grid(2) - s_full_grid(1)
 
          ! Build an array of the half grid points
@@ -1262,7 +1269,7 @@ contains
             weight_full(1) = index_full(1) - s * (ns - one)
          end if
 
-         ! Get radial integration weights on the half grid         
+         ! Get radial integration weights on the half grid
          ! Special case if <s> is smaller than our first half grid point
          ! We start at element 2 since element 1 is always 0 for quantities on the half grid.
          if (s < s_half_grid(1)) then
@@ -1308,7 +1315,6 @@ contains
       !*************************************************************************
       !                  Print information of the output file                  !
       !*************************************************************************
-
       subroutine print_variables_to_outputfile()
 
          use debug_flags, only: print_extra_info_to_terminal
@@ -1339,7 +1345,6 @@ contains
          write (*, *) "  "
 
       end subroutine print_variables_to_outputfile
-
 
       !*************************************************************************
       !                        Test the input variables                        !
@@ -1386,6 +1391,7 @@ contains
       !*************************************************************************
       ! Do some sanity checking to ensure the VMEC arrays have some expected properties.
       ! Here <xm>, <xn>, <xm_nyq>, <xn_nyq>, <phi>, <ns> are module variables
+      !*************************************************************************
       subroutine sanity_checks_vmec()
 
          use mp, only: mp_abort
@@ -1472,13 +1478,12 @@ contains
 
       end subroutine sanity_checks_vmec
 
-      !**********************************************************************
-      !                              Test iota                              !
-      !**********************************************************************
+      !*************************************************************************
+      !                               Test iota                                !
+      !*************************************************************************
       ! If the conversion to <theta_pest> has been done correctly, we should find that
       !     iota = (B dot grad theta_pest) / (B dot grad zeta)    
-      !**********************************************************************
-
+      !*************************************************************************
       subroutine sanity_check_iota()
 
          implicit none
@@ -1491,16 +1496,16 @@ contains
          if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_check_iota'
          
          ! Allocate temporary arrays
-         allocate (temp1_vs_alphazeta(nalpha, -nzgrid:nzgrid)) 
-         allocate (temp2_vs_alphazeta(nalpha, -nzgrid:nzgrid)) 
+         allocate (temp1_vs_alphazeta(nalpha, -nzgrid:nzgrid))
+         allocate (temp2_vs_alphazeta(nalpha, -nzgrid:nzgrid))
    
-         ! Calculate (B dot grad theta_pest) / (B dot grad zeta)  
+         ! Calculate (B dot grad theta_pest) / (B dot grad zeta)
          temp1_vs_alphazeta = (B_sup_theta * (1 + d_Lambda_d_theta) + B_sup_zeta * d_Lambda_d_zeta) / B_sup_zeta
 
          ! Turn iota into an array vs (alpha, zeta) 
          temp2_vs_alphazeta = iota
    
-         ! Compare iota with (B dot grad theta_pest) / (B dot grad zeta)    
+         ! Compare iota with (B dot grad theta_pest) / (B dot grad zeta)
          call check_that_arrays_match(temp1_vs_alphazeta, temp2_vs_alphazeta, 0.01, 'iota')
 
          ! Deallocate temporary arrays
@@ -1509,24 +1514,24 @@ contains
 
       end subroutine sanity_check_iota
 
-      !**********************************************************************
-      !                               Test ∇ζ                               !
-      !**********************************************************************
+      !*************************************************************************
+      !                                 Test ∇ζ                                !
+      !*************************************************************************
       ! We have the following relations
       !     X = R*cos(ζ)      ζ = arccos(X/R)
       !     Y = R*sin(ζ)      ζ = arcsin(Y/R)
       !     R^2 = X^2 + Y^2
       ! Therefore, we should have
-      !     dζ/dX = d(arccos(X/R))/dX = -Y/R^2 = -sin(ζ)/R  
-      !     dζ/dY = d(arcsin(Y/R))/dX = X/R^2 = cos(ζ)/R  
+      !     dζ/dX = d(arccos(X/R))/dX = -Y/R^2 = -sin(ζ)/R
+      !     dζ/dY = d(arcsin(Y/R))/dX = X/R^2 = cos(ζ)/R
       !     dζ/dZ = 0
-      !**********************************************************************
-
+      !*************************************************************************
       subroutine sanity_check_grad_zeta()
 
          implicit none
 
-         real, dimension(:, :), allocatable :: minus_sinzeta_over_R, plus_coszeta_over_R
+         real, dimension(:, :), allocatable :: minus_sinzeta_over_R
+         real, dimension(:, :), allocatable :: plus_coszeta_over_R
          integer :: izeta
 
          !---------------------------------------------------------------------- 
@@ -1561,17 +1566,16 @@ contains
 
       end subroutine sanity_check_grad_zeta
 
-
-      !**********************************************************************
-      !                            Test Jacobian                            !
-      !**********************************************************************
+      !*************************************************************************
+      !                              Test Jacobian                             !
+      !*************************************************************************
       ! sqrt(g) = 1 / (∇s . ∇θ x ∇ζ) 
       !         = dX/ds dY/dθ dZ/dζ + dY/ds dZ/dθ dX/dζ + dZ/ds dX/dθ dY/dζ
       !         - dX/ds dZ/dθ dY/dζ - dY/ds dX/dθ dZ/dζ - dZ/ds dY/dθ dX/dζ
       ! 1/sqrt(g) = (∇s . ∇θ x ∇ζ) 
-      !           = (∇s.e_X) (∇θ.e_Y) (∇ζ.e_Z) + (∇s.e_Y) (∇θ.e_Z) (∇ζ.e_X) + (∇s.e_Z) (∇θ.e_X) (∇ζ.e_Y) 
-      !           - (∇s.e_X) (∇θ.e_Z) (∇ζ.e_Y) + (∇s.e_Y) (∇θ.e_X) (∇ζ.e_Z) + (∇s.e_Z) (∇θ.e_Y) (∇ζ.e_X) 
-      !**********************************************************************
+      !           = (∇s.e_X) (∇θ.e_Y) (∇ζ.e_Z) + (∇s.e_Y) (∇θ.e_Z) (∇ζ.e_X) + (∇s.e_Z) (∇θ.e_X) (∇ζ.e_Y)
+      !           - (∇s.e_X) (∇θ.e_Z) (∇ζ.e_Y) + (∇s.e_Y) (∇θ.e_X) (∇ζ.e_Z) + (∇s.e_Z) (∇θ.e_Y) (∇ζ.e_X)
+      !*************************************************************************
       subroutine sanity_check_jacobian()
 
          implicit none
@@ -1603,29 +1607,29 @@ contains
 
       end subroutine sanity_check_jacobian
 
-      !**********************************************************************
-      !           Test covariant and contravariant componets of B           !
-      !**********************************************************************
+      !*************************************************************************
+      !             Test covariant and contravariant componets of B            !
+      !*************************************************************************
       ! We have the following dual basis
       !     e_s = (dX/ds) e_X + (dY/ds) e_Y + (dZ/ds) e_Z
       !     e_ζ = (dX/dζ) e_X + (dY/dζ) e_Y + (dZ/dζ) e_Z
       !     e_θ = (dX/dθ) e_X + (dY/dθ) e_Y + (dZ/dθ) e_Z
-      ! Therefore, the covariant components of the magnetic field are 
+      ! Therefore, the covariant components of the magnetic field are
       !     B_sub_s = B . e_s = B_X * dX/ds + B_Y * dY/ds + B_Z * dZ/ds
       !     B_sub_zeta = B . e_ζ = B_X * dX/dzeta + B_Y * dY/dzeta + B_Z * dZ/dzeta
       !     B_sub_theta = B . e_θ = B_X * dX/dtheta + B_Y * dY/dtheta + B_Z * dZ/dtheta
       ! And the contravariant components are
-      !     B_sup_s = B . ∇s = (B.e_X)(∇s.e_X) + (B.e_Y)(∇s.e_Y) + (B.e_Z)(∇s.e_Z) 
-      !     B_sup_zeta = B . ∇ζ = (B.e_X)(∇ζ.e_X) + (B.e_Y)(∇ζ.e_Y) + (B.e_Z)(∇ζ.e_Z) 
-      !     B_sup_theta = B . ∇θ = (B.e_X)(∇θ.e_X) + (B.e_Y)(∇θ.e_Y) + (B.e_Z)(∇θ.e_Z) 
-      !**********************************************************************
+      !     B_sup_s = B . ∇s = (B.e_X)(∇s.e_X) + (B.e_Y)(∇s.e_Y) + (B.e_Z)(∇s.e_Z)
+      !     B_sup_zeta = B . ∇ζ = (B.e_X)(∇ζ.e_X) + (B.e_Y)(∇ζ.e_Y) + (B.e_Z)(∇ζ.e_Z)
+      !     B_sup_theta = B . ∇θ = (B.e_X)(∇θ.e_X) + (B.e_Y)(∇θ.e_Y) + (B.e_Z)(∇θ.e_Z)
+      !*************************************************************************
       subroutine sanity_check_Bcomponents()
 
          implicit none
 
          real, dimension(:, :), allocatable :: temp_vs_alphazeta 
 
-         !----------------------------------------------------------------------  
+         !----------------------------------------------------------------------
 
          ! Track the code  
          if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_check_Bcomponents'
@@ -1668,7 +1672,6 @@ contains
       ! Verify that array1 = array2 to within a relative tolerance.
       ! Verify that |array1| = 0 to within a relative tolerance.
       !*************************************************************************
-
       subroutine check_that_arrays_match(array1, array2, tolerance, name)
 
          implicit none
@@ -1708,18 +1711,23 @@ contains
 
       end subroutine check_that_arrays_match
 
+      !*************************************************************************
+      !                        Check that array is zero                        !
+      !*************************************************************************
       subroutine check_that_array_is_zero(array1, tolerance, name)
 
          implicit none
 
+         ! Arguments
          real, intent(in) :: tolerance
          character(len=*), intent(in) :: name
          real, dimension(nalpha, -nzgrid:nzgrid), intent(in) :: array1
 
+         ! Local variables
          integer :: ierr_local = 0
          real :: max_value
 
-         !---------------------------------------------------------------------- 
+         !----------------------------------------------------------------------
    
          ! Get the maximum value inside |array1|
          max_value = maxval(abs(array1))
@@ -1737,7 +1745,6 @@ contains
          if (ierr_local /= 0) ierr = ierr + 1 
 
       end subroutine check_that_array_is_zero
-
 
       !*************************************************************************
       !                       Initialize geometry arrays                       !
@@ -1825,11 +1832,11 @@ contains
       !*************************************************************************
       subroutine deallocate_geometry_arrays()
 
-         implicit none 
+         implicit none
 
          !---------------------------------------------------------------------- 
 
-         ! Track the code  
+         ! Track the code
          if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::deallocate_geometry_arrays'
 
          deallocate (R, Z, B, sqrt_g) 
@@ -1873,10 +1880,9 @@ contains
 !################################ CALCULATIONS #################################
 !###############################################################################
 
-   !*************************************************************************
-   !                INTERPOLATE QUANTITIES ON THE RADIAL GRID               !
-   !*************************************************************************
-
+   !****************************************************************************
+   !                 INTERPOLATE QUANTITIES ON THE RADIAL GRID                 !
+   !****************************************************************************
    subroutine radial_interpolation(quantity, interpolated_quantity, grid)
 
       implicit none 
@@ -1926,14 +1932,15 @@ contains
 !###############################################################################
 
    !============================================================================
-   !=================== FOR EACH (ALPHA,ZETA) FIND theta ==================
+   !===================== FOR EACH (ALPHA,ZETA) FIND THETA =====================
    !============================================================================
    subroutine calculate_theta(nzgrid, zeta, nalpha, alpha, iota, theta, ierr)
 
       use mp, only: mp_abort
 
-      implicit none 
+      implicit none
 
+      ! Arguments
       real, intent(in) :: iota
       integer, intent(in) :: nzgrid, nalpha
       real, dimension(:), intent(in) :: alpha                     ! zeta(nalpha)
@@ -1941,6 +1948,7 @@ contains
       real, dimension(:, -nzgrid:), intent(out) :: theta          ! theta(nalpha, nzgrid)
       integer, intent(inout) :: ierr
 
+      ! Local variables
       integer :: izeta, ialpha
       logical :: theta_converged
       real :: theta_pest_target
@@ -1950,8 +1958,8 @@ contains
 
       !------------------------------------------------------------------------- 
 
-      ! Track the code  
-      if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_theta' 
+      ! Track the code
+      if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_theta'
 
       ! For each (alpha, zeta) we know <theta_pest> = alpha + iota * zeta
       ! and we use a root solver to find <theta> = theta_pest - Lambda
@@ -1979,22 +1987,22 @@ contains
             end if
 
          end do
-      end do 
+      end do
 
    contains
 
-      !============================================================================
-      !=================== RESIDUAL FUNCTION FOR THE ROOT SOLVER ==================
-      !============================================================================ 
+      !=========================================================================
+      !================= RESIDUAL FUNCTION FOR THE ROOT SOLVER =================
+      !=========================================================================
       ! The root solver will try to minimize the error function <fzero_residual>
       ! Since we want to find a <theta> for which,
       !     <theta_pest> = <theta> + Lambda(s, <theta>, zeta)
       ! The residual function that we want to minimize is,
-      !     <fzero_residual> = <theta> + Lambda(s, <theta>, zeta) - <theta_pest> 
+      !     <fzero_residual> = <theta> + Lambda(s, <theta>, zeta) - <theta_pest>
       ! Note that <lmns> and <lmnc> use the non-Nyquist <xm>, <xn>, and <mnmax>.
-      ! and that <lmns> and <lmnc> are on the radial half grid.  
-      !============================================================================ 
-      function fzero_residual(theta_try) 
+      ! and that <lmns> and <lmnc> are on the radial half grid.
+      !=========================================================================
+      function fzero_residual(theta_try)
 
          implicit none
 
@@ -2028,22 +2036,24 @@ contains
             
          end do
 
-         ! <fzero_residual> = <theta> + Lambda(s, <theta>, zeta) - <theta_pest> 
+         ! <fzero_residual> = <theta> + Lambda(s, <theta>, zeta) - <theta_pest>
          fzero_residual = theta_try + lambda - theta_pest_target
 
       end function fzero_residual
 
-      !============================================================================
-      !============ USE A ROOT SOLVER TO FIND THE theta THAT WORKS ===========
-      !============================================================================ 
+      !=========================================================================
+      !============= USE A ROOT SOLVER TO FIND THE THETA THAT WORKS ============
+      !=========================================================================
       subroutine get_root(a0, b0, root, converged)
 
          implicit none
 
+         ! Arguments
          real, intent(in) :: a0, b0
          real, intent(out) :: root
          logical, intent(out) :: converged
 
+         ! Local variables
          integer, parameter :: itmax_bracket = 10
          integer, parameter :: itmax_root = 10
          real, parameter :: tol = 1.0e-10

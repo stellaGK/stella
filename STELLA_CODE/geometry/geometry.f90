@@ -20,12 +20,14 @@
 !    <B_times_gradB_dot_grady> = B × ∇B · ∇y (a*B_ref/B^3)
 !    <B_times_kappa_dot_gradx> = B × κ · ∇x (a*B_ref/B^2)
 !    <B_times_kappa_dot_grady> = B × κ · ∇y (a*B_ref/B^2)
-!    <gradpar> = a nabla_parallel z
+!    <b_dot_grad_z> = b · ∇z  (TODO)
+!    <b_dot_grad_z_averaged> = ??? (TODO)
 ! 
 ! The normalized derivatives are defined as,
 !    <dxdpsi> = (rho_r/a) (d tilde{x} / d tilde{psi})
 !    <dydalpha> = (rho_r/a) (d tilde{y} / d tilde{alpha})
 ! 
+! TODO - Change gradpar to b_dot_grad_z_averaged and b_dot_grad_z.
 ! 
 !--------------------------- Backwards Compatibility ---------------------------
 ! 
@@ -37,6 +39,8 @@
 !    - gbdrift   -->   B_times_gradB_dot_grady * 2.
 !    - cvdrift0  -->   B_times_kappa_dot_gradx * 2. * shat
 !    - cvdrift   -->   B_times_kappa_dot_grady * 2.
+!    - gradpar   -->   b_dot_grad_z  (TODO)
+!    - gradpar   -->   b_dot_grad_z_averaged  (TODO)
 ! 
 !###############################################################################
 module geometry

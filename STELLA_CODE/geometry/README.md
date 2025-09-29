@@ -27,7 +27,7 @@ The following geometric quantities are defined in this module:
    <B_times_gradB_dot_grady> = B × ∇B · ∇y (a*B_ref/B^3)
    <B_times_kappa_dot_gradx> = B × κ · ∇x (a*B_ref/B^2)
    <B_times_kappa_dot_grady> = B × κ · ∇y (a*B_ref/B^2)
-   <gradpar> = a nabla_parallel z
+   <gradpar> = b · ∇z
 
 The normalized derivatives are defined as,
    <dxdpsi> = (rho_r/a) (d tilde{x} / d tilde{psi})

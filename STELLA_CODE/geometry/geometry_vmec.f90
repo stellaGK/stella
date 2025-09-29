@@ -32,6 +32,9 @@
 !###############################################################################
 module vmec_geometry
 
+   ! Load debug flags
+   use debug_flags, only: debug => geometry_debug
+
    ! Read the parameters for <radial_coordinate_switch> from namelist_geometry.f90
    use namelist_geometry, only: radial_coordinate_sgnpsitpsit
    use namelist_geometry, only: radial_coordinate_minuspsit
@@ -59,14 +62,11 @@ module vmec_geometry
    !----------------------------------------------------------------------------
    
    integer :: radial_coordinate_switch
- 
    real :: alpha0, nfield_periods
    real :: zeta_center, torflux
-
    integer :: n_tolerated_test_arrays_inconsistencies
    integer :: z_grid_refinement_factor
    integer :: surface_option
-
    logical :: verbose, rectangular_cross_section
    character(2000) :: vmec_filename
 
@@ -77,15 +77,16 @@ contains
    !============================================================================  
    subroutine read_vmec_parameters
 
-      use grids_z, only: zed_equal_arc
       use mp, only: mp_abort
+      use grids_z, only: zed_equal_arc
       use namelist_geometry, only: read_namelist_geometry_vmec
 
       implicit none
    
       !---------------------------------------------------------------------- 
 
-      call read_namelist_geometry_vmec(alpha0, zeta_center, rectangular_cross_section, & 
+      ! Read the VMEC geometry namelist in the input file
+      call read_namelist_geometry_vmec(alpha0, zeta_center, rectangular_cross_section, &
          nfield_periods, torflux, z_grid_refinement_factor, &
          surface_option, radial_coordinate_switch, verbose, &
          vmec_filename, n_tolerated_test_arrays_inconsistencies)
@@ -120,42 +121,57 @@ contains
       sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
       field_period_ratio, psit_displacement_fac)
 
+      ! Parallelisation
+      use mp, only: mp_abort
+      
+      ! Calculations
       use constants, only: pi
-      use common_types, only: flux_surface_type
       use splines, only: geo_spline
+      
+      ! Flags
       use parameters_physics, only: full_flux_surface
       use debug_flags, only: const_alpha_geo 
-      use grids_z, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
-      use grids_z, only: zed 
-      use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
-      use file_utils, only: open_output_file
-      use mp, only: mp_abort
       use debug_flags, only: print_extra_info_to_terminal
+      
+      ! Grids
+      use grids_z, only: zed_equal_arc
+      use grids_z, only: get_total_arc_length
+      use grids_z, only: get_arc_length_grid
+      use grids_z, only: zed 
+      
+      ! Geometry
+      use common_types, only: flux_surface_type
+      use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
+      
+      ! Read an write files
+      use file_utils, only: open_output_file
       
       implicit none
 
+      ! Arguments
       integer, intent(in) :: nzgrid, nalpha, naky
       integer, intent(out) :: sign_torflux
       type(flux_surface_type), intent(out) :: surf
       real, dimension(:), intent(out) :: alpha
       real, intent(out) :: dzetadz, L_reference, B_reference, field_period_ratio
       real, dimension(-nzgrid:), intent(out) :: b_dot_grad_z_averaged
-      real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_grad_z, &
-               grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, &
-               gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
-               B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, theta_vmec, zeta, psit_displacement_fac, &
-               gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR
+      real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_grad_z
+      real, dimension(:, -nzgrid:), intent(out) :: grad_alpha_grad_alpha, grad_alpha_grad_psit
+      real, dimension(:, -nzgrid:), intent(out) :: grad_psit_grad_psit, gds23_psitalpha
+      real, dimension(:, -nzgrid:), intent(out) :: gds24_psitalpha, gds25_psitalpha, gds26_psitalpha
+      real, dimension(:, -nzgrid:), intent(out) :: gbdrift_alpha, B_times_gradB_dot_gradx_psi
+      real, dimension(:, -nzgrid:), intent(out) :: B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi
+      real, dimension(:, -nzgrid:), intent(out) :: theta_vmec, zeta, psit_displacement_fac
+      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_R2overB2
+      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradalpha_R2overB2
+      real, dimension(:, -nzgrid:), intent(out) :: b_dot_grad_zeta_RR
 
-
-      ! These routines are always called on the first processor only
-      logical, parameter :: debug = .false.
-
+      ! Local variables
       integer :: ierr
       integer :: tmpunit
       integer :: i, j, ia, iz
       integer :: nzgrid_vmec
       integer :: zetamax_idx
-
       real :: dzeta_vmec, zmin, nfp
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
       real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_theta_vmec, B_sub_zeta
@@ -217,17 +233,21 @@ contains
       ! Some quantities will be assigned to the module variables such as <nfp>
       if (debug) write (*, *) 'get_vmec_geometry::calculate_vmec_geometry'
       call calculate_vmec_geometry(&
-               ! Input parameters
-               vmec_filename, nalpha, alpha0, nzgrid_vmec, zeta_center, &
-               rectangular_cross_section, nfield_periods, torflux, surface_option, verbose, &
-               ! Output parameters
-               surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
-               sign_torflux, alpha, zeta_vmec, bmag_vmec, b_dot_grad_zeta_vmec, grad_alpha_grad_alpha_vmec, &
-               grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec, gds23_psitalpha_vmec, gds24_psitalpha_vmec, &
-               gds25_psitalpha_vmec, gds26_psitalpha_vmec, gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec, B_times_kappa_dot_grady_alpha_vmec, &
-               B_times_kappa_dot_gradx_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, psit_displacement_fac_vmec, &
-               gradzeta_gradpsit_R2overB2_vmec, gradzeta_gradalpha_R2overB2_vmec, &
-               b_dot_grad_zeta_RR_vmec, ierr)
+         ! Input parameters
+         vmec_filename, nalpha, alpha0, nzgrid_vmec, zeta_center, &
+         rectangular_cross_section, nfield_periods, torflux, surface_option, verbose, &
+         ! Output parameters
+         surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
+         sign_torflux, alpha, zeta_vmec, bmag_vmec, &
+         b_dot_grad_zeta_vmec, grad_alpha_grad_alpha_vmec, &
+         grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec, &
+         gds23_psitalpha_vmec, gds24_psitalpha_vmec, &
+         gds25_psitalpha_vmec, gds26_psitalpha_vmec, gbdrift_alpha_vmec, &
+         B_times_gradB_dot_gradx_psi_vmec, B_times_kappa_dot_grady_alpha_vmec, &
+         B_times_kappa_dot_gradx_psi_vmec, thetamod_vmec, B_sub_zeta_mod, &
+         B_sub_theta_vmec_mod, psit_displacement_fac_vmec, &
+         gradzeta_gradpsit_R2overB2_vmec, gradzeta_gradalpha_R2overB2_vmec, &
+         b_dot_grad_zeta_RR_vmec, ierr)
 
       ! Stop stella if we had too many errors when calculating the geometry arrays (TODO: I think this is broken now)
       if (ierr /= 0) then
@@ -375,11 +395,11 @@ contains
          gradzeta_gradalpha_R2overB2 = gradzeta_gradalpha_R2overB2_vmec
          b_dot_grad_zeta_RR = b_dot_grad_zeta_RR_vmec
          
-         ! TODO-HT Not sure what these are for
+         ! TODO - Not sure what these are for
          psit_displacement_fac = psit_displacement_fac_vmec
          theta_vmec = thetamod_vmec
          
-         ! TODO-HT these are not used and can be removed I think
+         ! TODO - these are not used and can be removed I think
          B_sub_theta_vmec = B_sub_theta_vmec_mod ! JFP
          B_sub_zeta = B_sub_zeta_mod ! JFP
  
@@ -415,8 +435,8 @@ contains
       deallocate (gradzeta_gradalpha_R2overB2_vmec)
       deallocate (b_dot_grad_zeta_RR_vmec)
 
-      !> calculate_vmec_geometry returns psitor/psitor_lcfs as rhoc
-      !> stella uses rhoc = rho = sqrt(psitor/psitor_lcfs) = rhotor
+      ! Calculate_vmec_geometry returns psitor/psitor_lcfs as rhoc
+      ! stella uses rhoc = rho = sqrt(psitor/psitor_lcfs) = rhotor
       surf%rhoc = sqrt(surf%rhoc)
       surf%rhotor = surf%rhoc
 
@@ -456,15 +476,20 @@ contains
       call open_output_file(tmpunit, '.vmec.geo')
       write (tmpunit, '(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'dzetadz'
       write (tmpunit, '(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, dzetadz
-      write (tmpunit, '(17a12)') '#    alpha', 'zeta', 'bmag', 'b_dot_grad_z_avg', 'bdot_grad_z', 'grad_alpha2', &
-         'gd_alph_psi', 'grad_psi2', 'gds23_psitalpha ', 'gds24_psitalpha ', 'gbdriftalph', 'B_times_gradB_dot_gradx_psi', 'B_times_kappa_dot_grady_alph', &
+      write (tmpunit, '(17a12)') '#    alpha', 'zeta', 'bmag', &
+         'b_dot_grad_z_avg', 'bdot_grad_z', 'grad_alpha2', &
+         'gd_alph_psi', 'grad_psi2', 'gds23_psitalpha ', 'gds24_psitalpha ', &
+         'gbdriftalph', 'B_times_gradB_dot_gradx_psi', 'B_times_kappa_dot_grady_alph', &
          'B_times_kappa_dot_gradx_psi', 'theta_vmec', 'B_sub_theta', 'B_sub_zeta' 
       do j = -nzgrid, nzgrid
          do i = 1, nalpha
-            write (tmpunit, '(17e12.4)') alpha(i), zeta(i, j), bmag(i, j), b_dot_grad_z_averaged(j), b_dot_grad_z(i, j), &
+            write (tmpunit, '(17e12.4)') alpha(i), zeta(i, j), bmag(i, j), &
+               b_dot_grad_z_averaged(j), b_dot_grad_z(i, j), &
                grad_alpha_grad_alpha(i, j), grad_alpha_grad_psit(i, j), grad_psit_grad_psit(i, j), &
-               gds23_psitalpha (i, j), gds24_psitalpha (i, j),  gbdrift_alpha(i, j), B_times_gradB_dot_gradx_psi(i, j), & 
-               B_times_kappa_dot_grady_alpha(i, j), B_times_kappa_dot_gradx_psi(i, j), theta_vmec(i, j), B_sub_theta_vmec(i, j), B_sub_zeta(i, j)  
+               gds23_psitalpha (i, j), gds24_psitalpha (i, j),  &
+               gbdrift_alpha(i, j), B_times_gradB_dot_gradx_psi(i, j), & 
+               B_times_kappa_dot_grady_alpha(i, j), B_times_kappa_dot_gradx_psi(i, j), &
+               theta_vmec(i, j), B_sub_theta_vmec(i, j), B_sub_zeta(i, j)  
          end do
          write (tmpunit, *)
       end do
