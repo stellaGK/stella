@@ -575,7 +575,7 @@ contains
          use grids_extended_zgrid, only: fill_zext_ghost_zones
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
-         use gk_parallel_streaming, only: gradpar_c, stream_sign
+         use gk_parallel_streaming, only: b_dot_gradz_centredinz, stream_sign
          use parameters_numerical, only: driftkinetic_implicit
 
          integer :: izext
@@ -626,9 +626,9 @@ contains
          ! This will depend on the sign of vpa
          ! Note that stream_sign = -1 corresponds to positive advection velocity
          if (stream_sign(iv) > 0) then
-            z_scratch = z_scratch * gradpar_c(:, -1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centredinz(:, -1) * code_dt * spec(is)%stm_psi0
          else
-            z_scratch = z_scratch * gradpar_c(:, 1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centredinz(:, 1) * code_dt * spec(is)%stm_psi0
          end if
 
          ! Add -(b . grad z)*F_0*J_0*phi term to the RHS of the GK equaiton
@@ -758,7 +758,7 @@ contains
          use grids_extended_zgrid, only: fill_zext_ghost_zones
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
-         use gk_parallel_streaming, only: gradpar_c, stream_sign
+         use gk_parallel_streaming, only: b_dot_gradz_centredinz, stream_sign
 
          integer :: izext
          complex :: scratch_left, scratch_right
@@ -799,9 +799,9 @@ contains
          end if
 
          if (stream_sign(iv) > 0) then
-            z_scratch = z_scratch * gradpar_c(:, -1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centredinz(:, -1) * code_dt * spec(is)%stm_psi0
          else
-            z_scratch = z_scratch * gradpar_c(:, 1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centredinz(:, 1) * code_dt * spec(is)%stm_psi0
          end if
 
          do izext = 1, nz_ext
@@ -1141,7 +1141,7 @@ contains
       use parameters_numerical, only: time_upwind_minus
       use parameters_numerical, only: drifts_implicit
       use gk_parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
-      use gk_parallel_streaming, only: gradpar_c, stream_sign
+      use gk_parallel_streaming, only: b_dot_gradz_centredinz, stream_sign
       use arrays, only: wdriftx_g, wdrifty_g
       use grids_extended_zgrid, only: fill_zext_ghost_zones
       use grids_extended_zgrid, only: map_to_iz_ikx_from_izext
@@ -1153,7 +1153,7 @@ contains
       integer, intent(in) :: ivmu, iky, ie
       complex, dimension(:), intent(out) :: rhs
 
-      real, dimension(:), allocatable :: gradpar_fac
+      real, dimension(:), allocatable :: b_dot_gradz_fac
       complex, dimension(:), allocatable :: dpdf_dz
       real :: constant_factor
       integer :: iv, is, iz
@@ -1191,11 +1191,11 @@ contains
       ! Compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
       constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
       ! Use the correctly centred (b . grad z) pre-factor for this sign of vpa
-      allocate (gradpar_fac(-nzgrid:nzgrid))
+      allocate (b_dot_gradz_fac(-nzgrid:nzgrid))
       if (stream_sign(iv) > 0) then
-         gradpar_fac = gradpar_c(:, -1) * constant_factor
+         b_dot_gradz_fac = b_dot_gradz_centredinz(:, -1) * constant_factor
       else
-         gradpar_fac = gradpar_c(:, 1) * constant_factor
+         b_dot_gradz_fac = b_dot_gradz_centredinz(:, 1) * constant_factor
       end if
 
       rhs = pdf
@@ -1224,16 +1224,16 @@ contains
       ! If we are on a full flux surface, then we have an additional source term
       if(present(source_ffs)) then 
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
+            rhs(izext) = rhs(izext) + b_dot_gradz_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
          end do
       else
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext)
+            rhs(izext) = rhs(izext) + b_dot_gradz_fac(iz_from_izext(izext)) * dpdf_dz(izext)
          end do
       end if
 
       deallocate (dpdf_dz)
-      deallocate (gradpar_fac)
+      deallocate (b_dot_gradz_fac)
       deallocate (iz_from_izext, ikx_from_izext)
 
    end subroutine get_contributions_from_pdf

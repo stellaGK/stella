@@ -51,7 +51,7 @@ contains
       use grids_z, only: nzgrid, nztot
       use grids_kxky, only: nalpha
       use geometry, only: dbdzed, b_dot_gradz, gfac
-      use geometry, only: d2Bdrdth, dgradpardrho
+      use geometry, only: d2Bdrdth, d_b_dot_gradz_drho
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
@@ -107,7 +107,7 @@ contains
             do ia = 1, nalpha
                do iz = -nzgrid, nzgrid
                   mirror_rad_var(ia, iz, imu, :) = code_dt * spec%stm_psi0 * mu(imu) * gfac &
-                                                   * (dgradpardrho(iz) * dbdzed(ia, iz) &
+                                                   * (d_b_dot_gradz_drho(iz) * dbdzed(ia, iz) &
                                                       + b_dot_gradz(ia, iz) * d2Bdrdth(iz))
                end do
             end do

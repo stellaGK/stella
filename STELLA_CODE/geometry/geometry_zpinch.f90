@@ -27,7 +27,7 @@ contains
    !****************************************************************************
    !                Calculate geometric quantities for a z-pinch                
    !****************************************************************************
-   subroutine get_zpinch_geometry_coefficients(nzgrid, bmag, gradpar, grad_rho, surf, &
+   subroutine get_zpinch_geometry_coefficients(nzgrid, bmag, b_dot_gradz, grad_rho, surf, &
       grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, B_times_gradB_dot_gradx, &
       B_times_gradB_dot_grady, B_times_kappa_dot_gradx, B_times_kappa_dot_grady, btor, rmajor)
 
@@ -38,7 +38,7 @@ contains
 
       ! Arguments
       integer, intent(in) :: nzgrid
-      real, dimension(-nzgrid:), intent(out) :: bmag, gradpar, grad_rho
+      real, dimension(-nzgrid:), intent(out) :: bmag, b_dot_gradz, grad_rho
       real, dimension(-nzgrid:), intent(out) :: grad_y_dot_grad_y, grad_x_dot_grad_y
       real, dimension(-nzgrid:), intent(out) :: grad_x_dot_grad_x, B_times_gradB_dot_gradx
       real, dimension(-nzgrid:), intent(out) :: B_times_gradB_dot_grady, B_times_kappa_dot_gradx
@@ -53,8 +53,8 @@ contains
       ! As B is constant along radius r0, choose B_ref = B(r0), so bmag = B(r0) / B_ref = 1
       bmag = 1.0
       
-      ! Define gradpar = bhat . grad z = b . (r0*grad) theta = 1
-      gradpar = 1.0
+      ! Define b_dot_gradz = bhat . grad z = b . (r0*grad) theta = 1
+      b_dot_gradz = 1.0
       
       ! Define grad_rho = | L_B * grad (r / L_B) | = 1
       grad_rho = 1.0

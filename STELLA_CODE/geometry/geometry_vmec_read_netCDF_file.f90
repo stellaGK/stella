@@ -5,8 +5,8 @@
 ! Routines for calculating the geometry needed by stella, from a VMEC file.
 ! Inside the <geometry> module we call:
 ! 
-! call get_vmec_geometry(nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
-!    b_dot_gradz, grad_alpha_grad_alpha, &
+! call get_vmec_geometry(nzgrid, nalpha, naky, geo_surf, grho, bmag, &
+!    b_dot_gradz_avg, b_dot_gradz, grad_alpha_grad_alpha, &
 !    grad_alpha_grad_psit, grad_psit_grad_psitt, &
 !    gds23, gds24, gds25, gds26, B_times_gradB_dot_gradalpha, B_times_gradB_dot_gradpsit, &
 !    B_times_kappa_dot_gradalpha, B_times_kappa_dot_gradpsit, sign_torflux, &

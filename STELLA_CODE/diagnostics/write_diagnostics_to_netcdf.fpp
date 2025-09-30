@@ -34,7 +34,7 @@
 !   - B_times_gradB_dot_grady, bmag, B_times_gradB_dot_gradx, B_times_kappa_dot_grady, 
 !   - B_times_kappa_dot_gradx, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, 
 !   - grho, jacob, djacdrho, b_dot_gradz
-!   - gradpar, kperp2
+!   - b_dot_gradz_avg, kperp2
 ! 
 ! The fields are written to the NetCDF file:
 !   - |phi|^2(t)                    -->      phi2
@@ -607,7 +607,7 @@ contains
    subroutine nc_geo(file_id)
       
       ! Geometric quantities
-      use geometry, only: bmag, gradpar, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
+      use geometry, only: bmag, b_dot_gradz_avg, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
       use geometry, only: B_times_kappa_dot_grady, B_times_kappa_dot_gradx
       use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: grho, jacob
@@ -636,7 +636,7 @@ contains
       call neasyf_write(file_id, "d2qdr2", geo_surf%d2qdr2)
 
       ! Vectors along the field line
-      call neasyf_write(file_id, "gradpar", gradpar, dim_names=["zed"], long_name="Parallel derivative multiplier")
+      call neasyf_write(file_id, "b_dot_gradz_avg", b_dot_gradz_avg, dim_names=["zed"], long_name="Parallel derivative multiplier")
 
       ! Vectors on the flux surface
       call neasyf_write(file_id, "B_times_gradB_dot_grady", B_times_gradB_dot_grady, dim_names=flux_surface_dim, long_name="Magnetic gradient drift")

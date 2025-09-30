@@ -451,9 +451,23 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             else: 
                 
                 # Changed definitions
-                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22", "gds21", "gds2"]:
+                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22", "gds21", "gds2", "b_dot_grad_z", "gradpar"]:
+                    if (key=="b_dot_gradz_avg"):
+                        b_dot_gradz_old = expected_netcdf["gradpar"]
+                        b_dot_gradz_new = local_netcdf["b_dot_gradz_avg"]
+                        if not (np.allclose(b_dot_gradz_old, b_dot_gradz_new, equal_nan=True)):
+                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
+                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                            compare_local_array_with_expected_array(b_dot_gradz_old, b_dot_gradz_new)
+                    if (key=="b_dot_gradz"):
+                        b_dot_gradz_old = expected_netcdf["b_dot_grad_z"]
+                        b_dot_gradz_new = local_netcdf["b_dot_gradz"]
+                        if not (np.allclose(b_dot_gradz_old, b_dot_gradz_new, equal_nan=True)):
+                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
+                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                            compare_local_array_with_expected_array(b_dot_gradz_old, b_dot_gradz_new)
                     if (key=="gds2"):
-                        gds2_old =  expected_netcdf["gds2"]
+                        gds2_old = expected_netcdf["gds2"]
                         gds2_new = local_netcdf["grady_dot_grady"]
                         if not (np.allclose(gds2_old, gds2_new, equal_nan=True)):
                             print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
@@ -820,9 +834,9 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     cvdrift_old = data[:,42]
     dcvdrift_old = data[:,43]
     drzdth_old = data[:,44]
-    gradpar_old = data[:,45]
+    b_dot_gradz_old = data[:,45]
     dgpardr_old = data[:,46]
-    gradparB_old = data[:,47]
+    b_dot_gradzB_old = data[:,47]
     dgparBdr_old = data[:,48]
     gds2_old = data[:,49]
     dgds2dr_old = data[:,50]
@@ -892,9 +906,9 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     B_times_kappa_dot_grady_new = data[:,42]
     dcvdrift_new = data[:,43]
     drzdth_new = data[:,44]
-    gradpar_new = data[:,45]
+    b_dot_gradz_new = data[:,45]
     dgpardr_new = data[:,46]
-    gradparB_new = data[:,47]
+    b_dot_gradzB_new = data[:,47]
     dgparBdr_new = data[:,48]
     grady_dot_grady_new = data[:,49]
     dgds2dr_new = data[:,50]
@@ -966,9 +980,9 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     if not (np.allclose(cvdrift_old, cvdrift_new, equal_nan=True)): error = process_error('cvdrift')
     if not (np.allclose(dcvdrift_old, dcvdrift_new, equal_nan=True)): error = process_error('dcvdrift')
     if not (np.allclose(drzdth_old, drzdth_new, equal_nan=True)): error = process_error('drzdth')
-    if not (np.allclose(gradpar_old, gradpar_new, equal_nan=True)): error = process_error('gradpar')
+    if not (np.allclose(b_dot_gradz_old, b_dot_gradz_new, equal_nan=True)): error = process_error('b_dot_gradz')
     if not (np.allclose(dgpardr_old, dgpardr_new, equal_nan=True)): error = process_error('dgpardr')
-    if not (np.allclose(gradparB_old, gradparB_new, equal_nan=True)): error = process_error('gradparB')
+    if not (np.allclose(b_dot_gradzB_old, b_dot_gradzB_new, equal_nan=True)): error = process_error('b_dot_gradzB')
     if not (np.allclose(dgparBdr_old, dgparBdr_new, equal_nan=True)): error = process_error('dgparBdr')
     if not (np.allclose(gds2_old, gds2_new, equal_nan=True)): error = process_error('gds2')
     if not (np.allclose(dgds2dr_old, dgds2dr_new, equal_nan=True)): error = process_error('dgds2dr')
@@ -1008,7 +1022,7 @@ def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=Fal
     alpha_old = data[:,0]
     zeta_old = data[:,1]
     bmag_old = data[:,2]
-    gradpar_old = data[:,3]
+    b_dot_gradz_old = data[:,3]
     bdot_grad_z_old = data[:,4]
     grad_alpha2_old = data[:,5]
     gd_alph_psi_old = data[:,6]
@@ -1041,7 +1055,7 @@ def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=Fal
     alpha_new = data[:,0]
     zeta_new = data[:,1]
     bmag_new = data[:,2]
-    gradpar_new = data[:,3]
+    b_dot_gradz_new = data[:,3]
     bdot_grad_z_new = data[:,4]
     grad_alpha2_new = data[:,5]
     gd_alph_psi_new = data[:,6]
@@ -1089,7 +1103,7 @@ def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=Fal
     if not (np.allclose(alpha_old, alpha_new, equal_nan=True)): error = process_error('alpha')
     if not (np.allclose(zeta_old, zeta_new, equal_nan=True)): error = process_error('zeta')
     if not (np.allclose(bmag_old, bmag_new, equal_nan=True)): error = process_error('bmag')
-    if not (np.allclose(gradpar_old, gradpar_new, equal_nan=True)): error = process_error('gradpar')
+    if not (np.allclose(b_dot_gradz_old, b_dot_gradz_new, equal_nan=True)): error = process_error('b_dot_gradz')
     if not (np.allclose(bdot_grad_z_old, bdot_grad_z_new, equal_nan=True)): error = process_error('b_dot_gradz')
     if not (np.allclose(grad_alpha2_old, grad_alpha2_new, equal_nan=True)): error = process_error('grad_alpha2')
     if not (np.allclose(gd_alph_psi_old, gd_alph_psi_new, equal_nan=True)): error = process_error('gd_alph_psi')

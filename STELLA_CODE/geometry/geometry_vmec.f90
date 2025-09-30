@@ -22,12 +22,7 @@
 ! and it interpolates the VMEC z-grid to the stella z-grid.
 ! 
 ! Initial VMEC geometry code was written by Matt Landreman, University of Maryland in August 2017. 
-! Modified in 2018-2019 by Michael Barnes, and cleaned in 2024 by Hanne Thienpondt.
-! 
-! Changes
-! -------
-! 07/2024 Removed <b_dot_gradzeta_prefac> and <z_grid_scalefac> 
-! 07/2024 Changed <gradpar> to <b_dot_gradz_avg> and other sensible name changed
+! Modified in 2018-2019 by Michael Barnes, and cleaned in 2024 and 2025 by Hanne Thienpondt.
 ! 
 !###############################################################################
 module vmec_geometry

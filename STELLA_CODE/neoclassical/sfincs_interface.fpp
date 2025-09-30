@@ -740,8 +740,8 @@ contains
       use constants, only: pi
       use splines, only: linear_interp_periodic
       use grids_z, only: nz2pi, zed
-      use geometry, only: bmag, dbdzed, gradpar
-      use geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
+      use geometry, only: bmag, dbdzed, b_dot_gradz_avg
+      use geometry, only: dBdrho, d2Bdrdth, d_b_dot_gradz_drho, dIdrho
       use geometry, only: geo_surf
       use globalVariables, only: BHat
       use globalVariables, only: dBHatdtheta
@@ -758,7 +758,7 @@ contains
       integer :: nzeta = 1
       integer :: nzpi
       real :: q_local
-      real, dimension(:), allocatable :: B_local, dBdz_local, gradpar_local
+      real, dimension(:), allocatable :: B_local, dBdz_local, b_dot_gradz_local
       real, dimension(:), allocatable :: zed_stella
       real, dimension(:), allocatable :: theta_sfincs
 
@@ -767,7 +767,7 @@ contains
       nzpi = nz2pi / 2
       allocate (B_local(-nzpi:nzpi))
       allocate (dBdz_local(-nzpi:nzpi))
-      allocate (gradpar_local(-nzpi:nzpi))
+      allocate (b_dot_gradz_local(-nzpi:nzpi))
       allocate (theta_sfincs(ntheta))
       allocate (zed_stella(-nzpi:nzpi))
 
@@ -778,7 +778,7 @@ contains
       q_local = geo_surf%qinp * (1.0 + delrho * geo_surf%shat / geo_surf%rhoc)
       B_local = bmag(1, -nzpi:nzpi) + delrho * dBdrho(-nzpi:nzpi)
       dBdz_local = dbdzed(1, -nzpi:nzpi) + delrho * d2Bdrdth(-nzpi:nzpi)
-      gradpar_local = gradpar(-nzpi:nzpi) + delrho * dgradpardrho(-nzpi:nzpi)
+      b_dot_gradz_local = b_dot_gradz_avg(-nzpi:nzpi) + delrho * d_b_dot_gradz_drho(-nzpi:nzpi)
 
       zed_stella = zed(-nzpi:nzpi) + pi
       theta_sfincs = export_f_theta(:ntheta)
@@ -797,8 +797,8 @@ contains
       dBHatdtheta = spread(dBHatdtheta(:, 1), 2, nzeta)
 
       ! this is bhat . grad theta
-      BHat_sup_theta(1, 1) = B_local(-nzpi) * gradpar_local(-nzpi)
-      call linear_interp_periodic(zed_stella, B_local * gradpar_local, theta_sfincs(2:), BHat_sup_theta(2:, 1))
+      BHat_sup_theta(1, 1) = B_local(-nzpi) * b_dot_gradz_local(-nzpi)
+      call linear_interp_periodic(zed_stella, B_local * b_dot_gradz_local, theta_sfincs(2:), BHat_sup_theta(2:, 1))
       BHat_sup_theta = spread(BHat_sup_theta(:, 1), 2, nzeta)
       ! this is I(psi) / (aref*Bref)
       BHat_sub_zeta = geo_surf%rgeo + delrho * dIdrho
@@ -806,7 +806,7 @@ contains
       ! note that + sign below relies on B = I grad zeta + grad zeta x grad psi
       DHat = q_local * BHat_sup_theta
 
-      deallocate (B_local, dBdz_local, gradpar_local)
+      deallocate (B_local, dBdz_local, b_dot_gradz_local)
       deallocate (theta_sfincs, zed_stella)
 
    end subroutine pass_geometry_to_sfincs
