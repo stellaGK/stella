@@ -6,6 +6,21 @@
 ! 
 ! TODO - write documentation on Miller equilibria.
 ! 
+!---------------------------- Geometric quantities -----------------------------
+! 
+!    <b_dot_gradtheta>(ia,iz) = b · ∇θ
+!    <b_dot_gradB> = b . ∇B
+!    <d_b_dot_gradtheta_drho> = d (b . ∇θ) / drho
+!    <d_b_dot_gradB_drho> = d (b . ∇B) / drho
+! 
+!--------------------------- Backwards Compatibility ---------------------------
+! 
+! An overview of the name changes implemented in September 2025 are given here,
+!    - gradpar           -->   b_dot_gradtheta
+!    - gradparB          -->   b_dot_gradB
+!    - dgradpardrho      -->   d_b_dot_gradtheta_drho
+!    - dgradparBdrho     -->   d_b_dot_gradB_drho
+! 
 !###############################################################################
 module geometry_miller
 
@@ -41,15 +56,15 @@ module geometry_miller
    integer :: nz, nz2pi
 
    real :: bi, dqdr, d2Idr2
-   real, dimension(:), allocatable :: grho, bmag, grho_psi0, bmag_psi0, gradpar
-   real, dimension(:), allocatable :: gradpararc, arc
+   real, dimension(:), allocatable :: grho, bmag, grho_psi0, bmag_psi0
+   real, dimension(:), allocatable :: b_dot_gradtheta, b_dot_gradtheta_arc, arc
    real, dimension(:), allocatable :: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
    real, dimension(:), allocatable :: gds23, gds24
    real, dimension(:), allocatable :: B_times_gradB_dot_gradx, B_times_gradB_dot_grady
    real, dimension(:), allocatable :: B_times_kappa_dot_gradx, B_times_kappa_dot_grady
    real, dimension(:), allocatable :: d2Rdth2, d2Zdth2, d2Rdrdth, d2Zdrdth
    real, dimension(:), allocatable :: gpsi, dBdrho, d2Bdrdth
-   real, dimension(:), allocatable :: dgradpardrho, dgradparBdrho, dBdth, gradparb
+   real, dimension(:), allocatable :: d_b_dot_gradtheta_drho, d_b_dot_gradB_drho, dBdth, b_dot_gradB
    real, dimension(:), allocatable :: dcvdrift0drho, dgbdrift0drho, theta
    real, dimension(:), allocatable :: varthet, dvarthdr, gradrho_gradthet, cross, d2varthdr2
    real, dimension(:), allocatable :: gradthet2, gradalph_gradthet, gradrho_gradalph, gradalph2
@@ -357,19 +372,19 @@ contains
    !============================================================================
    !========================= CALCULATE MILLER GEOMETRY ========================
    !============================================================================ 
-	! gradpar_out is called b_dot_grad_zeta in geometry
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
-                            dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
-                            bmag_out, bmag_psi0_out, &
-                            grady_dot_grady_out, gradx_dot_grady_out, gradx_dot_gradx_out, gds23_out, gds24_out, gradpar_out, &
-                            B_times_gradB_dot_gradx_out, B_times_gradB_dot_grady_out, &
-                            B_times_kappa_dot_gradx_out, B_times_kappa_dot_grady_out, &
-                            dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
-                            btor_out, rmajor_out, &
-                            dcvdrift0drho_out, dcvdriftdrho_out, &
-                            dgbdrift0drho_out, dgbdriftdrho_out, &
-                            dgds2dr_out, dgds21dr_out, &
-                            dgds22dr_out, djacdrho_out)
+      dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
+      bmag_out, bmag_psi0_out, &
+      grady_dot_grady_out, gradx_dot_grady_out, gradx_dot_gradx_out, &
+      gds23_out, gds24_out, b_dot_gradtheta_out, &
+      B_times_gradB_dot_gradx_out, B_times_gradB_dot_grady_out, &
+      B_times_kappa_dot_gradx_out, B_times_kappa_dot_grady_out, &
+      dBdrho_out, d2Bdrdth_out, d_b_dot_gradtheta_drho_out, &
+      btor_out, rmajor_out, &
+      dcvdrift0drho_out, dcvdriftdrho_out, &
+      dgbdrift0drho_out, dgbdriftdrho_out, &
+      dgds2dr_out, dgds21dr_out, &
+      dgds22dr_out, djacdrho_out)
 
       use constants, only: pi
       use splines, only: geo_spline
@@ -377,23 +392,26 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: nzed, nzgrid
       real, dimension(-nzgrid:), intent(in) :: zed_in
       logical, intent(in) :: zed_equal_arc
       real, intent(out) :: dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out
-      real, dimension(-nzgrid:), intent(out) :: grho_out, &
-               bmag_out, bmag_psi0_out, &
-               grady_dot_grady_out, gradx_dot_grady_out, gradx_dot_gradx_out, gds23_out, gds24_out, &
-               gradpar_out, B_times_gradB_dot_gradx_out, &
-               B_times_gradB_dot_grady_out, B_times_kappa_dot_gradx_out, B_times_kappa_dot_grady_out, &
-               dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
-               btor_out, rmajor_out, &
-               dcvdrift0drho_out, dcvdriftdrho_out, &
-               dgbdrift0drho_out, dgbdriftdrho_out, &
-               dgds2dr_out, dgds21dr_out, &
-               dgds22dr_out, &
-               djacdrho_out
+      real, dimension(-nzgrid:), intent(out) :: grho_out
+      real, dimension(-nzgrid:), intent(out) :: bmag_out, bmag_psi0_out
+      real, dimension(-nzgrid:), intent(out) :: grady_dot_grady_out, gradx_dot_grady_out
+      real, dimension(-nzgrid:), intent(out) :: gradx_dot_gradx_out, gds23_out, gds24_out
+      real, dimension(-nzgrid:), intent(out) :: b_dot_gradtheta_out, B_times_gradB_dot_gradx_out
+      real, dimension(-nzgrid:), intent(out) :: B_times_gradB_dot_grady_out, B_times_kappa_dot_gradx_out
+      real, dimension(-nzgrid:), intent(out) :: B_times_kappa_dot_grady_out
+      real, dimension(-nzgrid:), intent(out) :: dBdrho_out, d2Bdrdth_out, d_b_dot_gradtheta_drho_out
+      real, dimension(-nzgrid:), intent(out) :: btor_out, rmajor_out
+      real, dimension(-nzgrid:), intent(out) :: dcvdrift0drho_out, dcvdriftdrho_out
+      real, dimension(-nzgrid:), intent(out) :: dgbdrift0drho_out, dgbdriftdrho_out
+      real, dimension(-nzgrid:), intent(out) :: dgds2dr_out, dgds21dr_out
+      real, dimension(-nzgrid:), intent(out) :: dgds22dr_out, djacdrho_out
 
+      ! Local variables
       integer :: nr, np
       integer :: i, j
       real :: rmin, dum
@@ -546,10 +564,11 @@ contains
       ! get dB/dtheta
       call get_dthet(bmag, dbdth)
 
-      ! calculate b . grad theta
-      gradpar = dpsipdrho / (bmag * jacrho)
-      ! b . grad B
-      gradparb = gradpar * dBdth
+      ! Calculate <b_dot_gradtheta> = b . grad theta (formerly <gradpar>)
+      b_dot_gradtheta = dpsipdrho / (bmag * jacrho)
+      
+      ! Calculate <b_dot_gradB> = b . grad B (formerly <gradparB>)
+      b_dot_gradB = b_dot_gradtheta * dBdth
 
       ! get d|grad rho|^2/drho and d|grad psi|^2/drho
       call get_dgr2dr(dpsipdrho, grho)
@@ -557,14 +576,14 @@ contains
       ! get dB/drho and d2B/drho2
       call get_dBdrho(bmag, dIdrho)
 
-      ! d (b . grad theta) / drho
-      dgradpardrho = -gradpar * (dBdrho / bmag + djacdrho / jacrho)
+      ! Calculate <d_b_dot_gradtheta_drho> d (b . grad theta) / drho (formerly <dgradpardrho>)
+      d_b_dot_gradtheta_drho = -b_dot_gradtheta * (dBdrho / bmag + djacdrho / jacrho)
 
       ! get d/dtheta (dB/drho)
       call get_dthet(dBdrho, d2Bdrdth)
 
-      ! d(b . grad B)/drho
-      dgradparBdrho = dgradpardrho * dBdth + gradpar * d2Bdrdth
+      ! Calculate <d_b_dot_gradB_drho> d(b . grad B)/drho (formerly <dgradparBdrho>)
+      d_b_dot_gradB_drho = d_b_dot_gradtheta_drho * dBdth + b_dot_gradtheta * d2Bdrdth
 
       ! obtain varthet = (I/(q*(dpsi/dr)) * int_0^theta dtheta' jacrho/R^2
       call get_varthet(dpsipdrho)
@@ -598,16 +617,16 @@ contains
       B_times_kappa_dot_gradx = -2.*bi * dqdr / bmag**2 / 2. / local%shat
 
       ! this is 2*dpsiN/drho times the rho derivative (bhat/B x grad B / B) . (grad q)
-      dcvdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * (dgradparbdrho + gradparb * &
+      dcvdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * (d_b_dot_gradB_drho + b_dot_gradB * &
              (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
-             - 2.*bi * gradparb * local%d2qdr2 / bmag**2
+             - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
       ! this is 2*dpsiN/drho/B times the rho derivative of (bhat x gradB/B) . (grad q)
       ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
       dgbdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * &
-             (dgradparbdrho + gradparb * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
-             - 2.*bi * gradparb * local%d2qdr2 / bmag**2
+             (d_b_dot_gradB_drho + b_dot_gradB * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
+             - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
 
-      B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * gradparb
+      B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * b_dot_gradB
       ! this is 2 * dpsiN/drho * (bhat/B x gradB/B) . (grad q)
       B_times_gradB_dot_gradx = B_times_kappa_dot_gradx
 
@@ -651,9 +670,9 @@ contains
       ! interpolate here
       if (debug) write (*, *) 'geometry_miller::zed_equal_arc'
       if (zed_equal_arc) then
-         call theta_integrate(1./gradpar, dum)
-         gradpararc = (theta(nz) - theta(-nz)) / ((2 * np - 1) * dum)
-         call theta_integrate_indef(gradpararc / gradpar, arc)
+         call theta_integrate(1./b_dot_gradtheta, dum)
+         b_dot_gradtheta_arc = (theta(nz) - theta(-nz)) / ((2 * np - 1) * dum)
+         call theta_integrate_indef(b_dot_gradtheta_arc / b_dot_gradtheta, arc)
 
          allocate (zed_arc(-nzgrid:nzgrid))
 
@@ -666,14 +685,14 @@ contains
          call geo_spline(theta, gradx_dot_gradx, zed_arc, gradx_dot_gradx_out)
          call geo_spline(theta, gds23, zed_arc, gds23_out)
          call geo_spline(theta, gds24, zed_arc, gds24_out)
-         call geo_spline(theta, gradpararc, zed_arc, gradpar_out)
+         call geo_spline(theta, b_dot_gradtheta_arc, zed_arc, b_dot_gradtheta_out)
          call geo_spline(theta, B_times_gradB_dot_grady, zed_arc, B_times_gradB_dot_grady_out)
          call geo_spline(theta, B_times_gradB_dot_gradx, zed_arc, B_times_gradB_dot_gradx_out)
          call geo_spline(theta, B_times_kappa_dot_grady, zed_arc, B_times_kappa_dot_grady_out)
          call geo_spline(theta, B_times_kappa_dot_gradx, zed_arc, B_times_kappa_dot_gradx_out)
          call geo_spline(theta, dBdrho, zed_arc, dBdrho_out)
          call geo_spline(theta, d2Bdrdth, zed_arc, d2Bdrdth_out)
-         call geo_spline(theta, dgradpardrho, zed_arc, dgradpardrho_out)
+         call geo_spline(theta, d_b_dot_gradtheta_drho, zed_arc, d_b_dot_gradtheta_drho_out)
          call geo_spline(theta, Rr(2, :), zed_arc, rmajor_out)
          call geo_spline(theta, dcvdriftdrho, zed_arc, dcvdriftdrho_out)
          call geo_spline(theta, dgbdriftdrho, zed_arc, dgbdriftdrho_out)
@@ -694,14 +713,14 @@ contains
          call geo_spline(theta, gradx_dot_gradx, zed_in, gradx_dot_gradx_out)
          call geo_spline(theta, gds23, zed_in, gds23_out)
          call geo_spline(theta, gds24, zed_in, gds24_out)
-         call geo_spline(theta, gradpar, zed_in, gradpar_out)
+         call geo_spline(theta, b_dot_gradtheta, zed_in, b_dot_gradtheta_out)
          call geo_spline(theta, B_times_gradB_dot_grady, zed_in, B_times_gradB_dot_grady_out)
          call geo_spline(theta, B_times_gradB_dot_gradx, zed_in, B_times_gradB_dot_gradx_out)
          call geo_spline(theta, B_times_kappa_dot_grady, zed_in, B_times_kappa_dot_grady_out)
          call geo_spline(theta, B_times_kappa_dot_gradx, zed_in, B_times_kappa_dot_gradx_out)
          call geo_spline(theta, dBdrho, zed_in, dBdrho_out)
          call geo_spline(theta, d2Bdrdth, zed_in, d2Bdrdth_out)
-         call geo_spline(theta, dgradpardrho, zed_in, dgradpardrho_out)
+         call geo_spline(theta, d_b_dot_gradtheta_drho, zed_in, d_b_dot_gradtheta_drho_out)
          call geo_spline(theta, Rr(2, :), zed_in, rmajor_out)
          call geo_spline(theta, dcvdriftdrho, zed_in, dcvdriftdrho_out)
          call geo_spline(theta, dgbdriftdrho, zed_in, dgbdriftdrho_out)
@@ -767,10 +786,10 @@ contains
          B_times_kappa_dot_grady(i) = round(B_times_kappa_dot_grady(i), n)
          dcvdriftdrho(i) = round(dcvdriftdrho(i), n)
          drzdth(i) = round(drzdth(i), n)
-         gradpar(i) = round(gradpar(i), n)
-         dgradpardrho(i) = round(dgradpardrho(i), n)
-         gradparB(i) = round(gradparB(i), n)
-         dgradparBdrho(i) = round(dgradparBdrho(i), n)
+         b_dot_gradtheta(i) = round(b_dot_gradtheta(i), n)
+         d_b_dot_gradtheta_drho(i) = round(d_b_dot_gradtheta_drho(i), n)
+         b_dot_gradB(i) = round(b_dot_gradB(i), n)
+         d_b_dot_gradB_drho(i) = round(d_b_dot_gradB_drho(i), n)
          grady_dot_grady(i) = round(grady_dot_grady(i), n)
          dgds2dr(i) = round(dgds2dr(i), n)
          gradx_dot_grady(i) = round(gradx_dot_grady(i), n)
@@ -819,7 +838,7 @@ contains
          '31.grgalph', '32.dgagr', '33.galph2', '34.dga2', '35.cross', &
          '36.dcrossdr', '37.B_times_gradB_dot_gradx', '38.dgbdrift0', '39.B_times_kappa_dot_gradx', '40.dcvdrift0', &
          '41.B_times_gradB_dot_grady', '42.dgbdrift', '43.B_times_kappa_dot_grady', '44.dcvdrift', '45.drzdth', &
-         '46.gradpar', '47.dgpardr', '48.gradparB', '49.dgparBdr', '50.grady_dot_grady', &
+         '46.b_dot_gradtheta', '47.dgpardr', '48.b_dot_gradB', '49.dgparBdr', '50.grady_dot_grady', &
          '51.dgds2dr', '52.gradx_dot_grady', '53.dgds21dr', '54.gradx_dot_gradx', '55.dgds22dr', &
          '56.gds23', '57.gds24', '58.Zr'
 
@@ -835,7 +854,7 @@ contains
          write(*,*) 'g', gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i)
          write(*,*) 'h', dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i)
          write(*,*) 'i', B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i)
-         write(*,*) 'j', gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), grady_dot_grady(i)
+         write(*,*) 'j', b_dot_gradtheta(i), d_b_dot_gradtheta_drho(i), b_dot_gradB(i), d_b_dot_gradB_drho(i), grady_dot_grady(i)
          write(*,*) 'k', dgds2dr(i), gradx_dot_grady(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i)
          write(*,*) 'l', Zr(2, i)
       end if
@@ -849,7 +868,7 @@ contains
             gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i), &
             dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i), &
             B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i), &
-            gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), grady_dot_grady(i), &
+            b_dot_gradtheta(i), d_b_dot_gradtheta_drho(i), b_dot_gradB(i), d_b_dot_gradB_drho(i), grady_dot_grady(i), &
             dgds2dr(i), gradx_dot_grady(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i), &
             Zr(2, i)
       end do
@@ -872,7 +891,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! periodic quantities can be computed on 2*pi grid and replicated
-      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
+      allocate (grho(-nz:nz), bmag(-nz:nz), b_dot_gradtheta(-nz:nz)); grho = 0.0; bmag = 0.0; b_dot_gradtheta = 0.0
       allocate (grady_dot_grady(-nz:nz), gradx_dot_grady(-nz:nz), gradx_dot_gradx(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
       grady_dot_grady = 0.0; gradx_dot_grady = 0.0; gradx_dot_gradx = 0.0; gds23 = 0.0; gds24 = 0.0
       allocate (B_times_gradB_dot_gradx(-nz:nz), B_times_gradB_dot_grady(-nz:nz)); B_times_gradB_dot_gradx = 0.0; B_times_gradB_dot_grady = 0.0
@@ -881,12 +900,12 @@ contains
       allocate (jacrho(-nz:nz), djacdrho(-nz:nz), djacrdrho(-nz:nz), d2jacdr2(-nz:nz))
       jacrho = 0.0; djacdrho = 0.0; djacrdrho = 0.0; d2jacdr2 = 0.0
       allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz)); d2Rdrdth = 0.0; d2Zdrdth = 0.0; gpsi = 0.0
-      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz)); dBdrho = 0.0; dgradpardrho = 0.0
-      allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz), dBdth(-nz:nz), gradparb(-nz:nz))
-      d2Bdrdth = 0.0; dgradparBdrho = 0.0; dBdth = 0.0; gradparb = 0.0
+      allocate (dBdrho(-nz:nz), d_b_dot_gradtheta_drho(-nz:nz)); dBdrho = 0.0; d_b_dot_gradtheta_drho = 0.0
+      allocate (d2Bdrdth(-nz:nz), d_b_dot_gradB_drho(-nz:nz), dBdth(-nz:nz), b_dot_gradB(-nz:nz))
+      d2Bdrdth = 0.0; d_b_dot_gradB_drho = 0.0; dBdth = 0.0; b_dot_gradB = 0.0
       allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz)); dcvdrift0drho = 0.0; dgbdrift0drho = 0.0
       allocate (theta(-nz:nz)); theta = 0.0
-      allocate (gradpararc(-nz:nz)); gradpararc = 0.0
+      allocate (b_dot_gradtheta_arc(-nz:nz)); b_dot_gradtheta_arc = 0.0
       allocate (arc(-nz:nz)); arc = 0.0
       allocate (dRdrho(-nz:nz), dZdrho(-nz:nz), dRdth(-nz:nz), dZdth(-nz:nz))
       dRdrho = 0.0; dZdrho = 0.0; dRdth  = 0.0; dZdth= 0.0
@@ -919,7 +938,7 @@ contains
 
       deallocate (grho)
       deallocate (bmag)
-      deallocate (gradpar)
+      deallocate (b_dot_gradtheta)
       deallocate (grady_dot_grady)
       deallocate (gradx_dot_grady)
       deallocate (gradx_dot_gradx)
@@ -932,11 +951,11 @@ contains
       deallocate (Rr, Zr)
       deallocate (jacrho, djacdrho, djacrdrho, d2jacdr2)
       deallocate (d2Rdrdth, d2Zdrdth, gpsi)
-      deallocate (dBdrho, dgradpardrho)
-      deallocate (d2Bdrdth, dgradparBdrho, dBdth, gradparb)
+      deallocate (dBdrho, d_b_dot_gradtheta_drho)
+      deallocate (d2Bdrdth, d_b_dot_gradB_drho, dBdth, b_dot_gradB)
       deallocate (dcvdrift0drho, dgbdrift0drho)
       deallocate (theta)
-      deallocate (gradpararc)
+      deallocate (b_dot_gradtheta_arc)
       deallocate (arc)
       deallocate (dRdrho, dZdrho, dRdth, dZdth)
       deallocate (gradrho_gradthet, gradthet2, dgr2dr, dgpsi2dr)

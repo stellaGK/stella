@@ -5,8 +5,8 @@
 ! Routines for calculating the geometry needed by stella, from a VMEC file.
 ! Inside the <geometry> module we call:
 ! 
-! call get_vmec_geometry(nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
-!    b_dot_grad_z, grad_alpha_grad_alpha, &
+! call get_vmec_geometry(nzgrid, nalpha, naky, geo_surf, grho, bmag, &
+!    b_dot_gradz_avg, b_dot_gradz, grad_alpha_grad_alpha, &
 !    grad_alpha_grad_psit, grad_psit_grad_psitt, &
 !    gds23, gds24, gds25, gds26, B_times_gradB_dot_gradalpha, B_times_gradB_dot_gradpsit, &
 !    B_times_kappa_dot_gradalpha, B_times_kappa_dot_gradpsit, sign_torflux, &
@@ -19,7 +19,7 @@
 ! This module can change the parallel coordinate to the normalized arc-length,
 ! and it interpolates the VMEC z-grid to the stella z-grid.
 ! 
-! Note that I removed <b_dot_grad_zeta_prefac> and <z_grid_scalefac>.
+! Note that I removed <b_dot_gradzeta_prefac> and <z_grid_scalefac>.
 !  
 ! Initial VMEC geometry code was written by Matt Landreman, University of Maryland in August 2017. 
 ! Modified in 2018-2019 by Michael Barnes, and cleaned in 2024 by Hanne Thienpondt.
@@ -233,13 +233,13 @@ contains
       number_of_field_periods_inputfile, s_inputfile, vmec_surface_option, verbose, & 
       ! Output parameters
       s, safety_factor_q, shat, L_reference, B_reference, nfp_out, & 
-      sign_toroidal_flux, alpha, zeta, bmag, b_dot_grad_zeta, grad_alpha_grad_alpha, &
+      sign_toroidal_flux, alpha, zeta, bmag, b_dot_gradzeta, grad_alpha_grad_alpha, &
       grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, & 
       gds25_psitalpha, gds26_psitalpha, B_times_gradB_dot_gradalpha, & 
       B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradalpha, & 
       B_times_kappa_dot_gradpsit,theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, &
       gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, &
-      b_dot_grad_zeta_RR, ierr)
+      b_dot_gradzeta_RR, ierr)
 
       use mp, only: mp_abort
 
@@ -301,7 +301,7 @@ contains
       !     <alpha> = theta_p - iota * zeta
       !  
       ! Geometric arrays
-      !     <b_dot_grad_zeta> = b . ∇ζ  (increases in the counter-clockwise direction)
+      !     <b_dot_gradzeta> = b . ∇ζ  (increases in the counter-clockwise direction)
       !     <grad_alpha_grad_alpha> = a^2 ∇α . ∇α  
       !     <grad_alpha_grad_psit> = (1/Bref) ∇α . ∇ψt  
       !     <grad_psit_grad_psit> = 1/(a^2 Bref^2) ∇ψt . ∇ψt  
@@ -313,7 +313,7 @@ contains
       integer, intent(out) :: sign_toroidal_flux, ierr
       real, intent(out) :: L_reference, B_reference, nfp_out
       real, intent(out) :: s, safety_factor_q, shat
-      real, dimension(:, -nzgrid:), intent(out) :: theta, bmag, b_dot_grad_zeta, psit_displacement_fac
+      real, dimension(:, -nzgrid:), intent(out) :: theta, bmag, b_dot_gradzeta, psit_displacement_fac
       real, dimension(:, -nzgrid:), intent(out) :: grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit
       real, dimension(:, -nzgrid:), intent(out) :: gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha
       real, dimension(:, -nzgrid:), intent(out) :: B_times_gradB_dot_gradalpha
@@ -322,7 +322,7 @@ contains
       real, dimension(:, -nzgrid:), intent(out) :: B_times_kappa_dot_gradpsit
       real, dimension(:, -nzgrid:), intent(out) :: B_sub_theta, B_sub_zeta
       real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2 
-      real, dimension(:, -nzgrid:), intent(out) :: b_dot_grad_zeta_RR
+      real, dimension(:, -nzgrid:), intent(out) :: b_dot_gradzeta_RR
       real, dimension(-nzgrid:), intent(out) :: zeta
       real, dimension(:), intent(out) :: alpha 
 
@@ -458,8 +458,8 @@ contains
       ! <bmag> = B̃ = B/Bref 
       bmag = B / Bref
 
-      ! <b_dot_grad_zeta> = (a/B) B . ∇ζ = (a/B) B_zeta 
-      b_dot_grad_zeta = (a/B) * B_sup_zeta 
+      ! <b_dot_gradzeta> = (a/B) B . ∇ζ = (a/B) B_zeta 
+      b_dot_gradzeta = (a/B) * B_sup_zeta 
 
       ! <grad_alpha_grad_alpha> = (a^2) ∇α . ∇α
       ! <grad_alpha_grad_psit> = (1/Bref) ∇α . ∇ψt 
@@ -481,7 +481,7 @@ contains
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇α and (R^2/B^2) ∇ζ . ∇ψt
       gradzeta_gradpsit_R2overB2 = gradzeta_gradpsit * R**2 / (bmag*bmag)
       gradzeta_gradalpha_R2overB2 = gradzeta_gradalpha * R**2 / (bmag*bmag)
-      b_dot_grad_zeta_RR = b_dot_grad_zeta * R**2
+      b_dot_gradzeta_RR = b_dot_gradzeta * R**2
 
       ! Define <gds23_psitalpha> = -1/B̃^2 * [(∇α . ∇ζ) * (∇ψt . ∇α)  - (∇ψt . ∇ζ) * |∇α|^2]
       ! Define <gds24_psitalpha> = -1/B̃^2 * [(∇α . ∇ζ) * |∇ψt|^2     - (∇ψt . ∇ζ) * (∇ψt . ∇α)]
@@ -1760,7 +1760,7 @@ contains
 
          ! Set the already allocated arrays to zero (these enter the <calculate_vmec_geometry> routine) 
          gds23_psitalpha = 0.0; gds24_psitalpha = 0.0; gds25_psitalpha = 0.0; gds26_psitalpha = 0.0
-         bmag = 0; b_dot_grad_zeta = 0.0; B_sub_theta = 0; B_sub_zeta = 0.0
+         bmag = 0; b_dot_gradzeta = 0.0; B_sub_theta = 0; B_sub_zeta = 0.0
          B_times_gradB_dot_gradalpha = 0.0; B_times_gradB_dot_gradpsit = 0.0; B_times_kappa_dot_gradalpha = 0; B_times_kappa_dot_gradpsit = 0.0
          grad_alpha_grad_alpha = 0.0; grad_alpha_grad_psit = 0.0; grad_psit_grad_psit = 0.0
          gradzeta_gradpsit_R2overB2 = 0.0; gradzeta_gradpsit_R2overB2 = 0.0

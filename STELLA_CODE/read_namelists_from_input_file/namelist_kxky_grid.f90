@@ -500,30 +500,11 @@ contains
          ! We can always launch a single unconnected mode
          if ((nakx==1) .and. (naky==1)) return
          
-         ! We can launch a range of ky modes only if kx = 0
-         ! Otherwise the theta0 grid would not be constructed correctly
-         if (nakx==1) then
-            if (akx_min/=0.0 .or. akx_max/=-1.0) then
-               if (akx_min/=0.0) then
-                  call mp_abort('A range of ky-modes has been selected but kx!=0. Aborting')
-               end if 
-            else if (theta0_min/=0.0 .or. theta0_max/=-1.0) then
-               if (theta0_min/=0.0) then
-                  call mp_abort('A range of ky-modes has been selected but theta0!=0. Aborting')
-               end if
-            end if
-         end if
-         
          ! We can not launch a range of modes with only ky=0
          if (naky==1) then
             if (aky_min==0.0 .or. aky_max==0.0) then
                call mp_abort('Can not launch only the ky=0 mode. Aborting')
             end if
-         end if
-         
-         ! If we launch a range in kx and ky, the box mode should be used instead
-         if (nakx/=1 .and. naky/=1) then
-            call mp_abort('To launch a box of (kx,ky) modes use grid_option = "box" instead of "range".')
          end if
       
       end subroutine check_kxky_grid_range_parameters

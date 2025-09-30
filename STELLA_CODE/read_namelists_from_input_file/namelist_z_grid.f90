@@ -148,7 +148,7 @@ contains
          if (MOD(nzed,2) .eq. 1) nzed = nzed + 1
 
          ! In full-flux-surface simulations, force the use of z = arc_length to
-         ! ensure that gradpar is alpha-independent, which is necessary to obtain
+         ! ensure that b · ∇z is alpha-independent, which is necessary to obtain
          ! efficient numerical solution of parallel streaming
          if (full_flux_surface) zed_equal_arc = .true.
       

@@ -493,6 +493,7 @@ $(OBJ_DIR)/dissipation_hyper.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/geometry_vmec.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_time.o \

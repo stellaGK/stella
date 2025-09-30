@@ -4217,7 +4217,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer :: idx1, ij, il, im, jj, ll, mm, ll1, mm1, jj1, isa, isb
       real :: clm
 
-      real :: spitzer_i1, spitzer_i2, applied_Epar, gradpar_lnp0, gradpar_lnT0
+      real :: spitzer_i1, spitzer_i2, applied_Epar, b_dot_gradz_lnp0, b_dot_gradz_lnT0
 
       !-------------------------------------------------------------------------
 
@@ -4233,11 +4233,11 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          ! all other non-collisional terms are disabled, and Delta t --> \infty
 
          applied_Epar = 0.01
-         gradpar_lnp0 = 0
-         gradpar_lnT0 = 0.01
+         b_dot_gradz_lnp0 = 0
+         b_dot_gradz_lnT0 = 0.01
 
-         spitzer_i1 = (applied_Epar - gradpar_lnp0) * i1fac
-         spitzer_i2 = gradpar_lnT0 * i2fac
+         spitzer_i1 = (applied_Epar - b_dot_gradz_lnp0) * i1fac
+         spitzer_i2 = b_dot_gradz_lnT0 * i2fac
 
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)

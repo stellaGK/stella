@@ -85,6 +85,17 @@ def test_kxky_grid_range_linear_rangeky_kx0_withoutky0(tmp_path, stella_version,
     return
 
 #-------------------------------------------------------------------------------
+def test_kxky_grid_range_linear_rangeky_rangekx(tmp_path, stella_version, error=False):
+
+    # Run stella inside of <tmp_path>
+    run_data = run_local_stella_simulation('kxky_grid_rangeky_rangekx_linear.in', tmp_path, stella_version)
+     
+    # Compare phi2(t) in the netCDF files
+    compare_local_potential_with_expected_potential(run_data=run_data, error=False)
+    print('  -->  The grid_option="range" is evolving correctly during a linear simulation.')
+    return
+
+#-------------------------------------------------------------------------------
 #                                RANGE LINEAR                                  #
 #-------------------------------------------------------------------------------
 def test_kxky_grid_singlemode_linear(tmp_path, stella_version, error=False):

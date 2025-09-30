@@ -22,7 +22,7 @@ module gk_parallel_streaming
    public :: add_parallel_streaming_radial_variation
    public :: stream_tridiagonal_solve
    public :: initialised_parallel_streaming
-   public :: stream, stream_c, stream_sign, gradpar_c
+   public :: stream, stream_c, stream_sign, b_dot_gradz_centredinz
    public :: stream_rad_var1
    public :: stream_rad_var2
    public :: center_zed, get_dzed
@@ -48,11 +48,11 @@ module gk_parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_a1, stream_tri_a2
    real, dimension(:, :), allocatable :: stream_tri_b1, stream_tri_b2
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
-   real, dimension(:, :), allocatable :: gradpar_c
-
+   real, dimension(:, :), allocatable :: b_dot_gradz_centredinz
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
+   ! Only initialise once
    logical :: initialised_parallel_streaming = .false.
 
 contains
@@ -72,7 +72,7 @@ contains
       use grids_velocity, only: vperp2, vpa, mu
       use grids_kxky, only: nalpha
       use grids_z, only: nzgrid, nztot
-      use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
+      use geometry, only: b_dot_gradz_avg, d_b_dot_gradz_drho, dBdrho, gfac, b_dot_gradz
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
       use parameters_physics, only: full_flux_surface
@@ -116,7 +116,7 @@ contains
          do iv = 1, nvpa
             do iz = -nzgrid, nzgrid
                do ia = 1, nalpha
-                  stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
+                  stream(ia, iz, iv, :) = -code_dt * b_dot_gradz(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                !----------------------------------------------------------------
                !               Full Flux Surface simulation
@@ -159,14 +159,14 @@ contains
          end if
          ia = 1
          stream_rad_var1 = -code_dt * spread(spread(spec%stm_psi0, 1, nztot), 2, nvpa) &
-                           * gfac * spread(spread(vpa, 1, nztot) * spread(dgradpardrho, 2, nvpa), 3, nspec)
+                           * gfac * spread(spread(vpa, 1, nztot) * spread(d_b_dot_gradz_drho, 2, nvpa), 3, nspec)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
             energy = (vpa(iv)**2 + vperp2(ia, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
             stream_rad_var2(ia, :, ivmu) = &
-               +code_dt * spec(is)%stm_psi0 * vpa(iv) * gradpar &
+               +code_dt * spec(is)%stm_psi0 * vpa(iv) * b_dot_gradz_avg &
                * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, :, imu, is) * maxwell_fac(is) &
                * (pfac * (spec(is)%fprim + spec(is)%tprim * (energy - 2.5)) &
                   + gfac * 2 * mu(imu) * dBdrho)
@@ -209,12 +209,12 @@ contains
                call center_zed(iv, stream_c(:, iv, is), -nzgrid)
             end do
          end do
-         if (.not. allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid, -1:1))
-         gradpar_c = spread(gradpar, 2, 3)
-         ! get gradpar centred in zed for negative vpa (affects upwinding) 
-         call center_zed(1, gradpar_c(:, -stream_sign(1)), -nzgrid)
-         ! get gradpar centred in zed for positive vpa (affects upwinding)
-         call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)), -nzgrid)
+         if (.not. allocated(b_dot_gradz_centredinz)) allocate (b_dot_gradz_centredinz(-nzgrid:nzgrid, -1:1))
+         b_dot_gradz_centredinz = spread(b_dot_gradz_avg, 2, 3)
+         ! get b · ∇z centred in zed for negative vpa (affects upwinding) 
+         call center_zed(1, b_dot_gradz_centredinz(:, -stream_sign(1)), -nzgrid)
+         ! get b · ∇z centred in zed for positive vpa (affects upwinding)
+         call center_zed(nvpa, b_dot_gradz_centredinz(:, -stream_sign(nvpa)), -nzgrid)
          stream = spread(stream_c, 1, nalpha)
       end if
       ! ========================================================================
@@ -491,23 +491,19 @@ contains
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
 
-               ! Add variation in gradpar
-               g0k = g0(:, :, iz, it) &
-                     + g1(:, :, iz, it) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-
+               ! Add variation in b · ∇z
+               g0k = g0(:, :, iz, it) + g1(:, :, iz, it) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                g0k = g0k * stream_rad_var1(iz, iv, is)
 
                ! Add variation in F_s/T_s
                g0k = g0k + g1(:, :, iz, it) * stream_rad_var2(ia, iz, ivmu)
-
                gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + g0k
 
                ! Add variation in the gyroaveraging and quasineutrality of phi
                ! These variations already have the linear part calculated, so
                ! add it into the rhs directly
-               g0k = spec(is)%zt * stream(1, iz, iv, is) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
-                     * (g2(:, :, iz, it) + g3(:, :, iz, it))
-
+               g0k = spec(is)%zt * stream(1, iz, iv, is) * maxwell_vpa(iv, is) &
+                  * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * (g2(:, :, iz, it) + g3(:, :, iz, it))
                rhs(:, :, iz, it, ivmu) = rhs(:, :, iz, it, ivmu) + g0k
 
             end do
@@ -932,7 +928,7 @@ contains
       if (allocated(stream)) deallocate (stream)
       if (allocated(stream_c)) deallocate (stream_c)
       if (allocated(stream_sign)) deallocate (stream_sign)
-      if (allocated(gradpar_c)) deallocate (gradpar_c)
+      if (allocated(b_dot_gradz_centredinz)) deallocate (b_dot_gradz_centredinz)
       if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
