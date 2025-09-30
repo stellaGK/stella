@@ -4,13 +4,15 @@ Stella evolves the normalized gyrokinetic equation in time, give by equation
 (19) in [2019 - Barnes - stella an operator-split, implicit-explicit df-gyrokinetic 
 code for general magnetic field configurations], where each variable is assumed to be normalized:
 
+$$ 
    (1)      ∂g_{k,s} / ∂t =
    (2)      - v_{th,s} v_parallel b . ∇z ( ∂g_{k,s} / ∂z + Z_s/T_s ∂(J_0 ϕ_k) / ∂z exp(-v*2_s) 
    (3)      + v_{th,s} mu_s b . ∇B ∂g_{k,s} / ∂v_parallel
    (4)      - i omega_{d,k,s} (g_{k,s} + Z_s/T_s J_0 ϕ_k exp(-v*2_s) 
    (5)      - i omega_{*,k,s} J_0 ϕ_k 
    (6)      - (B_r/2) (dy/dalpha) (dx/dpsi) F_k ( F^{-1}_k [ik_y J_0 ϕ_k] F^{-1}_k [ik_x g_{k,s}] - F^{-1}_k [ik_x J_0 ϕ_k] F^{-1}_k [ik_y g_{k,s} ] )
-            
+$$
+
 If maxwellian_normalization = .true., the evolved distribution function is normalised by a Maxwellian.
 
 ## Terms in the gyrokinetic equation
