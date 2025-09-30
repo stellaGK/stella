@@ -4,21 +4,6 @@
 ! 
 ! This module constructs a magnetic equilibrium based on a set of Miller parameters.
 ! 
-!---------------------------- Geometric quantities -----------------------------
-! 
-!    <b_dot_gradtheta>(ia,iz) = b · ∇θ
-!    <b_dot_gradB> = b . ∇B
-!    <d_b_dot_gradtheta_drho> = d (b . ∇θ) / drho
-!    <d_b_dot_gradB_drho> = d (b . ∇B) / drho
-! 
-!--------------------------- Backwards Compatibility ---------------------------
-! 
-! An overview of the name changes implemented in September 2025 are given here,
-!    - gradpar           -->   b_dot_gradtheta
-!    - gradparB          -->   b_dot_gradB
-!    - dgradpardrho      -->   d_b_dot_gradtheta_drho
-!    - dgradparBdrho     -->   d_b_dot_gradB_drho
-!
 !------------------------------- Input Variables -------------------------------
 ! Definitions of input Miller quantities:
 !     - rhoc         -->   Minor radius, r
@@ -54,7 +39,7 @@
 !
 ! 
 ! The GS equation can be expressed using this R and Z, giving a long expression, 
-! which will ~eventually~ be in the "stella_bible". For this we require terms like 
+! which will ~eventually~ be in the "stella_manual". For this we require terms like 
 ! ∂Z/∂θ, ∂R/∂θ, ∂Z/∂r, ∂R/∂r etc. (plus second derivatives). These will depend on
 ! quantities like R0, r, δ and κ. e.g.
 !              ∂R/∂r = R0' + cos[θ+ sin(θδ)]− rsin{θsin[θ+ sin(θδ)]}δ′
@@ -81,6 +66,22 @@
 !                 <b_dot_gradtheta> = b . ∇θ = dψ/dr / (B/B0 * Jacobian_r)
 !     - These are the quantities used in geometry.f90 to compute the geometric
 !       coefficients that appear in the code. 
+!
+!---------------------------- Geometric quantities -----------------------------
+! 
+!    <b_dot_gradtheta>(ia,iz) = b · ∇θ
+!    <b_dot_gradB> = b . ∇B
+!    <d_b_dot_gradtheta_drho> = d (b . ∇θ) / drho
+!    <d_b_dot_gradB_drho> = d (b . ∇B) / drho
+! 
+!--------------------------- Backwards Compatibility ---------------------------
+! 
+! An overview of the name changes implemented in September 2025 are given here,
+!    - gradpar           -->   b_dot_gradtheta
+!    - gradparB          -->   b_dot_gradB
+!    - dgradpardrho      -->   d_b_dot_gradtheta_drho
+!    - dgradparBdrho     -->   d_b_dot_gradB_drho
+!
 !###############################################################################
 module geometry_miller
 
@@ -99,7 +100,6 @@ module geometry_miller
 
    private
 
-   integer :: nzed_local
    real :: rhoc, rmaj, shift
    real :: kappa, kapprim
    real :: tri, triprim
@@ -113,6 +113,7 @@ module geometry_miller
    logical :: write_profile_variation, read_profile_variation
    logical :: load_psi0_variables
 
+   integer :: nzed_local
    integer :: nz, nz2pi
 
    real :: bi, dqdr, d2Idr2
@@ -190,7 +191,7 @@ contains
       local%d2psidr2 = d2psidr2
       local%zed0_fac = 1.0
 
-      ! following two variables are not inputs
+      ! Following two variables are not inputs from Miller input
       local%dr = 1.e-3 * (rhoc / rmaj)
       local%rhotor = rhotor
       local%psitor_lcfs = psitor_lcfs
@@ -198,25 +199,26 @@ contains
       local%dpsitordrho = 0.0
       local%d2psitordrho2 = 0.0
 
-      ! the next three variablaes are for multibox simulations
+      ! The next three variablaes are for multibox simulations
       ! with radial variation
       local%rhoc_psi0 = rhoc
       local%qinp_psi0 = qinp
       local%shat_psi0 = shat
 
-      ! first get nperiod corresponding to input number of grid points
+      ! First get nperiod corresponding to input number of grid points
       nz2pi = nzed / 2
       np = (nzgrid - nz2pi) / nzed + 1
 
-      ! now switch to using (possible higher resolution) local grid
+      ! Now switch to using (possible higher resolution) local grid
       nz2pi = nzed_local / 2
-      ! this is the equivalent of nzgrid on the local grid
+      ! This is the equivalent of nzgrid on the local grid
       nz = nz2pi + nzed_local * (np - 1)
 
-      ! initialize to zero
-      ! will be overwritten if reading in from file
-      ! only relevant for profile variation tests
-      ! these needs to be deallocated somewhere
+      ! ------------------------------------------------------------------------
+      !                              Radial Variation
+      ! ------------------------------------------------------------------------
+      ! Initialise to zero. These will be overwritten if reading in from file.
+      ! They are only relevant for radial_variation tests.
       allocate (d2R(-nz:nz))
       allocate (d2Z(-nz:nz))
       allocate (bmag_psi0(-nz:nz))
@@ -261,7 +263,7 @@ contains
 
          load_psi0_variables = .true.
 
-         ! only needed for sfincs when not using
+         ! Only needed for sfincs when not using
          ! geo info from file
          rhotor = rhoc
          psitor_lcfs = 1.0
@@ -270,164 +272,6 @@ contains
       end subroutine init_local_defaults
 
    end subroutine read_local_parameters
-
-   !============================================================================
-   !=========================== COMMUNICATE PARAMETERS =========================
-   !============================================================================ 
-   subroutine communicate_parameters_multibox(surf, drl, drr)
-      use mp, only: job, scope, mp_abort, &
-                    crossdomprocs, subprocs, &
-                    send, receive
-      use job_manage, only: njobs
-      use common_types, only: flux_surface_type
-
-      implicit none
-
-      real, optional, intent(in) :: drl, drr
-      type(flux_surface_type), intent(inout) :: surf
-
-      real :: lrhoc, lqinp, lshat, lkappa, ltri, lbetaprim
-      real :: rrhoc, rqinp, rshat, rkappa, rtri, rbetaprim
-      real :: dqdr
-      real :: rhoc_psi0, qinp_psi0, shat_psi0
-
-      !-------------------------------------------------------------------------
-
-      !FLAG DSO -  I think d2psidrho2 needs to be communicated, but
-      !            I'm unsure what quantity needs to be updated
-
-      if (debug) write (*, *) 'geometry_miller::communicate_parameters_multibox'
-      if (job == 1) then
-         dqdr = local%shat * local%qinp / local%rhoc
-
-         lrhoc = local%rhoc + drl
-         lqinp = local%qinp + drl * dqdr + 0.5 * drl**2 * local%d2qdr2
-         lshat = (lrhoc / lqinp) * (dqdr + drl * local%d2qdr2)
-         lkappa = kappa + drl * kapprim
-         ltri = tri + drl * triprim
-         lbetaprim = betaprim + drl * betadbprim
-
-         rrhoc = local%rhoc + drr
-         rqinp = local%qinp + drr * dqdr + 0.5 * drr**2 * local%d2qdr2
-         rshat = (rrhoc / rqinp) * (dqdr + drr * local%d2qdr2)
-         rkappa = kappa + drr * kapprim
-         rtri = tri + drr * triprim
-         rbetaprim = betaprim + drr * betadbprim
-      end if
-
-      call scope(crossdomprocs)
-
-      if (job == 1) then
-         call send(lrhoc, 0, 120)
-         call send(lqinp, 0, 121)
-         call send(lshat, 0, 122)
-         call send(lkappa, 0, 123)
-         call send(ltri, 0, 124)
-         call send(lbetaprim, 0, 125)
-         call send(local%rhoc, 0, 126)
-         call send(d2R, 0, 127)
-         call send(d2Z, 0, 128)
-         call send(dIdrho, 0, 129)
-         call send(rhoc, 0, 130)
-         call send(qinp, 0, 131)
-         call send(shat, 0, 132)
-         call send(dpsipdrho, 0, 133)
-         call send(bmag, 0, 134)
-         call send(grho, 0, 135)
-
-         call send(rrhoc, njobs - 1, 220)
-         call send(rqinp, njobs - 1, 221)
-         call send(rshat, njobs - 1, 222)
-         call send(rkappa, njobs - 1, 223)
-         call send(rtri, njobs - 1, 224)
-         call send(rbetaprim, njobs - 1, 225)
-         call send(local%rhoc, njobs - 1, 226)
-         call send(d2R, njobs - 1, 227)
-         call send(d2Z, njobs - 1, 228)
-         call send(dIdrho, njobs - 1, 229)
-         call send(rhoc, njobs - 1, 230)
-         call send(qinp, njobs - 1, 231)
-         call send(shat, njobs - 1, 232)
-         call send(dpsipdrho, njobs - 1, 233)
-         call send(bmag, njobs - 1, 234)
-         call send(grho, njobs - 1, 235)
-         rhoc_psi0 = rhoc
-         qinp_psi0 = qinp
-         shat_psi0 = shat
-         local%rhoc_psi0 = rhoc_psi0
-         local%qinp_psi0 = qinp_psi0
-         local%shat_psi0 = shat_psi0
-      elseif (job == 0) then
-         call receive(rhoc, 1, 120)
-         call receive(qinp, 1, 121)
-         call receive(shat, 1, 122)
-         call receive(kappa, 1, 123)
-         call receive(tri, 1, 124)
-         call receive(betaprim, 1, 125)
-         call receive(rhoc0, 1, 126)
-         call receive(d2R, 1, 127)
-         call receive(d2Z, 1, 128)
-         call receive(dI, 1, 129)
-         call receive(rhoc_psi0, 1, 130)
-         call receive(qinp_psi0, 1, 131)
-         call receive(shat_psi0, 1, 132)
-         call receive(dpsipdrho_psi0, 1, 133)
-         call receive(bmag_psi0, 1, 134)
-         call receive(grho_psi0, 1, 135)
-         local%rhoc = rhoc
-         local%qinp = qinp
-         local%shat = shat
-         local%kappa = kappa
-         local%tri = tri
-         local%betaprim = betaprim
-         local%rhoc_psi0 = rhoc_psi0
-         local%qinp_psi0 = qinp_psi0
-         local%shat_psi0 = shat_psi0
-
-         load_psi0_variables = .false.
-      elseif (job == njobs - 1) then
-         call receive(rhoc, 1, 220)
-         call receive(qinp, 1, 221)
-         call receive(shat, 1, 222)
-         call receive(kappa, 1, 223)
-         call receive(tri, 1, 224)
-         call receive(betaprim, 1, 225)
-         call receive(rhoc0, 1, 226)
-         call receive(d2R, 1, 227)
-         call receive(d2Z, 1, 228)
-         call receive(dI, 1, 229)
-         call receive(rhoc_psi0, 1, 230)
-         call receive(qinp_psi0, 1, 231)
-         call receive(shat_psi0, 1, 232)
-         call receive(dpsipdrho_psi0, 1, 233)
-         call receive(bmag_psi0, 1, 234)
-         call receive(grho_psi0, 1, 235)
-         local%rhoc = rhoc
-         local%qinp = qinp
-         local%shat = shat
-         local%kappa = kappa
-         local%tri = tri
-         local%betaprim = betaprim
-         local%rhoc_psi0 = rhoc_psi0
-         local%qinp_psi0 = qinp_psi0
-         local%shat_psi0 = shat_psi0
-
-         load_psi0_variables = .false.
-      end if
-
-      surf%rhoc = local%rhoc
-      surf%qinp = local%qinp
-      surf%shat = local%shat
-      surf%kappa = local%kappa
-      surf%tri = local%tri
-      surf%betaprim = local%betaprim
-      surf%rhoc_psi0 = rhoc_psi0
-      surf%qinp_psi0 = qinp_psi0
-      surf%shat_psi0 = shat_psi0
-
-      call scope(subprocs)
-
-   end subroutine communicate_parameters_multibox
 
    !============================================================================
    !========================= CALCULATE MILLER GEOMETRY ========================
@@ -452,10 +296,11 @@ contains
 
       implicit none
 
-      ! Arguments
+      ! Inputs
       integer, intent(in) :: nzed, nzgrid
       real, dimension(-nzgrid:), intent(in) :: zed_in
       logical, intent(in) :: zed_equal_arc
+      ! Outputs 
       real, intent(out) :: dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out
       real, dimension(-nzgrid:), intent(out) :: grho_out
       real, dimension(-nzgrid:), intent(out) :: bmag_out, bmag_psi0_out
@@ -471,7 +316,7 @@ contains
       real, dimension(-nzgrid:), intent(out) :: dgds2dr_out, dgds21dr_out
       real, dimension(-nzgrid:), intent(out) :: dgds22dr_out, djacdrho_out
 
-      ! Local variables
+      ! Local variables - used for calculations
       integer :: nr, np
       integer :: i, j
       real :: rmin, dum
@@ -482,31 +327,36 @@ contains
 
       !-------------------------------------------------------------------------
       
-      ! Track code
+      ! Debug message
       if (debug) write (*, *) 'geometry_miller::get_local_geo'
       
-      ! number of grid points used for radial derivatives
+      ! Number of grid points used for radial derivatives (-dr, 0, +dr)
       nr = 3
 
-      ! first get nperiod corresponding to input number of grid points
+      ! First get nperiod corresponding to input number of grid points
       nz2pi = nzed / 2
       np = (nzgrid - nz2pi) / nzed + 1
 
-      ! now switch to using (possible higher resolution) local grid
+      ! Now switch to using (possible higher resolution) local grid to compute
+      ! the geometry variables on. This is to ensure that the geometry is 
+      ! smooth and accurately captured
       nz2pi = nzed_local / 2
-      ! this is the equivalent of nzgrid on the local grid
+      ! This is the equivalent of nzgrid on the local grid
       nz = nz2pi + nzed_local * (np - 1)
 
       ! Allocate arrays
       if (debug) write (*, *) 'geometry_miller::get_local_geo'
       call allocate_arrays(nr, nz)
 
+      ! Get dq/dr = q/r * s 
       dqdr = local%shat * local%qinp / local%rhoc
 
+      ! Store (-dr, 0, +dr) as these are needed for the radial derivatives
       dr(1) = -local%dr
       dr(2) = 0.
       dr(3) = local%dr
 
+      ! Compute the functions R(r,θ) and Z(r,θ)
       do j = -nz, nz
          theta(j) = j * (2 * np - 1) * pi / real(nz)
          do i = 1, 3
@@ -517,92 +367,101 @@ contains
       end do
 
       if (.not. allocated(delthet)) allocate (delthet(-nz:nz - 1))
-      ! get delta theta as a function of theta
+      ! Get dθ theta as a function of theta - needed for theta derivatives
       delthet = theta(-nz + 1:) - theta(:nz - 1)
       
-      
+      ! Debug message
       if (debug) write (*, *) 'geometry_miller::radial_derivatives'
 
-      ! get dR/drho and dZ/drho
+      ! ------------------------------------------------------------------------
+      !                          Derivative Calculations
+      ! ------------------------------------------------------------------------
+      ! The following sets of routines compute derivatives of R and Z with 
+      ! respect to r and θ 
+      ! ------------------------------------------------------------------------
+
+      ! Get dR/drho and dZ/drho
       call get_drho(Rr, dRdrho)
       call get_drho(Zr, dZdrho)
 
-      ! get dR/dtheta and dZ/dtheta
+      ! Get dR/dtheta and dZ/dtheta
       call get_dthet(Rr(2, :), dRdth)
       call get_dthet(Zr(2, :), dZdth)
 
-      ! get second derivatives of R and Z with respect to theta
+      ! Get second derivatives of R and Z with respect to theta
       call get_d2dthet2(Rr(2, :), d2Rdth2)
       call get_d2dthet2(Zr(2, :), d2Zdth2)
-      ! get mixed theta and rho derivatives of R and Z
+      ! Get mixed theta and rho derivatives of R and Z
       call get_dthet(dRdrho, d2Rdrdth)
       call get_dthet(dZdrho, d2Zdrdth)
+      ! ------------------------------------------------------------------------
 
-      ! get the Jacobian of the transformation from (rho,theta,zeta) to (R,Z,zeta)
-      ! this is what I call jacr or jacrho in following comments
+      ! Get the Jacobian of the transformation from (rho,theta,zeta) to (R,Z,zeta)
+      ! This is what I call jacr or jacrho in following comments
       ! as opposed to jacobian, which is for tranformation from (psi,theta,zeta) to (R,Z,zeta)
       call get_jacrho
 
       ! theta_integrate returns integral from 0 -> 2*pi
-      ! note that dpsipdrho here is an intermediary
+      ! Note that dpsipdrho here is an intermediary
       ! that requires manipulation to get final dpsipdrho
       call theta_integrate(jacrho(-nz2pi:nz2pi) / Rr(2, -nz2pi:nz2pi)**2, dpsipdrho)
       dpsipdrho = dpsipdrho / (2.*pi)
 
-      ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
+      ! Get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
 
-      ! if using input.profiles, we are given
-      ! dpsitordrho and must use it to compute rgeo
+      ! Define: bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
+      ! Where I=Btor*R is a flux function
       if (abs(local%dpsitordrho) > epsilon(0.)) then
+         ! If using input.profiles, we are given dpsitordrho 
+         ! and must use it to compute Rgeo.
          local%rgeo = local%dpsitordrho / dpsipdrho
          dpsipdrho = local%dpsitordrho / local%qinp
          local%d2psidr2 = (local%d2psitordrho2 - local%dpsitordrho * local%shat / local%rhoc) &
                           / local%qinp
-         ! I=Btor*R is a flux function
-         ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
          bi = local%rgeo
       else
-         ! otherwise, we are given rgeo
+         ! Otherwise, we are given rgeo
          ! and must use it to compute dpsipdrho
-
-         ! I=Btor*R is a flux function
-         ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
          bi = local%rgeo + dI * (rhoc - rhoc0)
          dpsipdrho = dpsipdrho * bi / local%qinp
       end if
 
-!    ! get dpsinorm/drho
+!    ! Get dpsinorm/drho
 !    call get_dpsipdrho (dpsipdrho)
 
-      ! get |grad rho| and |grad psi|
+      ! Get |grad rho| and |grad psi|
       call get_gradrho(dpsipdrho, grho)
 
-      ! quantity needed in calculation of dI/drho and djacrho/drho
+      ! Quantity needed in calculation of dI/drho and djacrho/drho
       drz = (dRdrho * dRdth + dZdrho * dZdth) / jacrho
       call get_dthet(drz, drzdth)
 
-      ! get dI/drho
+      ! Get dI/drho
       call get_dIdrho(dpsipdrho, grho, dIdrho)
       dIdrho_out = dIdrho
 
-      ! get djacobian/drho*dpsi/drho and djacr/drho
+      ! Get djacobian/drho*dpsi/drho and djacrho/drho
       call get_djacdrho(dpsipdrho, dIdrho, grho)
 
-      ! get d2R/drho2 and d2Z/drho2
+      ! Get d2R/drho2 and d2Z/drho2
       call get_d2RZdr2
 
       d2R = d2Rdr2
       d2Z = d2Zdr2
 
-      ! get theta derivative of d2R/drho2 and d2Z/drho2
+      ! Get theta derivative of d2R/drho2 and d2Z/drho2
       call get_dthet(d2Rdr2, d2Rdr2dth)
       call get_dthet(d2Zdr2, d2Zdr2dth)
 
-      ! calculate the magnitude of B (normalized by B(psi,theta corresponding to Rgeo))
+      ! Calculate the magnitude of B (normalized by B(psi,theta corresponding to Rgeo))
       ! B/B0 = sqrt(I**2 + |grad psi|**2)/R
       bmag = sqrt(bi**2 + gpsi**2) / Rr(2, :)
 
-      ! the next line is for multibox runs
+
+      ! ------------------------------------------------------------------------
+      !                              Radial Variation
+      ! ------------------------------------------------------------------------
+      ! The next lines are for multibox runs
       if (load_psi0_variables) then
          dpsipdrho_psi0 = dpsipdrho
          bmag_psi0 = bmag
@@ -620,8 +479,9 @@ contains
          end do
          close (1002)
       end if
+      ! ------------------------------------------------------------------------
 
-      ! get dB/dtheta
+      ! Get dB/dtheta
       call get_dthet(bmag, dbdth)
 
       ! Calculate <b_dot_gradtheta> = b . grad theta (formerly <gradpar>)
@@ -630,77 +490,77 @@ contains
       ! Calculate <b_dot_gradB> = b . grad B (formerly <gradparB>)
       b_dot_gradB = b_dot_gradtheta * dBdth
 
-      ! get d|grad rho|^2/drho and d|grad psi|^2/drho
+      ! Get d|grad rho|^2/drho and d|grad psi|^2/drho
       call get_dgr2dr(dpsipdrho, grho)
 
-      ! get dB/drho and d2B/drho2
+      ! Get dB/drho and d2B/drho2
       call get_dBdrho(bmag, dIdrho)
 
       ! Calculate <d_b_dot_gradtheta_drho> d (b . grad theta) / drho (formerly <dgradpardrho>)
       d_b_dot_gradtheta_drho = -b_dot_gradtheta * (dBdrho / bmag + djacdrho / jacrho)
 
-      ! get d/dtheta (dB/drho)
+      ! Get d/dtheta (dB/drho)
       call get_dthet(dBdrho, d2Bdrdth)
 
       ! Calculate <d_b_dot_gradB_drho> d(b . grad B)/drho (formerly <dgradparBdrho>)
       d_b_dot_gradB_drho = d_b_dot_gradtheta_drho * dBdth + b_dot_gradtheta * d2Bdrdth
 
-      ! obtain varthet = (I/(q*(dpsi/dr)) * int_0^theta dtheta' jacrho/R^2
+      ! Obtain varthet = (I/(q*(dpsi/dr)) * int_0^theta dtheta' jacrho/R^2
       call get_varthet(dpsipdrho)
 
-      ! obtain dvarthet/drho
+      ! Obtain dvarthet/drho
       call get_dvarthdr(dpsipdrho, dIdrho)
 
-      ! get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
+      ! Get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
       call get_graddotgrad(dpsipdrho, grho)
       
       if (debug) write (*, *) 'geometry_miller::get_gds'
       call get_gds(grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24)
 
-      ! this is (grad alpha x B) . grad theta
+      ! This is (grad alpha x B) . grad theta
       cross = dpsipdrho * (gradrho_gradalph * gradalph_gradthet - gradalph2 * gradrho_gradthet)
 
-      ! note that the definitions of B_times_gradB_dot_grady, B_times_gradB_dot_gradx, dgbdriftdr and dgbdrift0dr
+      ! Note that the definitions of B_times_gradB_dot_grady, B_times_gradB_dot_gradx, dgbdriftdr and dgbdrift0dr
       ! are such that it gets multiplied by vperp2, not mu.  This is in contrast to Michael's GS3 notes
 
-      ! this is bhat/B x (grad B/B) . grad alpha * 2 * dpsiN/drho
+      ! This is bhat/B x (grad B/B) . grad alpha * 2 * dpsiN/drho
       ! We redefined B_times_gradB_dot_grady = gbdrift / 2
       B_times_gradB_dot_grady = (-dBdrho + cross * dBdth * dpsipdrho / bmag**2) / bmag
-      ! this is bhat/B x (bhat . grad bhat) . grad alpha * 2 * dpsiN/drho
-      ! this is assuming betaprim = 4*pi*ptot/B0^2 * (-d ln ptot / drho)
+      ! This is bhat/B x (bhat . grad bhat) . grad alpha * 2 * dpsiN/drho
+      ! This is assuming betaprim = 4*pi*ptot/B0^2 * (-d ln ptot / drho)
       ! We redefined B_times_kappa_dot_grady = cvdrift / 2
       B_times_kappa_dot_grady = (B_times_gradB_dot_grady + local%betaprim / bmag**2)
 
-      ! this is 2 *(bhat/B x grad B / B) . (grad q) * dpsiN/drho / (bhat . grad B)
+      ! This is 2 *(bhat/B x grad B / B) . (grad q) * dpsiN/drho / (bhat . grad B)
       ! same as usual GS2 definition once bhat . grad B is added in below
       ! We redefined B_times_kappa_dot_gradx = cvdrift0 / 2 / shat
       B_times_kappa_dot_gradx = -2.*bi * dqdr / bmag**2 / 2. / local%shat
 
-      ! this is 2*dpsiN/drho times the rho derivative (bhat/B x grad B / B) . (grad q)
+      ! This is 2*dpsiN/drho times the rho derivative (bhat/B x grad B / B) . (grad q)
       dcvdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * (d_b_dot_gradB_drho + b_dot_gradB * &
              (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
              - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
-      ! this is 2*dpsiN/drho/B times the rho derivative of (bhat x gradB/B) . (grad q)
+      ! This is 2*dpsiN/drho/B times the rho derivative of (bhat x gradB/B) . (grad q)
       ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
       dgbdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * &
              (d_b_dot_gradB_drho + b_dot_gradB * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
              - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
 
       B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * b_dot_gradB
-      ! this is 2 * dpsiN/drho * (bhat/B x gradB/B) . (grad q)
+      ! This is 2 * dpsiN/drho * (bhat/B x gradB/B) . (grad q)
       B_times_gradB_dot_gradx = B_times_kappa_dot_gradx
 
-      ! get d^2I/drho^2 and d^2 Jac / dr^2
+      ! Get d^2I/drho^2 and d^2 Jac / dr^2
       if (debug) write (*, *) 'geometry_miller::get_d2Idr2_d2jacdr2'
       call get_d2Idr2_d2jacdr2(grho, dIdrho)
 
-      ! get d^2varhteta/drho^2
+      ! Get d^2varhteta/drho^2
       call get_d2varthdr2(dpsipdrho, dIdrho)
 
-      ! get d2B/drho^2
+      ! Get d2B/drho^2
       call get_d2Bdr2(bmag, dIdrho)
 
-      ! get d/dr [(grad alpha x B) . grad theta]
+      ! Get d/dr [(grad alpha x B) . grad theta]
       call get_dcrossdr(dpsipdrho, dIdrho, grho)
 
       ! dgbdriftdrho is d/drho [(bhat/B x (grad B) . grad alpha) * 2 * dpsiN/drho] / B
@@ -712,154 +572,33 @@ contains
                      + 2.0 * local%betadbprim / bmag**2 - 4.0 * local%betaprim * dBdrho / bmag**3 &
                      - 2.0 * local%betaprim * local%d2psidr2 / dpsipdrho
 
-      !the next two sets of lines are corrections needed for the side boxes in a multibox simulation
-      !gbdrift  = gbdrift *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
-      !B_times_gradB_dot_gradx = B_times_gradB_dot_gradx*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      ! The next two sets of lines are corrections needed for the side boxes in a multibox simulation
+      ! gbdrift  = gbdrift *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      ! B_times_gradB_dot_gradx = B_times_gradB_dot_gradx*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
       B_times_gradB_dot_grady = B_times_gradB_dot_grady * (dpsipdrho_psi0 / dpsipdrho)
       B_times_gradB_dot_gradx = B_times_gradB_dot_gradx * (dpsipdrho_psi0 / dpsipdrho)
       B_times_kappa_dot_grady = B_times_kappa_dot_grady * (dpsipdrho_psi0 / dpsipdrho)
       B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * (dpsipdrho_psi0 / dpsipdrho)
 
-      !dgbdriftdrho  = dgbdriftdrho *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
-      !dgbdrift0drho = dgbdrift0drho*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      ! dgbdriftdrho  = dgbdriftdrho *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      ! dgbdrift0drho = dgbdrift0drho*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
       dgbdriftdrho = dgbdriftdrho * (dpsipdrho_psi0 / dpsipdrho)
       dgbdrift0drho = dgbdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
       dcvdriftdrho = dcvdriftdrho * (dpsipdrho_psi0 / dpsipdrho)
       dcvdrift0drho = dcvdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
 
-      ! interpolate here
-      if (debug) write (*, *) 'geometry_miller::zed_equal_arc'
-      if (zed_equal_arc) then
-         call theta_integrate(1./b_dot_gradtheta, dum)
-         b_dot_gradtheta_arc = (theta(nz) - theta(-nz)) / ((2 * np - 1) * dum)
-         call theta_integrate_indef(b_dot_gradtheta_arc / b_dot_gradtheta, arc)
+      ! Interpolate here
+      call interpolate_functions
 
-         allocate (zed_arc(-nzgrid:nzgrid))
-
-         call geo_spline(arc, theta, zed_in, zed_arc)
-         call geo_spline(theta, grho_psi0, zed_arc, grho_out) !grho is used to normalize fluxes
-         call geo_spline(theta, bmag, zed_arc, bmag_out)
-         call geo_spline(theta, bmag_psi0, zed_arc, bmag_psi0_out)
-         call geo_spline(theta, grady_dot_grady, zed_arc, grady_dot_grady_out)
-         call geo_spline(theta, gradx_dot_grady, zed_arc, gradx_dot_grady_out)
-         call geo_spline(theta, gradx_dot_gradx, zed_arc, gradx_dot_gradx_out)
-         call geo_spline(theta, gds23, zed_arc, gds23_out)
-         call geo_spline(theta, gds24, zed_arc, gds24_out)
-         call geo_spline(theta, b_dot_gradtheta_arc, zed_arc, b_dot_gradtheta_out)
-         call geo_spline(theta, B_times_gradB_dot_grady, zed_arc, B_times_gradB_dot_grady_out)
-         call geo_spline(theta, B_times_gradB_dot_gradx, zed_arc, B_times_gradB_dot_gradx_out)
-         call geo_spline(theta, B_times_kappa_dot_grady, zed_arc, B_times_kappa_dot_grady_out)
-         call geo_spline(theta, B_times_kappa_dot_gradx, zed_arc, B_times_kappa_dot_gradx_out)
-         call geo_spline(theta, dBdrho, zed_arc, dBdrho_out)
-         call geo_spline(theta, d2Bdrdth, zed_arc, d2Bdrdth_out)
-         call geo_spline(theta, d_b_dot_gradtheta_drho, zed_arc, d_b_dot_gradtheta_drho_out)
-         call geo_spline(theta, Rr(2, :), zed_arc, rmajor_out)
-         call geo_spline(theta, dcvdriftdrho, zed_arc, dcvdriftdrho_out)
-         call geo_spline(theta, dgbdriftdrho, zed_arc, dgbdriftdrho_out)
-         call geo_spline(theta, dcvdrift0drho, zed_arc, dcvdrift0drho_out)
-         call geo_spline(theta, dgbdrift0drho, zed_arc, dgbdrift0drho_out)
-         call geo_spline(theta, dgds2dr, zed_arc, dgds2dr_out)
-         call geo_spline(theta, dgds21dr, zed_arc, dgds21dr_out)
-         call geo_spline(theta, dgds22dr, zed_arc, dgds22dr_out)
-         call geo_spline(theta, djacdrho / dpsipdrho, zed_arc, djacdrho_out)
-
-         deallocate (zed_arc)
-      else
-         call geo_spline(theta, grho_psi0, zed_in, grho_out) !grho is used to normalize fluxes
-         call geo_spline(theta, bmag, zed_in, bmag_out)
-         call geo_spline(theta, bmag_psi0, zed_in, bmag_psi0_out)
-         call geo_spline(theta, grady_dot_grady, zed_in, grady_dot_grady_out)
-         call geo_spline(theta, gradx_dot_grady, zed_in, gradx_dot_grady_out)
-         call geo_spline(theta, gradx_dot_gradx, zed_in, gradx_dot_gradx_out)
-         call geo_spline(theta, gds23, zed_in, gds23_out)
-         call geo_spline(theta, gds24, zed_in, gds24_out)
-         call geo_spline(theta, b_dot_gradtheta, zed_in, b_dot_gradtheta_out)
-         call geo_spline(theta, B_times_gradB_dot_grady, zed_in, B_times_gradB_dot_grady_out)
-         call geo_spline(theta, B_times_gradB_dot_gradx, zed_in, B_times_gradB_dot_gradx_out)
-         call geo_spline(theta, B_times_kappa_dot_grady, zed_in, B_times_kappa_dot_grady_out)
-         call geo_spline(theta, B_times_kappa_dot_gradx, zed_in, B_times_kappa_dot_gradx_out)
-         call geo_spline(theta, dBdrho, zed_in, dBdrho_out)
-         call geo_spline(theta, d2Bdrdth, zed_in, d2Bdrdth_out)
-         call geo_spline(theta, d_b_dot_gradtheta_drho, zed_in, d_b_dot_gradtheta_drho_out)
-         call geo_spline(theta, Rr(2, :), zed_in, rmajor_out)
-         call geo_spline(theta, dcvdriftdrho, zed_in, dcvdriftdrho_out)
-         call geo_spline(theta, dgbdriftdrho, zed_in, dgbdriftdrho_out)
-         call geo_spline(theta, dcvdrift0drho, zed_in, dcvdrift0drho_out)
-         call geo_spline(theta, dgbdrift0drho, zed_in, dgbdrift0drho_out)
-         call geo_spline(theta, dgds2dr, zed_in, dgds2dr_out)
-         call geo_spline(theta, dgds21dr, zed_in, dgds21dr_out)
-         call geo_spline(theta, dgds22dr, zed_in, dgds22dr_out)
-         call geo_spline(theta, djacdrho / dpsipdrho, zed_in, djacdrho_out)
-      end if
-
-      ! get the toroidal component of the magnetic field
+      ! Get the toroidal component of the magnetic field
       ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R
       btor_out = bi / rmajor_out
 
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
-      ! We test stella on macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04 and ubuntu-24.04
-      ! and the different operating systems give differences in the last digits, so round the values.
-      n = 12
-      do i = -nz, nz
-         theta(i) = round(theta(i), n)
-         Rr(2, i) = round(Rr(2, i), n)
-         dRdrho(i) = round(dRdrho(i), n)
-         d2Rdr2(i) = round(d2Rdr2(i), n) 
-         dRdth(i) = round(dRdth(i), n) 
-         d2Rdrdth(i) = round(d2Rdrdth(i), n) 
-         dZdrho(i) = round(dZdrho(i), n)
-         d2Zdr2(i) = round(d2Zdr2(i), n)
-         dZdth(i) = round(dZdth(i), n)
-         d2Zdrdth(i) = round(d2Zdrdth(i), n) 
-         bmag(i) = round(bmag(i), n) 
-         dBdrho(i) = round(dBdrho(i), n)
-         d2Bdr2(i) = round(d2Bdr2(i), n)
-         dBdth(i) = round(dBdth(i), n) 
-         d2Bdrdth(i) = round(d2Bdrdth(i), n)
-         varthet(i) = round(varthet(i), n) 
-         dvarthdr(i) = round(dvarthdr(i), n)
-         d2varthdr2(i) = round(d2varthdr2(i), n)
-         jacrho(i) = round(jacrho(i), n)
-         djacrdrho(i) = round(djacrdrho(i), n) 
-         djacdrho(i) = round(djacdrho(i), n) 
-         d2jacdr2(i) = round(d2jacdr2(i), n)
-         grho(i) = round(grho(i), n)
-         dgr2dr(i) = round(dgr2dr(i), n)
-         gradthet2(i) = round(gradthet2(i), n)
-         dgt2(i) = round(dgt2(i), n)
-         gradrho_gradthet(i) = round(gradrho_gradthet(i), n)
-         gradalph_gradthet(i) = round(gradalph_gradthet(i), n)
-         dgagt(i) = round(dgagt(i), n) 
-         gradrho_gradalph(i) = round(gradrho_gradalph(i), n) 
-         dgagr(i) = round(dgagr(i), n) 
-         gradalph2(i) = round(gradalph2(i), n) 
-         dga2(i) = round(dga2(i), n)
-         cross(i) = round(cross(i), n) 
-         dcrossdr(i) = round(dcrossdr(i), n) 
-         B_times_gradB_dot_gradx(i) = round(B_times_gradB_dot_gradx(i), n) 
-         B_times_kappa_dot_gradx(i) = round(B_times_kappa_dot_gradx(i), n) 
-         dcvdrift0drho(i) = round(dcvdrift0drho(i), n)
-         B_times_gradB_dot_grady(i) = round(B_times_gradB_dot_grady(i), n)
-         dgbdriftdrho(i) = round(dgbdriftdrho(i), n)
-         B_times_kappa_dot_grady(i) = round(B_times_kappa_dot_grady(i), n)
-         dcvdriftdrho(i) = round(dcvdriftdrho(i), n)
-         drzdth(i) = round(drzdth(i), n)
-         b_dot_gradtheta(i) = round(b_dot_gradtheta(i), n)
-         d_b_dot_gradtheta_drho(i) = round(d_b_dot_gradtheta_drho(i), n)
-         b_dot_gradB(i) = round(b_dot_gradB(i), n)
-         d_b_dot_gradB_drho(i) = round(d_b_dot_gradB_drho(i), n)
-         grady_dot_grady(i) = round(grady_dot_grady(i), n)
-         dgds2dr(i) = round(dgds2dr(i), n)
-         gradx_dot_grady(i) = round(gradx_dot_grady(i), n)
-         dgds21dr(i) = round(dgds21dr(i), n)
-         gradx_dot_gradx(i) = round(gradx_dot_gradx(i), n)
-         dgds22dr(i) = round(dgds22dr(i), n)
-         gds23(i) = round(gds23(i), n)
-         gds24(i) = round(gds24(i), n) 
-         Zr(2, i) = round(Zr(2,i), n)
-      end do
+      ! Round functions - needed for automatic tests
+      call round_functions
       
       ! The <dgbdrift0drho> and <dgrgt> variables differ on macos-14 (CMake) 
       ! with respect to the other operating systems
@@ -868,74 +607,221 @@ contains
          dgrgt(i) = round(dgrgt(i), 9)
       end do
 
+      ! Write geometry txt files
+      call write_geometry_miller_txt_files
       
-      if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files'
-      filename = "geometry_miller."//trim(run_name)//".input"
-      open (1002, file=trim(filename), status='unknown')
-      write (1002, '(5a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp'
-      write (1002, '(5e16.8)') local%rhoc, local%rmaj, local%rgeo, local%shift, local%qinp
-      write (1002, *)
-      write (1002, '(5a16)') '#6.shat', '7.kappa', '8.kapprim', '9.tri', '10.triprim'
-      write (1002, '(5e16.8)') local%shat, local%kappa, local%kapprim, local%tri, local%triprim
-      write (1002, *)
-      write (1002, '(5a16)') '11.betaprim', '12.dpsitordrho', '13.rhotor', &
-         '14.drhotordrho', '15.d2qdr2'
-      write (1002, '(5e16.8)') local%betaprim, local%dpsitordrho, local%rhotor, &
-         local%drhotordrho, local%d2qdr2
-      write (1002, *)
-      write (1002, '(3a16)') '16.d2psidr2', '17.betadbprim', '18.psitor_lcfs'
-      write (1002, '(3e16.8)') local%d2psidr2, local%betadbprim, local%psitor_lcfs
-      close (1002)
-      filename = "geometry_miller."//trim(run_name)//".output"
-      open (1001, file=trim(filename), status='unknown')
-      write (1001, '(a9,e18.9,a11,e18.9,a11,e18.9)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsipdrho
-      write (1001, '(58a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
-         '6.d2Rdrdth', '7.dZ/dr', '8.d2Zdr2', '9.dZ/dth', '10.d2Zdrdth', &
-         '11.bmag', '12.dBdr', '13.d2Bdr2', '14.dB/dth', '15.d2Bdrdth', &
-         '16.varthet', '17.dvarthdr', '18.d2varthdr2', '19.jacr', '20.djacrdr', &
-         '21.djacdrho', '22.d2jacdr2', '23.grho2', '24.dgr2dr', '25.gthet2', &
-         '26.dgt2', '27.grgthet', '28.dgrgt', '29.galphgth', '30.dgagt', &
-         '31.grgalph', '32.dgagr', '33.galph2', '34.dga2', '35.cross', &
-         '36.dcrossdr', '37.B_times_gradB_dot_gradx', '38.dgbdrift0', '39.B_times_kappa_dot_gradx', '40.dcvdrift0', &
-         '41.B_times_gradB_dot_grady', '42.dgbdrift', '43.B_times_kappa_dot_grady', '44.dcvdrift', '45.drzdth', &
-         '46.b_dot_gradtheta', '47.dgpardr', '48.b_dot_gradB', '49.dgparBdr', '50.grady_dot_grady', &
-         '51.dgds2dr', '52.gradx_dot_grady', '53.dgds21dr', '54.gradx_dot_gradx', '55.dgds22dr', &
-         '56.gds23', '57.gds24', '58.Zr'
-
-      if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files::start_loop'
-      if (debug) then 
-         i = nz
-         write(*,*) 'a', theta(i), Rr(2, i), dRdrho(i), d2Rdr2(i), dRdth(i)
-         write(*,*) 'b', d2Rdrdth(i), dZdrho(i), d2Zdr2(i), dZdth(i), d2Zdrdth(i)
-         write(*,*) 'c', bmag(i), dBdrho(i), d2Bdr2(i), dBdth(i), d2Bdrdth(i)
-         write(*,*) 'd', varthet(i), dvarthdr(i), d2varthdr2(i), jacrho(i), djacrdrho(i)
-         write(*,*) 'e', djacdrho(i), d2jacdr2(i), grho(i)**2, dgr2dr(i), gradthet2(i)
-         write(*,*) 'f', dgt2(i), gradrho_gradthet(i), dgrgt(i), gradalph_gradthet(i), dgagt(i)
-         write(*,*) 'g', gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i)
-         write(*,*) 'h', dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i)
-         write(*,*) 'i', B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i)
-         write(*,*) 'j', b_dot_gradtheta(i), d_b_dot_gradtheta_drho(i), b_dot_gradB(i), d_b_dot_gradB_drho(i), grady_dot_grady(i)
-         write(*,*) 'k', dgds2dr(i), gradx_dot_grady(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i)
-         write(*,*) 'l', Zr(2, i)
-      end if
-      do i = -nz, nz
-         write (1001, '(59e18.9)') theta(i), Rr(2, i), dRdrho(i), d2Rdr2(i), dRdth(i), &
-            d2Rdrdth(i), dZdrho(i), d2Zdr2(i), dZdth(i), d2Zdrdth(i), &
-            bmag(i), dBdrho(i), d2Bdr2(i), dBdth(i), d2Bdrdth(i), &
-            varthet(i), dvarthdr(i), d2varthdr2(i), jacrho(i), djacrdrho(i), &
-            djacdrho(i), d2jacdr2(i), grho(i)**2, dgr2dr(i), gradthet2(i), &
-            dgt2(i), gradrho_gradthet(i), dgrgt(i), gradalph_gradthet(i), dgagt(i), &
-            gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i), &
-            dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i), &
-            B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i), &
-            b_dot_gradtheta(i), d_b_dot_gradtheta_drho(i), b_dot_gradB(i), d_b_dot_gradB_drho(i), grady_dot_grady(i), &
-            dgds2dr(i), gradx_dot_grady(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i), &
-            Zr(2, i)
-      end do
-      close (1001)
-      if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files_finished'
-
       initialised_miller = .false.
+
+   contains
+
+      subroutine interpolate_functions
+         
+         implicit none
+
+         if (zed_equal_arc) then
+            if (debug) write (*, *) 'geometry_miller::zed_equal_arc=.true.'
+            call theta_integrate(1./b_dot_gradtheta, dum)
+            b_dot_gradtheta_arc = (theta(nz) - theta(-nz)) / ((2 * np - 1) * dum)
+            call theta_integrate_indef(b_dot_gradtheta_arc / b_dot_gradtheta, arc)
+
+            allocate (zed_arc(-nzgrid:nzgrid))
+
+            call geo_spline(arc, theta, zed_in, zed_arc)
+            call geo_spline(theta, grho_psi0, zed_arc, grho_out) !grho is used to normalize fluxes
+            call geo_spline(theta, bmag, zed_arc, bmag_out)
+            call geo_spline(theta, bmag_psi0, zed_arc, bmag_psi0_out)
+            call geo_spline(theta, grady_dot_grady, zed_arc, grady_dot_grady_out)
+            call geo_spline(theta, gradx_dot_grady, zed_arc, gradx_dot_grady_out)
+            call geo_spline(theta, gradx_dot_gradx, zed_arc, gradx_dot_gradx_out)
+            call geo_spline(theta, gds23, zed_arc, gds23_out)
+            call geo_spline(theta, gds24, zed_arc, gds24_out)
+            call geo_spline(theta, b_dot_gradtheta_arc, zed_arc, b_dot_gradtheta_out)
+            call geo_spline(theta, B_times_gradB_dot_grady, zed_arc, B_times_gradB_dot_grady_out)
+            call geo_spline(theta, B_times_gradB_dot_gradx, zed_arc, B_times_gradB_dot_gradx_out)
+            call geo_spline(theta, B_times_kappa_dot_grady, zed_arc, B_times_kappa_dot_grady_out)
+            call geo_spline(theta, B_times_kappa_dot_gradx, zed_arc, B_times_kappa_dot_gradx_out)
+            call geo_spline(theta, dBdrho, zed_arc, dBdrho_out)
+            call geo_spline(theta, d2Bdrdth, zed_arc, d2Bdrdth_out)
+            call geo_spline(theta, d_b_dot_gradtheta_drho, zed_arc, d_b_dot_gradtheta_drho_out)
+            call geo_spline(theta, Rr(2, :), zed_arc, rmajor_out)
+            call geo_spline(theta, dcvdriftdrho, zed_arc, dcvdriftdrho_out)
+            call geo_spline(theta, dgbdriftdrho, zed_arc, dgbdriftdrho_out)
+            call geo_spline(theta, dcvdrift0drho, zed_arc, dcvdrift0drho_out)
+            call geo_spline(theta, dgbdrift0drho, zed_arc, dgbdrift0drho_out)
+            call geo_spline(theta, dgds2dr, zed_arc, dgds2dr_out)
+            call geo_spline(theta, dgds21dr, zed_arc, dgds21dr_out)
+            call geo_spline(theta, dgds22dr, zed_arc, dgds22dr_out)
+            call geo_spline(theta, djacdrho / dpsipdrho, zed_arc, djacdrho_out)
+
+            deallocate (zed_arc)
+         else
+            if (debug) write (*, *) 'geometry_miller::zed_equal_arc=.false.'
+            call geo_spline(theta, grho_psi0, zed_in, grho_out) !grho is used to normalize fluxes
+            call geo_spline(theta, bmag, zed_in, bmag_out)
+            call geo_spline(theta, bmag_psi0, zed_in, bmag_psi0_out)
+            call geo_spline(theta, grady_dot_grady, zed_in, grady_dot_grady_out)
+            call geo_spline(theta, gradx_dot_grady, zed_in, gradx_dot_grady_out)
+            call geo_spline(theta, gradx_dot_gradx, zed_in, gradx_dot_gradx_out)
+            call geo_spline(theta, gds23, zed_in, gds23_out)
+            call geo_spline(theta, gds24, zed_in, gds24_out)
+            call geo_spline(theta, b_dot_gradtheta, zed_in, b_dot_gradtheta_out)
+            call geo_spline(theta, B_times_gradB_dot_grady, zed_in, B_times_gradB_dot_grady_out)
+            call geo_spline(theta, B_times_gradB_dot_gradx, zed_in, B_times_gradB_dot_gradx_out)
+            call geo_spline(theta, B_times_kappa_dot_grady, zed_in, B_times_kappa_dot_grady_out)
+            call geo_spline(theta, B_times_kappa_dot_gradx, zed_in, B_times_kappa_dot_gradx_out)
+            call geo_spline(theta, dBdrho, zed_in, dBdrho_out)
+            call geo_spline(theta, d2Bdrdth, zed_in, d2Bdrdth_out)
+            call geo_spline(theta, d_b_dot_gradtheta_drho, zed_in, d_b_dot_gradtheta_drho_out)
+            call geo_spline(theta, Rr(2, :), zed_in, rmajor_out)
+            call geo_spline(theta, dcvdriftdrho, zed_in, dcvdriftdrho_out)
+            call geo_spline(theta, dgbdriftdrho, zed_in, dgbdriftdrho_out)
+            call geo_spline(theta, dcvdrift0drho, zed_in, dcvdrift0drho_out)
+            call geo_spline(theta, dgbdrift0drho, zed_in, dgbdrift0drho_out)
+            call geo_spline(theta, dgds2dr, zed_in, dgds2dr_out)
+            call geo_spline(theta, dgds21dr, zed_in, dgds21dr_out)
+            call geo_spline(theta, dgds22dr, zed_in, dgds22dr_out)
+            call geo_spline(theta, djacdrho / dpsipdrho, zed_in, djacdrho_out)
+         end if
+      end subroutine interpolate_functions
+
+      subroutine round_functions
+
+         implicit none 
+
+         ! We test stella on macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04 and ubuntu-24.04
+         ! and the different operating systems give differences in the last digits, so round the values.
+         n = 12
+         do i = -nz, nz
+            theta(i) = round(theta(i), n)
+            Rr(2, i) = round(Rr(2, i), n)
+            dRdrho(i) = round(dRdrho(i), n)
+            d2Rdr2(i) = round(d2Rdr2(i), n) 
+            dRdth(i) = round(dRdth(i), n) 
+            d2Rdrdth(i) = round(d2Rdrdth(i), n) 
+            dZdrho(i) = round(dZdrho(i), n)
+            d2Zdr2(i) = round(d2Zdr2(i), n)
+            dZdth(i) = round(dZdth(i), n)
+            d2Zdrdth(i) = round(d2Zdrdth(i), n) 
+            bmag(i) = round(bmag(i), n) 
+            dBdrho(i) = round(dBdrho(i), n)
+            d2Bdr2(i) = round(d2Bdr2(i), n)
+            dBdth(i) = round(dBdth(i), n) 
+            d2Bdrdth(i) = round(d2Bdrdth(i), n)
+            varthet(i) = round(varthet(i), n) 
+            dvarthdr(i) = round(dvarthdr(i), n)
+            d2varthdr2(i) = round(d2varthdr2(i), n)
+            jacrho(i) = round(jacrho(i), n)
+            djacrdrho(i) = round(djacrdrho(i), n) 
+            djacdrho(i) = round(djacdrho(i), n) 
+            d2jacdr2(i) = round(d2jacdr2(i), n)
+            grho(i) = round(grho(i), n)
+            dgr2dr(i) = round(dgr2dr(i), n)
+            gradthet2(i) = round(gradthet2(i), n)
+            dgt2(i) = round(dgt2(i), n)
+            gradrho_gradthet(i) = round(gradrho_gradthet(i), n)
+            gradalph_gradthet(i) = round(gradalph_gradthet(i), n)
+            dgagt(i) = round(dgagt(i), n) 
+            gradrho_gradalph(i) = round(gradrho_gradalph(i), n) 
+            dgagr(i) = round(dgagr(i), n) 
+            gradalph2(i) = round(gradalph2(i), n) 
+            dga2(i) = round(dga2(i), n)
+            cross(i) = round(cross(i), n) 
+            dcrossdr(i) = round(dcrossdr(i), n) 
+            B_times_gradB_dot_gradx(i) = round(B_times_gradB_dot_gradx(i), n) 
+            B_times_kappa_dot_gradx(i) = round(B_times_kappa_dot_gradx(i), n) 
+            dcvdrift0drho(i) = round(dcvdrift0drho(i), n)
+            B_times_gradB_dot_grady(i) = round(B_times_gradB_dot_grady(i), n)
+            dgbdriftdrho(i) = round(dgbdriftdrho(i), n)
+            B_times_kappa_dot_grady(i) = round(B_times_kappa_dot_grady(i), n)
+            dcvdriftdrho(i) = round(dcvdriftdrho(i), n)
+            drzdth(i) = round(drzdth(i), n)
+            b_dot_gradtheta(i) = round(b_dot_gradtheta(i), n)
+            d_b_dot_gradtheta_drho(i) = round(d_b_dot_gradtheta_drho(i), n)
+            b_dot_gradB(i) = round(b_dot_gradB(i), n)
+            d_b_dot_gradB_drho(i) = round(d_b_dot_gradB_drho(i), n)
+            grady_dot_grady(i) = round(grady_dot_grady(i), n)
+            dgds2dr(i) = round(dgds2dr(i), n)
+            gradx_dot_grady(i) = round(gradx_dot_grady(i), n)
+            dgds21dr(i) = round(dgds21dr(i), n)
+            gradx_dot_gradx(i) = round(gradx_dot_gradx(i), n)
+            dgds22dr(i) = round(dgds22dr(i), n)
+            gds23(i) = round(gds23(i), n)
+            gds24(i) = round(gds24(i), n) 
+            Zr(2, i) = round(Zr(2,i), n)
+         end do
+      end subroutine round_functions
+
+      subroutine write_geometry_miller_txt_files
+
+         implicit none
+
+         if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files'
+         filename = "geometry_miller."//trim(run_name)//".input"
+         open (1002, file=trim(filename), status='unknown')
+         write (1002, '(5a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp'
+         write (1002, '(5e16.8)') local%rhoc, local%rmaj, local%rgeo, local%shift, local%qinp
+         write (1002, *)
+         write (1002, '(5a16)') '#6.shat', '7.kappa', '8.kapprim', '9.tri', '10.triprim'
+         write (1002, '(5e16.8)') local%shat, local%kappa, local%kapprim, local%tri, local%triprim
+         write (1002, *)
+         write (1002, '(5a16)') '11.betaprim', '12.dpsitordrho', '13.rhotor', &
+            '14.drhotordrho', '15.d2qdr2'
+         write (1002, '(5e16.8)') local%betaprim, local%dpsitordrho, local%rhotor, &
+            local%drhotordrho, local%d2qdr2
+         write (1002, *)
+         write (1002, '(3a16)') '16.d2psidr2', '17.betadbprim', '18.psitor_lcfs'
+         write (1002, '(3e16.8)') local%d2psidr2, local%betadbprim, local%psitor_lcfs
+         close (1002)
+         filename = "geometry_miller."//trim(run_name)//".output"
+         open (1001, file=trim(filename), status='unknown')
+         write (1001, '(a9,e18.9,a11,e18.9,a11,e18.9)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsipdrho
+         write (1001, '(58a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
+            '6.d2Rdrdth', '7.dZ/dr', '8.d2Zdr2', '9.dZ/dth', '10.d2Zdrdth', &
+            '11.bmag', '12.dBdr', '13.d2Bdr2', '14.dB/dth', '15.d2Bdrdth', &
+            '16.varthet', '17.dvarthdr', '18.d2varthdr2', '19.jacr', '20.djacrdr', &
+            '21.djacdrho', '22.d2jacdr2', '23.grho2', '24.dgr2dr', '25.gthet2', &
+            '26.dgt2', '27.grgthet', '28.dgrgt', '29.galphgth', '30.dgagt', &
+            '31.grgalph', '32.dgagr', '33.galph2', '34.dga2', '35.cross', &
+            '36.dcrossdr', '37.B_times_gradB_dot_gradx', '38.dgbdrift0', '39.B_times_kappa_dot_gradx', '40.dcvdrift0', &
+            '41.B_times_gradB_dot_grady', '42.dgbdrift', '43.B_times_kappa_dot_grady', '44.dcvdrift', '45.drzdth', &
+            '46.b_dot_gradtheta', '47.dgpardr', '48.b_dot_gradB', '49.dgparBdr', '50.grady_dot_grady', &
+            '51.dgds2dr', '52.gradx_dot_grady', '53.dgds21dr', '54.gradx_dot_gradx', '55.dgds22dr', &
+            '56.gds23', '57.gds24', '58.Zr'
+
+         if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files::start_loop'
+         if (debug) then 
+            i = nz
+            write(*,*) 'a', theta(i), Rr(2, i), dRdrho(i), d2Rdr2(i), dRdth(i)
+            write(*,*) 'b', d2Rdrdth(i), dZdrho(i), d2Zdr2(i), dZdth(i), d2Zdrdth(i)
+            write(*,*) 'c', bmag(i), dBdrho(i), d2Bdr2(i), dBdth(i), d2Bdrdth(i)
+            write(*,*) 'd', varthet(i), dvarthdr(i), d2varthdr2(i), jacrho(i), djacrdrho(i)
+            write(*,*) 'e', djacdrho(i), d2jacdr2(i), grho(i)**2, dgr2dr(i), gradthet2(i)
+            write(*,*) 'f', dgt2(i), gradrho_gradthet(i), dgrgt(i), gradalph_gradthet(i), dgagt(i)
+            write(*,*) 'g', gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i)
+            write(*,*) 'h', dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i)
+            write(*,*) 'i', B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i)
+            write(*,*) 'j', b_dot_gradtheta(i), d_b_dot_gradtheta_drho(i), b_dot_gradB(i), d_b_dot_gradB_drho(i), grady_dot_grady(i)
+            write(*,*) 'k', dgds2dr(i), gradx_dot_grady(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i)
+            write(*,*) 'l', Zr(2, i)
+         end if
+         do i = -nz, nz
+            write (1001, '(59e18.9)') theta(i), Rr(2, i), dRdrho(i), d2Rdr2(i), dRdth(i), &
+               d2Rdrdth(i), dZdrho(i), d2Zdr2(i), dZdth(i), d2Zdrdth(i), &
+               bmag(i), dBdrho(i), d2Bdr2(i), dBdth(i), d2Bdrdth(i), &
+               varthet(i), dvarthdr(i), d2varthdr2(i), jacrho(i), djacrdrho(i), &
+               djacdrho(i), d2jacdr2(i), grho(i)**2, dgr2dr(i), gradthet2(i), &
+               dgt2(i), gradrho_gradthet(i), dgrgt(i), gradalph_gradthet(i), dgagt(i), &
+               gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i), &
+               dcrossdr(i), B_times_gradB_dot_gradx(i), dgbdrift0drho(i), B_times_kappa_dot_gradx(i), dcvdrift0drho(i), &
+               B_times_gradB_dot_grady(i), dgbdriftdrho(i), B_times_kappa_dot_grady(i), dcvdriftdrho(i), drzdth(i), &
+               b_dot_gradtheta(i), d_b_dot_gradtheta_drho(i), b_dot_gradB(i), d_b_dot_gradB_drho(i), grady_dot_grady(i), &
+               dgds2dr(i), gradx_dot_grady(i), dgds21dr(i), gradx_dot_gradx(i), dgds22dr(i), gds23(i), gds24(i), &
+               Zr(2, i)
+         end do
+         close (1001)
+         if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files_finished'
+
+      end subroutine write_geometry_miller_txt_files
 
    end subroutine get_local_geo
 
@@ -1132,7 +1018,7 @@ contains
 
    end subroutine get_jacrho
 
-!   ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
+!   ! Get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
 !   subroutine get_dpsipdrho (dpsipdrho)
 
 !     use constants, only: pi
@@ -1215,12 +1101,12 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! this is dpsi/dr * d/dr (jacobian)
+      ! This is dpsi/dr * d/dr (jacobian)
       ! betaprim below is (4*pi*ptot/B0^2)*(-d ln ptot / drho)
       djacdrho = (Rr(2, :) / grho)**2 * (2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) / jacrho &
                                          - drzdth + jacrho * (bi * dIdrho / Rr(2, :)**2 - local%betaprim) / dpsipdrho**2)
 
-      ! this is d/dr (jacobian_r)
+      ! This is d/dr (jacobian_r)
       djacrdrho = djacdrho + jacrho * local%d2psidr2 / dpsipdrho
 
    end subroutine get_djacdrho
@@ -1234,7 +1120,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! get factor common to both d2R/drho2 and d2Z/drho2
+      ! Get factor common to both d2R/drho2 and d2Z/drho2
       d2Rdr2 = ((djacrdrho - jacrho * dRdrho / Rr(2, :)) / Rr(2, :) &
                 - dRdrho * d2Zdrdth + dZdrho * d2Rdrdth) / (dRdth**2 + dZdth**2)
 
@@ -1489,7 +1375,7 @@ contains
       !      + 4.*dpsipdrho*local%d2psidr2*dgr2dr &
       !      + 2.*grho**2*(local%d2psidr2**2 + dpsipdrho*local%d3psidr3)
 
-      ! get d/drho (dB/drho)
+      ! Get d/drho (dB/drho)
       d2Bdr2 = -dBdrho * dRdrho / Rr(2, :) + bmag * (dRdrho / Rr(2, :))**2 &
                - bmag * d2Rdr2 / Rr(2, :) + 0.5 * (2.*(dIdrho**2 + bi * d2Idr2) &
                                                    + d2gpsidr2) / (bmag * Rr(2, :)**2) &
@@ -1520,7 +1406,7 @@ contains
       ! dgt2 = d/drho (|grad theta|^2)
       dgt2 = 2.*(Rr(2, :) / jacrho)**2 * ((dRdrho / Rr(2, :) - djacrdrho / jacrho) * (dRdrho**2 + dZdrho**2) &
                                           + dRdrho * d2Rdr2 + dZdrho * d2Zdr2)
-      ! this is d/drho (|grad alph|^2)
+      ! This is d/drho (|grad alph|^2)
       ! will later multiply it by 0.5*dpsipdrho**2
       dga2 = -2 * dRdrho / Rr(2, :)**3 + dgr2dr * (varthet * dqdr + local%qinp * dvarthdr)**2 &
              + (2.0 * grho**2 * (varthet * dqdr + local%qinp * dvarthdr) &
@@ -1545,12 +1431,12 @@ contains
       dcrossdr = dpsipdrho * (dgagr * gradalph_gradthet + gradrho_gradalph * dgagt &
                              - dga2 * gradrho_gradthet - gradalph2 * dgrgt) + local%d2psidr2 * cross / dpsipdrho
 
-      ! this is (dpsi/drho)^2*d|grad alpha|^2/dr
+      ! This is (dpsi/drho)^2*d|grad alpha|^2/dr
       dgds2dr = dga2 * dpsipdrho_psi0**2
-      ! this is (dpsi/drho)^2*d(grad alpha . grad q)/dr
+      ! This is (dpsi/drho)^2*d(grad alpha . grad q)/dr
       ! note that there will be multiplication by 2 in dist_fn.fpp
       dgds21dr = (dgagr * dqdr + local%d2qdr2 * gradrho_gradalph) * dpsipdrho_psi0**2
-      ! this is (dpsi/drho)^2*d(|grad q|^2)/dr
+      ! This is (dpsi/drho)^2*d(|grad q|^2)/dr
       dgds22dr = (dqdr**2 * dgr2dr + 2.*grho**2 * dqdr * local%d2qdr2) * dpsipdrho_psi0**2
 
       ! note that dkperp2/dr = (n0/a)^2*(drho/dpsiN)^2*(dgds2dr + 2*theta0*dgds21dr + theta0^2*dgds22dr)
@@ -1574,7 +1460,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   ! get indefinite integral of integrand
+   ! Get indefinite integral of integrand
    subroutine theta_integrate_indef(integrand, integral)
 
       implicit none
@@ -1596,6 +1482,165 @@ contains
       end do
       
    end subroutine theta_integrate_indef
+
+   !****************************************************************************
+   !                            COMMUNICATE PARAMETERS 
+   !****************************************************************************
+   ! Only needed for radial_variation simulations
+   subroutine communicate_parameters_multibox(surf, drl, drr)
+      use mp, only: job, scope, mp_abort, &
+                    crossdomprocs, subprocs, &
+                    send, receive
+      use job_manage, only: njobs
+      use common_types, only: flux_surface_type
+
+      implicit none
+
+      real, optional, intent(in) :: drl, drr
+      type(flux_surface_type), intent(inout) :: surf
+
+      real :: lrhoc, lqinp, lshat, lkappa, ltri, lbetaprim
+      real :: rrhoc, rqinp, rshat, rkappa, rtri, rbetaprim
+      real :: dqdr
+      real :: rhoc_psi0, qinp_psi0, shat_psi0
+
+      !-------------------------------------------------------------------------
+
+      !FLAG DSO -  I think d2psidrho2 needs to be communicated, but
+      !            I'm unsure what quantity needs to be updated
+
+      if (debug) write (*, *) 'geometry_miller::communicate_parameters_multibox'
+      if (job == 1) then
+         dqdr = local%shat * local%qinp / local%rhoc
+
+         lrhoc = local%rhoc + drl
+         lqinp = local%qinp + drl * dqdr + 0.5 * drl**2 * local%d2qdr2
+         lshat = (lrhoc / lqinp) * (dqdr + drl * local%d2qdr2)
+         lkappa = kappa + drl * kapprim
+         ltri = tri + drl * triprim
+         lbetaprim = betaprim + drl * betadbprim
+
+         rrhoc = local%rhoc + drr
+         rqinp = local%qinp + drr * dqdr + 0.5 * drr**2 * local%d2qdr2
+         rshat = (rrhoc / rqinp) * (dqdr + drr * local%d2qdr2)
+         rkappa = kappa + drr * kapprim
+         rtri = tri + drr * triprim
+         rbetaprim = betaprim + drr * betadbprim
+      end if
+
+      call scope(crossdomprocs)
+
+      if (job == 1) then
+         call send(lrhoc, 0, 120)
+         call send(lqinp, 0, 121)
+         call send(lshat, 0, 122)
+         call send(lkappa, 0, 123)
+         call send(ltri, 0, 124)
+         call send(lbetaprim, 0, 125)
+         call send(local%rhoc, 0, 126)
+         call send(d2R, 0, 127)
+         call send(d2Z, 0, 128)
+         call send(dIdrho, 0, 129)
+         call send(rhoc, 0, 130)
+         call send(qinp, 0, 131)
+         call send(shat, 0, 132)
+         call send(dpsipdrho, 0, 133)
+         call send(bmag, 0, 134)
+         call send(grho, 0, 135)
+
+         call send(rrhoc, njobs - 1, 220)
+         call send(rqinp, njobs - 1, 221)
+         call send(rshat, njobs - 1, 222)
+         call send(rkappa, njobs - 1, 223)
+         call send(rtri, njobs - 1, 224)
+         call send(rbetaprim, njobs - 1, 225)
+         call send(local%rhoc, njobs - 1, 226)
+         call send(d2R, njobs - 1, 227)
+         call send(d2Z, njobs - 1, 228)
+         call send(dIdrho, njobs - 1, 229)
+         call send(rhoc, njobs - 1, 230)
+         call send(qinp, njobs - 1, 231)
+         call send(shat, njobs - 1, 232)
+         call send(dpsipdrho, njobs - 1, 233)
+         call send(bmag, njobs - 1, 234)
+         call send(grho, njobs - 1, 235)
+         rhoc_psi0 = rhoc
+         qinp_psi0 = qinp
+         shat_psi0 = shat
+         local%rhoc_psi0 = rhoc_psi0
+         local%qinp_psi0 = qinp_psi0
+         local%shat_psi0 = shat_psi0
+      elseif (job == 0) then
+         call receive(rhoc, 1, 120)
+         call receive(qinp, 1, 121)
+         call receive(shat, 1, 122)
+         call receive(kappa, 1, 123)
+         call receive(tri, 1, 124)
+         call receive(betaprim, 1, 125)
+         call receive(rhoc0, 1, 126)
+         call receive(d2R, 1, 127)
+         call receive(d2Z, 1, 128)
+         call receive(dI, 1, 129)
+         call receive(rhoc_psi0, 1, 130)
+         call receive(qinp_psi0, 1, 131)
+         call receive(shat_psi0, 1, 132)
+         call receive(dpsipdrho_psi0, 1, 133)
+         call receive(bmag_psi0, 1, 134)
+         call receive(grho_psi0, 1, 135)
+         local%rhoc = rhoc
+         local%qinp = qinp
+         local%shat = shat
+         local%kappa = kappa
+         local%tri = tri
+         local%betaprim = betaprim
+         local%rhoc_psi0 = rhoc_psi0
+         local%qinp_psi0 = qinp_psi0
+         local%shat_psi0 = shat_psi0
+
+         load_psi0_variables = .false.
+      elseif (job == njobs - 1) then
+         call receive(rhoc, 1, 220)
+         call receive(qinp, 1, 221)
+         call receive(shat, 1, 222)
+         call receive(kappa, 1, 223)
+         call receive(tri, 1, 224)
+         call receive(betaprim, 1, 225)
+         call receive(rhoc0, 1, 226)
+         call receive(d2R, 1, 227)
+         call receive(d2Z, 1, 228)
+         call receive(dI, 1, 229)
+         call receive(rhoc_psi0, 1, 230)
+         call receive(qinp_psi0, 1, 231)
+         call receive(shat_psi0, 1, 232)
+         call receive(dpsipdrho_psi0, 1, 233)
+         call receive(bmag_psi0, 1, 234)
+         call receive(grho_psi0, 1, 235)
+         local%rhoc = rhoc
+         local%qinp = qinp
+         local%shat = shat
+         local%kappa = kappa
+         local%tri = tri
+         local%betaprim = betaprim
+         local%rhoc_psi0 = rhoc_psi0
+         local%qinp_psi0 = qinp_psi0
+         local%shat_psi0 = shat_psi0
+
+         load_psi0_variables = .false.
+      end if
+
+      surf%rhoc = local%rhoc
+      surf%qinp = local%qinp
+      surf%shat = local%shat
+      surf%kappa = local%kappa
+      surf%tri = local%tri
+      surf%betaprim = local%betaprim
+      surf%rhoc_psi0 = rhoc_psi0
+      surf%qinp_psi0 = qinp_psi0
+      surf%shat_psi0 = shat_psi0
+
+      call scope(subprocs)
+
+   end subroutine communicate_parameters_multibox
 
    !****************************************************************************
    !                                      Title
@@ -1723,5 +1768,6 @@ contains
       !aint(val*10.0**n)/10.0**n
       
    end function round
+   
 
 end module geometry_miller
