@@ -357,7 +357,7 @@ contains
    !============================================================================
    !========================= CALCULATE MILLER GEOMETRY ========================
    !============================================================================ 
-	! gradpar_out is called b_dot_grad_zeta in geometry
+	! gradpar_out is called b_dot_gradzeta in geometry
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
                             dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
                             bmag_out, bmag_psi0_out, &

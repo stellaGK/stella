@@ -112,7 +112,7 @@ contains
       use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: gradzeta_gradx_R2overB2
       use geometry, only: gradzeta_grady_R2overB2
-      use geometry, only: b_dot_grad_zeta_RR 
+      use geometry, only: b_dot_gradzeta_RR 
       
       ! Dimensions
       use grids_velocity, only: vperp2, vpa, mu
@@ -208,7 +208,7 @@ contains
             !        + i*δf*J1*ky*vperp^2*rho*(theta0*gradx_dot_grady*shat+grady_dot_grady)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
             
             ! First add the parallel component of the momentum flux: δf*J0*vpa*(b.∇ζ)*R^2 
-            velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_grad_zeta_RR(ia, iz)
+            velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_gradzeta_RR(ia, iz)
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             
             ! Next add the perpendicular component

@@ -33,7 +33,7 @@
 !   - beta, q, shat, drhodpsi, jtwist, d2psidr2, d2qrd2,
 !   - B_times_gradB_dot_grady, bmag, B_times_gradB_dot_gradx, B_times_kappa_dot_grady, 
 !   - B_times_kappa_dot_gradx, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, 
-!   - grho, jacob, djacdrho, b_dot_grad_z
+!   - grho, jacob, djacdrho, b_dot_gradz
 !   - gradpar, kperp2
 ! 
 ! The fields are written to the NetCDF file:
@@ -611,7 +611,7 @@ contains
       use geometry, only: B_times_kappa_dot_grady, B_times_kappa_dot_gradx
       use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: grho, jacob
-      use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf
+      use geometry, only: drhodpsi, djacdrho, b_dot_gradz, geo_surf
       use parameters_physics, only: beta
       use arrays, only: kperp2
       use grids_kxky, only: jtwist
@@ -650,7 +650,7 @@ contains
       call neasyf_write(file_id, "grho", grho, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "jacob", jacob, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "djacdrho", djacdrho, dim_names=flux_surface_dim)
-      call neasyf_write(file_id, "b_dot_grad_z", b_dot_grad_z, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "b_dot_gradz", b_dot_gradz, dim_names=flux_surface_dim)
 
       ! Perpendicular wavevector depends on (kx,ky) and the flux surface (alpha,z)
       call neasyf_write(file_id, "kperp2", kperp2, dim_names=[character(len=5)::"ky", "kx", "alpha", "zed"])

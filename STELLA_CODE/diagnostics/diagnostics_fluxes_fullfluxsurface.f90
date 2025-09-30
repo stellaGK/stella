@@ -233,7 +233,7 @@ contains
       use arrays_gyro_averages, only: j0_ffs, j1_ffs
       use geometry, only: gradx_dot_grady, gradx_dot_gradx, grady_dot_grady
       use geometry, only: geo_surf
-      use geometry, only: gradzeta_grady_R2overB2, gradzeta_gradx_R2overB2, b_dot_grad_zeta_RR
+      use geometry, only: gradzeta_grady_R2overB2, gradzeta_gradx_R2overB2, b_dot_gradzeta_RR
 
       implicit none
 
@@ -351,7 +351,7 @@ contains
                   iv = iv_idx(vmu_lo, ivmu)
                   is = is_idx(vmu_lo, ivmu)
                   imu = imu_idx(vmu_lo, ivmu)
-                  integrand(ivmu) = fy(iy, ikx, ivmu) * b_dot_grad_zeta_RR(iy, iz) &
+                  integrand(ivmu) = fy(iy, ikx, ivmu) * b_dot_gradzeta_RR(iy, iz) &
                       - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
                end do
                

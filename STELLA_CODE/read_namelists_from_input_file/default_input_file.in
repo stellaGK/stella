@@ -51,7 +51,7 @@
 &geometry_from_txt
   geometry_file = 'input.geometry'
   overwrite_bmag = .false.
-  overwrite_b_dot_grad_zeta = .false.
+  overwrite_b_dot_gradzeta = .false.
   overwrite_grady_dot_grady = .false.
   overwrite_gradx_dot_grady = .false.
   overwrite_gradx_dot_gradx = .false.

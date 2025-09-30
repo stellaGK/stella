@@ -19,15 +19,16 @@ lines. Common choices for z include:
 ## Geometric quantities
 
 The following geometric quantities are defined in this module:
-   <bmag> = B / B_ref
-   <gradx_dot_gradx> = |∇x|²
-   <grady_dot_grady> = |∇y|²
-   <gradx_dot_grady> = ∇x . ∇y
-   <B_times_gradB_dot_gradx> = B × ∇B · ∇x (a*B_ref/B^3)
-   <B_times_gradB_dot_grady> = B × ∇B · ∇y (a*B_ref/B^3)
-   <B_times_kappa_dot_gradx> = B × κ · ∇x (a*B_ref/B^2)
-   <B_times_kappa_dot_grady> = B × κ · ∇y (a*B_ref/B^2)
-   <gradpar> = b · ∇z
+   <bmag>(alpha,z) = B / B_ref
+   <gradx_dot_gradx>(alpha,z) = |∇x|²
+   <grady_dot_grady>(alpha,z) = |∇y|²
+   <gradx_dot_grady>(alpha,z) = ∇x . ∇y
+   <B_times_gradB_dot_gradx>(alpha,z) = B × ∇B · ∇x (a*B_ref/B^3)
+   <B_times_gradB_dot_grady>(alpha,z) = B × ∇B · ∇y (a*B_ref/B^3)
+   <B_times_kappa_dot_gradx>(alpha,z) = B × κ · ∇x (a*B_ref/B^2)
+   <B_times_kappa_dot_grady>(alpha,z) = B × κ · ∇y (a*B_ref/B^2)
+   <b_dot_gradz>(alpha,z) = b · ∇z
+   <b_dot_gradz_avg>(z) = sum_alpha b · ∇z J dalpha / sum_alpha J dalpha
 
 The normalized derivatives are defined as,
    <dxdpsi> = (rho_r/a) (d tilde{x} / d tilde{psi})
