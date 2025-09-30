@@ -5,12 +5,15 @@ Stella evolves the normalized gyrokinetic equation in time, give by equation
 code for general magnetic field configurations], where each variable is assumed to be normalized:
 
 $$ 
-   (1)      ∂g_{k,s} / ∂t =
-   (2)      - v_{th,s} v_parallel b . ∇z ( ∂g_{k,s} / ∂z + Z_s/T_s ∂(J_0 ϕ_k) / ∂z exp(-v*2_s) 
-   (3)      + v_{th,s} mu_s b . ∇B ∂g_{k,s} / ∂v_parallel
-   (4)      - i omega_{d,k,s} (g_{k,s} + Z_s/T_s J_0 ϕ_k exp(-v*2_s) 
-   (5)      - i omega_{*,k,s} J_0 ϕ_k 
-   (6)      - (B_r/2) (dy/dalpha) (dx/dpsi) F_k ( F^{-1}_k [ik_y J_0 ϕ_k] F^{-1}_k [ik_x g_{k,s}] - F^{-1}_k [ik_x J_0 ϕ_k] F^{-1}_k [ik_y g_{k,s} ] )
+\begin{aligned}
+\frac{\partial \tilde{g}_{\mathbf{k},s}}{\partial \tilde{t}} 
+{+} \tilde{v}_{\text{th},s} \tilde{v}_{\parallel}\, \hat{b} \cdot \tilde{\boldsymbol{\nabla}} \tilde{z} \, \Big( \frac{\partial \tilde{g}_{\mathbf{k},s}}{\partial \tilde{z}} + \frac{Z_s}{\tilde{T}_s} \frac{\partial J_0(a_{\mathbf{k},s}) \tilde{\varphi}_\mathbf{k}}{\partial \tilde{z}} \, e^{-\tilde{v}^2_s} \Big)
+{-} \tilde{v}_{\text{th},s}  \tilde{\mu} \, \hat{b} \cdot \tilde{\boldsymbol{\nabla}} \tilde{B} \,\frac{\partial \tilde{g}_{\mathbf{k},s}}{\partial \tilde{v}_\parallel} \\ 
+{+} i \omega_{d,\mathbf{k},s} \Big(  \tilde{g}_{\mathbf{k},s} 
+{+} \frac{Z_s}{\tilde{T}_s} J_0(a_{\mathbf{k},s}) \tilde{\varphi}_\mathbf{k} e^{-\tilde{v}^2_s} \Big) 
+{+} i \omega_{*,\mathbf{k},s} J_0(a_{\mathbf{k},s}) \tilde{\varphi}_\mathbf{k} 
+{+} \mathcal{N}_{\mathbf{k},s} = 0
+\end{aligned}
 $$
 
 If maxwellian_normalization = .true., the evolved distribution function is normalised by a Maxwellian.
