@@ -34,13 +34,6 @@
 ! periodic, or linked). Additional arrays for radial coordinates (rho, rho_d) and
 ! their clamped versions are also set up if radial variation is enabled.
 ! 
-!----------------------------------- Issues ------------------------------------
-! 
-! TODO - For the "range" mode we assume only a single ky mode has been specified
-! if a range of kx modes are specified, because the ballooning angle is defined
-! as theta0 = kx / (hat{s} * ky_min) therefore, it is badly defined for ky values
-! that are not ky = ky_min. A range of ky-modes only works for kx = 0.
-! 
 !###############################################################################
 module grids_kxky
    
@@ -278,6 +271,9 @@ contains
          real :: dkx = 0.0
          real :: dky = 0.0
          real :: dtheta0 = 0.0
+         real :: theta0_min_temp
+         real :: theta0_max_temp
+         real :: aky_min_notzero = 0.0
       
          !----------------------------------------------------------------------
 
@@ -341,50 +337,71 @@ contains
             ! If instead, <akx_min> and <akx_max> are specified in the input file instead of
             ! <theta0_min> and <theta0_max>, use them to calculate <theta0_min> and <theta0_max>.
             ! Next, use these values to construct the <akx> and <theta0> arrays.
-            if (theta0_min > theta0_max + zero .and. abs(aky(1)) > zero) then
+            if (theta0_min > theta0_max + zero .and. ( (abs(aky(1)) > zero) .or. (naky>1) )) then
+            
+               ! Make sure the minimum ky is not ky=0, if naky>1
+               if (abs(aky(1)) > zero) aky_min_notzero = aky(1)
+               if (abs(aky(1)) < zero) aky_min_notzero = aky(2)
             
                ! Ballooning angle is theta0 = kx / (ky*shat); or theta0 = kx / ky if x = q
                ! The minimum and maximum balooning angle occur for the smallest value of ky
-               theta0_min = akx_min / (tfac * aky(1))
-               theta0_max = akx_max / (tfac * aky(1))
-               
-               ! Determine the step size in theta0; if nakx==1 then dtheta0 = 0
-               if (nakx > 1) dtheta0 = (theta0_max - theta0_min) / real(nakx - 1)
+               theta0_min = akx_min / (tfac * aky_min_notzero)
+               theta0_max = akx_max / (tfac * aky_min_notzero)
 
-               ! We assume that only a single ky value has been specified
-               ! For this ky-value we construct a single chain of (kx,ky) modes
-               ! TODO - Then why do we sum over ky?
+               ! Construct the array of ballooning angles theta0 = kx / (ky*shat)
                do j = 1, naky
-                  theta0(j, :) = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
+                  if (abs(aky(j)) > zero) then
+                     theta0_min_temp = akx_min / (tfac * aky(j))
+                     theta0_max_temp = akx_max / (tfac * aky(j))
+                     if (nakx > 1) dtheta0 = (theta0_max_temp - theta0_min_temp) / real(nakx - 1)
+                  else
+                     theta0_min_temp = 0.0
+                     theta0_max_temp = 0.0
+                     dtheta0 = 0.0
+                  end if
+                  theta0(j, :) = (/(theta0_min_temp + dtheta0 * real(i), i=0, nakx - 1)/)
                end do
                
-               ! Ballooning angle is theta0 = kx / (ky*shat); or theta0 = kx / ky if x = q
-               ! Therefore, kx = ky * shat * theta0; or kx = theta0 * ky if x = q
-               akx = theta0(1, :) * tfac * aky(1)
+               ! Construct the range of kx-modes
+               if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
+               akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
                
             ! If <theta0_min> and <theta0_max> had been specified in the input file
             ! then we have already calculated the corresponding <akx_min> and <akx_max>.
             ! Use these values to construct the <akx> and <theta0> arrays.
             else if (akx_max > akx_min - zero .or. nakx == 1) then
 
-               ! Get the step size in kx from <akx_min> and <akx_max>; if nakx==1 then dkx = 0
-               if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
-               
                ! Construct the range of kx-modes
+               if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
                akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
-               
-               ! Get the step size in theta0 from <theta0_max> and <theta0_min>; if nakx==1 then dtheta0 = 0
-               if (nakx > 1) dtheta0 = (theta0_max - theta0_min) / real(nakx - 1)
-               
+
                ! Construct the theta0 array for positive global magnetic shear
                if (geo_surf%shat > epsilon(0.)) then
                   do j = 1, naky
+                     if (abs(aky(j)) > zero) then
+                        theta0_min_temp = akx_min / (tfac * aky(j))
+                        theta0_max_temp = akx_max / (tfac * aky(j))
+                        if (nakx > 1) dtheta0 = (theta0_max_temp - theta0_min_temp) / real(nakx - 1)
+                     else
+                        theta0_min_temp = 0.0
+                        theta0_max_temp = 0.0
+                        dtheta0 = 0.0
+                     end if
                      theta0(j, :) = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
                   end do
                   
                ! Construct the theta0 array for negative global magnetic shear (link theta0_max to akx_min)
                else
                   do j = 1, naky
+                     if (abs(aky(j)) > zero) then
+                        theta0_min_temp = akx_min / (tfac * aky(j))
+                        theta0_max_temp = akx_max / (tfac * aky(j))
+                        if (nakx > 1) dtheta0 = (theta0_max_temp - theta0_min_temp) / real(nakx - 1)
+                     else
+                        theta0_min_temp = 0.0
+                        theta0_max_temp = 0.0
+                        dtheta0 = 0.0
+                     end if
                      theta0(j, :) = (/(theta0_min + dtheta0 * real(i), i=nakx - 1, 0, -1)/)
                   end do
                end if
@@ -392,7 +409,7 @@ contains
             else
                call mp_abort('The choice ky=0 is inconsistent with akx_min different from akx_max. Aborting.')
             end if
-
+         
          ! If <shat> is smaller than <shat_zero>, periodic boundary conditions are enforced
          ! These boundary conditions are used for periodic finite kx ballooning space runs with shat=0
          ! In this case the theta0 array contains only zeros since theta0 = kx / (hat{s} * ky) = 0 if shat=0
