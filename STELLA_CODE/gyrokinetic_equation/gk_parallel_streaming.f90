@@ -357,7 +357,7 @@ contains
          
          ! =====================================================================
          ! Get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz .
-         ! Mote that this should be a centered difference to avoid numerical
+         ! Note that this should be a centered difference to avoid numerical
          ! unpleasantness to do with inexact cancellations in later velocity integration.
          ! See Appendix of the stella JCP 2019 for details
          call get_dgdz_centered(g0, ivmu, dgphi_dz)

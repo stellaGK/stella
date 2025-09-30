@@ -412,11 +412,6 @@ contains
              write_omega_avg_vs_kxky = .true.
          end if
 
-         if (include_nonlinear) then
-             write_omega_vs_kxky = .false.
-             write_omega_avg_vs_kxky = .false.
-         end if
-
       end subroutine check_inputs_diagnostics_omega
 
    end subroutine read_namelist_diagnostics_omega

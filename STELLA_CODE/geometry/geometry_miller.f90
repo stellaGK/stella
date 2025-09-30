@@ -4,8 +4,6 @@
 ! 
 ! This module constructs a magnetic equilibrium based on a set of Miller parameters.
 ! 
-! TODO - write documentation on Miller equilibria.
-! 
 !---------------------------- Geometric quantities -----------------------------
 ! 
 !    <b_dot_gradtheta>(ia,iz) = b · ∇θ
@@ -20,7 +18,69 @@
 !    - gradparB          -->   b_dot_gradB
 !    - dgradpardrho      -->   d_b_dot_gradtheta_drho
 !    - dgradparBdrho     -->   d_b_dot_gradB_drho
+!
+!------------------------------- Input Variables -------------------------------
+! Definitions of input Miller quantities:
+!     - rhoc         -->   Minor radius, r
+!     - rmaj         -->   Major radius, R0
+!     - shift        -->   Shafranov shift, R0'
+!     - kappa        -->   Elongation, κ
+!     - kappprim     -->   Radial derivative of elongation, κ'
+!     - tri          -->   Triangularity, δ
+!     - triprim      -->   Radial derivative of triangularity, δ'
+!     - qinp         -->   Safety factor, q
+!     - shat         -->   Magnetic shear, s
+!     - rgeo         -->   Sets the refernce magnetic field, R_geo
+!     - betaprim     -->   Radial derivative of plasma beta, β'
 ! 
+! Other reference variables that are needed (but inferred):
+!     - bref         -->   Magnetic field strength reference, B_ref
+!     - aref         -->   Minor radius reference length, a_ref
+!
+!--------------------------------- Mathematics ---------------------------------
+! Miller solves the Grad Shafranov equation locally: 
+!                       R^2 ∇ · (∇ψ/R^2) = −4π R^2 p′− II′
+!
+! From this we can get all of the local geometry variables. 
+! 
+! The Miller equilibrium is a local a formalism capable of describing the local 
+! magnetic geometry of a flux surface within axisymmetric systems. This approach
+! ensures that the Grad-Shafranov equation is locally satisfied in ψ.
+!
+! The definition of the Miller equilibrium is given in cyclindrical coordinates:
+!              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
+!              Z(r,θ) = κ(r)rsin θ
+! stella defines δ = arcsin \bar{δ}
+!
+! 
+! The GS equation can be expressed using this R and Z, giving a long expression, 
+! which will ~eventually~ be in the "stella_bible". For this we require terms like 
+! ∂Z/∂θ, ∂R/∂θ, ∂Z/∂r, ∂R/∂r etc. (plus second derivatives). These will depend on
+! quantities like R0, r, δ and κ. e.g.
+!              ∂R/∂r = R0' + cos[θ+ sin(θδ)]− rsin{θsin[θ+ sin(θδ)]}δ′
+!              ∂Z/∂r = (κ′r+ κ) sinθ
+!              ∂R/∂θ = −sin[θ+ sin(θδ)][1 + cos(θδ)]
+!              ∂Z/∂θ = κ * r * cosθ
+!
+! Once we have these derivatives we can also get the Jacobian for the system and 
+! other geometric quantities, such as
+!                           |∇r|^2 = R^2/Jr^2 [(∂Z/∂θ)^2 + (∂R/∂θ)^2]
+! etc. These all depend on the form of R and Z, and require the Jacobians. 
+!
+!------------------------------- Code Specifics --------------------------------
+! Code first reads in the input miller parameters and stores them as 
+! local%(name of variable).
+! 
+!     - Defines dq/dr = s * q / r
+!     - Gets the forms of R and Z (using functions called Rpos and Zpos, and are
+!                                  stored as Rr and Zr)
+!     - Then all the necessary derivatives, and second derivatives are computed, 
+!       along with the Jacobians
+!     - With these derivatives, geometric quantities can be calculated, e.g. 
+!                 <bmag> = B/B0 = sqrt(I^2 + |∇ψ|^2)/R
+!                 <b_dot_gradtheta> = b . ∇θ = dψ/dr / (B/B0 * Jacobian_r)
+!     - These are the quantities used in geometry.f90 to compute the geometric
+!       coefficients that appear in the code. 
 !###############################################################################
 module geometry_miller
 
