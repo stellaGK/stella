@@ -261,7 +261,7 @@ contains
             write (unit=unit_response_matrix) iky, neigen(iky)
          end if
 
-         ! Different ky's are independent, so this creates sets of connected kx values.
+         ! Different ky modes are independent, so this creates sets of connected kx values.
          ! Background:
          ! -----------
          ! After one full 2π orbit in zed, the eddy becomes sheared, shifting the mode 
@@ -374,7 +374,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! Loop over the independent chains for a given ky value  <neigen> is an
-      ! integer that depends on ky, as different ky's will have a different
+      ! integer that depends on ky, as different ky modes will have a different
       ! number of eigen chains.
       do ie = 1, neigen(iky)
          !----------------------------------------------------------------------
@@ -419,7 +419,7 @@ contains
          call setup_response_matrix_zloc_idx(iky, ie, nresponse)
 
          ! Allocate arrays on the extended zed domain
-         ! Fields only have 1 index, as we are looping over ky's, and kx and zed are connected
+         ! Fields only have 1 index, as we are looping over ky modes, and kx and zed are connected
          ! on via the extended zed domain
          ! The distribution function, gext, has 2 dimensions - the extended zed dimension, and
          ! velocity.
@@ -726,8 +726,8 @@ contains
       ! however, we see that if phir = phii = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
       phi_ext = 0.0
-      apar_ext = 0.0
-      bpar_ext = 0.0
+      !apar_ext = 0.0
+      !bpar_ext = 0.0
       
       ! How phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
@@ -891,9 +891,9 @@ contains
       ! with f = f1 + f2; then apar = df1/daparr * aparr + df2/dapari * apari.
       ! however, we see that if aparr = apari = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives apar = df1/daparr * (aparr + i * apari) = df1/daparr * apar
-      phi_ext = 0.0
+      !phi_ext = 0.0
       apar_ext = 0.0
-      bpar_ext = 0.0
+      !bpar_ext = 0.0
       apar_ext(idx) = 1.0
 
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
@@ -938,7 +938,7 @@ contains
       ! location now integrate over velocities to get a square response matrix.
       !
       ! integrate_over_velocity is the operator that acts on the pdf in 
-      ! Parallel Ampere's Law. e.g. if using g for the pdf: 
+      ! Parallel Ampere Law. e.g. if using g for the pdf: 
       !
       !          β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
       ! 
@@ -1049,9 +1049,9 @@ contains
       ! with f = f1 + f2; then bpar = df1/dbparr * bparr + df2/dbpari * bpari.
       ! however, we see that if bparr = bpari = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives bpar = df1/dbparr * (bparr + i * bpari) = df1/dbparr * bpar
-      phi_ext = 0.0
+      !phi_ext = 0.0
       apar_ext = 0.0
-      bpar_ext = 0.0
+      !bpar_ext = 0.0
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       bpar_ext(idx) = time_upwind_plus
@@ -1098,7 +1098,7 @@ contains
       ! location now integrate over velocities to get a square response matrix.
       !
       ! integrate_over_velocity is the operator that acts on the pdf in 
-      ! Parallel Ampere's Law. e.g. if using g for the pdf: 
+      ! Parallel Ampere Law. e.g. if using g for the pdf: 
       !
       !          - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
       ! 
