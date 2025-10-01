@@ -150,7 +150,7 @@ module geometry_miller
 
    ! Local variables
    integer :: nzed_local
-   integer :: nz, nzgrid_2pi
+   integer :: nz, nzgrid_2pi, np
 
    ! Geometric quantities
    real :: bi, dqdr, d2Idr2
@@ -203,7 +203,7 @@ contains
 
       ! Local variables
       real :: dum
-      integer :: np, j
+      integer :: j
 
       !-------------------------------------------------------------------------
 
@@ -373,7 +373,7 @@ contains
       real, dimension(-nzgrid:), intent(out) :: d_gradxdotgradx_drho_out, djacdrho_out
 
       ! Local variables - used for calculations
-      integer :: nr, np
+      integer :: nr
       integer :: i, j
       real :: rmin, dum
       real, dimension(3) :: dr
@@ -390,7 +390,6 @@ contains
       nr = 3
 
       ! Allocate arrays
-      if (debug) write (*, *) 'geometry_miller::get_miller_geometry'
       call allocate_arrays(nr, nz)
 
       ! Get dq/∂r = q/r * s 
@@ -407,6 +406,7 @@ contains
       ! Compute the functions R(r,θ) and Z(r,θ)
       !              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
       !              Z(r,θ) = κ(r)rsin θ
+      ! ------------------------------------------------------------------------
       do j = -nz, nz
          theta(j) = j * (2 * np - 1) * pi / real(nz)
          do i = 1, 3
@@ -422,13 +422,15 @@ contains
       ! The following sets of routines compute derivatives of R and Z with 
       ! respect to r and θ (get first and second derivatives).
       ! ------------------------------------------------------------------------
-
-      if (.not. allocated(delthet)) allocate (delthet(-nz:nz - 1))
-      ! Get dθ theta as a function of theta - needed for theta derivatives
-      delthet = theta(-nz + 1:) - theta(:nz - 1)
       
       ! Debug message
       if (debug) write (*, *) 'geometry_miller::radial_derivatives'
+
+      ! Allocate arrays
+      if (.not. allocated(delthet)) allocate (delthet(-nz:nz - 1))
+      
+      ! Get dθ theta as a function of theta - needed for theta derivatives
+      delthet = theta(-nz + 1:) - theta(:nz - 1)
 
       ! Get ∂R/∂r and ∂Z/∂r
       call get_drho(Rr, dRdrho)
@@ -677,8 +679,6 @@ contains
 
       ! Write geometry txt files
       call write_geometry_miller_txt_files
-      
-      initialised_miller = .false.
 
    contains
 
