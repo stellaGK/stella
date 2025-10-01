@@ -726,8 +726,8 @@ contains
       ! however, we see that if phir = phii = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
       phi_ext = 0.0
-      !apar_ext = 0.0
-      !bpar_ext = 0.0
+      apar_ext = 0.0
+      bpar_ext = 0.0
       
       ! How phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
@@ -891,15 +891,15 @@ contains
       ! with f = f1 + f2; then apar = df1/daparr * aparr + df2/dapari * apari.
       ! however, we see that if aparr = apari = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives apar = df1/daparr * (aparr + i * apari) = df1/daparr * apar
-      !phi_ext = 0.0
+      phi_ext = 0.0
       apar_ext = 0.0
-      !bpar_ext = 0.0
+      bpar_ext = 0.0
       apar_ext(idx) = 1.0
 
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
       ! a phase factor. In practice this only matters if the unit impulse is at the 
       ! boundary (i.e. <idx ==1 ) otherwise phi = 0.0 at both boundary points anyway. 
-      if (periodic(iky) .and. idx == 1) apar_ext(nz_ext) = apar_ext(1)! / phase_shift(iky)
+      if (periodic(iky) .and. idx == 1) apar_ext(nz_ext) = apar_ext(1) / phase_shift(iky)
 
       ! <dum> is a scratch array that takes the place of the pdf and the fields
       ! at the previous time level. It also replaces the other fields (apar and bpar).
@@ -1049,9 +1049,9 @@ contains
       ! with f = f1 + f2; then bpar = df1/dbparr * bparr + df2/dbpari * bpari.
       ! however, we see that if bparr = bpari = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives bpar = df1/dbparr * (bparr + i * bpari) = df1/dbparr * bpar
-      !phi_ext = 0.0
+      phi_ext = 0.0
       apar_ext = 0.0
-      !bpar_ext = 0.0
+      bpar_ext = 0.0
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       bpar_ext(idx) = time_upwind_plus
@@ -1059,7 +1059,7 @@ contains
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
       ! a phase factor. In practice this only matters if the unit impulse is at the 
       ! boundary (i.e. <idx ==1 ) otherwise phi = 0.0 at both boundary points anyway. 
-      if (periodic(iky) .and. idx == 1) bpar_ext(nz_ext) = bpar_ext(1) !/ phase_shift(iky)
+      if (periodic(iky) .and. idx == 1) bpar_ext(nz_ext) = bpar_ext(1) / phase_shift(iky)
 
       ! <dum> is a scratch array that takes the place of the pdf and the fields
       ! at the previous time level. It also replaces the other fields (apar and bpar).
@@ -1116,17 +1116,18 @@ contains
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
+         offset_apar = 0
+         if (include_apar) offset_apar = nresponse
+         if (include_bpar) offset_bpar = offset_apar + nresponse
+
          ! For phi         
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar) = phi_ext(:nresponse)
          ! For apar
-         offset_apar = 0
          if (include_apar) then
-            offset_apar = nresponse
             response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_bpar) = apar_ext(:nresponse)
          end if
          ! For bpar
          if (include_bpar) then
-            offset_bpar = offset_apar + nresponse
             response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_bpar) = bpar_ext(:nresponse)
          end if
 #ifdef ISO_C_BINDING
@@ -1492,15 +1493,6 @@ contains
       !-------------------------------------------------------------------------
 
    end subroutine integrate_over_velocity_bpar
-
-
-
-
-
-
-
-
-
 
 
 !###############################################################################
