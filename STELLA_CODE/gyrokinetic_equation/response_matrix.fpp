@@ -971,7 +971,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
       use arrays, only: response_matrix
-      use grids_extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: periodic, phase_shift
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -1130,7 +1130,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
       use arrays, only: response_matrix
-      use grids_extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: periodic, phase_shift
 
       implicit none
 
