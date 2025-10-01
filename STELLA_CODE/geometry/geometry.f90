@@ -38,7 +38,7 @@
 !    - cvdrift0      -->   B_times_kappa_dot_gradx * 2. * shat
 !    - cvdrift       -->   B_times_kappa_dot_grady * 2.
 !    - gradpar       -->   b_dot_gradz_avg
-!    - dgradpardrho  -->   d_b_dot_gradz_drho
+!    - dgradpardrho  -->   d_bdotgradz_drho
 !    - gradpar_c     -->   b_dot_gradz_centredinz (gk_parallel_streaming.f90)
 ! 
 !###############################################################################
@@ -71,7 +71,7 @@ module geometry
    public :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
    public :: jacob, djacdrho, drhodpsi, drhodpsip, drhodpsip_psi0
    public :: dl_over_b, d_dl_over_b_drho
-   public :: dBdrho, d2Bdrdth, d_b_dot_gradz_drho, dIdrho
+   public :: dBdrho, d2Bdrdth, d_bdotgradz_drho, dIdrho
    public :: geo_surf, Rmajor, dzetadz
    public :: theta_vmec, zeta, alpha 
    public :: dxdpsi, dydalpha, clebsch_factor
@@ -120,7 +120,7 @@ module geometry
    ! Geometric quantities for the gyrokinetic equations
    real, dimension(:), allocatable :: zed_eqarc, alpha
    real, dimension(:), allocatable :: b_dot_gradz_avg
-   real, dimension(:), allocatable :: dBdrho, d2Bdrdth, d_b_dot_gradz_drho, btor, Rmajor 
+   real, dimension(:), allocatable :: dBdrho, d2Bdrdth, d_bdotgradz_drho, btor, Rmajor 
    real, dimension(:, :), allocatable :: bmag, bmag_psi0, dbdzed 
    real, dimension(:, :), allocatable :: B_times_kappa_dot_grady, B_times_kappa_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
    real, dimension(:, :), allocatable :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
@@ -712,7 +712,7 @@ contains
                 grady_dot_grady(1, :), gradx_dot_grady(1, :), gradx_dot_gradx(1, :), gds23(1, :), gds24(1, :), b_dot_gradz(1, :), &
                 B_times_gradB_dot_gradx(1, :), B_times_gradB_dot_grady(1, :), &
                 B_times_kappa_dot_gradx(1, :), B_times_kappa_dot_grady(1, :), &
-                dBdrho, d2Bdrdth, d_b_dot_gradz_drho, btor, rmajor, &
+                dBdrho, d2Bdrdth, d_bdotgradz_drho, btor, rmajor, &
                 dcvdrift0drho(1, :), dcvdriftdrho(1, :), dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                 dgds2dr(1, :), dgds21dr(1, :), dgds22dr(1, :), djacdrho(1, :))
       if (debug) write (*, *) 'geometry::Miller::get_local_geo_finished'
@@ -1043,7 +1043,7 @@ contains
       if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid)); rmajor = 0.0
       if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid)); dBdrho = 0.0
       if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid)); d2Bdrdth = 0.0
-      if (.not. allocated(d_b_dot_gradz_drho)) allocate (d_b_dot_gradz_drho(-nzgrid:nzgrid)); d_b_dot_gradz_drho = 0.0
+      if (.not. allocated(d_bdotgradz_drho)) allocate (d_bdotgradz_drho(-nzgrid:nzgrid)); d_bdotgradz_drho = 0.0
       if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.0
       if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.0
       if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
@@ -1122,7 +1122,7 @@ contains
       call broadcast(dcvdriftdrho)
       call broadcast(dBdrho)
       call broadcast(d2Bdrdth)
-      call broadcast(d_b_dot_gradz_drho)
+      call broadcast(d_bdotgradz_drho)
       call broadcast(djacdrho)
       
       ! Arrays for the momentum flux
@@ -1441,7 +1441,7 @@ contains
       if (allocated(dcvdrift0drho)) deallocate (dcvdrift0drho)
       if (allocated(dBdrho)) deallocate (dBdrho)
       if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
-      if (allocated(d_b_dot_gradz_drho)) deallocate (d_b_dot_gradz_drho)
+      if (allocated(d_bdotgradz_drho)) deallocate (d_bdotgradz_drho)
       if (allocated(theta_vmec)) deallocate (theta_vmec)
       if (allocated(alpha)) deallocate (alpha)
       if (allocated(zeta)) deallocate (zeta)
