@@ -128,7 +128,7 @@ contains
    subroutine init_array_dkperp2dr
 
       use arrays, only: kperp2, dkperp2dr
-      use geometry, only: dgds2dr, dgds21dr, dgds22dr
+      use geometry, only: d_gradydotgrady_drho, d_gradxdotgrady_drho, d_gradxdotgradx_drho
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
       use grids_kxky, only: naky, nakx, nalpha
@@ -153,9 +153,9 @@ contains
          if (q_as_x) then
              do ikx = 1, nakx
                 where (kperp2(iky, ikx, :, :) > epsilon(0.0))
-                   dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) * dgds2dr &
-                        + 2.0 * aky(iky) * akx(ikx) * dgds21dr &
-                        + akx(ikx) * akx(ikx) * dgds22dr
+                   dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) * d_gradydotgrady_drho &
+                        + 2.0 * aky(iky) * akx(ikx) * d_gradxdotgrady_drho &
+                        + akx(ikx) * akx(ikx) * d_gradxdotgradx_drho
                    dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
                   elsewhere
                      dkperp2dr(iky, ikx, :, :) = 0.0
@@ -164,9 +164,9 @@ contains
          else
              do ikx = 1, nakx
                 where (kperp2(iky, ikx, :, :) > epsilon(0.0))
-                   dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) * dgds2dr &
-                       + 2.0 * aky(iky) * akx(ikx) * dgds21dr / geo_surf%shat &
-                       + akx(ikx) * akx(ikx) * dgds22dr / (geo_surf%shat)**2
+                   dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) * d_gradydotgrady_drho &
+                       + 2.0 * aky(iky) * akx(ikx) * d_gradxdotgrady_drho / geo_surf%shat &
+                       + akx(ikx) * akx(ikx) * d_gradxdotgradx_drho / (geo_surf%shat)**2
                    dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
                   elsewhere
                      dkperp2dr(iky, ikx, :, :) = 0.0

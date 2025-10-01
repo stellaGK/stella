@@ -42,7 +42,7 @@ contains
       use geometry, only: grho_norm, bmag, btor
       use geometry, only: drhodpsi
       use geometry, only: gradx_dot_grady, gradx_dot_gradx
-      use geometry, only: dgds21dr, dgds22dr
+      use geometry, only: d_gradxdotgrady_drho, d_gradxdotgradx_drho
       use geometry, only: geo_surf
       use geometry, only: dBdrho, dIdrho
       use grids_z, only: nzgrid, ntubes
@@ -262,7 +262,7 @@ contains
                   call gyro_average_j1(g0k, iz, ivmu, g2(:, :, iz, it, ivmu))
                   if (radial_variation) then
                      g0k = -g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (dgds21dr(ia, iz) + theta0 * dgds22dr(ia, iz)) * aj1x(:, :, iz, ivmu) * spec(is)%smz &
+                           * (d_gradxdotgrady_drho(ia, iz) + theta0 * d_gradxdotgradx_drho(ia, iz)) * aj1x(:, :, iz, ivmu) * spec(is)%smz &
                            / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
 
                      g0k = g0k - g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
@@ -293,7 +293,7 @@ contains
                      g1k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
                            * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                            * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (dgds21dr(ia, iz) + theta0 * dgds22dr(ia, iz)) * spec(is)%smz &
+                           * (d_gradxdotgrady_drho(ia, iz) + theta0 * d_gradxdotgradx_drho(ia, iz)) * spec(is)%smz &
                            / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
 
                      g1k = g1k - spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) &
