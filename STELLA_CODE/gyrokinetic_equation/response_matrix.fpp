@@ -835,7 +835,7 @@ contains
       ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
       phi_ext = 0.0
       apar_ext = 0.0
-      bar_ext = 0.0
+      bpar_ext = 0.0
       
       ! How phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
@@ -1001,7 +1001,7 @@ contains
       ! and thus f2 = i * f1.  This gives apar = df1/daparr * (aparr + i * apari) = df1/daparr * apar
       phi_ext = 0.0
       apar_ext = 0.0
-      bar_ext = 0.0
+      bpar_ext = 0.0
       apar_ext(idx) = 1.0
 
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
@@ -1159,7 +1159,7 @@ contains
       ! and thus f2 = i * f1.  This gives bpar = df1/dbparr * (bparr + i * bpari) = df1/dbparr * bpar
       phi_ext = 0.0
       apar_ext = 0.0
-      bar_ext = 0.0
+      bpar_ext = 0.0
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       bpar_ext(idx) = time_upwind_plus
