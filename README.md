@@ -216,6 +216,7 @@ It is the responsibility of the respective authors to list their contributions t
 - The $\texttt{VMEC}$ interface has been written by M. Landreman and has been incorporated into $\texttt{stella}$ by M. Barnes in 2018.
 - The "parallel nonlinearity" term has been added to the gyrokinetic equation by M. Barnes in 2018, as detailed in [[2018 - Barnes - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aaeb69)].
 - A Linearised Fokker--Planck collision model has been implemented by A. von Boetticher in August 2021, as detailed in [[2024 - A. von Boetticher - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/ad6c7c)].
+- The CMake compilation has been set-up by P. Hill in September 2021.
 - Stellarator-symmetric parallel boundary conditions have been implemented by A. González-Jerez in November 2021, based on [[2018 - Martin - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aad38a)].
 - The radially global version of the $\texttt{stella}$ code has been developed by D. A. St-Onge in 2022, as detailed in [[2022 - D. A. St-Onge - Journal of Computational Physics](https://doi.org/10.1016/j.jcp.2022.111498)]. This paper used [stella release 0.5.1](https://github.com/stellaGK/stella/releases/tag/v0.5.1).
 - The construction of the response matrix now uses an LU decomposition, speeding up this routine drastically, this has been implemented by D. A. St-Onge in April 2022.
