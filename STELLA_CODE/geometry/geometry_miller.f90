@@ -18,10 +18,10 @@
 ! 
 ! The definition of the Miller equilibrium is given in cyclindrical coordinates:
 ! 
-!               R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
-!               Z(r,θ) = κ(r)rsin θ
+!               R(r,θ) = R0(r) + r cos[ θ + sin θ arcsin δ(r) ]
+!               Z(r,θ) = κ(r) r sin θ
 ! 
-! Note that stella defines δ = arcsin \bar{δ}.
+! Note that stella defines <tri> = arcsin δ(r).
 ! 
 ! 
 ! The GS equation can be expressed using this R and Z, giving a long expression, 
@@ -135,6 +135,8 @@ module geometry_miller
    private
 
    !----------------------------- Input Variables ------------------------------
+   
+   ! Variables read from the "geometry_miller" namelist in the input file
    real :: rhoc, rgeo, rmaj, shift
    real :: kappa, kapprim
    real :: tri, triprim
@@ -147,13 +149,15 @@ module geometry_miller
    logical :: write_profile_variation
    logical :: read_profile_variation
    logical :: load_psi0_variables
+   
+   !----------------------------- Local Variables ------------------------------
 
-   ! Local variables
+   ! Local variables for the z-gid
    integer :: nzed_local
-   integer :: nz, nzgrid_2pi, nperiod
+   integer :: nz, nzgrid_2pi
+   integer :: nperiod
 
    ! Geometric quantities
-   real :: bi, dqdr, d2Idr2
    real, dimension(:), allocatable :: grho, bmag, grho_psi0, bmag_psi0
    real, dimension(:), allocatable :: b_dot_gradtheta, b_dot_gradtheta_arc, arc
    real, dimension(:), allocatable :: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
@@ -176,15 +180,19 @@ module geometry_miller
    real, dimension(:), allocatable :: d2jacdr2, dRdrho, dZdrho, dRdth, dZdth
    real, dimension(:), allocatable :: d2R, d2Z
    real, dimension(:, :), allocatable :: Rr, Zr
-
+   real :: bi, dqdr, d2Idr2
    
-   ! This module stores the characterics of the flux surface as local%(name of variable)
+   ! Store the characterics of the flux surface as local%(name of variable)
    type(flux_surface_type) :: local
 
    ! Only initialise once
    logical :: initialised_miller = .false.
 
 contains
+
+!===============================================================================
+!================================= INITIALISE ==================================
+!===============================================================================
 
    !****************************************************************************
    !                            READ LOCAL PARAMETERS                           
@@ -325,6 +333,11 @@ contains
       end subroutine read_miller_parameters_radial_variation
 
    end subroutine read_miller_parameters
+   
+   
+!===============================================================================
+!=============================== MILLER GEOMETRY ===============================
+!===============================================================================
 
    !****************************************************************************
    !                          CALCULATE MILLER GEOMETRY                         
@@ -373,13 +386,12 @@ contains
       real, dimension(-nzgrid:), intent(out) :: d_gradxdotgradx_drho_out, djacdrho_out
 
       ! Local variables - used for calculations
-      integer :: nr
+      integer :: nr, n
       integer :: i, j
       real :: rmin, dum
       real, dimension(3) :: dr
       real, allocatable, dimension(:) :: zed_arc
       character(len=512) :: filename
-      integer :: n
 
       !-------------------------------------------------------------------------
       
@@ -401,11 +413,11 @@ contains
       dr(3) = local%dr
 
       ! ------------------------------------------------------------------------
-      !                           Function Calculations
+      !                          Function Calculations                          
       ! ------------------------------------------------------------------------
-      ! Compute the functions R(r,θ) and Z(r,θ)
-      !              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
-      !              Z(r,θ) = κ(r)rsin θ
+      ! Compute the functions R(r,θ) and Z(r,θ).
+      !    R(r,θ) = R0(r) + r cos[ θ + sin θ arcsin δ(r) ]
+      !    Z(r,θ) = κ(r) r sin θ
       ! ------------------------------------------------------------------------
       do j = -nz, nz
          theta(j) = j * (2 * nperiod - 1) * pi / real(nz)
@@ -682,9 +694,14 @@ contains
 
    contains
 
+      ! ------------------------------------------------------------------------
+      !                          Interpolate functions                          
+      ! ------------------------------------------------------------------------
       subroutine interpolate_functions
          
          implicit none
+         
+         !----------------------------------------------------------------------
 
          if (zed_equal_arc) then
             if (debug) write (*, *) 'geometry_miller::zed_equal_arc=.true.'
@@ -752,9 +769,14 @@ contains
          end if
       end subroutine interpolate_functions
 
+      ! ------------------------------------------------------------------------
+      !                          Rounding functions                          
+      ! ------------------------------------------------------------------------
       subroutine round_functions
 
-         implicit none 
+         implicit none
+         
+         !----------------------------------------------------------------------
 
          ! We test stella on macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04 and ubuntu-24.04
          ! and the different operating systems give differences in the last digits, so round the values.
@@ -819,6 +841,9 @@ contains
          end do
       end subroutine round_functions
 
+      ! ------------------------------------------------------------------------
+      !                           Write to text files                           
+      ! ------------------------------------------------------------------------
       subroutine write_geometry_miller_txt_files
 
          implicit none
@@ -893,9 +918,9 @@ contains
 
    end subroutine get_miller_geometry
 
-   !============================================================================
-   !============================== ALLOCATE ARRAYS =============================
-   !============================================================================ 
+   !****************************************************************************
+   !                              Allocate arrays                               
+   !****************************************************************************
    subroutine allocate_arrays(nr, nz)
 
       implicit none
@@ -942,10 +967,15 @@ contains
       allocate (dcrossdr(-nz:nz)); dcrossdr = 0.0
 
    end subroutine allocate_arrays
+   
+   
+!===============================================================================
+!=================================== FINISH ====================================
+!===============================================================================
 
-   !===============================================================================
-   !==================================== FINISH ===================================
-   !===============================================================================
+   !****************************************************************************
+   !                         Finish the Miller geometry                         
+   !****************************************************************************
    subroutine finish_miller_geometry
 
       implicit none
@@ -1740,71 +1770,124 @@ contains
    end subroutine communicate_parameters_multibox
 
    !****************************************************************************
-   !                               Function for R
+   !                               Function for R                               
    !****************************************************************************
-   !              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
+   ! The position R(r,θ) is defined as,
+   !    R(r,θ) = R0(r) + r cos( θ + sin θ arcsin δ(r) )
+   ! 
+   ! In order to calculate radial derivatives we also need,
+   !    ∂R/∂r = R'0 + cos ( θ + sin θ arcsin δ(r) ) - r * sin θ * sin ( θ + sin θ * arcsin δ(r) ) * δ'
+   ! 
+   ! For short notation, let's define
+   !    <cos_theta> = cos ( θ + sin θ arcsin δ(r) )
+   !    <sin_theta> = sin θ * sin ( θ + sin θ * arcsin δ(r) ) * δ'
+   ! 
+   ! Therefore, the position R(r,θ) is calculated as,
+   !    R = R0 + r * <cos_theta> + R'0 * dr + <cos_theta> * dr - r * <sin_theta> * dr
+   ! 
+   ! Recall the definitions of the Miller parameters,
+   !    <rhoc> = r
+   !    <tri> = arcsin δ(r)
+   !    <triprim> = δ'
+   !    <rmaj> = R0(r)
+   !    <shift> = R'0(r) = Horizontal Shafranov shift
    !****************************************************************************
-   function Rpos(r, theta, j)
+   function Rpos(r, theta, iz)
 
       use constants, only: pi
 
-      integer, intent(in) :: j
+      ! Arguments
+      integer, intent(in) :: iz
       real, intent(in) :: r, theta
-      real :: Rpos
-      real :: g, gp, dr
+      
+      ! Local variables
+      real :: cos_theta
+      real :: sin_theta
+      real :: dr
       integer :: i
+      
+      ! Result of the function
+      real :: Rpos
 
       !-------------------------------------------------------------------------
 
-      dr = r - local%rhoc
-
-      ! For Y Xiao:
-      !    g = local%delp/local%rhoc + local%d * sin(theta)**2
-      !    Rpos = local%rmaj*(1.+r*(cos(theta)-g)-g*dr)
-
-      g = cos(theta + local%tri * sin(theta))
-      gp = -sin(theta + local%tri * sin(theta)) &
-           * local%triprim * sin(theta)
-
       ! Allow for strange specification of R_ψ
-      if (j == nz + 1) then
+      if (iz == nz + 1) then
          i = -nz
       else
-         i = j
+         i = iz
       end if
+      
+      ! Within the Miller routine we have defined
+      !   <dr> = 1.e-3 * (rhoc / rmaj)
+      ! The radial location which is passed in here, is,
+      !   <r> = local%rhoc + dr(i)
+      ! Therefore, we can obtain <dr> again through,
+      dr = r - local%rhoc
+      
+      ! Calculate cos ( θ + sin θ arcsin δ(r) )
+      cos_theta = cos(theta +  sin(theta) * local%tri)
+      
+      ! Calculate - sin θ * sin ( θ + sin θ * arcsin δ(r) ) * δ'
+      sin_theta = - sin(theta) * sin(theta + sin(theta) * local%tri) * local%triprim
 
-      ! Second line here is (1/2)*(r-r0)^2 * ∂^2 R/ ∂r|_r0
-      ! Note that d2R=0 unless read_profile_variation = T in input file
-      Rpos = local%rmaj + local%shift * dr + g * local%rhoc + (g + local%rhoc * gp) * dr &
-             + 0.5 * (r - rhoc0)**2 * d2R(i)
+      ! Calculate R = R0 + r * <cos_theta> + R'0 * dr + <cos_theta> * dr - r * <sin_theta> * dr
+      ! We also add (1/2)*(r-r0)^2 * ∂^2 R/ ∂r|_r0. Note that d2R=0 unless read_profile_variation = T in input file
+      Rpos = local%rmaj + local%shift * dr + cos_theta * local%rhoc &
+         + (cos_theta + local%rhoc * sin_theta) * dr + 0.5 * (r - rhoc0)**2 * d2R(i)
 
    end function Rpos
 
    !****************************************************************************
-   !                                Function for Z 
+   !                               Function for Z                               
    !****************************************************************************
-   !                              Z(r,θ) = κ(r)rsin θ
+   ! The position Z(r,θ) is defined as,
+   !      Z(r,θ) = κ(r) * r * sin θ
+   ! 
+   ! In order to calculate radial derivatives we also need,
+   !    ∂Z/∂r = (κ' * r + κ) * sin θ
+   ! 
+   ! Therefore, the position Z(r,θ) is calculated as,
+   !    Z = κ(r) * r * sin θ + (κ' * r + κ) * sin θ * dr
+   ! 
+   ! Recall the definitions of the Miller parameters,
+   !    <rhoc> = r
+   !    <kappa> = κ(r)
+   !    <kapprim> = κ'(r)
    !****************************************************************************
-   function Zpos(r, theta, j)
+   function Zpos(r, theta, iz)
 
-      integer, intent(in) :: j
+      ! Arguments
+      integer, intent(in) :: iz
       real, intent(in) :: r, theta
-      real :: Zpos, dr
+      
+      ! Local variables
+      real :: dr
       integer :: i
+      
+      ! Result of the function
+      real :: Zpos
 
       !-------------------------------------------------------------------------
 
       ! Allow for strange specification of Z_psi
-      if (j == nz + 1) then
+      if (iz == nz + 1) then
          i = -nz
       else
-         i = j
+         i = iz
       end if
-
+      
+      ! Within the Miller routine we have defined
+      !   <dr> = 1.e-3 * (rhoc / rmaj)
+      ! The radial location which is passed in here, is,
+      !   <r> = local%rhoc + dr(i)
+      ! Therefore, we can obtain <dr> again through,
       dr = r - local%rhoc
+      
+      ! Calculate Z = κ(r) * r * sin θ + (κ' * r + κ) * sin θ * dr
       ! Note that d2Z=0 unless read_profile_variation = T in input file
-      Zpos = local%kappa * sin(theta) * local%rhoc + (local%rhoc * local%kapprim + local%kappa) * sin(theta) * dr &
-             + 0.5 * (r - rhoc0)**2 * d2Z(i)
+      Zpos = local%kappa * local%rhoc * sin(theta) + &
+         (local%kapprim * local%rhoc + local%kappa) * sin(theta) * dr + 0.5 * (r - rhoc0)**2 * d2Z(i)
 
    end function Zpos
 
