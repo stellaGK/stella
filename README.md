@@ -10,19 +10,20 @@ stellarators.
 
 A detailed $\texttt{stella}$ manual will be released in the coming months, which will be available on the GitHub repository, as well as on arXiv.
 
-<br>
+<br><br>
 
 ## Table of contents
-  * [Dependencies](#dependencies)
-  * [Installation and Compilation](#installation-and-compilation)
-    + [CMake](#cmake)
-    + [Make](#make)
-  * [Verification of stella output](#verification-of-stella-output)
-    + [Set-up](#set-up)
-    + [Numerical tests](#numerical-tests)
+   * [Dependencies](#dependencies)
+   * [Installation and Compilation](#installation-and-compilation)
+      + [CMake](#cmake)
+      + [Make](#make)
+   * [Verification of stella output](#verification-of-stella-output)
+      + [Set-up the automatic tests](#set-up-the-automatic-tests)
+      + [Run numerical tests](#run-numerical-tests)
+   * [Acknowledgments](#acknowledgments)
 
 
-<br>
+<br><br>
 
 ## Dependencies
 
@@ -41,7 +42,7 @@ Note that the following libraries are optional:
 - LAPACK
 
 
-<br>
+<br><br>
 
 ## Installation and Compilation
 
@@ -154,7 +155,7 @@ make distclean          # Clean + Remove stelle executable + Invoke clean on pFU
 
 
 
-<br>
+<br><br>
 
 ## Verification of stella output
 
@@ -200,5 +201,28 @@ make numerical-tests-6
 make numerical-tests-7
 make numerical-tests-8
 ```
+
+
+
+
+<br><br>
+
+## Acknowledgments
+
+Disclaimer: This section is incomplete.
+It is the responsibility of the respective authors to list their contributions to the $\texttt{stella}$ code.
+
+- The electrostatic flux-tube version of the $\texttt{stella}$ gyrokinetic code has been developed by M. Barnes in 2018. The details of the code can be found in [[2019 - Barnes - Journal of Computational Physics](https://doi.org/10.1016/j.jcp.2019.01.025)].
+- The $\texttt{VMEC}$ interface has been written by M. Landreman and has been incorporated into $\texttt{stella}$ by M. Barnes in 2018.
+- The "parallel nonlinearity" term has been added to the gyrokinetic equation by M. Barnes in 2018, as detailed in [[2018 - Barnes - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aaeb69)].
+- A Linearised Fokker--Planck collision model has been implemented by A. von Boetticher in August 2021, as detailed in [[2024 - A. von Boetticher - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/ad6c7c)].
+- Stellarator-symmetric parallel boundary conditions have been implemented by A. González-Jerez in November 2021, based on [[2018 - Martin - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aad38a)].
+- The radially global version of the $\texttt{stella}$ code has been developed by D. A. St-Onge in 2022, as detailed in [[2022 - D. A. St-Onge - Journal of Computational Physics](https://doi.org/10.1016/j.jcp.2022.111498)]. This paper used [stella release 0.5.1](https://github.com/stellaGK/stella/releases/tag/v0.5.1).
+- The electromagnetic extension of the $\texttt{stella}$ code has been implemented by M. Hardman in July 2024.
+- The automatic testing infrastructure has been implemented by H. Thienpondt in July 2024.
+- The z-pinch magnetic geometry has been added by L. Podavini in September 2024.
+- The $\texttt{stella}$ code has been reorganized and cleaned up by H. Thienpondt and G. Acton in October 2025.
+- The full-flux-surface version of $\texttt{stella}$ will be implemented by G. Acton in 2025.
+
 
 
