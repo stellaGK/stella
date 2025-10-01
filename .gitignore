@@ -51,12 +51,6 @@ AUTOMATIC_TESTS/test_fortran_routines/*.f90
 .compiler_flags
 .fortran_git_version
 
-# Automatic documentation
-docs/html/
-docs/pages/user_manual/namelists.md
-DOCUMENTATION/automatic_documentation_FORD/
-DOCUMENTATION/automatic_documentation_manual_pages/user_manual/namelists.md
-
 # C extensions
 *.so
 
