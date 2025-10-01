@@ -8,9 +8,7 @@ evolving electrostatic fluctuations with fully kinetic electrons and an
 arbitrary number of ion species in general magnetic geometry, including
 stellarators.
 
-Automatic documentation is created based on the `stella` code, however this is a work in progress.
-
-https://stellagk.github.io/stella/
+A detailed $\texttt{stella}$ manual will be released in the coming months, which will be available on the GitHub repository, as well as on arXiv.
 
 <br>
 
@@ -28,9 +26,17 @@ https://stellagk.github.io/stella/
 
 ## Dependencies
 
-stella requires MPI, and has several optional dependencies:
+In order to compile and run $\texttt{stella}$, install the following libraries:
+- A Fortran compiler, typically $\texttt{gfortan}$ on Ubuntu, or $\texttt{gcc}$ on macOS.
+- NetCDF libraries in order to write the diagnostics.
+- Libraries for linear algebra routines, such as $\texttt{blas}$ and $\texttt{lapack}$.
+- An implementation of $\texttt{MPI}$ for parallel runs.
+- FFTW for computing discrete Fourier transformations.
+- The $\texttt{make}$ or $\texttt{cmake}$ library, for building the code.
+- Python utilities for the automatic tests.
 
-- netCDF Fortran
+Note that the following libraries are optional:
+- NetCDF Fortran
 - FFTW3
 - LAPACK
 
@@ -39,9 +45,10 @@ stella requires MPI, and has several optional dependencies:
 
 ## Installation and Compilation
 
-There are two ways to build stella: with CMake (experimental) or with
-plain `make`.
+There are two ways to build stella: using $\texttt{CMake}$ or plain $\texttt{make}$.
 
+
+<br>
 
 ### CMake
 
@@ -101,15 +108,17 @@ cmake -LH
 ```
 
 
+<br>
+
 ### Make
 
 The other build system uses plain `make`:
 
-1. Set `GK_SYSTEM='system'`, with `system` replaced by the appropriate system on
-   which you are running. See the `Makefiles` directory for a list of supported
+1. Set `STELLA_SYSTEM='system'`, with `system` replaced by the appropriate system on
+   which you are running. See the `COMPILATION/Makefiles/` directory for a list of supported
    systems.
 2. Optionally, set the following environment variables to override the locations
-   in the `GK_SYSTEM` Makefile:
+   in the `STELLA_SYSTEM` Makefile:
    - `FFTW_LIB_DIR`: directory containing libfftw3
    - `FFTW_INC_DIR`: directory including fftw3.f
    - `NETCDF_LIB_DIR`: directory containing libnetcdff
@@ -121,46 +130,75 @@ The other build system uses plain `make`:
 For example, to compile on Ubuntu:
 
 ```bash
-# using bash:
-export GK_SYSTEM=gnu_ubuntu
+# Using bash:
+export STELLA_SYSTEM=gnu_ubuntu
 export MAKEFLAGS=-IMakefiles
 make
 
-# or in one line:
-make -IMakefiles GK_SYSTEM=gnu_ubuntu
+# Or in one line:
+make -IMakefiles STELLA_SYSTEM=gnu_ubuntu
 ```
-If the exports of `GK_SYSTEM` and `MAKEFLAGS` are set, compiling stella is achieved through:
+In summary the exports of `STELLA_SYSTEM` and `MAKEFLAGS` are set, compiling stella is achieved through:
 ```
+make clean
+make depend
 make
 ```
 To `clean` the directory, the following commands exist:
 ```
-make clean              # removes compiled stella files, utils files and mini_libstell files
-make clean-quick        # only removes the compiled stella files, not the utils and mini_libstell files
-make clean-submodules   # clean + remove git_version, neasyf and pFUnit folders
-make distclean          # clean + remove stelle executable + invoke clean on pFUnit
+make clean              # Removes compiled stella files, utils files and mini_libstell files
+make clean-quick        # Only removes the compiled stella files, not the utils and mini_libstell files
+make clean-submodules   # Clean + Remove git_version, neasyf and pFUnit folders
+make distclean          # Clean + Remove stelle executable + Invoke clean on pFUnit
 ```
+
+
 
 <br>
 
 ## Verification of stella output
 
-Automated python tests are available to test the output of stella. 
+To ensure that the $\texttt{stella}$ code is functioning correctly, a suite of numerical tests has been implemented and is automatically run on every push to GitHub. These tests cover a wide range of routines and options within $\texttt{stella}$. The numerical tests are organized into eight categories. Tests 1-5 use the electrostatic flux-tube version of $\texttt{stella}$, while tests 6 and 7 target the full-flux-surface and electromagnetic versions, respectively. Finally, test 8 checks whether simulations can be succesfully restarted.
+- **Test 1**: Confirms that the $\texttt{stella}$ executable exists and that $\texttt{stella}$ runs correctly by checking that the executable **produces output files**.
+- **Test 2**: Verifies that the **magnetic geometries** are implemented correctly. This includes geometries based on Miller parameters, $\texttt{VMEC}$ equilibria, and slab geometry.
+- **Test 3**: Checks each term of the **gyrokinetic equation** independently. It confirms that the electrostatic potential remains constant when no terms (nor collisions or dissipation) are included; validates the initialization options for the distribution function, and verifies the correct evolution of the potential for each term. The $(k_x,k_y)$ grid options ("box" and "range") are also tested.
+- **Test 4**: Tests the **parallel boundary conditions**: (1) standard twist-and-shift, (2) stellarator-symmetric, (3) periodic, and (4) zero boundary conditions. Additionally, multiple input flags are tested simultaneously. In the future, each input parameter would be tested individually.
+- **Test 5**: Validates the **diagnostics**, including growth rates, fluxes, density and temperature, distribution function, and electrostatic potential.
+- **Test 6**: Checks the electrostatic **full-flux-surface** version of $\texttt{stella}$. Geometric quantities are verified first, followed by each term of the gyrokinetic equation.
+- **Test 7**: Tests the **electromagnetic** flux-tube version, verifying each term of the gyrokinetic equation and simulating a KBM and TAE instability.
+- **Test 8**: Checks whether a simulation can succesfully be **restarted**.
 
-### Set-up
+
+<br>
+
+### Set-up the automatic tests
 The first time you want to run these tests, you need to install the python virtual environment:
 ```
-make create-test-virtualenv
+ make create-test-virtualenv
 ```
 Next, activate the virtual environment:
 ```
 source AUTOMATIC_TESTS/venv/bin/activate
 ```
 
-### Numerical tests
+
+<br>
+
+### Run numerical tests
 Run the automated python tests, which tests the numerical output of stella:
 ```
 make numerical-tests
+```
+When debugging the code, the tests can be run in chunks instead:
+```
+make numerical-tests-1
+make numerical-tests-2
+make numerical-tests-3
+make numerical-tests-4
+make numerical-tests-5
+make numerical-tests-6
+make numerical-tests-7
+make numerical-tests-8
 ```
 
 
