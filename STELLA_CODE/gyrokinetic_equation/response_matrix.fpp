@@ -138,7 +138,7 @@ contains
    end subroutine setup_response_matrix_timings
 
    !****************************************************************************
-   !                                      Title
+   !                     Set up .io file for response matrix                    
    !****************************************************************************
    subroutine setup_response_matrix_file_io
 
@@ -228,6 +228,41 @@ contains
    !****************************************************************************
    !               Main routine for constructing response martrix
    !****************************************************************************
+   ! Background:
+   ! -----------
+   ! Different ky modes are independent, so this creates sets of connected kx values:
+   !
+   ! After one full 2π orbit in zed, the eddy becomes sheared, shifting the mode 
+   ! to a higher kx value. To represent this effect, we apply the 
+   ! 'twist-and-shift' boundary conditions, which connect these shifted kx values 
+   ! along an extended z-grid. For a given ky, the connected kx modes are spaced 
+   ! by
+   !                 δkx = 2π p ι' * (∂y/∂α) * (∂ψ/∂x) * ky
+   ! where ι' is the radial derivative of the rotational transform. 
+   !
+   ! This construction implies that not all kx modes are mutually connected. 
+   ! Instead, for each ky we form distinct "chains" of connected modes, with the 
+   ! number of such chains determined by the spacing δkx. 
+   !
+   ! <neigen> gives the number of distinct chains for a given ky. If we use periodic 
+   ! boundary conditions then all modes are connected and <neigen> = nakx
+   !
+   ! What is done:
+   ! ------------- 
+   ! In this subroutine we construct the response matrix. This is split into three 
+   ! main contributions: 
+   !     1) Getting the velocity-space-integrated response. To do this we supply    
+   !        a unit impulse at every point in the extended zed domain for a given ky,
+   !        and set of connected kx values. With this, we then solve the parallel
+   !        streaming equations to find the response of the distribution function
+   !        to this unit impulse. This is done for each field that is included 
+   !        (phi, apar, bpar). Once this distribution function is obtained
+   !        we integrate it with appropriate weights over (vpa, mu) and sum over
+   !        species -> This gives the quasineutrality component that acts on g.
+   !     2) Apply the field solve to find the matrix that we need to invert. This
+   !        is essentially dividing by the correct factor from the field equations. 
+   !     3) LU decompose the matrix.
+   !****************************************************************************
    subroutine construct_response_matrix
 
       use mp, only: proc0
@@ -251,34 +286,14 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! For a given ky and set of connected kx values give a unit impulse to phi
-      ! at each zed location in the extended domain and solve for the response of 
-      ! the distributuion function on the extended domain.
-
       do iky = 1, naky
 
          if (proc0 .and. mat_gen) then
             write (unit=unit_response_matrix) iky, neigen(iky)
          end if
 
-         ! Different ky modes are independent, so this creates sets of connected kx values.
-         ! Background:
-         ! -----------
-         ! After one full 2π orbit in zed, the eddy becomes sheared, shifting the mode 
-         ! to a higher kx value. To represent this effect, we apply the 
-         ! 'twist-and-shift' boundary conditions, which connect these shifted kx values 
-         ! along an extended z-grid. For a given ky, the connected kx modes are spaced 
-         ! by
-         !                 δkx = 2π p ι' * (∂y/∂α) * (∂ψ/∂x) * ky
-         ! where ι' is the radial derivative of the rotational transform. 
-         !
-         ! This construction implies that not all kx modes are mutually connected. 
-         ! Instead, for each ky we form distinct "chains" of connected modes, with the 
-         ! number of such chains determined by the spacing δkx. 
-         !
-         ! <neigen> gives the number of distinct chains for a given ky. If we use periodic 
-         ! boundary conditions then all modes are connected and <neigen> = nakx
-         ! 
+         ! ---------------------------------------------------------------------
+         !                STEP 1) Find distribution function response      
          ! ---------------------------------------------------------------------
          ! For a given ky, we need to associate an %eigen to it - to denote the connected
          ! modes. The response matrix for each ky has neigen(ky).
@@ -290,6 +305,9 @@ contains
 
          call calculate_vspace_integrated_response(iky)
 
+         ! ---------------------------------------------------------------------
+         !                   Parallelisation + debug messages
+         ! ---------------------------------------------------------------------
          ! This ends parallelisation over velocity space.
          ! At this point every processor has int dv dgdphi for a given ky
          ! and so the quasineutrality solve and LU decomposition can be
@@ -308,7 +326,15 @@ contains
          call mpi_win_fence(0, response_window, ierr)
 #endif
 
+         ! ---------------------------------------------------------------------
+         !                     STEP 2) Apply field solve
+         ! ---------------------------------------------------------------------
+
          call apply_field_solve_to_finish_response_matrix(iky)
+
+         ! ---------------------------------------------------------------------
+         !                   Parallelisation + debug messages
+         ! ---------------------------------------------------------------------
 
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, response_window, ierr)
@@ -320,9 +346,15 @@ contains
             call time_message(.false., time_lu, message_lu)
          end if
 
-         ! LU decompose the response matrix
+         ! ---------------------------------------------------------------------
+         !                   STEP 3) LU decompose the matrix 
+         ! ---------------------------------------------------------------------
+
          call lu_decompose_response_matrix(iky)
 
+         ! ---------------------------------------------------------------------
+         !             Finish with correct debug messages and write to files
+         ! ---------------------------------------------------------------------
          if (proc0 .and. debug) then
             call time_message(.true., time_lu, message_lu)
          end if
@@ -343,9 +375,27 @@ contains
 
    end subroutine construct_response_matrix
 
+   !============================================================================
    !****************************************************************************
-   !                     Velocity space integrated response                     
+   !                Step 1) Find distribution function response                      
    !****************************************************************************
+   !============================================================================
+   ! The next routines are all dedicated to step 1).
+   !
+   !
+   ! Within the routines get_dpdf_d * _matrix_column (where * can be phi, apar, 
+   ! or bpar) the following steps take place:
+   !
+   ! 1.A) First initialise unit impulse for each field at each grid point in the 
+   !      extended zed domain for a given connected chain.
+   ! 1.B) Then solve the inhomogeneous parallel streaming equation for the distribution
+   !      function given a field with a unit impulse.
+   ! 1.C) Then integrate over velocities to get the appropriate field operator that acts
+   !      on the distibution function:
+   !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
+   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+   !============================================================================
    subroutine calculate_vspace_integrated_response(iky)
 
       use mp, only: proc0
@@ -378,7 +428,7 @@ contains
       ! number of eigen chains.
       do ie = 1, neigen(iky)
          !----------------------------------------------------------------------
-         !            Set up system to compute response of the pdf
+         !              Set up system to compute response of the pdf
          !----------------------------------------------------------------------
          ! <nz_ext> is the dimension of the extended zed domain
          ! <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
@@ -431,6 +481,9 @@ contains
          !----------------------------------------------------------------------
          !              Get Response of the pdf to unit impulses
          !----------------------------------------------------------------------
+         ! Steps 1.A), 1.B) and 1.C) occur below
+         !----------------------------------------------------------------------
+
          ! <idx> here is the index in the extended zed domain that we are giving
          ! a unit impulse to.
          idx = 0
@@ -581,81 +634,6 @@ contains
 
    end subroutine setup_response_matrix_zloc_idx
 
-
-
-
-
-
-
-
-
-
-
-
-
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   subroutine lu_decompose_response_matrix(iky)
-
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0
-#endif
-      use mp, only: mp_abort
-      use arrays, only: response_matrix
-      use parallelisation_layouts, only: lu_option_switch
-      use parallelisation_layouts, only: lu_option_none, lu_option_local, lu_option_global
-      use grids_extended_zgrid, only: neigen
-      use linear_solve, only: lu_decomposition
-
-      implicit none
-
-      ! Arguments
-      integer, intent(in) :: iky
-
-      ! Local variables
-      integer :: ie
-      real :: dum
-
-      !-------------------------------------------------------------------------
-
-      ! now we have the full response matrix. Finally, perform its LU decomposition
-      select case (lu_option_switch)
-      case (lu_option_global)
-         call parallel_LU_decomposition_global(iky)
-      case (lu_option_local)
-#ifdef ISO_C_BINDING
-         call parallel_LU_decomposition_local(iky)
-#else
-         call mp_abort('stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
-#endif
-      case default
-         do ie = 1, neigen(iky)
-#ifdef ISO_C_BINDING
-            if (sgproc0) then
-#endif
-               ! now that we have the reponse matrix for this ky and set of connected kx values
-               ! get the LU decomposition so we are ready to solve the linear system
-               call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
-                                     response_matrix(iky)%eigen(ie)%idx, dum)
-
-#ifdef ISO_C_BINDING
-            end if
-#endif
-         end do
-      end select
-
-   end subroutine lu_decompose_response_matrix
-
-
-
-
-
-
-!###############################################################################
-!###################### DISTRIBUTION FUNCTION RESPONSE #########################
-!###############################################################################
-
    !****************************************************************************
    !                       Get dg/dphi response matrix column
    !****************************************************************************
@@ -715,7 +693,7 @@ contains
       integer :: offset_apar, offset_bpar
 
       !-------------------------------------------------------------------------
-      !                    Initialise a unit impulse in phi
+      !                    1.A) Initialise a unit impulse in phi
       !-------------------------------------------------------------------------
       ! Provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
@@ -747,7 +725,7 @@ contains
       allocate (dum(nz_ext)); dum = 0.0
 
       !-------------------------------------------------------------------------
-      !        Get distribution function response to unit impulse in phi
+      !      1.B) Get distribution function response to unit impulse in phi
       !-------------------------------------------------------------------------
 
       ! Set the flux tube index to one - eed to check, but think this is okay as 
@@ -770,7 +748,7 @@ contains
       deallocate (dum)
 
       !-------------------------------------------------------------------------
-      !             Integrate over velocity to get the matrix to invert
+      !          1.C) Integrate over velocity to get the matrix to invert
       !-------------------------------------------------------------------------
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in phi at this 
@@ -881,7 +859,7 @@ contains
       integer :: offset_apar, offset_bpar
       
       !-------------------------------------------------------------------------
-      !                    Initialise a unit impulse in apar
+      !                   1.A) Initialise a unit impulse in apar
       !-------------------------------------------------------------------------
       ! Provide a unit impulse to apar^{n+1} (or Delta apar^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
@@ -908,7 +886,7 @@ contains
       allocate (dum(nz_ext)); dum = 0.0
 
       !-------------------------------------------------------------------------
-      !        Get distribution function response to unit impulse in apar
+      !      1.B) Get distribution function response to unit impulse in apar
       !-------------------------------------------------------------------------
 
       ! Set the flux tube index to one - eed to check, but think this is okay as 
@@ -931,7 +909,7 @@ contains
       deallocate (dum)
 
       !-------------------------------------------------------------------------
-      !             Integrate over velocity to get the matrix to invert
+      !          1.C) Integrate over velocity to get the matrix to invert
       !-------------------------------------------------------------------------
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in apar at this 
@@ -974,7 +952,6 @@ contains
 #ifdef ISO_C_BINDING
       end if
 #endif
-      !-------------------------------------------------------------------------
 
    end subroutine get_dpdf_dapar_matrix_column
 
@@ -1037,9 +1014,7 @@ contains
       integer :: offset_apar, offset_bpar
 
       !-------------------------------------------------------------------------
-
-      !-------------------------------------------------------------------------
-      !                    Initialise a unit impulse in apar
+      !                  1.A) Initialise a unit impulse in bpar
       !-------------------------------------------------------------------------
       ! Provide a unit impulse to bpar^{n+1} (or Delta bpar^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
@@ -1068,7 +1043,7 @@ contains
       allocate (dum(nz_ext)); dum = 0.0
 
       !-------------------------------------------------------------------------
-      !        Get distribution function response to unit impulse in bpar
+      !      1.B) Get distribution function response to unit impulse in bpar
       !-------------------------------------------------------------------------
 
       ! Set the flux tube index to one - eed to check, but think this is okay as 
@@ -1091,7 +1066,7 @@ contains
       deallocate (dum)
 
       !-------------------------------------------------------------------------
-      !             Integrate over velocity to get the matrix to invert
+      !         1.C) Integrate over velocity to get the matrix to invert
       !-------------------------------------------------------------------------
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in apar at this 
@@ -1495,9 +1470,13 @@ contains
    end subroutine integrate_over_velocity_bpar
 
 
-!###############################################################################
-!################################ FIELDS RESPONSE ##############################
-!###############################################################################
+   !============================================================================
+   !****************************************************************************
+   !                         Step 2) Fields response
+   !****************************************************************************
+   !============================================================================
+   ! The next routines are dedicated to getting the fields response
+   !============================================================================
 
    !****************************************************************************
    !                                      Title
@@ -1929,6 +1908,63 @@ contains
       deallocate (denominator)
 
    end subroutine get_apar_for_response_matrix
+
+   !============================================================================
+   !****************************************************************************
+   !                    Step 3) LU decompose the response matrix
+   !****************************************************************************
+   !============================================================================
+   subroutine lu_decompose_response_matrix(iky)
+
+#ifdef ISO_C_BINDING
+      use mp, only: sgproc0
+#endif
+      use mp, only: mp_abort
+      use arrays, only: response_matrix
+      use parallelisation_layouts, only: lu_option_switch
+      use parallelisation_layouts, only: lu_option_none, lu_option_local, lu_option_global
+      use grids_extended_zgrid, only: neigen
+      use linear_solve, only: lu_decomposition
+
+      implicit none
+
+      ! Arguments
+      integer, intent(in) :: iky
+
+      ! Local variables
+      integer :: ie
+      real :: dum
+
+      !-------------------------------------------------------------------------
+
+      ! Now we have the full response matrix. Finally, perform its LU decomposition
+      select case (lu_option_switch)
+      case (lu_option_global)
+         call parallel_LU_decomposition_global(iky)
+      case (lu_option_local)
+#ifdef ISO_C_BINDING
+         call parallel_LU_decomposition_local(iky)
+#else
+         call mp_abort('stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
+#endif
+      case default
+         do ie = 1, neigen(iky)
+#ifdef ISO_C_BINDING
+            if (sgproc0) then
+#endif
+               ! Now that we have the reponse matrix for this ky and set of connected kx values
+               ! get the LU decomposition so we are ready to solve the linear system
+               call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
+                                     response_matrix(iky)%eigen(ie)%idx, dum)
+
+#ifdef ISO_C_BINDING
+            end if
+#endif
+         end do
+      end select
+
+   end subroutine lu_decompose_response_matrix
+
 
 
 !###############################################################################
