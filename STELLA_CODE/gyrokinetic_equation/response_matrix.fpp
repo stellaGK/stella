@@ -899,7 +899,7 @@ contains
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
       ! a phase factor. In practice this only matters if the unit impulse is at the 
       ! boundary (i.e. <idx ==1 ) otherwise phi = 0.0 at both boundary points anyway. 
-      if (periodic(iky) .and. idx == 1) apar_ext(nz_ext) = apar_ext(1) / phase_shift(iky)
+      if (periodic(iky) .and. idx == 1) apar_ext(nz_ext) = apar_ext(1)! / phase_shift(iky)
 
       ! <dum> is a scratch array that takes the place of the pdf and the fields
       ! at the previous time level. It also replaces the other fields (apar and bpar).
@@ -1059,7 +1059,7 @@ contains
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
       ! a phase factor. In practice this only matters if the unit impulse is at the 
       ! boundary (i.e. <idx ==1 ) otherwise phi = 0.0 at both boundary points anyway. 
-      if (periodic(iky) .and. idx == 1) bpar_ext(nz_ext) = bpar_ext(1) / phase_shift(iky)
+      if (periodic(iky) .and. idx == 1) bpar_ext(nz_ext) = bpar_ext(1) !/ phase_shift(iky)
 
       ! <dum> is a scratch array that takes the place of the pdf and the fields
       ! at the previous time level. It also replaces the other fields (apar and bpar).
