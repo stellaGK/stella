@@ -674,11 +674,18 @@ contains
    !======================================================================
    subroutine get_geometry_arrays_from_Miller(nalpha)
 
-      use geometry_miller, only: read_local_parameters, get_local_geo
+      ! Grids
+      use grids_z, only: zed, nzed, nzgrid
+      use grids_z, only: zed_equal_arc
+      use constants, only: pi
+      
+      ! Miller geometry
+      use geometry_miller, only: read_miller_parameters
+      use geometry_miller, only: get_miller_geometry
+      
+      ! Radial variation
       use geometry_miller, only: communicate_parameters_multibox
       use geometry_inputprofiles_interface, only: read_inputprof_geo
-      use grids_z, only: zed, nzed, nzgrid, zed_equal_arc
-      use constants, only: pi
 
       implicit none
 
@@ -690,8 +697,8 @@ contains
       ! Read the <millergeo_parameters> namelist in the input file  
       ! <nzed> and <nzgrid> are inputs, and <geo_surf> is returned 
       ! which is a dictionary that contains all the geometry information 
-      if (debug) write (*, *) 'geometry::Miller::read_local_parameters'
-      call read_local_parameters(nzed, nzgrid, geo_surf)
+      if (debug) write (*, *) 'geometry::Miller::read_miller_parameters'
+      call read_miller_parameters(nzed, nzgrid, geo_surf)
 
       ! Allocate geometry arrays for stella
       if (debug) write (*, *) 'geometry::Miller::allocate_arrays'
@@ -713,9 +720,9 @@ contains
       ! Call the <geometry_miller.f90> module to calculate the geometric coefficients 
       ! needed by stella, based on the local Miller parameters. For Miller geometries
       ! each field line <alpha> has the same geometry, hence we will only pass on the 
-      ! ialpha=1 arrays to the get_local_geo() routine. Note that in Miller z = theta.
-      if (debug) write (*, *) 'geometry::Miller::get_local_geo'
-      call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
+      ! ialpha=1 arrays to the get_miller_geometry() routine. Note that in Miller z = theta.
+      if (debug) write (*, *) 'geometry::Miller::get_miller_geometry'
+      call get_miller_geometry(nzgrid, zed, zed_equal_arc, &
                 dpsipdrho, dpsipdrho_psi0, dIdrho, grho(1, :), bmag(1, :), bmag_psi0(1, :), &
                 grady_dot_grady(1, :), gradx_dot_grady(1, :), gradx_dot_gradx(1, :), gds23(1, :), gds24(1, :), b_dot_gradz(1, :), &
                 B_times_gradB_dot_gradx(1, :), B_times_gradB_dot_grady(1, :), &
@@ -723,7 +730,7 @@ contains
                 dBdrho, d2Bdrdth, d_bdotgradz_drho, btor, rmajor, &
                 dcvdrift0drho(1, :), dcvdriftdrho(1, :), dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                 d_gradydotgrady_drho(1, :), d_gradxdotgrady_drho(1, :), d_gradxdotgradx_drho(1, :), djacdrho(1, :))
-      if (debug) write (*, *) 'geometry::Miller::get_local_geo_finished'
+      if (debug) write (*, *) 'geometry::Miller::get_miller_geometry_finished'
 
       ! <drhodpsip> = drho/d(psip/a^2*Bref) = (a^2*Bref) * drho/dpsip = (a*Bref) * dr/dpsip
       drhodpsip = 1./dpsipdrho 
@@ -1390,18 +1397,18 @@ contains
    subroutine finish_init_geometry
 
       use mp, only: proc0
-      use geometry_miller, only: finish_local_geo
+      use geometry_miller, only: finish_miller_geometry
 
       implicit none
 
       if (proc0) then
          select case (geo_option_switch)
          case (geo_option_local)
-            call finish_local_geo
+            call finish_miller_geometry
          case (geo_option_multibox)
-            call finish_local_geo
+            call finish_miller_geometry
          case (geo_option_inputprof)
-            call finish_local_geo
+            call finish_miller_geometry
          case (geo_option_vmec)
          end select
       end if

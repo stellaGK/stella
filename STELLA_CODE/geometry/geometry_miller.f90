@@ -4,7 +4,65 @@
 ! 
 ! This module constructs a magnetic equilibrium based on a set of Miller parameters.
 ! 
+!--------------------------------- Mathematics ---------------------------------
+! 
+! Miller solves the Grad Shafranov equation locally: 
+! 
+!                       R^2 ∇ · (∇ψ/R^2) = −4π R^2 p′− II′
+! 
+! From this we can get all of the local geometric variables.
+! 
+! The Miller equilibrium is a local a formalism capable of describing the local 
+! magnetic geometry of a flux surface within axisymmetric systems. This approach
+! ensures that the Grad-Shafranov equation is locally satisfied in ψ.
+! 
+! The definition of the Miller equilibrium is given in cyclindrical coordinates:
+! 
+!               R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
+!               Z(r,θ) = κ(r)rsin θ
+! 
+! Note that stella defines δ = arcsin \bar{δ}.
+! 
+! 
+! The GS equation can be expressed using this R and Z, giving a long expression, 
+! which will ~eventually~ be in the "stella_manual". For this we require terms like 
+! ∂Z/∂θ, ∂R/∂θ, ∂Z/∂r, ∂R/∂r etc. (plus second derivatives). These will depend on
+! quantities like R0, r, δ and κ. e.g.
+! 
+!              ∂R/∂r = R0' + cos[θ+ sin(θδ)]− rsin{θsin[θ+ sin(θδ)]}δ′
+!              ∂Z/∂r = (κ′r+ κ) sinθ
+!              ∂R/∂θ = −sin[θ+ sin(θδ)][1 + cos(θδ)]
+!              ∂Z/∂θ = κ * r * cosθ
+! 
+! Once we have these derivatives we can calclulate the Jacobian for the system and 
+! and  other geometric quantities, such as,
+! 
+!                     |∇r|^2 = R^2/Jr^2 [(∂Z/∂θ)^2 + (∂R/∂θ)^2]
+! 
+! etc. These all depend on the form of R and Z, and require the Jacobians.
+! 
 !------------------------------- Input Variables -------------------------------
+! 
+!&geometry_miller
+!   rhoc = 0.5
+!   rmaj = 3.0
+!   shift = 0.0
+!   qinp = 1.4
+!   shat = 0.8
+!   kappa = 0.0
+!   kapprim = 0.0
+!   tri = 0.0
+!   triprim = 0.0
+!   rgeo = 3.0
+!   betaprim = 0.0
+!   betadbprim = 0.0
+!   d2qdr2 = 0.0
+!   d2psidr2 = 0.0
+!   nzed_local = 128.0
+!   read_profile_variation = .false.
+!   write_profile_variation = .false.
+!/
+! 
 ! Definitions of input Miller quantities:
 !     - rhoc         -->   Minor radius, r
 !     - rmaj         -->   Major radius, R0
@@ -24,44 +82,17 @@
 ! Other reference variables that are needed (but inferred):
 !     - bref         -->   Magnetic field strength reference, B_ref
 !     - aref         -->   Minor radius reference length, a_ref
-!
-!--------------------------------- Mathematics ---------------------------------
-! Miller solves the Grad Shafranov equation locally: 
-!                       R^2 ∇ · (∇ψ/R^2) = −4π R^2 p′− II′
-!
-! From this we can get all of the local geometry variables. 
 ! 
-! The Miller equilibrium is a local a formalism capable of describing the local 
-! magnetic geometry of a flux surface within axisymmetric systems. This approach
-! ensures that the Grad-Shafranov equation is locally satisfied in ψ.
-!
-! The definition of the Miller equilibrium is given in cyclindrical coordinates:
-!              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
-!              Z(r,θ) = κ(r)rsin θ
-! stella defines δ = arcsin \bar{δ}
-!
 ! 
-! The GS equation can be expressed using this R and Z, giving a long expression, 
-! which will ~eventually~ be in the "stella_manual". For this we require terms like 
-! ∂Z/∂θ, ∂R/∂θ, ∂Z/∂r, ∂R/∂r etc. (plus second derivatives). These will depend on
-! quantities like R0, r, δ and κ. e.g.
-!              ∂R/∂r = R0' + cos[θ+ sin(θδ)]− rsin{θsin[θ+ sin(θδ)]}δ′
-!              ∂Z/∂r = (κ′r+ κ) sinθ
-!              ∂R/∂θ = −sin[θ+ sin(θδ)][1 + cos(θδ)]
-!              ∂Z/∂θ = κ * r * cosθ
-!
-! Once we have these derivatives we can also get the Jacobian for the system and 
-! other geometric quantities, such as
-!                           |∇r|^2 = R^2/Jr^2 [(∂Z/∂θ)^2 + (∂R/∂θ)^2]
-! etc. These all depend on the form of R and Z, and require the Jacobians. 
-!
 !------------------------------- Code Specifics --------------------------------
-! Code first reads in the input miller parameters and stores them as 
-! local%(name of variable).
+! 
+! This module first reads in the miller parameters in the input file,
+! and stores them as local%(name of variable) or surf%(name of variable). 
+! Once the input variables have been read, this module:
 ! 
 !     - Defines dq/∂r = s * q / r
 !     - Gets the forms of R and Z (using functions called Rpos and Zpos, and are
-!                                  stored as Rr and Zr)
+!       stored as Rr and Zr)
 !     - Then all the necessary derivatives, and second derivatives are computed, 
 !       along with the Jacobians
 !     - With these derivatives, geometric quantities can be calculated, e.g. 
@@ -84,7 +115,7 @@
 !    - gradparB          -->   b_dot_gradB
 !    - dgradpardrho      -->   d_bdotgradtheta_drho
 !    - dgradparBdrho     -->   d_bdotgradB_drho
-!
+! 
 !###############################################################################
 module geometry_miller
 
@@ -95,30 +126,33 @@ module geometry_miller
    implicit none
 
    ! Make routines available to other modules
-   public :: read_local_parameters
+   public :: read_miller_parameters
+   public :: get_miller_geometry
    public :: communicate_parameters_multibox
-   public :: get_local_geo
-   public :: finish_local_geo
+   public :: finish_miller_geometry
    public :: local
 
    private
 
-   real :: rhoc, rmaj, shift
+   !----------------------------- Input Variables ------------------------------
+   real :: rhoc, rgeo, rmaj, shift
    real :: kappa, kapprim
    real :: tri, triprim
    real :: betaprim, betadbprim
    real :: qinp, shat, d2qdr2
-   real :: rgeo
    real :: dpsipdrho, d2psidr2, dpsipdrho_psi0
-   real :: psitor_lcfs
-   real :: rhotor, drhotordrho, dIdrho, dI
-   real :: rhoc0
-   logical :: write_profile_variation, read_profile_variation
+   real :: psitor_lcfs, rhotor
+   real :: drhotordrho, dIdrho, rhoc0
+   real :: dI = 0.0
+   logical :: write_profile_variation
+   logical :: read_profile_variation
    logical :: load_psi0_variables
 
+   ! Local variables
    integer :: nzed_local
-   integer :: nz, nz2pi
+   integer :: nz, nzgrid_2pi, np
 
+   ! Geometric quantities
    real :: bi, dqdr, d2Idr2
    real, dimension(:), allocatable :: grho, bmag, grho_psi0, bmag_psi0
    real, dimension(:), allocatable :: b_dot_gradtheta, b_dot_gradtheta_arc, arc
@@ -138,13 +172,13 @@ module geometry_miller
    real, dimension(:), allocatable :: d_gradydotgrady_drho, d_gradxdotgrady_drho, d_gradxdotgradx_drho
    real, dimension(:), allocatable :: dgr2dr, dgpsi2dr
    real, dimension(:), allocatable :: dgrgt, dgt2, dgagr, dgagt, dga2
-   real, dimension(:, :), allocatable :: Rr, Zr
-
    real, dimension(:), allocatable :: jacrho, delthet, djacdrho, djacrdrho
    real, dimension(:), allocatable :: d2jacdr2, dRdrho, dZdrho, dRdth, dZdth
-
    real, dimension(:), allocatable :: d2R, d2Z
+   real, dimension(:, :), allocatable :: Rr, Zr
 
+   
+   ! This module stores the characterics of the flux surface as local%(name of variable)
    type(flux_surface_type) :: local
 
    ! Only initialise once
@@ -152,10 +186,10 @@ module geometry_miller
 
 contains
 
-   !============================================================================
-   !=========================== READ LOCAL PARAMETERS ==========================
-   !============================================================================ 
-   subroutine read_local_parameters(nzed, nzgrid, local_out)
+   !****************************************************************************
+   !                            READ LOCAL PARAMETERS                           
+   !****************************************************************************
+   subroutine read_miller_parameters(nzed, nzgrid, local_out)
 
       use file_utils, only: input_unit_exist
       use common_types, only: flux_surface_type
@@ -163,21 +197,33 @@ contains
 
       implicit none
 
+      ! Arguments
       type(flux_surface_type), intent(out) :: local_out
       integer, intent(in) :: nzed, nzgrid
 
+      ! Local variables
       real :: dum
-      integer :: np, j
+      integer :: j
 
       !-------------------------------------------------------------------------
 
+      ! Only initialise once
+      if (initialised_miller) return
+      initialised_miller = .true.
+         
+      ! Read the "geometry_miller" namelist in the input file
       call read_namelist_geometry_miller(rhoc, rmaj, shift, qinp, shat, &
             kappa, kapprim, tri, triprim, rgeo, betaprim, &
-            betadbprim, d2qdr2, d2psidr2, &
-            nzed_local, read_profile_variation, write_profile_variation)
+            betadbprim, d2qdr2, d2psidr2, nzed_local, &
+            read_profile_variation, write_profile_variation)
 
-      call init_local_defaults
+      ! The following variables are only needed for sfincs, when we are not 
+      ! reading the geometry info from a file.
+      rhotor = rhoc
+      psitor_lcfs = 1.0
+      drhotordrho = 1.0
 
+      ! Save the input variables 
       local%rhoc = rhoc
       local%rmaj = rmaj
       local%rgeo = rgeo
@@ -193,8 +239,6 @@ contains
       local%d2qdr2 = d2qdr2
       local%d2psidr2 = d2psidr2
       local%zed0_fac = 1.0
-
-      ! Following two variables are not inputs from Miller input
       local%dr = 1.e-3 * (rhoc / rmaj)
       local%rhotor = rhotor
       local%psitor_lcfs = psitor_lcfs
@@ -202,85 +246,92 @@ contains
       local%dpsitordrho = 0.0
       local%d2psitordrho2 = 0.0
 
-      ! The next three variablaes are for multibox simulations
-      ! with radial variation
+      ! Variables for multibox simulations with radial variation
       local%rhoc_psi0 = rhoc
       local%qinp_psi0 = qinp
       local%shat_psi0 = shat
+      
+      ! Note that <nzed> is an input parameter, denoting the number of z-points in a single period or 2*pi segment.
+      ! It is used to calculate the total number of positive z-points as <nzgrid> = <nzed> / 2 + (<nperiod> - 1) * <nzed>.
+      ! and the total number of z-points is given by <nztot> = 2 * <nzgrid> + 1
+      ! Instead of importing <np> = <nperiod> we calculate it based on <nzed> and <nzgrid>.
+      nzgrid_2pi = nzed / 2
+      np = (nzgrid - nzgrid_2pi) / nzed + 1
 
-      ! First get nperiod corresponding to input number of grid points
-      nz2pi = nzed / 2
-      np = (nzgrid - nz2pi) / nzed + 1
+      ! Now we switch to using (possible higher resolution) local grid.
+      ! The number of positive z-points in a single period or 2*pi segment is given by <nzgrid_2pi>,
+      ! and the total number of positive z-points is given by <nz>, equivalent to <nzgrid> on the local grid.
+      nzgrid_2pi = nzed_local / 2
+      nz = nzgrid_2pi + nzed_local * (np - 1)
+     
+      ! Set variables for radial variation simulations
+      call read_miller_parameters_radial_variation
 
-      ! Now switch to using (possible higher resolution) local grid
-      nz2pi = nzed_local / 2
-      ! This is the equivalent of nzgrid on the local grid
-      nz = nz2pi + nzed_local * (np - 1)
-
-      ! ------------------------------------------------------------------------
-      !                              Radial Variation
-      ! ------------------------------------------------------------------------
-      ! Initialise to zero. These will be overwritten if reading in from file.
-      ! They are only relevant for radial_variation tests.
-      allocate (d2R(-nz:nz))
-      allocate (d2Z(-nz:nz))
-      allocate (bmag_psi0(-nz:nz))
-      allocate (grho_psi0(-nz:nz))
-      d2R = 0.; d2Z = 0.; dI = 0.
-
-      if (read_profile_variation) then
-         open (1002, file='RZ.in', status='old')
-         read (1002, '(12e13.5)') rhoc0, dI, qinp, shat, d2qdr2, kappa, kapprim, tri, triprim, &
-            betaprim, betadbprim, dpsipdrho_psi0
-         do j = -nz, nz
-            read (1002, '(5e13.5)') dum, d2R(j), d2Z(j), bmag_psi0(j), grho_psi0(j)
-         end do
-         close (1002)
-         local%qinp = qinp + shat * qinp / rhoc0 * (local%rhoc - rhoc0) &
-                      + 0.5 * (local%rhoc - rhoc0)**2 * d2qdr2
-         local%shat = (local%rhoc / local%qinp) &
-                      * (shat * qinp / rhoc0 + (local%rhoc - rhoc0) * d2qdr2)
-         local%kappa = kappa + kapprim * (local%rhoc - rhoc0)
-         local%tri = tri + triprim * (local%rhoc - rhoc0)
-         local%betaprim = betaprim + betadbprim * (local%rhoc - rhoc0)
-
-         local%rhoc_psi0 = rhoc0
-         local%qinp_psi0 = qinp
-         local%shat_psi0 = shat
-
-         load_psi0_variables = .false.
-      end if
-
+      ! Give the flux surface variables to the geometry.f90 module as <local_out> = <geo_surf>
       local_out = local
 
    contains
-
-      subroutine init_local_defaults
+   
+      ! ------------------------------------------------------------------------
+      !                              Radial Variation
+      ! ------------------------------------------------------------------------
+      subroutine read_miller_parameters_radial_variation
 
          implicit none
-
-         if (initialised_miller) return
-         initialised_miller = .true.
          
+         !----------------------------------------------------------------------
+            
+         ! The following variables are only needed for radial variation simulations.
+         ! If <read_profile_variation>=True, it reads <rhoc0>, and sets <load_psi0_variables>=False. 
          rhoc0 = 0.5
-
          load_psi0_variables = .true.
+      
+         ! Initialise arrays to zero. These will be overwritten if reading in from file.
+         ! They are only relevant for radial_variation tests.
+         allocate (d2R(-nz:nz)); d2R = 0.
+         allocate (d2Z(-nz:nz)); d2Z = 0.
+         allocate (bmag_psi0(-nz:nz)); bmag_psi0 = 0.
+         allocate (grho_psi0(-nz:nz)); grho_psi0 = 0.
 
-         ! Only needed for sfincs when not using
-         ! geo info from file
-         rhotor = rhoc
-         psitor_lcfs = 1.0
-         drhotordrho = 1.0
+         ! Read a radial profile variation file
+         if (read_profile_variation) then
+         
+            ! Read the "RZ.in" file
+            open (1002, file='RZ.in', status='old')
+            read (1002, '(12e13.5)') rhoc0, dI, qinp, shat, d2qdr2, kappa, kapprim, &
+               tri, triprim, betaprim, betadbprim, dpsipdrho_psi0
+            do j = -nz, nz
+               read (1002, '(5e13.5)') dum, d2R(j), d2Z(j), bmag_psi0(j), grho_psi0(j)
+            end do
+            close (1002)
+            
+            ! Calculate some geometric quantities
+            local%qinp = qinp + shat * qinp / rhoc0 * (local%rhoc - rhoc0) + 0.5 * (local%rhoc - rhoc0)**2 * d2qdr2
+            local%shat = (local%rhoc / local%qinp) * (shat * qinp / rhoc0 + (local%rhoc - rhoc0) * d2qdr2)
+            local%kappa = kappa + kapprim * (local%rhoc - rhoc0)
+            local%tri = tri + triprim * (local%rhoc - rhoc0)
+            local%betaprim = betaprim + betadbprim * (local%rhoc - rhoc0)
 
-      end subroutine init_local_defaults
+            ! Set some geometric quantities at the psi0 flux surface
+            local%rhoc_psi0 = rhoc0
+            local%qinp_psi0 = qinp
+            local%shat_psi0 = shat
 
-   end subroutine read_local_parameters
+            ! We do not need to load the variables at the psi0 flux surface later
+            load_psi0_variables = .false.
+            
+         end if
+      
+      end subroutine read_miller_parameters_radial_variation
 
-   !============================================================================
-   !========================= CALCULATE MILLER GEOMETRY ========================
-   !============================================================================ 
+   end subroutine read_miller_parameters
+
+   !****************************************************************************
+   !                          CALCULATE MILLER GEOMETRY                         
+   !****************************************************************************
    ! This is the main routine that is called from geometry.f90
-   subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
+   !****************************************************************************
+   subroutine get_miller_geometry(nzgrid, zed_in, zed_equal_arc, &
       dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
       bmag_out, bmag_psi0_out, &
       grady_dot_grady_out, gradx_dot_grady_out, gradx_dot_gradx_out, &
@@ -301,9 +352,10 @@ contains
       implicit none
 
       ! Inputs
-      integer, intent(in) :: nzed, nzgrid
+      integer, intent(in) :: nzgrid
       real, dimension(-nzgrid:), intent(in) :: zed_in
       logical, intent(in) :: zed_equal_arc
+      
       ! Outputs 
       real, intent(out) :: dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out
       real, dimension(-nzgrid:), intent(out) :: grho_out
@@ -321,7 +373,7 @@ contains
       real, dimension(-nzgrid:), intent(out) :: d_gradxdotgradx_drho_out, djacdrho_out
 
       ! Local variables - used for calculations
-      integer :: nr, np
+      integer :: nr
       integer :: i, j
       real :: rmin, dum
       real, dimension(3) :: dr
@@ -332,24 +384,12 @@ contains
       !-------------------------------------------------------------------------
       
       ! Debug message
-      if (debug) write (*, *) 'geometry_miller::get_local_geo'
+      if (debug) write (*, *) 'geometry_miller::get_miller_geometry'
       
       ! Number of grid points used for radial derivatives (-dr, 0, +dr)
       nr = 3
 
-      ! First get nperiod corresponding to input number of grid points
-      nz2pi = nzed / 2
-      np = (nzgrid - nz2pi) / nzed + 1
-
-      ! Now switch to using (possible higher resolution) local grid to compute
-      ! the geometry variables on. This is to ensure that the geometry is 
-      ! smooth and accurately captured
-      nz2pi = nzed_local / 2
-      ! This is the equivalent of nzgrid on the local grid
-      nz = nz2pi + nzed_local * (np - 1)
-
       ! Allocate arrays
-      if (debug) write (*, *) 'geometry_miller::get_local_geo'
       call allocate_arrays(nr, nz)
 
       ! Get dq/∂r = q/r * s 
@@ -366,6 +406,7 @@ contains
       ! Compute the functions R(r,θ) and Z(r,θ)
       !              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
       !              Z(r,θ) = κ(r)rsin θ
+      ! ------------------------------------------------------------------------
       do j = -nz, nz
          theta(j) = j * (2 * np - 1) * pi / real(nz)
          do i = 1, 3
@@ -381,13 +422,15 @@ contains
       ! The following sets of routines compute derivatives of R and Z with 
       ! respect to r and θ (get first and second derivatives).
       ! ------------------------------------------------------------------------
-
-      if (.not. allocated(delthet)) allocate (delthet(-nz:nz - 1))
-      ! Get dθ theta as a function of theta - needed for theta derivatives
-      delthet = theta(-nz + 1:) - theta(:nz - 1)
       
       ! Debug message
       if (debug) write (*, *) 'geometry_miller::radial_derivatives'
+
+      ! Allocate arrays
+      if (.not. allocated(delthet)) allocate (delthet(-nz:nz - 1))
+      
+      ! Get dθ theta as a function of theta - needed for theta derivatives
+      delthet = theta(-nz + 1:) - theta(:nz - 1)
 
       ! Get ∂R/∂r and ∂Z/∂r
       call get_drho(Rr, dRdrho)
@@ -421,7 +464,7 @@ contains
       ! theta_integrate returns integral from 0 -> 2*pi
       ! Note that <dpsipdrho> here is an intermediary
       ! that requires manipulation to get final <dpsipdrho>
-      call theta_integrate(jacrho(-nz2pi:nz2pi) / Rr(2, -nz2pi:nz2pi)**2, dpsipdrho)
+      call theta_integrate(jacrho(-nzgrid_2pi:nzgrid_2pi) / Rr(2, -nzgrid_2pi:nzgrid_2pi)**2, dpsipdrho)
       dpsipdrho = dpsipdrho / (2.*pi)
 
       ! Define: <bi> = I/(Btor(psi,theta of Rgeo)*a) 
@@ -636,8 +679,6 @@ contains
 
       ! Write geometry txt files
       call write_geometry_miller_txt_files
-      
-      initialised_miller = .false.
 
    contains
 
@@ -850,7 +891,7 @@ contains
 
       end subroutine write_geometry_miller_txt_files
 
-   end subroutine get_local_geo
+   end subroutine get_miller_geometry
 
    !============================================================================
    !============================== ALLOCATE ARRAYS =============================
@@ -905,7 +946,7 @@ contains
    !===============================================================================
    !==================================== FINISH ===================================
    !===============================================================================
-   subroutine finish_local_geo
+   subroutine finish_miller_geometry
 
       implicit none
 
@@ -960,7 +1001,7 @@ contains
          
       end subroutine deallocate_arrays
 
-   end subroutine finish_local_geo
+   end subroutine finish_miller_geometry
    
 !===============================================================================
 !================================ CALCULATIONS =================================
@@ -1096,16 +1137,16 @@ contains
       allocate (dum(-nz:nz)); dum = 0.
 
       dum = jacrho * (1.0 + (bi / gpsi)**2) / Rr(2, :)**2
-      call theta_integrate(dum(-nz2pi:nz2pi), denom)
+      call theta_integrate(dum(-nzgrid_2pi:nzgrid_2pi), denom)
 
       dum = jacrho * (2.*dRdrho / Rr(2, :) + dqdr / local%qinp) / Rr(2, :)**2
-      call theta_integrate(dum(-nz2pi:nz2pi), num1)
+      call theta_integrate(dum(-nzgrid_2pi:nzgrid_2pi), num1)
 
       ! Here, <betaprim> = β' = 4*π*p/B0^2 * (- ∂lnp/∂r )
       ! where p is the total pressure and B0 is the magnetic field strength
       dum = (-2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) / jacrho &
              + drzdth + local%betaprim * jacrho / dpsipdrho**2) / grho**2
-      call theta_integrate(dum(-nz2pi:nz2pi), num2)
+      call theta_integrate(dum(-nzgrid_2pi:nzgrid_2pi), num2)
 
       dIdrho = bi * (num1 + num2) / denom
 
@@ -1337,7 +1378,7 @@ contains
 
       ! Denom is the denominator in the expression for ∂^2 I /∂r^2
       tmp = jacrho / Rr(2, :)**2 * (1.0 + (bi / gpsi)**2)
-      call theta_integrate(tmp(-nz2pi:nz2pi), denom)
+      call theta_integrate(tmp(-nzgrid_2pi:nzgrid_2pi), denom)
       denom = denom / bi
 
       d2jacdr2 = dIdrho * bi * jacrho / gpsi**2 &
@@ -1346,7 +1387,7 @@ contains
 
       tmp = -d2jacdr2 / Rr(2, :)**2 - dIdrho * jacrho / (bi * Rr(2, :)**2) &
             * (djacrdrho / jacrho - dIdrho / bi - 2.*dRdrho / Rr(2, :))
-      call theta_integrate(tmp(-nz2pi:nz2pi), num1)
+      call theta_integrate(tmp(-nzgrid_2pi:nzgrid_2pi), num1)
 
       tmp = (d2Rdr2 * dRdth + dRdrho * d2Rdrdth + d2Zdr2 * dZdth + dZdrho * d2Zdrdth) / jacrho &
             - djacrdrho * (dRdrho * dRdth + dZdrho * dZdth) / jacrho**2
@@ -1354,11 +1395,11 @@ contains
       tmp = (tmp2 - 2./jacrho * (-djacrdrho / jacrho * (dRdth * d2Rdrdth + dZdth * d2Zdrdth) &
                                  + d2Rdrdth**2 + dRdth * d2Rdr2dth + d2Zdrdth**2 + dZdth * d2Zdr2dth)) / grho**2 &
             - dgr2dr * (drzdth - 2./jacrho * (dRdth * d2Rdrdth + dZdth * d2Zdrdth)) / grho**4
-      call theta_integrate(tmp(-nz2pi:nz2pi), num2)
+      call theta_integrate(tmp(-nzgrid_2pi:nzgrid_2pi), num2)
       d2jacdr2 = d2jacdr2 - tmp * Rr(2, :)**2
 
       tmp = jacrho * (local%betadbprim + local%betaprim * (djacrdrho / jacrho - dgpsi2dr / gpsi**2)) / gpsi**2
-      call theta_integrate(tmp(-nz2pi:nz2pi), num3)
+      call theta_integrate(tmp(-nzgrid_2pi:nzgrid_2pi), num3)
       
       !FLAG - next negative sign?
       d2jacdr2 = d2jacdr2 - tmp * Rr(2, :)**2
@@ -1366,7 +1407,7 @@ contains
       tmp = jacrho / Rr(2, :)**2 * (2.*d2Rdr2 / Rr(2, :) - 2.*(dRdrho / Rr(2, :))**2 &
                                     + local%d2qdr2 / local%qinp - (dqdr / local%qinp)**2 + (2 * dRdrho / Rr(2, :) + dqdr / local%qinp) &
                                     * (djacrdrho / jacrho - 2.*dRdrho / Rr(2, :)))
-      call theta_integrate(tmp(-nz2pi:nz2pi), num4)
+      call theta_integrate(tmp(-nzgrid_2pi:nzgrid_2pi), num4)
 
       d2Idr2 = (num1 + num2 + num3 + num4) / denom
 
@@ -1503,13 +1544,13 @@ contains
 
       implicit none
 
-      real, dimension(-nz2pi:), intent(in) :: integrand
+      real, dimension(-nzgrid_2pi:), intent(in) :: integrand
       real, intent(out) :: integral
 
       !-------------------------------------------------------------------------
 
       ! Use trapezoidal rule to integrate in theta
-      integral = 0.5 * sum(delthet(-nz2pi:nz2pi - 1) * (integrand(-nz2pi:nz2pi - 1) + integrand(-nz2pi + 1:nz2pi)))
+      integral = 0.5 * sum(delthet(-nzgrid_2pi:nzgrid_2pi - 1) * (integrand(-nzgrid_2pi:nzgrid_2pi - 1) + integrand(-nzgrid_2pi + 1:nzgrid_2pi)))
 
    end subroutine theta_integrate
 
