@@ -647,114 +647,6 @@ contains
 
    end subroutine lu_decompose_response_matrix
 
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   subroutine read_response_matrix
-
-      use arrays, only: response_matrix
-      use common_types, only: response_matrix_type
-      use grids_kxky, only: naky
-      use grids_extended_zgrid, only: neigen
-      use grids_extended_zgrid, only: nsegments
-      use grids_extended_zgrid, only: nzed_segment
-      use grids_extended_zgrid, only: periodic
-      use mp, only: proc0, job, broadcast, mp_abort
-      use field_equations, only: nfields
-      use file_units, only: unit_response_matrix
-
-      implicit none
-
-      ! Local variables
-      integer :: iky, ie, nz_ext
-      integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
-      integer :: nresponse, nresponse_per_field
-      character(len=15) :: job_str
-      character(len=100) :: file_name
-      integer :: ie_dump, istat
-      logical, parameter :: debug = .false.
-
-      !-------------------------------------------------------------------------
-
-      ! All matrices handled for the job i_job are read
-      ! from a single file named: responst_mat.ijob by that
-      ! jobs root process
-      if (proc0) then
-         write (job_str, '(I1.1)') job
-         file_name = './mat/response_mat.'//trim(job_str)
-
-         open (unit=unit_response_matrix, status='old', file=file_name, &
-               action='read', form='unformatted', iostat=istat)
-         if (istat /= 0) then
-            print *, 'Error opening response_matrix by root processor for job ', job_str
-         end if
-
-         read (unit=unit_response_matrix) naky_dump
-         if (naky /= naky_dump) call mp_abort('mismatch in naky and naky_dump')
-      end if
-
-      if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
-
-      do iky = 1, naky
-         if (proc0) then
-            read (unit=unit_response_matrix) iky_dump, neigen_dump
-            if (iky_dump /= iky .or. neigen_dump /= neigen(iky)) &
-               call mp_abort('mismatch in iky_dump/neigen_dump')
-         end if
-
-         if (.not. associated(response_matrix(iky)%eigen)) &
-            allocate (response_matrix(iky)%eigen(neigen(iky)))
-
-         ! Loop over the sets of connected kx values
-         do ie = 1, neigen(iky)
-         
-            ! Number of zeds x number of segments
-            nz_ext = nsegments(ie, iky) * nzed_segment + 1
-
-            ! Treat zonal mode specially to avoid double counting as it is periodic
-            if (periodic(iky)) then
-               nresponse_per_field = nz_ext - 1
-            else
-               nresponse_per_field = nz_ext
-            end if
-            nresponse = nresponse_per_field * nfields
-
-            if (proc0) then
-               read (unit=unit_response_matrix) ie_dump, nresponse_dump
-               if (ie_dump /= ie .or. nresponse /= nresponse_dump) &
-                  call mp_abort('mismatch in ie/nresponse_dump')
-            end if
-
-            ! For each ky and set of connected kx values,
-            ! must have a response matrix that is N x N
-            ! with N = number of zeds per 2pi segment x number of 2pi segments
-            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
-               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
-
-            ! response_matrix%idx is needed to keep track of permutations
-            ! to the response matrix made during LU decomposition
-            ! it will be input to LU back substitution during linear solve
-            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
-               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-            if (proc0) then
-               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
-               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
-            end if
-
-            call broadcast(response_matrix(iky)%eigen(ie)%idx)
-            call broadcast(response_matrix(iky)%eigen(ie)%zloc)
-
-         end do
-      end do
-
-      if (proc0) close (unit_response_matrix)
-
-      if (debug) then
-         print *, 'File', file_name, ' successfully read by root proc for job: ', job_str
-      end if
-   end subroutine read_response_matrix
-
-
 
 
 
@@ -1234,7 +1126,7 @@ contains
          end if
          ! For bpar
          if (include_bpar) then
-            offset_apar + nresponse
+            offset_bpar = offset_apar + nresponse
             response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_bpar) = bpar_ext(:nresponse)
          end if
 #ifdef ISO_C_BINDING
@@ -2045,6 +1937,119 @@ contains
       deallocate (denominator)
 
    end subroutine get_apar_for_response_matrix
+
+
+!###############################################################################
+!########################### READ RESPONSE MATRIX ##############################
+!###############################################################################
+
+   !****************************************************************************
+   !                         Read the response matrix                        
+   !****************************************************************************
+   subroutine read_response_matrix
+
+      use arrays, only: response_matrix
+      use common_types, only: response_matrix_type
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: nzed_segment
+      use grids_extended_zgrid, only: periodic
+      use mp, only: proc0, job, broadcast, mp_abort
+      use field_equations, only: nfields
+      use file_units, only: unit_response_matrix
+
+      implicit none
+
+      ! Local variables
+      integer :: iky, ie, nz_ext
+      integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
+      integer :: nresponse, nresponse_per_field
+      character(len=15) :: job_str
+      character(len=100) :: file_name
+      integer :: ie_dump, istat
+      logical, parameter :: debug = .false.
+
+      !-------------------------------------------------------------------------
+
+      ! All matrices handled for the job i_job are read
+      ! from a single file named: responst_mat.ijob by that
+      ! jobs root process
+      if (proc0) then
+         write (job_str, '(I1.1)') job
+         file_name = './mat/response_mat.'//trim(job_str)
+
+         open (unit=unit_response_matrix, status='old', file=file_name, &
+               action='read', form='unformatted', iostat=istat)
+         if (istat /= 0) then
+            print *, 'Error opening response_matrix by root processor for job ', job_str
+         end if
+
+         read (unit=unit_response_matrix) naky_dump
+         if (naky /= naky_dump) call mp_abort('mismatch in naky and naky_dump')
+      end if
+
+      if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
+
+      do iky = 1, naky
+         if (proc0) then
+            read (unit=unit_response_matrix) iky_dump, neigen_dump
+            if (iky_dump /= iky .or. neigen_dump /= neigen(iky)) &
+               call mp_abort('mismatch in iky_dump/neigen_dump')
+         end if
+
+         if (.not. associated(response_matrix(iky)%eigen)) &
+            allocate (response_matrix(iky)%eigen(neigen(iky)))
+
+         ! Loop over the sets of connected kx values
+         do ie = 1, neigen(iky)
+         
+            ! Number of zeds x number of segments
+            nz_ext = nsegments(ie, iky) * nzed_segment + 1
+
+            ! Treat zonal mode specially to avoid double counting as it is periodic
+            if (periodic(iky)) then
+               nresponse_per_field = nz_ext - 1
+            else
+               nresponse_per_field = nz_ext
+            end if
+            nresponse = nresponse_per_field * nfields
+
+            if (proc0) then
+               read (unit=unit_response_matrix) ie_dump, nresponse_dump
+               if (ie_dump /= ie .or. nresponse /= nresponse_dump) &
+                  call mp_abort('mismatch in ie/nresponse_dump')
+            end if
+
+            ! For each ky and set of connected kx values,
+            ! must have a response matrix that is N x N
+            ! with N = number of zeds per 2pi segment x number of 2pi segments
+            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
+               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+
+            ! response_matrix%idx is needed to keep track of permutations
+            ! to the response matrix made during LU decomposition
+            ! it will be input to LU back substitution during linear solve
+            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
+               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
+            if (proc0) then
+               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
+               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
+            end if
+
+            call broadcast(response_matrix(iky)%eigen(ie)%idx)
+            call broadcast(response_matrix(iky)%eigen(ie)%zloc)
+
+         end do
+      end do
+
+      if (proc0) close (unit_response_matrix)
+
+      if (debug) then
+         print *, 'File', file_name, ' successfully read by root proc for job: ', job_str
+      end if
+   end subroutine read_response_matrix
+
 
 !###############################################################################
 !############################# FINISH RESPONSE MATRIX ##########################
