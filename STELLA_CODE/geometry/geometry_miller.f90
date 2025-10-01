@@ -150,7 +150,7 @@ module geometry_miller
 
    ! Local variables
    integer :: nzed_local
-   integer :: nz, nzgrid_2pi, np
+   integer :: nz, nzgrid_2pi, nperiod
 
    ! Geometric quantities
    real :: bi, dqdr, d2Idr2
@@ -256,13 +256,13 @@ contains
       ! and the total number of z-points is given by <nztot> = 2 * <nzgrid> + 1
       ! Instead of importing <np> = <nperiod> we calculate it based on <nzed> and <nzgrid>.
       nzgrid_2pi = nzed / 2
-      np = (nzgrid - nzgrid_2pi) / nzed + 1
+      nperiod = (nzgrid - nzgrid_2pi) / nzed + 1
 
       ! Now we switch to using (possible higher resolution) local grid.
       ! The number of positive z-points in a single period or 2*pi segment is given by <nzgrid_2pi>,
       ! and the total number of positive z-points is given by <nz>, equivalent to <nzgrid> on the local grid.
       nzgrid_2pi = nzed_local / 2
-      nz = nzgrid_2pi + nzed_local * (np - 1)
+      nz = nzgrid_2pi + nzed_local * (nperiod - 1)
      
       ! Set variables for radial variation simulations
       call read_miller_parameters_radial_variation
@@ -408,7 +408,7 @@ contains
       !              Z(r,θ) = κ(r)rsin θ
       ! ------------------------------------------------------------------------
       do j = -nz, nz
-         theta(j) = j * (2 * np - 1) * pi / real(nz)
+         theta(j) = j * (2 * nperiod - 1) * pi / real(nz)
          do i = 1, 3
             rmin = local%rhoc + dr(i)
             Rr(i, j) = Rpos(rmin, theta(j), j)
@@ -689,7 +689,7 @@ contains
          if (zed_equal_arc) then
             if (debug) write (*, *) 'geometry_miller::zed_equal_arc=.true.'
             call theta_integrate(1./b_dot_gradtheta, dum)
-            b_dot_gradtheta_arc = (theta(nz) - theta(-nz)) / ((2 * np - 1) * dum)
+            b_dot_gradtheta_arc = (theta(nz) - theta(-nz)) / ((2 * nperiod - 1) * dum)
             call theta_integrate_indef(b_dot_gradtheta_arc / b_dot_gradtheta, arc)
 
             allocate (zed_arc(-nzgrid:nzgrid))
