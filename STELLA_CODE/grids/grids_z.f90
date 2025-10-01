@@ -139,15 +139,18 @@ contains
       if (.not. allocated(zed)) allocate (zed(-nzgrid:nzgrid))
       if (.not. allocated(delzed)) allocate (delzed(-nzgrid:nzgrid))
 
-      ! Calculate the z-grid, which ranges from -pi to pi
+      ! Note that <nzed> is an input parameter, denoting the number of z-points 
+      ! in a single period or 2*pi segment. ! It is used to calculate the total 
+      ! number of positive z-points as <nzgrid> = <nzed>/2 + (<nperiod> - 1) * <nzed>.
+      ! Construct the z-grid, which ranges from -pi to pi.
       zed = (/(i * pi / real(nzed / 2), i=-nzgrid, nzgrid)/)
       delzed(:nzgrid - 1) = zed(-nzgrid + 1:) - zed(:nzgrid - 1)
       delzed(nzgrid) = delzed(-nzgrid)
 
-      ! Total number of z-grid points
+      ! Total number of z-points
       nztot = 2 * nzgrid + 1
       
-      ! number of zed in a 2*pi segment, including points at +/- pi
+      ! Number of z-points in a 2*pi segment, including points at +/- pi
       nz2pi = 2 * (nzed / 2) + 1
 
    end subroutine init_z_grid
