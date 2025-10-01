@@ -741,7 +741,7 @@ contains
       use splines, only: linear_interp_periodic
       use grids_z, only: nz2pi, zed
       use geometry, only: bmag, dbdzed, b_dot_gradz_avg
-      use geometry, only: dBdrho, d2Bdrdth, d_b_dot_gradz_drho, dIdrho
+      use geometry, only: dBdrho, d2Bdrdth, d_bdotgradz_drho, dIdrho
       use geometry, only: geo_surf
       use globalVariables, only: BHat
       use globalVariables, only: dBHatdtheta
@@ -778,7 +778,7 @@ contains
       q_local = geo_surf%qinp * (1.0 + delrho * geo_surf%shat / geo_surf%rhoc)
       B_local = bmag(1, -nzpi:nzpi) + delrho * dBdrho(-nzpi:nzpi)
       dBdz_local = dbdzed(1, -nzpi:nzpi) + delrho * d2Bdrdth(-nzpi:nzpi)
-      b_dot_gradz_local = b_dot_gradz_avg(-nzpi:nzpi) + delrho * d_b_dot_gradz_drho(-nzpi:nzpi)
+      b_dot_gradz_local = b_dot_gradz_avg(-nzpi:nzpi) + delrho * d_bdotgradz_drho(-nzpi:nzpi)
 
       zed_stella = zed(-nzpi:nzpi) + pi
       theta_sfincs = export_f_theta(:ntheta)

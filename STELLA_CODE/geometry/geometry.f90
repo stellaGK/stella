@@ -23,6 +23,11 @@
 !    <b_dot_gradz>(ia,iz) = b · ∇z
 !    <b_dot_gradz_avg>(iz) = sum_alpha b · ∇z J dalpha / sum_alpha J dalpha
 ! 
+! Geometric quantities needed for radial variation:
+!    <d_gradxdotgradx_drho> = d(∇x . ∇y)/drho
+!    <d_gradydotgrady_drho> = d(|∇x|²)/drho
+!    <d_gradxdotgrady_drho> = d(|∇y|²)/drho
+! 
 ! The normalized derivatives are defined as,
 !    <dxdpsi> = (rho_r/a) (d tilde{x} / d tilde{psi})
 !    <dydalpha> = (rho_r/a) (d tilde{y} / d tilde{alpha})
@@ -38,8 +43,11 @@
 !    - cvdrift0      -->   B_times_kappa_dot_gradx * 2. * shat
 !    - cvdrift       -->   B_times_kappa_dot_grady * 2.
 !    - gradpar       -->   b_dot_gradz_avg
-!    - dgradpardrho  -->   d_b_dot_gradz_drho
+!    - dgradpardrho  -->   d_bdotgradz_drho
 !    - gradpar_c     -->   b_dot_gradz_centredinz (gk_parallel_streaming.f90)
+!    - d_gradydotgrady_drho       -->   d_gradydotgrady_drho
+!    - d_gradxdotgradx_drho      -->   d_gradxdotgradx_drho
+!    - d_gradxdotgrady_drho      -->   d_gradxdotgrady_drho
 ! 
 !###############################################################################
 module geometry
@@ -67,11 +75,11 @@ module geometry
    public :: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24, gds25, gds26
    public :: B_times_kappa_dot_grady, B_times_kappa_dot_gradx
    public :: B_times_gradB_dot_grady, B_times_gradB_dot_gradx
-   public :: dgds2dr, dgds21dr, dgds22dr
+   public :: d_gradydotgrady_drho, d_gradxdotgrady_drho, d_gradxdotgradx_drho
    public :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
    public :: jacob, djacdrho, drhodpsi, drhodpsip, drhodpsip_psi0
    public :: dl_over_b, d_dl_over_b_drho
-   public :: dBdrho, d2Bdrdth, d_b_dot_gradz_drho, dIdrho
+   public :: dBdrho, d2Bdrdth, d_bdotgradz_drho, dIdrho
    public :: geo_surf, Rmajor, dzetadz
    public :: theta_vmec, zeta, alpha 
    public :: dxdpsi, dydalpha, clebsch_factor
@@ -120,12 +128,12 @@ module geometry
    ! Geometric quantities for the gyrokinetic equations
    real, dimension(:), allocatable :: zed_eqarc, alpha
    real, dimension(:), allocatable :: b_dot_gradz_avg
-   real, dimension(:), allocatable :: dBdrho, d2Bdrdth, d_b_dot_gradz_drho, btor, Rmajor 
+   real, dimension(:), allocatable :: dBdrho, d2Bdrdth, d_bdotgradz_drho, btor, Rmajor 
    real, dimension(:, :), allocatable :: bmag, bmag_psi0, dbdzed 
    real, dimension(:, :), allocatable :: B_times_kappa_dot_grady, B_times_kappa_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
    real, dimension(:, :), allocatable :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    real, dimension(:, :), allocatable :: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24, gds25, gds26
-   real, dimension(:, :), allocatable :: dgds2dr, dgds21dr, dgds22dr, x_displacement_fac
+   real, dimension(:, :), allocatable :: d_gradydotgrady_drho, d_gradxdotgrady_drho, d_gradxdotgradx_drho, x_displacement_fac
    real, dimension(:, :), allocatable :: jacob, djacdrho, grho, grad_x
    real, dimension(:, :), allocatable :: dl_over_b, d_dl_over_b_drho 
    real, dimension(:, :), allocatable :: theta_vmec, zeta
@@ -712,9 +720,9 @@ contains
                 grady_dot_grady(1, :), gradx_dot_grady(1, :), gradx_dot_gradx(1, :), gds23(1, :), gds24(1, :), b_dot_gradz(1, :), &
                 B_times_gradB_dot_gradx(1, :), B_times_gradB_dot_grady(1, :), &
                 B_times_kappa_dot_gradx(1, :), B_times_kappa_dot_grady(1, :), &
-                dBdrho, d2Bdrdth, d_b_dot_gradz_drho, btor, rmajor, &
+                dBdrho, d2Bdrdth, d_bdotgradz_drho, btor, rmajor, &
                 dcvdrift0drho(1, :), dcvdriftdrho(1, :), dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
-                dgds2dr(1, :), dgds21dr(1, :), dgds22dr(1, :), djacdrho(1, :))
+                d_gradydotgrady_drho(1, :), d_gradxdotgrady_drho(1, :), d_gradxdotgradx_drho(1, :), djacdrho(1, :))
       if (debug) write (*, *) 'geometry::Miller::get_local_geo_finished'
 
       ! <drhodpsip> = drho/d(psip/a^2*Bref) = (a^2*Bref) * drho/dpsip = (a*Bref) * dr/dpsip
@@ -799,9 +807,9 @@ contains
       dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
       dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
       dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
-      dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
-      dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
-      dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+      d_gradydotgrady_drho = spread(d_gradydotgrady_drho(1, :), 1, nalpha)
+      d_gradxdotgrady_drho = spread(d_gradxdotgrady_drho(1, :), 1, nalpha)
+      d_gradxdotgradx_drho = spread(d_gradxdotgradx_drho(1, :), 1, nalpha)
       djacdrho = spread(djacdrho(1, :), 1, nalpha)
       b_dot_gradz = spread(b_dot_gradz(1, :), 1, nalpha)
       zeta = spread(zeta(1, :), 1, nalpha)
@@ -1017,9 +1025,9 @@ contains
       if (.not. allocated(gds24)) allocate (gds24(nalpha, -nzgrid:nzgrid)); gds24 = 0.0
       if (.not. allocated(gds25)) allocate (gds25(nalpha, -nzgrid:nzgrid)); gds25 = 0.0
       if (.not. allocated(gds26)) allocate (gds26(nalpha, -nzgrid:nzgrid)); gds26 = 0.0
-      if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid)); dgds2dr = 0.0
-      if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid)); dgds21dr = 0.0
-      if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid)); dgds22dr = 0.0
+      if (.not. allocated(d_gradydotgrady_drho)) allocate (d_gradydotgrady_drho(nalpha, -nzgrid:nzgrid)); d_gradydotgrady_drho = 0.0
+      if (.not. allocated(d_gradxdotgrady_drho)) allocate (d_gradxdotgrady_drho(nalpha, -nzgrid:nzgrid)); d_gradxdotgrady_drho = 0.0
+      if (.not. allocated(d_gradxdotgradx_drho)) allocate (d_gradxdotgradx_drho(nalpha, -nzgrid:nzgrid)); d_gradxdotgradx_drho = 0.0
       if (.not. allocated(B_times_gradB_dot_grady)) allocate (B_times_gradB_dot_grady(nalpha, -nzgrid:nzgrid)); B_times_gradB_dot_grady = 0.0
       if (.not. allocated(B_times_gradB_dot_gradx)) allocate (B_times_gradB_dot_gradx(nalpha, -nzgrid:nzgrid)); B_times_gradB_dot_gradx = 0.0
       if (.not. allocated(B_times_kappa_dot_grady)) allocate (B_times_kappa_dot_grady(nalpha, -nzgrid:nzgrid)); B_times_kappa_dot_grady = 0.0
@@ -1043,7 +1051,7 @@ contains
       if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid)); rmajor = 0.0
       if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid)); dBdrho = 0.0
       if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid)); d2Bdrdth = 0.0
-      if (.not. allocated(d_b_dot_gradz_drho)) allocate (d_b_dot_gradz_drho(-nzgrid:nzgrid)); d_b_dot_gradz_drho = 0.0
+      if (.not. allocated(d_bdotgradz_drho)) allocate (d_bdotgradz_drho(-nzgrid:nzgrid)); d_bdotgradz_drho = 0.0
       if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.0
       if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.0
       if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
@@ -1109,9 +1117,9 @@ contains
       call broadcast(gds24)
       call broadcast(gds25)
       call broadcast(gds26)
-      call broadcast(dgds2dr)
-      call broadcast(dgds21dr)
-      call broadcast(dgds22dr)
+      call broadcast(d_gradydotgrady_drho)
+      call broadcast(d_gradxdotgrady_drho)
+      call broadcast(d_gradxdotgradx_drho)
       call broadcast(B_times_gradB_dot_gradx)
       call broadcast(B_times_gradB_dot_grady)
       call broadcast(B_times_kappa_dot_gradx)
@@ -1122,7 +1130,7 @@ contains
       call broadcast(dcvdriftdrho)
       call broadcast(dBdrho)
       call broadcast(d2Bdrdth)
-      call broadcast(d_b_dot_gradz_drho)
+      call broadcast(d_bdotgradz_drho)
       call broadcast(djacdrho)
       
       ! Arrays for the momentum flux
@@ -1428,9 +1436,9 @@ contains
       if (allocated(gds24)) deallocate (gds24)
       if (allocated(gds25)) deallocate (gds25)
       if (allocated(gds26)) deallocate (gds26)
-      if (allocated(dgds2dr)) deallocate (dgds2dr)
-      if (allocated(dgds21dr)) deallocate (dgds21dr)
-      if (allocated(dgds22dr)) deallocate (dgds22dr)
+      if (allocated(d_gradydotgrady_drho)) deallocate (d_gradydotgrady_drho)
+      if (allocated(d_gradxdotgrady_drho)) deallocate (d_gradxdotgrady_drho)
+      if (allocated(d_gradxdotgradx_drho)) deallocate (d_gradxdotgradx_drho)
       if (allocated(B_times_gradB_dot_grady)) deallocate (B_times_gradB_dot_grady)
       if (allocated(B_times_gradB_dot_gradx)) deallocate (B_times_gradB_dot_gradx)
       if (allocated(B_times_kappa_dot_grady)) deallocate (B_times_kappa_dot_grady)
@@ -1441,7 +1449,7 @@ contains
       if (allocated(dcvdrift0drho)) deallocate (dcvdrift0drho)
       if (allocated(dBdrho)) deallocate (dBdrho)
       if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
-      if (allocated(d_b_dot_gradz_drho)) deallocate (d_b_dot_gradz_drho)
+      if (allocated(d_bdotgradz_drho)) deallocate (d_bdotgradz_drho)
       if (allocated(theta_vmec)) deallocate (theta_vmec)
       if (allocated(alpha)) deallocate (alpha)
       if (allocated(zeta)) deallocate (zeta)

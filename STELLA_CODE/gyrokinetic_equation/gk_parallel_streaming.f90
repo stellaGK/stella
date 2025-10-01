@@ -72,7 +72,7 @@ contains
       use grids_velocity, only: vperp2, vpa, mu
       use grids_kxky, only: nalpha
       use grids_z, only: nzgrid, nztot
-      use geometry, only: b_dot_gradz_avg, d_b_dot_gradz_drho, dBdrho, gfac, b_dot_gradz
+      use geometry, only: b_dot_gradz_avg, d_bdotgradz_drho, dBdrho, gfac, b_dot_gradz
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
       use parameters_physics, only: full_flux_surface
@@ -159,7 +159,7 @@ contains
          end if
          ia = 1
          stream_rad_var1 = -code_dt * spread(spread(spec%stm_psi0, 1, nztot), 2, nvpa) &
-                           * gfac * spread(spread(vpa, 1, nztot) * spread(d_b_dot_gradz_drho, 2, nvpa), 3, nspec)
+                           * gfac * spread(spread(vpa, 1, nztot) * spread(d_bdotgradz_drho, 2, nvpa), 3, nspec)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)

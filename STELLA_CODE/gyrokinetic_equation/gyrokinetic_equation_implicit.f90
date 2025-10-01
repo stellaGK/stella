@@ -25,7 +25,7 @@ module gyrokinetic_equation_implicit
 contains
 
    !****************************************************************************
-   !                           IMPLICIT TIME ADVANCE SUBROUTINE
+   !                      IMPLICIT TIME ADVANCE SUBROUTINE                      
    !****************************************************************************
    subroutine advance_distribution_function_using_implicit_gyrokinetic_terms(istep, phi, apar, bpar, g)
 

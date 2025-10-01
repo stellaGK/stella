@@ -2,7 +2,7 @@
 
 [![Check stella](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml/badge.svg)](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml)
 
-stella solves the gyrokinetic-Poisson system of equations in the local limit
+$\texttt{stella}$ solves the gyrokinetic-Poisson system of equations in the local limit
 using an operator-split, implicit-explicit numerical scheme. It is capable of
 evolving electrostatic fluctuations with fully kinetic electrons and an
 arbitrary number of ion species in general magnetic geometry, including

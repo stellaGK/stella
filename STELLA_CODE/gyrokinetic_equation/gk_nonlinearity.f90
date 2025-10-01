@@ -45,7 +45,7 @@ contains
       use geometry, only: geo_surf, drhodpsi, q_as_x
       use geometry, only: b_dot_gradz_avg, dbdzed, bmag
       use geometry, only: B_times_kappa_dot_grady, B_times_kappa_dot_gradx
-      use geometry, only: dIdrho, d_b_dot_gradz_drho, dBdrho, d2Bdrdth
+      use geometry, only: dIdrho, d_bdotgradz_drho, dBdrho, d2Bdrdth
       use geometry, only: dcvdriftdrho, dcvdrift0drho
       
       implicit none
@@ -73,13 +73,13 @@ contains
       if (radial_variation) then
          if (.not. allocated(d_par_nl_fac_dr)) allocate (d_par_nl_fac_dr(-nzgrid:nzgrid, nspec))
          ! This is the factor multiplying -dphi/dz * dg/dvpa in the parallel nonlinearity
-         d_par_nl_fac_dr = 0.5 * rhostar * spread(spec%stm_psi0 * spec%zt_psi0, 1, nztot) * spread(d_b_dot_gradz_drho, 2, nspec)
+         d_par_nl_fac_dr = 0.5 * rhostar * spread(spec%stm_psi0 * spec%zt_psi0, 1, nztot) * spread(d_bdotgradz_drho, 2, nspec)
 
          if (.not. allocated(d_par_nl_curv_dr)) allocate (d_par_nl_curv_dr(-nzgrid:nzgrid, nspec))
          ! ydriftknob is here because this term comes from bhat x curvature . grad B
          ! Handle terms with no zeroes
          d_par_nl_curv_dr = par_nl_curv * (dIdrho / geo_surf%rgeo - drhodpsi * geo_surf%d2psidr2 &
-            - spread(dBdrho / bmag(1, :) + d_b_dot_gradz_drho / b_dot_gradz_avg, 2, nspec))
+            - spread(dBdrho / bmag(1, :) + d_bdotgradz_drho / b_dot_gradz_avg, 2, nspec))
          ! Handle terms with possible zeroes
          d_par_nl_curv_dr = d_par_nl_curv_dr - ((ydriftknob * rhostar * geo_surf%rgeo * drhodpsi * spread(b_dot_gradz_avg / bmag(1, :), 2, nspec)) &
             / spread(spec%zt_psi0, 1, nztot)) * (geo_surf%betadbprim * spread(dbdzed(1, :), 2, nspec) &
