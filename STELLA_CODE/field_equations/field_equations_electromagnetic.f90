@@ -18,7 +18,7 @@
 !    β/(kperp*ρ)² sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g_s = [1 + β/(kperp*ρ)² sum_s (Z_s n_s)/m_s Gamma_0] Apar
 ! 
 ! Perpendicular Ampere's Law:
-!    2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v \mu_{\s} J_1/a_s g
+!    2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v \mu_{s} J_1/a_s g
 !      + [β/2*B0 sum_s Z_s n_s Gamma1] phi + [1 + β/2*B0 sum_s Z_s n_s T_s \Gamma2 ] = 0
 ! 
 ! -----------------------------------------------------------------------------
