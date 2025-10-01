@@ -1,3 +1,0 @@
----
-title: Parallelism in stella
----

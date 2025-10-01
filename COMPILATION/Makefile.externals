@@ -102,10 +102,6 @@ include $(COMPILATION_DIR)/Makefile.externals.neasyf
 # Git version (git submodule)
 include $(COMPILATION_DIR)/Makefile.externals.git_version
 
-# FORD automatic documentation
-#    >> make doc
-include $(COMPILATION_DIR)/Makefile.externals.FORD
-
 #===================================================================
 #                  DOWNLOAD GIT SUBMODULES MANUALLY                #
 #===================================================================
