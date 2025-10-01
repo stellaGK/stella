@@ -17,6 +17,9 @@
 !     - shat         -->   Magnetic shear, s
 !     - rgeo         -->   Sets the refernce magnetic field, R_geo
 !     - betaprim     -->   Radial derivative of plasma beta, β'
+!                          β' = 4*π*p/B0^2 * (- ∂lnp/∂r )
+!                          where p is the total pressure and B0 is the 
+!                          magnetic field strength
 ! 
 ! Other reference variables that are needed (but inferred):
 !     - bref         -->   Magnetic field strength reference, B_ref
@@ -56,14 +59,14 @@
 ! Code first reads in the input miller parameters and stores them as 
 ! local%(name of variable).
 ! 
-!     - Defines dq/dr = s * q / r
+!     - Defines dq/∂r = s * q / r
 !     - Gets the forms of R and Z (using functions called Rpos and Zpos, and are
 !                                  stored as Rr and Zr)
 !     - Then all the necessary derivatives, and second derivatives are computed, 
 !       along with the Jacobians
 !     - With these derivatives, geometric quantities can be calculated, e.g. 
 !                 <bmag> = B/B0 = sqrt(I^2 + |∇ψ|^2)/R
-!                 <b_dot_gradtheta> = b . ∇θ = dψ/dr / (B/B0 * Jacobian_r)
+!                 <b_dot_gradtheta> = b . ∇θ = dψ/∂r / (B/B0 * Jacobian_r)
 !     - These are the quantities used in geometry.f90 to compute the geometric
 !       coefficients that appear in the code. 
 !
@@ -276,6 +279,7 @@ contains
    !============================================================================
    !========================= CALCULATE MILLER GEOMETRY ========================
    !============================================================================ 
+   ! This is the main routine that is called from geometry.f90
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
       dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
       bmag_out, bmag_psi0_out, &
@@ -348,7 +352,7 @@ contains
       if (debug) write (*, *) 'geometry_miller::get_local_geo'
       call allocate_arrays(nr, nz)
 
-      ! Get dq/dr = q/r * s 
+      ! Get dq/∂r = q/r * s 
       dqdr = local%shat * local%qinp / local%rhoc
 
       ! Store (-dr, 0, +dr) as these are needed for the radial derivatives
@@ -356,7 +360,12 @@ contains
       dr(2) = 0.
       dr(3) = local%dr
 
+      ! ------------------------------------------------------------------------
+      !                           Function Calculations
+      ! ------------------------------------------------------------------------
       ! Compute the functions R(r,θ) and Z(r,θ)
+      !              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
+      !              Z(r,θ) = κ(r)rsin θ
       do j = -nz, nz
          theta(j) = j * (2 * np - 1) * pi / real(nz)
          do i = 1, 3
@@ -366,6 +375,13 @@ contains
          end do
       end do
 
+      ! ------------------------------------------------------------------------
+      !                          Derivative Calculations
+      ! ------------------------------------------------------------------------
+      ! The following sets of routines compute derivatives of R and Z with 
+      ! respect to r and θ (get first and second derivatives).
+      ! ------------------------------------------------------------------------
+
       if (.not. allocated(delthet)) allocate (delthet(-nz:nz - 1))
       ! Get dθ theta as a function of theta - needed for theta derivatives
       delthet = theta(-nz + 1:) - theta(:nz - 1)
@@ -373,18 +389,11 @@ contains
       ! Debug message
       if (debug) write (*, *) 'geometry_miller::radial_derivatives'
 
-      ! ------------------------------------------------------------------------
-      !                          Derivative Calculations
-      ! ------------------------------------------------------------------------
-      ! The following sets of routines compute derivatives of R and Z with 
-      ! respect to r and θ 
-      ! ------------------------------------------------------------------------
-
-      ! Get dR/drho and dZ/drho
+      ! Get ∂R/∂r and ∂Z/∂r
       call get_drho(Rr, dRdrho)
       call get_drho(Zr, dZdrho)
 
-      ! Get dR/dtheta and dZ/dtheta
+      ! Get ∂R/∂θ and ∂Z/∂θ
       call get_dthet(Rr(2, :), dRdth)
       call get_dthet(Zr(2, :), dZdth)
 
@@ -394,23 +403,32 @@ contains
       ! Get mixed theta and rho derivatives of R and Z
       call get_dthet(dRdrho, d2Rdrdth)
       call get_dthet(dZdrho, d2Zdrdth)
+
+      ! ------------------------------------------------------------------------
+      !                      Calculation Geometric Factors 
+      ! ------------------------------------------------------------------------
+      ! These routines compute the geometric factors that are common in a lot of
+      ! computations for the final geometric quantites - e.g. the Jacobian.
       ! ------------------------------------------------------------------------
 
-      ! Get the Jacobian of the transformation from (rho,theta,zeta) to (R,Z,zeta)
-      ! This is what I call jacr or jacrho in following comments
-      ! as opposed to jacobian, which is for tranformation from (psi,theta,zeta) to (R,Z,zeta)
+      ! Get the Jacobian of the transformation from (r, θ, ζ) -> (R, Z, ζ)
+      ! This is called jacr or jacrho in following comments as opposed
+      ! to jacobian, which is for tranformation from (ψ, θ, ζ) -> (R, Z, ζ)
+      ! <Jacrho> = R * (∂R/∂r * ∂Z/∂θ - ∂R/∂θ * ∂Z/dr)
+      if (debug) write (*, *) 'geometry_miller::get_jacrho'
       call get_jacrho
 
       ! theta_integrate returns integral from 0 -> 2*pi
-      ! Note that dpsipdrho here is an intermediary
-      ! that requires manipulation to get final dpsipdrho
+      ! Note that <dpsipdrho> here is an intermediary
+      ! that requires manipulation to get final <dpsipdrho>
       call theta_integrate(jacrho(-nz2pi:nz2pi) / Rr(2, -nz2pi:nz2pi)**2, dpsipdrho)
       dpsipdrho = dpsipdrho / (2.*pi)
 
-      ! Get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
-
-      ! Define: bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
-      ! Where I=Btor*R is a flux function
+      ! Define: <bi> = I/(Btor(psi,theta of Rgeo)*a) 
+      !              = Rgeo/a                ->  Where I = Btor * R is a flux function
+      !         <dpsipdrho> = ∂ψ_N/∂r        -> The radial derivative of the poloidal flux function
+      !                     = ∂ψ_tor/∂r / q  -> Where ψ_tor is the toroidal flux function
+      ! 
       if (abs(local%dpsitordrho) > epsilon(0.)) then
          ! If using input.profiles, we are given dpsitordrho 
          ! and must use it to compute Rgeo.
@@ -420,43 +438,38 @@ contains
                           / local%qinp
          bi = local%rgeo
       else
-         ! Otherwise, we are given rgeo
-         ! and must use it to compute dpsipdrho
+         ! Otherwise, we are given rgeo and must use it to compute dpsipdrho
          bi = local%rgeo + dI * (rhoc - rhoc0)
          dpsipdrho = dpsipdrho * bi / local%qinp
       end if
 
-!    ! Get dpsinorm/drho
-!    call get_dpsipdrho (dpsipdrho)
-
-      ! Get |grad rho| and |grad psi|
+      ! Get |∇r| and |∇ψ|
       call get_gradrho(dpsipdrho, grho)
 
-      ! Quantity needed in calculation of dI/drho and djacrho/drho
+      ! Quantity needed in calculation of ∂I/∂r and djacrho/∂r
       drz = (dRdrho * dRdth + dZdrho * dZdth) / jacrho
       call get_dthet(drz, drzdth)
 
-      ! Get dI/drho
+      ! Get ∂I/∂r
       call get_dIdrho(dpsipdrho, grho, dIdrho)
       dIdrho_out = dIdrho
 
-      ! Get djacobian/drho*dpsi/drho and djacrho/drho
+      ! Get ∂Jacrho/∂r * ∂ψ/∂r and ∂Jacrho/∂r
       call get_djacdrho(dpsipdrho, dIdrho, grho)
 
-      ! Get d2R/drho2 and d2Z/drho2
+      ! Get ∂^2R/∂r^2 and ∂^2Z/∂r^2
       call get_d2RZdr2
 
       d2R = d2Rdr2
       d2Z = d2Zdr2
 
-      ! Get theta derivative of d2R/drho2 and d2Z/drho2
+      ! Get theta derivative of ∂^2R/∂r^2 and ∂^2Z/∂r^2
       call get_dthet(d2Rdr2, d2Rdr2dth)
       call get_dthet(d2Zdr2, d2Zdr2dth)
 
       ! Calculate the magnitude of B (normalized by B(psi,theta corresponding to Rgeo))
-      ! B/B0 = sqrt(I**2 + |grad psi|**2)/R
+      ! <bmag> = B/B0 = sqrt(I^2 + |∇ψ|^2)/R
       bmag = sqrt(bi**2 + gpsi**2) / Rr(2, :)
-
 
       ! ------------------------------------------------------------------------
       !                              Radial Variation
@@ -479,125 +492,139 @@ contains
          end do
          close (1002)
       end if
+     
+      ! ------------------------------------------------------------------------
+      !                     Geometric Quantities + Their Derivatives
       ! ------------------------------------------------------------------------
 
-      ! Get dB/dtheta
+      ! Get ∂B/∂θ
       call get_dthet(bmag, dbdth)
 
-      ! Calculate <b_dot_gradtheta> = b . grad theta (formerly <gradpar>)
+      ! Calculate <b_dot_gradtheta> = b . ∇θ (formerly <gradpar>)
       b_dot_gradtheta = dpsipdrho / (bmag * jacrho)
       
-      ! Calculate <b_dot_gradB> = b . grad B (formerly <gradparB>)
+      ! Calculate <b_dot_gradB> = b . ∇B (formerly <gradparB>)
       b_dot_gradB = b_dot_gradtheta * dBdth
 
-      ! Get d|grad rho|^2/drho and d|grad psi|^2/drho
+      ! Get ∂|∇r|^2/∂r and ∂|∇ψ|^2/∂r
       call get_dgr2dr(dpsipdrho, grho)
 
-      ! Get dB/drho and d2B/drho2
+      ! Get ∂B/∂r and ∂^2 B/∂r^2
       call get_dBdrho(bmag, dIdrho)
 
-      ! Calculate <d_b_dot_gradtheta_drho> d (b . grad theta) / drho (formerly <dgradpardrho>)
+      ! Calculate <d_b_dot_gradtheta_drho> = ∂(b . ∇θ)/∂r (formerly <dgradpardrho>)
       d_b_dot_gradtheta_drho = -b_dot_gradtheta * (dBdrho / bmag + djacdrho / jacrho)
 
-      ! Get d/dtheta (dB/drho)
+      ! Get ∂(∂B/∂r)/∂θ
       call get_dthet(dBdrho, d2Bdrdth)
 
-      ! Calculate <d_b_dot_gradB_drho> d(b . grad B)/drho (formerly <dgradparBdrho>)
+      ! Calculate <d_b_dot_gradB_drho> = ∂(b . ∇B)/∂r (formerly <dgradparBdrho>)
       d_b_dot_gradB_drho = d_b_dot_gradtheta_drho * dBdth + b_dot_gradtheta * d2Bdrdth
 
-      ! Obtain varthet = (I/(q*(dpsi/dr)) * int_0^theta dtheta' jacrho/R^2
+      ! Obtain varthet: ϑ = I/(q * (∂ψ/∂r))  int_0^θ dθ' Jacrho / R^2
       call get_varthet(dpsipdrho)
 
-      ! Obtain dvarthet/drho
+      ! Obtain ∂ϑ/∂r
       call get_dvarthdr(dpsipdrho, dIdrho)
 
-      ! Get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
+      ! Get |∇θ|^2 , ∇r.∇θ , ∇α.∇θ , ∇r.∇α , |∇α|^2
       call get_graddotgrad(dpsipdrho, grho)
       
       if (debug) write (*, *) 'geometry_miller::get_gds'
+      ! The following routine gets: 
+      !           <grady_dot_grady> = ∇y.∇y
+      !           <gradx_dot_grady> = ∇x.∇y 
+      !           <gradx_dot_gradx> = ∇x.∇x 
+      !           <gds23> = ∇θ . [∇α x (∇r x ∇α)] * (∂ψ_N/∂r)^2 / B^2
+      !           <gds24> = ∇θ . [∇r x (∇r x ∇α)] * (∂ψ_N/∂r)^2 * (q/r) / B^2
       call get_gds(grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24)
 
-      ! This is (grad alpha x B) . grad theta
+      ! This is (∇α x B) . ∇θ
       cross = dpsipdrho * (gradrho_gradalph * gradalph_gradthet - gradalph2 * gradrho_gradthet)
 
-      ! Note that the definitions of B_times_gradB_dot_grady, B_times_gradB_dot_gradx, dgbdriftdr and dgbdrift0dr
-      ! are such that it gets multiplied by vperp2, not mu.  This is in contrast to Michael's GS3 notes
+      ! Note that the definitions of <B_times_gradB_dot_grady>, <B_times_gradB_dot_gradx>, <dgbdriftdr> 
+      ! and <dgbdrift0dr> are such that it gets multiplied by vperp2, not mu.  
+      ! This is in contrast to Michael's GS3 notes
 
-      ! This is bhat/B x (grad B/B) . grad alpha * 2 * dpsiN/drho
+      ! This is bhat/B x (∇B/B) . ∇α * 2 * ∂ψ_N/∂r
       ! We redefined B_times_gradB_dot_grady = gbdrift / 2
       B_times_gradB_dot_grady = (-dBdrho + cross * dBdth * dpsipdrho / bmag**2) / bmag
-      ! This is bhat/B x (bhat . grad bhat) . grad alpha * 2 * dpsiN/drho
-      ! This is assuming betaprim = 4*pi*ptot/B0^2 * (-d ln ptot / drho)
+
+      ! This is bhat/B x (bhat . ∇ bhat) . ∇α * 2 * ∂ψ_N/∂r
+      ! This is assuming:  β' = 4*π*p/B0^2 * (- ∂lnp/∂r ),  where p is the total pressure and B0 is the 
+      ! magnetic field strength.
       ! We redefined B_times_kappa_dot_grady = cvdrift / 2
       B_times_kappa_dot_grady = (B_times_gradB_dot_grady + local%betaprim / bmag**2)
 
-      ! This is 2 *(bhat/B x grad B / B) . (grad q) * dpsiN/drho / (bhat . grad B)
-      ! same as usual GS2 definition once bhat . grad B is added in below
+      ! This is 2 *(bhat/B x ∇B / B) . (∇q) * ∂ψ_N/∂r / (bhat . ∇B)
+      ! same as usual GS2 definition once bhat . ∇B is added in below
       ! We redefined B_times_kappa_dot_gradx = cvdrift0 / 2 / shat
       B_times_kappa_dot_gradx = -2.*bi * dqdr / bmag**2 / 2. / local%shat
 
-      ! This is 2*dpsiN/drho times the rho derivative (bhat/B x grad B / B) . (grad q)
+      ! This is 2*∂ψ_N/∂r times the rho derivative (bhat/B x ∇B / B) . (∇q)
       dcvdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * (d_b_dot_gradB_drho + b_dot_gradB * &
-             (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
-             - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
-      ! This is 2*dpsiN/drho/B times the rho derivative of (bhat x gradB/B) . (grad q)
-      ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
+            (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
+            - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
+
+      ! This is 2*∂ψ_N/∂r/B times the rho derivative of (bhat x ∇B/B) . (∇q)
+      ! Note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
       dgbdrift0drho = B_times_kappa_dot_gradx * 2. * local%shat * &
-             (d_b_dot_gradB_drho + b_dot_gradB * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
-             - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
+            (d_b_dot_gradB_drho + b_dot_gradB * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
+            - 2.*bi * b_dot_gradB * local%d2qdr2 / bmag**2
 
       B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * b_dot_gradB
-      ! This is 2 * dpsiN/drho * (bhat/B x gradB/B) . (grad q)
+
+      ! This is 2 * ∂ψ_N/∂r * (bhat/B x ∇B/B) . (∇q)
       B_times_gradB_dot_gradx = B_times_kappa_dot_gradx
 
-      ! Get d^2I/drho^2 and d^2 Jac / dr^2
+      ! Get ∂^2I/∂r^2 and ∂^2 Jacrho / dr^2
       if (debug) write (*, *) 'geometry_miller::get_d2Idr2_d2jacdr2'
       call get_d2Idr2_d2jacdr2(grho, dIdrho)
 
-      ! Get d^2varhteta/drho^2
+      ! Get ∂^2ϑ/∂r^2
       call get_d2varthdr2(dpsipdrho, dIdrho)
 
-      ! Get d2B/drho^2
+      ! Get ∂^2B/∂r^2
       call get_d2Bdr2(bmag, dIdrho)
 
-      ! Get d/dr [(grad alpha x B) . grad theta]
+      ! Get ∂[(∇α x B) . ∇θ]/∂r (and others - defined in routine)
       call get_dcrossdr(dpsipdrho, dIdrho, grho)
 
-      ! dgbdriftdrho is d/drho [(bhat/B x (grad B) . grad alpha) * 2 * dpsiN/drho] / B
-      ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
+      ! <dgbdriftdrho> = ∂/∂r [(bhat/B x (∇B) . ∇α) * 2 * ∂ψ_N/∂r] / B
+      ! Note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
       dgbdriftdrho = 2.0 * (local%d2psidr2 * dBdrho / dpsipdrho - d2Bdr2 &
                             + dpsipdrho * (dcrossdr * dBdth + cross * (d2Bdrdth - 2.*dBdth * dBdrho / bmag)) / bmag**2) / bmag
-      ! dcvdriftdrho is d/drho (bhat/B x [bhat . grad bhat] . grad alpha) * 2 * dpsiN/drho
+      ! <dcvdriftdrho> = ∂/∂r (bhat/B x [bhat . ∇ bhat] . ∇α) * 2 * ∂ψ_N/∂r
       dcvdriftdrho = dgbdriftdrho - B_times_gradB_dot_grady * 2. * dBdrho / bmag &
                      + 2.0 * local%betadbprim / bmag**2 - 4.0 * local%betaprim * dBdrho / bmag**3 &
                      - 2.0 * local%betaprim * local%d2psidr2 / dpsipdrho
 
       ! The next two sets of lines are corrections needed for the side boxes in a multibox simulation
       ! gbdrift  = gbdrift *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
-      ! B_times_gradB_dot_gradx = B_times_gradB_dot_gradx*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      ! B_times_∇B_dot_gradx = B_times_∇B_dot_gradx*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
       B_times_gradB_dot_grady = B_times_gradB_dot_grady * (dpsipdrho_psi0 / dpsipdrho)
       B_times_gradB_dot_gradx = B_times_gradB_dot_gradx * (dpsipdrho_psi0 / dpsipdrho)
       B_times_kappa_dot_grady = B_times_kappa_dot_grady * (dpsipdrho_psi0 / dpsipdrho)
       B_times_kappa_dot_gradx = B_times_kappa_dot_gradx * (dpsipdrho_psi0 / dpsipdrho)
 
-      ! dgbdriftdrho  = dgbdriftdrho *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
-      ! dgbdrift0drho = dgbdrift0drho*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      ! <dgbdriftdrho>  = dgbdriftdrho *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      ! <dgbdrift0drho> = dgbdrift0drho*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
       dgbdriftdrho = dgbdriftdrho * (dpsipdrho_psi0 / dpsipdrho)
       dgbdrift0drho = dgbdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
       dcvdriftdrho = dcvdriftdrho * (dpsipdrho_psi0 / dpsipdrho)
       dcvdrift0drho = dcvdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
 
-      ! Interpolate here
+      ! Interpolate here - put onto simulation zed grid
       call interpolate_functions
 
       ! Get the toroidal component of the magnetic field
-      ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R
+      ! <btor> = B_toroidal/Bref = I/R Bref = <rgeo> * a/R
       btor_out = bi / rmajor_out
 
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
-      ! Round functions - needed for automatic tests
+      ! Round functions - This is needed for the automatic tests
       call round_functions
       
       ! The <dgbdrift0drho> and <dgrgt> variables differ on macos-14 (CMake) 
@@ -627,7 +654,7 @@ contains
             allocate (zed_arc(-nzgrid:nzgrid))
 
             call geo_spline(arc, theta, zed_in, zed_arc)
-            call geo_spline(theta, grho_psi0, zed_arc, grho_out) !grho is used to normalize fluxes
+            call geo_spline(theta, grho_psi0, zed_arc, grho_out) ! grho is used to normalize fluxes
             call geo_spline(theta, bmag, zed_arc, bmag_out)
             call geo_spline(theta, bmag_psi0, zed_arc, bmag_psi0_out)
             call geo_spline(theta, grady_dot_grady, zed_arc, grady_dot_grady_out)
@@ -836,7 +863,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! periodic quantities can be computed on 2*pi grid and replicated
+      ! Periodic quantities can be computed on 2*pi grid and replicated
       allocate (grho(-nz:nz), bmag(-nz:nz), b_dot_gradtheta(-nz:nz)); grho = 0.0; bmag = 0.0; b_dot_gradtheta = 0.0
       allocate (grady_dot_grady(-nz:nz), gradx_dot_grady(-nz:nz), gradx_dot_gradx(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
       grady_dot_grady = 0.0; gradx_dot_grady = 0.0; gradx_dot_gradx = 0.0; gds23 = 0.0; gds24 = 0.0
@@ -875,12 +902,16 @@ contains
 
    end subroutine allocate_arrays
 
-   !============================================================================
-   !============================= DEALLOCATE ARRAYS ============================
-   !============================================================================ 
-   subroutine deallocate_arrays
+   !===============================================================================
+   !==================================== FINISH ===================================
+   !===============================================================================
+   subroutine finish_local_geo
 
       implicit none
+
+      call deallocate_arrays
+
+   contains
 
       deallocate (grho)
       deallocate (bmag)
@@ -922,29 +953,18 @@ contains
       if (allocated(bmag_psi0)) deallocate (bmag_psi0)
       if (allocated(grho_psi0)) deallocate (grho_psi0)
 
-   end subroutine deallocate_arrays
-
-!===============================================================================
-!==================================== FINISH ===================================
-!===============================================================================
-   subroutine finish_local_geo
-
-      implicit none
-
-      call deallocate_arrays
-
    end subroutine finish_local_geo
-   
    
 !===============================================================================
 !================================ CALCULATIONS =================================
 !===============================================================================
 
    !****************************************************************************
-   !                                      Title
+   !                      Subroutine for computing ∂ . /∂r
    !****************************************************************************
-   ! takes in f(r), with r given at three radial locations
-   ! and returns df = df/dr at the middle radius
+   ! Takes in f(r), with r given at three radial locations
+   ! and returns df = df/∂r at the middle radius
+   !****************************************************************************
    subroutine get_drho(f, df)
 
       implicit none
@@ -959,35 +979,12 @@ contains
    end subroutine get_drho
 
    !****************************************************************************
-   !                                      Title
+   !                       Subroutine for computing ∂ . /∂θ
    !****************************************************************************
-   ! given function f(theta), calculate second derivative
-   ! of f with respect to theta
-   ! second order accurate, with equal grid spacing assumed
-   subroutine get_d2dthet2(f, d2f)
-
-      implicit none
-
-      real, dimension(-nz:), intent(in) :: f
-      real, dimension(-nz:), intent(out) :: d2f
-
-      !-------------------------------------------------------------------------
-      
-      ! assuming equal grid spacing in theta here
-      d2f(-nz + 1:nz - 1) = (f(:nz - 2) - 2.*f(-nz + 1:nz - 1) + f(-nz + 2:)) / delthet(-nz + 1:nz - 1)**2
-
-      ! use periodicity at boundary
-      d2f(-nz) = (f(nz - 1) - 2.*f(-nz) + f(-nz + 1)) / delthet(-nz + 1)**2
-      d2f(nz) = d2f(-nz)
-      
-   end subroutine get_d2dthet2
-
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   ! given function f(theta:-pi->pi), calculate theta derivative
+   ! Given a function f(theta:-pi->pi), calculate theta derivative
    ! second order accurate, with equal grid spacing assumed
    ! assumes periodic in theta -- may need to change this in future
+   !****************************************************************************
    subroutine get_dthet(f, df)
 
       implicit none
@@ -997,46 +994,63 @@ contains
 
       !-------------------------------------------------------------------------
       
-      ! assuming equal grid spacing in theta here
+      ! Assuming equal grid spacing in theta here
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (delthet(:nz - 2) + delthet(-nz + 1:))
 
-      ! use periodicity at boundary
+      ! Use periodicity at boundary
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (delthet(-nz) + delthet(nz - 1))
       df(nz) = df(-nz)
 
    end subroutine get_dthet
 
    !****************************************************************************
-   !                                      Title
+   !                       Subroutine for computing ∂^2 . /∂θ^2
+   !****************************************************************************
+   ! Given a function f(theta), calculate second derivative of f with respect
+   ! to theta. This is second order accurate, with equal grid spacing assumed
+   !****************************************************************************
+   subroutine get_d2dthet2(f, d2f)
+
+      implicit none
+
+      real, dimension(-nz:), intent(in) :: f
+      real, dimension(-nz:), intent(out) :: d2f
+
+      !-------------------------------------------------------------------------
+      
+      ! Assuming equal grid spacing in theta here
+      d2f(-nz + 1:nz - 1) = (f(:nz - 2) - 2.*f(-nz + 1:nz - 1) + f(-nz + 2:)) / delthet(-nz + 1:nz - 1)**2
+
+      ! Use periodicity at boundary
+      d2f(-nz) = (f(nz - 1) - 2.*f(-nz) + f(-nz + 1)) / delthet(-nz + 1)**2
+      d2f(nz) = d2f(-nz)
+      
+   end subroutine get_d2dthet2
+
+   !****************************************************************************
+   !                               Compute Jacrho 
+   !****************************************************************************
+   ! Get the Jacobian of the transformation from (r, θ, ζ) -> (R, Z, ζ)
+   ! This is called jacr or Jacrho in the comments as opposed
+   ! to jacobian, which is for tranformation from (ψ, θ, ζ) -> (R, Z, ζ)
    !****************************************************************************
    subroutine get_jacrho
 
       implicit none
 
-      ! jacrho = R*(dR/drho * dZ/dtheta - dR/dtheta * dZ/drho)
+      !-------------------------------------------------------------------------
+
+      ! <Jacrho> = R * (∂R/∂r * ∂Z/∂θ - ∂R/∂θ * ∂Z/dr)
       jacrho = Rr(2, :) * (dRdrho * dZdth - dRdth * dZdrho)
 
    end subroutine get_jacrho
 
-!   ! Get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
-!   subroutine get_dpsipdrho (dpsipdrho)
-
-!     use constants, only: pi
-
-!     implicit none
-
-!     real, intent (out) :: dpsipdrho
-
-!     ! theta_integrate returns integral from 0 -> 2*pi
-!     call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsipdrho)
-
-!     ! integration done using trapezoidal rule
-!     dpsipdrho = dpsipdrho*bi/(2.*pi*local%qinp)
-
-!   end subroutine get_dpsipdrho
-
    !****************************************************************************
-   !                                      Title
+   !                             Compute ∇r and ∇ψ
+   !****************************************************************************
+   ! Define: 
+   ! <grho> = ∇r
+   ! <gpsi> = ∇ψ
    !****************************************************************************
    subroutine get_gradrho(dpsipdrho, grho)
 
@@ -1047,13 +1061,15 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! ∇r = R * sqrt[ (∂Z/∂θ)^2 + (∂R/∂r)^2 ] / Jacrho
       grho = Rr(2, :) * sqrt(dRdth**2 + dZdth**2) / jacrho
+      ! ∇ψ = ∇r * ∂ψ/∂r
       gpsi = grho * dpsipdrho
 
    end subroutine get_gradrho
 
    !****************************************************************************
-   !                                      Title
+   !                                Compute ∂I/∂r
    !****************************************************************************
    subroutine get_dIdrho(dpsipdrho, grho, dIdrho)
 
@@ -1078,7 +1094,8 @@ contains
       dum = jacrho * (2.*dRdrho / Rr(2, :) + dqdr / local%qinp) / Rr(2, :)**2
       call theta_integrate(dum(-nz2pi:nz2pi), num1)
 
-      ! betaprim below is (4*pi*ptot/B0^2)*(-d ln ptot / drho)
+      ! Here, <betaprim> = β' = 4*π*p/B0^2 * (- ∂lnp/∂r )
+      ! where p is the total pressure and B0 is the magnetic field strength
       dum = (-2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) / jacrho &
              + drzdth + local%betaprim * jacrho / dpsipdrho**2) / grho**2
       call theta_integrate(dum(-nz2pi:nz2pi), num2)
@@ -1090,7 +1107,7 @@ contains
    end subroutine get_dIdrho
 
    !****************************************************************************
-   !                                      Title
+   !                              Compute ∂J/∂r
    !****************************************************************************
    subroutine get_djacdrho(dpsipdrho, dIdrho, grho)
 
@@ -1101,18 +1118,19 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! This is dpsi/dr * d/dr (jacobian)
-      ! betaprim below is (4*pi*ptot/B0^2)*(-d ln ptot / drho)
+      ! This is ∂ψ/∂r * ∂(Jacrho)/∂r
+      ! Here, <betaprim> = β' = 4*π*p/B0^2 * (- ∂lnp/∂r )
+      ! where p is the total pressure and B0 is the magnetic field strength
       djacdrho = (Rr(2, :) / grho)**2 * (2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) / jacrho &
                                          - drzdth + jacrho * (bi * dIdrho / Rr(2, :)**2 - local%betaprim) / dpsipdrho**2)
 
-      ! This is d/dr (jacobian_r)
+      ! This is ∂(Jacrho)/∂r
       djacrdrho = djacdrho + jacrho * local%d2psidr2 / dpsipdrho
 
    end subroutine get_djacdrho
 
    !****************************************************************************
-   !                                      Title
+   !                        Compute ∂^2 R/∂r^2 and ∂^2 Z/∂r^2
    !****************************************************************************
    subroutine get_d2RZdr2
 
@@ -1120,7 +1138,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! Get factor common to both d2R/drho2 and d2Z/drho2
+      ! Get factor common to both d^2 R/∂r^2 and d^2 Z/∂r^2
       d2Rdr2 = ((djacrdrho - jacrho * dRdrho / Rr(2, :)) / Rr(2, :) &
                 - dRdrho * d2Zdrdth + dZdrho * d2Rdrdth) / (dRdth**2 + dZdth**2)
 
@@ -1130,7 +1148,7 @@ contains
    end subroutine get_d2RZdr2
 
    !****************************************************************************
-   !                                      Title
+   !                     Compute ∂(|∇r|^2)/∂r and ∂(|∇ψ|^2)/∂r
    !****************************************************************************
    subroutine get_dgr2dr(dpsipdrho, grho)
 
@@ -1140,17 +1158,24 @@ contains
       real, dimension(-nz:), intent(in) :: grho
 
       !-------------------------------------------------------------------------
-
+      ! ∂(|∇r|^2)/∂r
       dgr2dr = 2.*(grho**2 * (dRdrho / Rr(2, :) - djacrdrho / jacrho) &
                    + (Rr(2, :) / jacrho)**2 * (dRdth * d2Rdrdth + d2Zdrdth * dZdth))
-
+      ! ∂(|∇ψ|^2)/∂r
       dgpsi2dr = 2.*(gpsi**2 * (dRdrho / Rr(2, :) - djacdrho / jacrho) &
                      + (Rr(2, :) / jacrho)**2 * (dRdth * d2Rdrdth + d2Zdrdth * dZdth) * dpsipdrho**2)
 
    end subroutine get_dgr2dr
 
    !****************************************************************************
-   !                                      Title
+   !                   Compute: ∇θ.∇θ , ∇r.∇θ , ∇α.∇θ , ∇r.∇α , ∇α.∇α
+   !****************************************************************************
+   ! Define: 
+   ! <gradthet2> = ∇θ.∇θ = |∇θ|^2
+   ! <gradrho_gradthet> = ∇r.∇θ
+   ! <gradalph_gradthet> = ∇α.∇θ
+   ! <gradrho_gradalph> = ∇r.∇α
+   ! <gradalph2> = ∇α.∇α = |∇α|^2
    !****************************************************************************
    subroutine get_graddotgrad(dpsipdrho, grho)
 
@@ -1161,18 +1186,21 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! grad theta . grad theta
+      ! ∇θ.∇θ
       gradthet2 = (Rr(2, :) / jacrho)**2 * (dRdrho**2 + dZdrho**2)
-      ! grad rho . grad theta
+
+      ! ∇r.∇θ
       gradrho_gradthet = -(Rr(2, :) / jacrho)**2 * (dRdrho * dRdth + dZdrho * dZdth)
 
-      ! grad alpha . grad theta
+      ! ∇α.∇θ
       gradalph_gradthet = -(varthet * dqdr + local%qinp * dvarthdr) * gradrho_gradthet &
                           - bi * jacrho / (dpsipdrho * Rr(2, :)**2) * gradthet2
-      ! grad rho . grad alpha
+      
+      ! ∇r.∇α
       gradrho_gradalph = -(varthet * dqdr + local%qinp * dvarthdr) * grho**2 &
                          - bi * jacrho / (dpsipdrho * Rr(2, :)**2) * gradrho_gradthet
-      ! grad alpha . grad alpha
+      
+      ! ∇α.∇α
       gradalph2 = (1./Rr(2, :)**2) + ((varthet * dqdr + local%qinp * dvarthdr) * grho)**2 &
                   + 2.*bi * jacrho * (varthet * dqdr + local%qinp * dvarthdr) * gradrho_gradthet / (dpsipdrho * Rr(2, :)**2) &
                   + (bi * jacrho / (dpsipdrho * Rr(2, :)**2))**2 * gradthet2
@@ -1180,7 +1208,16 @@ contains
    end subroutine get_graddotgrad
 
    !****************************************************************************
-   !                                      Title
+   !                           Compute Gradient Factors
+   !****************************************************************************
+   ! Define:
+   ! <grady_dot_grady> = ∇y.∇y = ∇α|^2 * (∂ψ_N/∂r)^2
+   ! <gradx_dot_grady> = ∇x.∇y = (∇q . ∇α) * (∂ψ_N/∂r)^2
+   ! <gradx_dot_gradx> = ∇x.∇x = |∇q|^2 * (∂ψ_N/∂r)^2
+   ! <gds23> = ∇θ . [∇α x (∇r x ∇α)] * (∂ψ_N/∂r)^2 / B^2
+   !         = (∇r . ∇θ * |∇α|^2 - ∇α . ∇θ * ∇r . ∇α) * (∂ψ_N/∂r)^2 / B^2
+   ! <gds24> = ∇θ . [∇r x (∇r x ∇α)] * (∂ψ_N/∂r)^2 * (q/r) / B^2
+   !         = (∇r . ∇θ * ∇r . ∇α - ∇α . ∇θ * |∇r|^2) * (∂ψ_N/∂r)^2 / B^2 * q/rho
    !****************************************************************************
    subroutine get_gds(grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24)
 
@@ -1190,25 +1227,30 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! |grad alpha|^2 * (dpsiN/drho)^2 (dpsiN/drho factor accounts for ky normalization)
+      ! <grady_dot_grady> = ∇y.∇y = ∇α|^2 * (∂ψ_N/∂r)^2
+      ! Note: the (∂ψ_N/∂r) factor accounts for ky normalization
       grady_dot_grady = gradalph2 * dpsipdrho_psi0**2
-      ! (grad q . grad alpha) * (dpsiN/drho)^2
+
+      ! <gradx_dot_grady> = ∇x.∇y = (∇q . ∇α) * (∂ψ_N/∂r)^2
       gradx_dot_grady = gradrho_gradalph * dqdr * dpsipdrho_psi0**2 / shat
-      ! |grad q|^2 * (dpsiN/drho)^2
+
+      ! <gradx_dot_gradx> = ∇x.∇x = |∇q|^2 * (∂ψ_N/∂r)^2
       gradx_dot_gradx = (grho * dpsipdrho_psi0 * dqdr)**2 / (shat)**2
-      ! (grad rho . grad theta * |grad alpha|^2 - grad alpha . grad theta * grad rho . grad alpha) * (dpsiN/drho)^2 / B^2
+
+      ! <gds23> = (∇r . ∇θ * |∇α|^2 - ∇α . ∇θ * ∇r . ∇α) * (∂ψ_N/∂r)^2 / B^2
       gds23 = (gradrho_gradthet * gradalph2 - gradalph_gradthet * gradrho_gradalph) * (dpsipdrho_psi0 / bmag)**2
-      ! (grad rho . grad theta * grad rho . grad alpha - grad alpha . grad theta * |grad rho|^2) * (dpsiN/drho)^2 / B^2 * q/rho
+
+      ! <gds24> = (∇r . ∇θ * ∇r . ∇α - ∇α . ∇θ * |∇r|^2) * (∂ψ_N/∂r)^2 / B^2 * q/rho
       gds24 = (gradrho_gradthet * gradrho_gradalph - gradalph_gradthet * grho**2) &
               * (dpsipdrho_psi0 / bmag)**2 * (local%qinp_psi0 / local%rhoc_psi0)
 
-      ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(grady_dot_grady + 2*theta0*gradx_dot_grady*shat + theta0^2*gradx_dot_gradx*shat^2)
+      ! Note that kperp2 = (n0/a)^2 * (∂ψ_N/∂r)^2 * [ ∇y.∇y + 2*theta0*(∇y.∇x)*shat + theta0^2*(∇x.∇x)*shat^2 ]
       ! theta0 = kx/(ky*shat)
 
    end subroutine get_gds
 
    !****************************************************************************
-   !                                      Title
+   !                             Compute ∂B/∂r
    !****************************************************************************
    subroutine get_dBdrho(bmag, dIdrho)
 
@@ -1219,14 +1261,18 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! dB/drho
+      ! ∂B/∂r
       dBdrho = (bi * dIdrho + 0.5 * dgpsi2dr) / (bmag * Rr(2, :)**2) &
                - bmag * dRdrho / Rr(2, :)
 
    end subroutine get_dBdrho
 
    !****************************************************************************
-   !                                      Title
+   !                                Compute ϑ (vartheta)
+   !****************************************************************************
+   ! Vartheta is defined through α = φ − qϑ, which is used to get: 
+   !                          ϑ = I/q int_0^θ dθ' Jacrho / R^2
+   ! This is an integral over θ from 0 to θ
    !****************************************************************************
    subroutine get_varthet(dpsipdrho)
 
@@ -1234,13 +1280,17 @@ contains
 
       real, intent(in) :: dpsipdrho
 
+      !-------------------------------------------------------------------------
+
       call theta_integrate_indef(jacrho / Rr(2, :)**2, varthet)
       varthet = bi * varthet / (dpsipdrho * local%qinp)
 
    end subroutine get_varthet
 
    !****************************************************************************
-   !                                      Title
+   !                                   Compute ∂ϑ/∂r
+   !****************************************************************************
+   ! ∂ϑ/∂r= (I'/I − q'/q) * ϑ + I/q int_0^θ dθ' ∂(Jacrho / R^2)/∂r
    !****************************************************************************
    subroutine get_dvarthdr(dpsipdrho, dIdrho)
 
@@ -1255,12 +1305,14 @@ contains
       dum = bi * jacrho * (dIdrho / bi - dqdr / local%qinp + djacdrho / jacrho &
                            - 2.*dRdrho / Rr(2, :)) / Rr(2, :)**2
       call theta_integrate_indef(dum, dvarthdr)
+
+      ! ∂ϑ/∂r
       dvarthdr = dvarthdr / (dpsipdrho * local%qinp)
 
    end subroutine get_dvarthdr
 
    !****************************************************************************
-   !                                      Title
+   !                           Compute ∂^2I/∂r^2, ∂^2Jacrho/∂r^2
    !****************************************************************************
    subroutine get_d2Idr2_d2jacdr2(grho, dIdrho)
 
@@ -1276,7 +1328,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! denom is the denominator in the expression for d^2 I / dr^2
+      ! Denom is the denominator in the expression for ∂^2 I /∂r^2
       tmp = jacrho / Rr(2, :)**2 * (1.0 + (bi / gpsi)**2)
       call theta_integrate(tmp(-nz2pi:nz2pi), denom)
       denom = denom / bi
@@ -1289,11 +1341,6 @@ contains
             * (djacrdrho / jacrho - dIdrho / bi - 2.*dRdrho / Rr(2, :))
       call theta_integrate(tmp(-nz2pi:nz2pi), num1)
 
-      ! tmp = -jacrho/(dpsipdrho*Rr(2,:)**2)*(djacdrho/jacrho - 2.*dRdrho/Rr(2,:))
-      ! call theta_integrate (tmp(-nz2pi:nz2pi), num2)
-      ! d2jacdr2 = d2jacdr2 - tmp*Rr(2,:)**2*local%d2psidr2
-      ! num2 = local%d2psidr2 * (2*pi*local%qinp/bi*(dqdr/local%qinp - dIdrho/bi) + num2)
-
       tmp = (d2Rdr2 * dRdth + dRdrho * d2Rdrdth + d2Zdr2 * dZdth + dZdrho * d2Zdrdth) / jacrho &
             - djacrdrho * (dRdrho * dRdth + dZdrho * dZdth) / jacrho**2
       call get_dthet(tmp, tmp2)
@@ -1305,6 +1352,7 @@ contains
 
       tmp = jacrho * (local%betadbprim + local%betaprim * (djacrdrho / jacrho - dgpsi2dr / gpsi**2)) / gpsi**2
       call theta_integrate(tmp(-nz2pi:nz2pi), num3)
+      
       !FLAG - next negative sign?
       d2jacdr2 = d2jacdr2 - tmp * Rr(2, :)**2
 
@@ -1314,13 +1362,13 @@ contains
       call theta_integrate(tmp(-nz2pi:nz2pi), num4)
 
       d2Idr2 = (num1 + num2 + num3 + num4) / denom
-!    d2jacdr2 = d2jacdr2 + bi*jacrho/(gpsi*Rr(2,:))**2*d2Idr2 + 2.*djacdrho*dRdrho/Rr(2,:)**3
+
       d2jacdr2 = d2jacdr2 + bi * jacrho / gpsi**2 * d2Idr2 + 2.*djacdrho * dRdrho / Rr(2, :)
 
    end subroutine get_d2Idr2_d2jacdr2
 
    !****************************************************************************
-   !                                      Title
+   !                              Compute ∂^2ϑ/∂r^2
    !****************************************************************************
    subroutine get_d2varthdr2(dpsipdrho, dIdrho)
 
@@ -1333,18 +1381,18 @@ contains
       !-------------------------------------------------------------------------
 
       dum = bi * jacrho / (local%qinp * dpsipdrho * Rr(2, :)**2) * ((dIdrho / bi - dqdr / local%qinp &
-        !    dum = bi*jacrho/(local%qinp*Rr(2,:)**2)*( (dIdrho/bi - dqdr/local%qinp &
-        + djacdrho / jacrho - 2.*dRdrho / Rr(2, :))**2 &
-       + d2Idr2 / bi - (dIdrho / bi)**2 - local%d2qdr2 / local%qinp &
-       + (dqdr / local%qinp)**2 + d2jacdr2 / jacrho - (djacdrho / jacrho)**2 &
-       - djacdrho * local%d2psidr2 / (dpsipdrho * jacrho) &
-       - 2.*d2Rdr2 / Rr(2, :) + 2.*(dRdrho / Rr(2, :))**2)
+            + djacdrho / jacrho - 2.*dRdrho / Rr(2, :))**2 &
+            + d2Idr2 / bi - (dIdrho / bi)**2 - local%d2qdr2 / local%qinp &
+            + (dqdr / local%qinp)**2 + d2jacdr2 / jacrho - (djacdrho / jacrho)**2 &
+            - djacdrho * local%d2psidr2 / (dpsipdrho * jacrho) &
+            - 2.*d2Rdr2 / Rr(2, :) + 2.*(dRdrho / Rr(2, :))**2)
+
       call theta_integrate_indef(dum, d2varthdr2)
 
    end subroutine get_d2varthdr2
 
    !****************************************************************************
-   !                                      Title
+   !                             Compute ∂^2B/∂r^2
    !****************************************************************************
    subroutine get_d2Bdr2(bmag, dIdrho)
 
@@ -1355,27 +1403,12 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! d2gpsidr2 = 2.*( dgr2dr*(dRdrho/Rr(2,:) - djacdrho/jacrho) &
-      !      + grho**2*(d2Rdr2/Rr(2,:) - (dRdrho/Rr(2,:))**2 - d2jacdr2/jacrho &
-      !      + djacdrho*djacrdrho/jacrho**2) + (Rr(2,:)/jacrho)**2 &
-      !      * (dRdth**2 + dRdth*d2Rdr2dth + dZdth**2 + dZdth*d2Zdr2dth &
-      !      + 2.*(dRdrho/Rr(2,:) - djacrdrho/jacrho)*(dRdth*d2Rdrdth+dZdth*d2Zdrdth)) )
       d2gpsidr2 = 2.*(dRdrho / Rr(2, :) - djacdrho / jacrho) * dgpsi2dr &
                   + 2.*gpsi**2 * (d2Rdr2 / Rr(2, :) - (dRdrho / Rr(2, :))**2 - d2jacdr2 / jacrho + djacdrho * djacrdrho / jacrho**2) &
                   + 2.*(Rr(2, :) * gpsi / jacrho)**2 * (d2Rdrdth**2 + dRdth * d2Rdr2dth + d2Zdrdth**2 + dZdth * d2Zdr2dth &
-                                                        + 2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) * (dRdrho / Rr(2, :) - djacdrho / jacrho))
+                  + 2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) * (dRdrho / Rr(2, :) - djacdrho / jacrho))
 
-      ! d2gpsidr2 = 2.*(dpsipdrho*Rr(2,:)/jacrho)**2 &
-      !      * (2.*(dRdrho/Rr(2,:)-djacdrho/jacrho) &
-      !      * ((dRdrho/Rr(2,:)-djacdrho/jacrho)*(dRdth**2+dZdth**2) &
-      !      + 2.*(dRdth*d2Rdrdth+dZdth*d2Zdrdth)) &
-      !      + (dRdth**2+dZdth**2)*(d2rdr2/Rr(2,:) - (dRdrho/Rr(2,:))**2 &
-      !      - d2jacdr2/jacrho + (djacdrho/jacrho)**2) &
-      !      + d2Rdrdth**2 + dRdth*d2Rdr2dth + d2Zdrdth**2 + dZdth*d2Zdr2dth) &
-      !      + 4.*dpsipdrho*local%d2psidr2*dgr2dr &
-      !      + 2.*grho**2*(local%d2psidr2**2 + dpsipdrho*local%d3psidr3)
-
-      ! Get d/drho (dB/drho)
+      ! Get ∂/∂r (∂B/∂r)
       d2Bdr2 = -dBdrho * dRdrho / Rr(2, :) + bmag * (dRdrho / Rr(2, :))**2 &
                - bmag * d2Rdr2 / Rr(2, :) + 0.5 * (2.*(dIdrho**2 + bi * d2Idr2) &
                                                    + d2gpsidr2) / (bmag * Rr(2, :)**2) &
@@ -1384,7 +1417,18 @@ contains
    end subroutine get_d2Bdr2
 
    !****************************************************************************
-   !                                      Title
+   !                     Get More Derivatives with respect to r
+   !****************************************************************************
+   ! Things computed in this routine are: 
+   ! <dgrgt> = ∂(∇r . ∇θ)/∂r
+   ! <dgt2> = ∂(|∇θ|^2)/∂r
+   ! <dga2> = ∂(|∇α|^2)/∂r
+   ! <dgagr> = ∂(∇α . ∇r)/∂r
+   ! <dgagt> = ∂(∇α . ∇θ)/∂r
+   ! <dcrossdr> = ∂[(∇α x B) . ∇θ)]/∂r
+   ! <dgds2dr> = (∂ψ/∂r)^2 * ∂(|∇α|^2)/∂r
+   ! <dgds21dr> = (∂ψ/∂r)^2 * ∂(∇α . ∇q)/∂r
+   ! <dgds22dr> = (∂ψ/∂r)^2 * ∂(|∇q|^2)/∂r
    !****************************************************************************
    subroutine get_dcrossdr(dpsipdrho, dIdrho, grho)
 
@@ -1395,19 +1439,19 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! dgr2 = d/drho (|grad rho|^2)
+      ! dgr2 = ∂/∂r (|∇r|^2)
       ! dgr2 = 2.*(Rr(2,:)/jacrho)**2*((dRdrho/Rr(2,:)-djacdrho/jacrho)*(dRdth**2+dZdth**2) &
       !      + dRdth*d2Rdrdth + dZdth*d2Zdrdth)
-      ! dgrgt = d/drho (grad rho . grad theta)
-!    dgrgt = -(Rr(2,:)/jacrho)**2*(2.*(dRdrho/Rr(2,:)-djacdrho/jacrho)*(dRdrho*dRdth+dZdrho*dZdth) &
-!         + d2Rdr2*dRdth+dRdrho*d2Rdrdth+d2Zdr2*dZdth+dZdrho*d2Zdrdth)
+
+      ! <dgrgt> = ∂(∇r . ∇θ)/∂r
       dgrgt = 2.*gradrho_gradthet * (dRdrho / Rr(2, :) - djacrdrho / jacrho) &
               - (Rr(2, :) / jacrho)**2 * (d2Rdr2 * dRdth + dRdrho * d2Rdrdth + d2Zdr2 * dZdth + dZdrho * d2Zdrdth)
-      ! dgt2 = d/drho (|grad theta|^2)
+
+      ! <dgt2> = ∂(|∇θ|^2)/∂r
       dgt2 = 2.*(Rr(2, :) / jacrho)**2 * ((dRdrho / Rr(2, :) - djacrdrho / jacrho) * (dRdrho**2 + dZdrho**2) &
                                           + dRdrho * d2Rdr2 + dZdrho * d2Zdr2)
-      ! This is d/drho (|grad alph|^2)
-      ! will later multiply it by 0.5*dpsipdrho**2
+      ! <dga2> = ∂(|∇α|^2)/∂r
+      ! will later multiply it by:   0.5 * (∂ψ_N/∂r)^2
       dga2 = -2 * dRdrho / Rr(2, :)**3 + dgr2dr * (varthet * dqdr + local%qinp * dvarthdr)**2 &
              + (2.0 * grho**2 * (varthet * dqdr + local%qinp * dvarthdr) &
                 + 2.*bi * jacrho * gradrho_gradthet / (dpsipdrho * Rr(2, :)**2)) &
@@ -1417,32 +1461,37 @@ contains
              + (bi * jacrho / (dpsipdrho * Rr(2, :)**2))**2 * (dgt2 + 2.*gradthet2 * (dIdrho / bi + djacdrho / jacrho &
                                                                                      - 2.*dRdrho / Rr(2, :)))
 
-      ! dgagr = d/drho (grad alpha . grad rho)
+      ! <dgagr> = ∂(∇α . ∇r)/∂r
       dgagr = -grho**2 * (2.*dvarthdr * dqdr + varthet * local%d2qdr2 + local%qinp * d2varthdr2) &
               - dgr2dr * (varthet * dqdr + local%qinp * dvarthdr) - bi * jacrho / (dpsipdrho * Rr(2, :)**2) &
               * (dgrgt + gradrho_gradthet * (dIdrho / bi + djacdrho / jacrho - 2.*dRdrho / Rr(2, :)))
 
-      ! dgagt = d/drho (grad alpha . grad theta)
+      ! <dgagt> = ∂(∇α . ∇θ)/∂r
       dgagt = -gradrho_gradthet * (2.*dvarthdr * dqdr + varthet * local%d2qdr2 + local%qinp * d2varthdr2) &
               - dgrgt * (varthet * dqdr + local%qinp * dvarthdr) - bi * jacrho / (dpsipdrho * Rr(2, :)**2) &
               * (dgt2 + gradthet2 * (dIdrho / bi + djacdrho / jacrho - 2.*dRdrho / Rr(2, :)))
 
-      ! dcrossdr = d/drho [(grad alpha x B) . grad theta)]
+      ! <dcrossdr> = ∂[(∇α x B) . ∇θ)]/∂r
       dcrossdr = dpsipdrho * (dgagr * gradalph_gradthet + gradrho_gradalph * dgagt &
                              - dga2 * gradrho_gradthet - gradalph2 * dgrgt) + local%d2psidr2 * cross / dpsipdrho
 
-      ! This is (dpsi/drho)^2*d|grad alpha|^2/dr
+      ! <dgds2dr> = (∂ψ/∂r)^2 * ∂(|∇α|^2)/∂r
       dgds2dr = dga2 * dpsipdrho_psi0**2
-      ! This is (dpsi/drho)^2*d(grad alpha . grad q)/dr
-      ! note that there will be multiplication by 2 in dist_fn.fpp
+
+      ! <dgds21dr> = (∂ψ/∂r)^2 * ∂(∇α . ∇q)/∂r
+      ! Note that there will be multiplication by 2 in dist_fn.fpp
       dgds21dr = (dgagr * dqdr + local%d2qdr2 * gradrho_gradalph) * dpsipdrho_psi0**2
-      ! This is (dpsi/drho)^2*d(|grad q|^2)/dr
+
+      ! <dgds22dr> = (∂ψ/∂r)^2 * ∂(|∇q|^2)/∂r
       dgds22dr = (dqdr**2 * dgr2dr + 2.*grho**2 * dqdr * local%d2qdr2) * dpsipdrho_psi0**2
 
-      ! note that dkperp2/dr = (n0/a)^2*(drho/dpsiN)^2*(dgds2dr + 2*theta0*dgds21dr + theta0^2*dgds22dr)
+      ! note that dkperp2/∂r = (n0/a)^2*(∂ψ_N/∂r)^2*(dgds2dr + 2*theta0*dgds21dr + theta0^2*dgds22dr)
 
    end subroutine get_dcrossdr
 
+   !****************************************************************************
+   !                       Definite Integral in θ - from 0 to 2*π
+   !****************************************************************************
    subroutine theta_integrate(integrand, integral)
 
       implicit none
@@ -1452,15 +1501,14 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! use trapezoidal rule to integrate in theta
+      ! Use trapezoidal rule to integrate in theta
       integral = 0.5 * sum(delthet(-nz2pi:nz2pi - 1) * (integrand(-nz2pi:nz2pi - 1) + integrand(-nz2pi + 1:nz2pi)))
 
    end subroutine theta_integrate
 
    !****************************************************************************
-   !                                      Title
+   !                            Indefinite Integral in θ 
    !****************************************************************************
-   ! Get indefinite integral of integrand
    subroutine theta_integrate_indef(integrand, integral)
 
       implicit none
@@ -1472,7 +1520,7 @@ contains
 
       !-------------------------------------------------------------------------
       
-      ! use trapezoidal rule to integrate in theta
+      ! Use trapezoidal rule to integrate in theta
       integral(0) = 0.0
       do i = 1, nz
          integral(i) = integral(i - 1) + 0.5 * delthet(i - 1) * (integrand(i - 1) + integrand(i))
@@ -1487,6 +1535,7 @@ contains
    !                            COMMUNICATE PARAMETERS 
    !****************************************************************************
    ! Only needed for radial_variation simulations
+   !****************************************************************************
    subroutine communicate_parameters_multibox(surf, drl, drr)
       use mp, only: job, scope, mp_abort, &
                     crossdomprocs, subprocs, &
@@ -1643,7 +1692,9 @@ contains
    end subroutine communicate_parameters_multibox
 
    !****************************************************************************
-   !                                      Title
+   !                               Function for R
+   !****************************************************************************
+   !              R(r,θ) = R0(r) + rcos[θ+ sin (θarcsin \bar{δ}(r)) ]
    !****************************************************************************
    function Rpos(r, theta, j)
 
@@ -1659,30 +1710,32 @@ contains
 
       dr = r - local%rhoc
 
-! For Y Xiao:
-!    g = local%delp/local%rhoc + local%d * sin(theta)**2
-!    Rpos = local%rmaj*(1.+r*(cos(theta)-g)-g*dr)
+      ! For Y Xiao:
+      !    g = local%delp/local%rhoc + local%d * sin(theta)**2
+      !    Rpos = local%rmaj*(1.+r*(cos(theta)-g)-g*dr)
 
       g = cos(theta + local%tri * sin(theta))
       gp = -sin(theta + local%tri * sin(theta)) &
            * local%triprim * sin(theta)
 
-      ! allow for strange specification of R_psi
+      ! Allow for strange specification of R_ψ
       if (j == nz + 1) then
          i = -nz
       else
          i = j
       end if
 
-      ! second line here is (1/2)*(r-r0)**2*d2R/dr|_r0
-      ! note that d2R=0 unless read_profile_variation = T in input file
+      ! Second line here is (1/2)*(r-r0)^2 * ∂^2 R/ ∂r|_r0
+      ! Note that d2R=0 unless read_profile_variation = T in input file
       Rpos = local%rmaj + local%shift * dr + g * local%rhoc + (g + local%rhoc * gp) * dr &
              + 0.5 * (r - rhoc0)**2 * d2R(i)
 
    end function Rpos
 
    !****************************************************************************
-   !                                      Title
+   !                                Function for Z 
+   !****************************************************************************
+   !                              Z(r,θ) = κ(r)rsin θ
    !****************************************************************************
    function Zpos(r, theta, j)
 
@@ -1693,7 +1746,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! allow for strange specification of Z_psi
+      ! Allow for strange specification of Z_psi
       if (j == nz + 1) then
          i = -nz
       else
@@ -1701,14 +1754,14 @@ contains
       end if
 
       dr = r - local%rhoc
-      ! note that d2Z=0 unless read_profile_variation=T in input file
+      ! Note that d2Z=0 unless read_profile_variation = T in input file
       Zpos = local%kappa * sin(theta) * local%rhoc + (local%rhoc * local%kapprim + local%kappa) * sin(theta) * dr &
              + 0.5 * (r - rhoc0)**2 * d2Z(i)
 
    end function Zpos
 
    !****************************************************************************
-   !                                      Title
+   !                             Function to modify θ
    !****************************************************************************
    function mod2pi(theta)
 
@@ -1748,8 +1801,11 @@ contains
    end function mod2pi
 
    !****************************************************************************
-   !                                      Title
+   !                                Round Variables
    !****************************************************************************
+   ! This is a routine that is required for the automatic tests to work as some
+   ! compilers use different rounding rules
+   !****************************************************************************s
    function round(val, n)
    
       implicit none
@@ -1765,9 +1821,7 @@ contains
       sgn = sign(1.0, scaled)
       remainder = modulo(abs(scaled), 10.0)
       round = (scaled - sgn * remainder )/ 10.0**n
-      !aint(val*10.0**n)/10.0**n
-      
+
    end function round
    
-
 end module geometry_miller
