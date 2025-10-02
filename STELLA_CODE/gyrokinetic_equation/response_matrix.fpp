@@ -237,8 +237,8 @@ contains
    ! 'twist-and-shift' boundary conditions, which connect these shifted kx values 
    ! along an extended z-grid. For a given ky, the connected kx modes are spaced 
    ! by
-   !                 δkx = 2π p ι' * (∂y/∂α) * (∂ψ/∂x) * ky
-   ! where ι' is the radial derivative of the rotational transform. 
+   !                 δkx = 2π p ∂ι/∂r * (∂y/∂α) * (∂ψ/∂x) * ky
+   ! where ∂ι/∂r is the radial derivative of the rotational transform. 
    !
    ! This construction implies that not all kx modes are mutually connected. 
    ! Instead, for each ky we form distinct "chains" of connected modes, with the 
@@ -772,39 +772,21 @@ contains
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
-         ! For phi 
-         !response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = phi_ext(:nresponse)
-
-         ! For apar - the response column is shifted by <nresponse>, which is the number
-         ! of independent zed points taken up by the <phi> response.
-         !offset_apar = 0
-         !if (include_apar) then
-         !   offset_apar = nresponse
-         !   response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = apar_ext(:nresponse)
-         !end if
-
-         ! For bpar - the response column is shifted by another <nresponse>, which is the 
-         ! number of independent zed points taken up by the <phi> or <apar> response (depending
-         ! on if include_apar = .true.)
-         !if (include_bpar) then
-         !   offset_bpar = offset_apar + nresponse
-         !   response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = bpar_ext(:nresponse)
-         !end if
+         offset_apar = 0
+         if (include_apar) offset_apar = nresponse
+         if (include_bpar) offset_bpar = offset_apar + nresponse
+         
+         dist = 'g' 
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
+         phi_ext(idx) = phi_ext(idx) - 1.0
+         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
+         if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
+         if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
+      
 #ifdef ISO_C_BINDING
       end if
 #endif
       !-------------------------------------------------------------------------
-
-      offset_apar = 0
-      if (include_apar) offset_apar = nresponse
-      if (include_bpar) offset_bpar = offset_apar + nresponse
-      
-      dist = 'g' 
-      call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
-      phi_ext(idx) = phi_ext(idx) - 1.0
-      response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
-      if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
-      if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
 
    end subroutine get_dpdf_dphi_matrix_column
 
@@ -940,38 +922,22 @@ contains
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
-         !if (include_apar) then
-         !   offset_apar = nresponse
-         !else
-         !   offset_apar = 0
-         !end if
-         ! For phi
-         !response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + nresponse) = phi_ext(:nresponse)
-         ! For apar
-         !if (include_apar) then
-         !   response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_apar) = apar_ext(:nresponse)
-         !end if
-         ! For bpar
-         !if (include_bpar) then
-         !   offset_bpar = offset_apar + nresponse
-         !   response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_apar) = bpar_ext(:nresponse)
-         !end if
+         offset_apar = 0
+         if (include_apar) offset_apar = nresponse
+         if (include_bpar) offset_bpar = offset_apar + nresponse
+
+         dist = 'g' 
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
+
+         apar_ext(idx) = apar_ext(idx) - 1.0
+         response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_apar + idx) = -phi_ext(:nresponse)
+         response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_apar + idx) = -apar_ext(:nresponse)
+         if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_apar + idx) = -bpar_ext(:nresponse) 
+
 #ifdef ISO_C_BINDING
       end if
 #endif
       
-      offset_apar = 0
-      if (include_apar) offset_apar = nresponse
-      if (include_bpar) offset_bpar = offset_apar + nresponse
-
-      dist = 'g' 
-      call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
-
-      apar_ext(idx) = apar_ext(idx) - 1.0
-      response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_apar + idx) = -phi_ext(:nresponse)
-      response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_apar + idx) = -apar_ext(:nresponse)
-      if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_apar + idx) = -bpar_ext(:nresponse) 
-
    end subroutine get_dpdf_dapar_matrix_column
 
    !****************************************************************************
@@ -1111,30 +1077,21 @@ contains
       if (sgproc0) then
 #endif
 
-         ! For phi         
-         !response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar) = phi_ext(:nresponse)
-         ! For apar
-         !if (include_apar) then
-         !   response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_bpar) = apar_ext(:nresponse)
-         !end if
-         ! For bpar
-         !if (include_bpar) then
-         !   response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_bpar) = bpar_ext(:nresponse)
-         !end if
+         offset_apar = 0
+         if (include_apar) offset_apar = nresponse
+         if (include_bpar) offset_bpar = offset_apar + nresponse
+
+         dist = 'g' 
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
+
+         bpar_ext(idx) = bpar_ext(idx) - 1.0
+         response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_bpar + idx) = -phi_ext(:nresponse)
+         if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_bpar + idx) = -apar_ext(:nresponse)
+         response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_bpar + idx) = -bpar_ext(:nresponse) 
+
 #ifdef ISO_C_BINDING
       end if
 #endif
-      offset_apar = 0
-      if (include_apar) offset_apar = nresponse
-      if (include_bpar) offset_bpar = offset_apar + nresponse
-
-      dist = 'g' 
-      call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
-
-      bpar_ext(idx) = bpar_ext(idx) - 1.0
-      response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_bpar + idx) = -phi_ext(:nresponse)
-      if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_bpar + idx) = -apar_ext(:nresponse)
-      response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_bpar + idx) = -bpar_ext(:nresponse) 
 
    end subroutine get_dpdf_dbpar_matrix_column
 
