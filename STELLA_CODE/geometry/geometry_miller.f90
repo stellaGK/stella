@@ -653,7 +653,7 @@ contains
       !   <gradx_dot_grady> = ∇x.∇y 
       !   <gradx_dot_gradx> = ∇x.∇x 
       !   <gds23> = ∇θ . [∇α x (∇r x ∇α)] * (∂ψ_N/∂r)^2 / B^2
-      !    <gds24> = ∇θ . [∇r x (∇r x ∇α)] * (∂ψ_N/∂r)^2 * (q/r) / B^2
+      !   <gds24> = ∇θ . [∇r x (∇r x ∇α)] * (∂ψ_N/∂r)^2 * (q/r) / B^2
       call get_gds(grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24)
 
       ! Calculate <gradalpha_times_B_dot_gradtheta> = <cross> = (∇α x B) . ∇θ
