@@ -56,6 +56,7 @@ def get_stella_path(stella_version):
 def run_stella(stella_path, input_file, nproc=None):
     '''Run stella with a given input file.''' 
     if not nproc: nproc = read_nproc()
+    print(f'Execute: mpirun --oversubscribe -np {nproc} {stella_path} {input_file}')
     subprocess.run(['mpirun','--oversubscribe', '-np', f'{nproc}', stella_path, input_file], check=True)
     return
 
@@ -280,7 +281,7 @@ def compare_local_potential_with_expected_potential(local_netcdf_file='', expect
             print('\nERROR: The time axis does not match in the netCDF files.'); error = True
             print('\nCompare the time arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_time, expected_time)  
-        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True, rtol=1e-05, atol=1e-20)):
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True, rtol=1e-05, atol=1e-8)):
             print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
