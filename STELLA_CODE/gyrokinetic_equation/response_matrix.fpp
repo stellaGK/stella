@@ -71,7 +71,7 @@ contains
       ! ------------------------------------------------------------------------
       ! Debug message -> print to terminal
       if (debug) call write_response_matrix_message (1)
-s
+
       ! Set up response matrix utils
       call setup_response_matrix_timings
       call setup_response_matrix_file_io
@@ -107,8 +107,6 @@ s
       ! End debug message -> print to terminal
       if (debug) call write_response_matrix_message (2)
       ! ------------------------------------------------------------------------
-
-#ifdef ISO_C_BINDING
 
    end subroutine init_response_matrix
 
@@ -521,9 +519,9 @@ s
             ! iz is only cycling through the zed location within a given segment. 
             do iz = iz_low(iseg) + izl_offset, izup
                idx = idx + 1
-               call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-               if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-               if (include_bpar) call get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+               call get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+               if (include_apar) call get_response_matrix_for_apar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+               if (include_bpar) call get_response_matrix_for_bpar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
             end do
 
             ! Set the offset to 1 - all other connected segments need to start one point
@@ -538,7 +536,7 @@ s
    end subroutine calculate_vspace_integrated_response
 
    !============================================================================
-   !                       Get dg/dphi response matrix column
+   !                      Get response matrix column for phi
    !============================================================================
    ! Here, we apply a unit impulse to phi at a given point on the extended zed
    ! domain. This location is indicated via <idx>
@@ -572,11 +570,12 @@ s
    !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
    !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
    !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   ! 1.D) Then we need to divide by the appropriate prefactor from the fields 
-   !      equations, and take into account identity matricies that appear in the 
+   !      Then we need to divide by the appropriate prefactor from the fields 
+   !      equations
+   ! 1.D) Take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
    !============================================================================
-   subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
+   subroutine get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
    
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -668,10 +667,11 @@ s
       ! quasineutrality. e.g. if using g for the pdf: 
       !
       !        sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]
-      ! 
+      !
+      ! and divide by the appropriate factors to get the field. 
       ! (this ends the parallelisation over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
+      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
@@ -686,10 +686,6 @@ s
          offset_apar = 0
          if (include_apar) offset_apar = nresponse
          if (include_bpar) offset_bpar = offset_apar + nresponse
-         
-         ! In order to get the correct form of the response matrix we need to first divide
-         ! by the appropriate prefactor in the fields equation. 
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -710,10 +706,10 @@ s
 #endif
       ! ------------------------------------------------------------------------
 
-   end subroutine get_dpdf_dphi_matrix_column
+   end subroutine get_response_matrix_for_phi
 
    !============================================================================
-   !                       Get dg/dapar response matrix column
+   !                       Get response matrix for apar
    !============================================================================
    ! Here, we apply a unit impulse to apar at a given point on the extended zed
    ! domain. This location is indicated via <idx>
@@ -746,12 +742,13 @@ s
    !      on the distibution function:
    !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
    !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   ! 1.D) Then we need to divide by the appropriate prefactor from the fields 
-   !      equations, and take into account identity matricies that appear in the 
+   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g
+   !      Then we need to divide by the appropriate prefactor from the fields 
+   !      equations
+   ! 1.D) Take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
    !============================================================================
-   subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
+   subroutine get_response_matrix_for_apar(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use parallelisation_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
@@ -838,12 +835,13 @@ s
       !
       !          β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
       ! 
+      ! and divide by the appropriate factors to get the field. 
       ! (this ends the parallelisation over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
+      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
-      !               1.D) Compute the response matrix to invert                
+      !                    1.D) Compute the matrix to invert                
       ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
       ! We then just need to compute the matrix that is to be inverted in 
@@ -855,11 +853,6 @@ s
          offset_apar = 0
          if (include_apar) offset_apar = nresponse
          if (include_bpar) offset_bpar = offset_apar + nresponse
-
-         ! In order to get the correct form of the response matrix we need to first divide
-         ! by the appropriate prefactor in the fields equation. 
-         ! This accounts for terms appearing both in quasineutrality and parallel ampere
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -879,10 +872,10 @@ s
       end if
 #endif
       
-   end subroutine get_dpdf_dapar_matrix_column
+   end subroutine get_response_matrix_for_apar
 
    !============================================================================
-   !                       Get dg/dbpar response matrix column
+   !                         Get response matrix for bpar
    !============================================================================
    ! Here, we apply a unit impulse to bpar at a given point on the extended zed
    ! domain. This location is indicated via <idx>
@@ -916,11 +909,12 @@ s
    !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
    !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
    !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   ! 1.D) Then we need to divide by the appropriate prefactor from the fields 
-   !      equations, and take into account identity matricies that appear in the 
+   !      Then we need to divide by the appropriate prefactor from the fields 
+   !      equations
+   ! 1.D) Take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
    !============================================================================
-   subroutine get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
+   subroutine get_response_matrix_for_bpar(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
    
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -1005,16 +999,19 @@ s
       ! location now integrate over velocities to get a square response matrix.
       !
       ! integrate_over_velocity is the operator that acts on the pdf in 
-      ! Parallel Ampere Law. e.g. if using g for the pdf: 
+      ! quasineutrality and perpendicular Ampere Law. e.g. if using g for the pdf: 
       !
+      !           sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]
+      ! and
       !          - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
       ! 
+      ! and divide by the appropriate factors to get the field. 
       ! (this ends the parallelisation over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
+      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
-      !               1.D) Compute the response matrix to invert                
+      !               1.D) Compute the matrix to invert                
       ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
       ! We then just need to compute the matrix that is to be inverted in 
@@ -1027,11 +1024,6 @@ s
          offset_apar = 0
          if (include_apar) offset_apar = nresponse
          if (include_bpar) offset_bpar = offset_apar + nresponse
-
-         ! In order to get the correct form of the response matrix we need to first divide
-         ! by the appropriate prefactor in the fields equation. 
-         ! This accounts for terms appearing both in quasineutrality and parallel ampere
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -1051,7 +1043,7 @@ s
       end if
 #endif
 
-   end subroutine get_dpdf_dbpar_matrix_column
+   end subroutine get_response_matrix_for_bpar
 
    !============================================================================
    !                          Perform velocity integral
@@ -1061,7 +1053,7 @@ s
    ! For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
    ! For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
    !============================================================================
-   subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
+   subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie, nz_ext)
 
       use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
@@ -1071,7 +1063,7 @@ s
       ! Arguments
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: phi, apar, bpar
-      integer, intent(in) :: iky, ie
+      integer, intent(in) :: iky, ie, nz_ext
 
       ! ------------------------------------------------------------------------
       call integrate_over_velocity_phi
@@ -1081,6 +1073,10 @@ s
       if (include_apar) call integrate_over_velocity_apar
       if (include_bpar) call integrate_over_velocity_bpar
       ! ------------------------------------------------------------------------
+
+      ! In order to get the correct form of the response matrix we need to first divide
+      ! by the appropriate prefactor in the fields equation. 
+      call get_fields_for_response_matrix(phi, apar, bpar, iky, ie, nz_ext)
 
    contains
 
