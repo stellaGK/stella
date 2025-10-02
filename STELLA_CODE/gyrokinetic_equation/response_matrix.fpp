@@ -430,7 +430,7 @@ contains
          !----------------------------------------------------------------------
          !              Set up system to compute response of the pdf
          !----------------------------------------------------------------------
-         ! <nz_ext> is the dimension of the extended zed domain
+         ! <nz_ext> is the dimension of the extended zed domain, i.e.,
          ! <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
          ! <nzed_segment> = (number of zeds)
          !                -> This is the number of unique zed values in all segments 
@@ -1469,13 +1469,13 @@ contains
 
    end subroutine integrate_over_velocity_bpar
 
-
    !============================================================================
    !****************************************************************************
    !                         Step 2) Fields response
    !****************************************************************************
    !============================================================================
    ! The next routines are dedicated to getting the fields response
+   ! Solve the field equations - for local stella, this is a diagonal process
    !============================================================================
 
    !****************************************************************************
@@ -1504,35 +1504,35 @@ contains
       complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
 
       !-------------------------------------------------------------------------
-
-      ! Solve quasineutrality
-      ! For local stella, this is a diagonal process, but global stella
-      ! May require something more sophisticated
+      
       dist = 'g'
 
-      ! Loop over the sets of connected kx values
+      ! We are still considering a single ky value. Now we need to loop over the 
+      ! eigen chains in the system - i.e. the sets of connected kx values when 
+      ! linked on the extended zed domain.
       do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
          if (sgproc0) then
 #endif
-            ! Number of zeds x number of segments
+            ! Dimension of the extended zed domain:
+            ! <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
             nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
-            ! Treat zonal mode specially to avoid double counting
-            ! as it is periodic
+            ! Treat zonal mode, or the case of periodic boundary conditions, 
+            ! specially as this is periodic - to avoid double counting the boundary
+            ! points
             if (periodic(iky)) then
                nresponse = nz_ext - 1
             else
                nresponse = nz_ext
             end if
 
-            allocate (phi_ext(nz_ext))
-            allocate (apar_ext(nz_ext))
-            allocate (bpar_ext(nz_ext))
+            allocate (phi_ext(nz_ext)); phi_ext = 0.0
+            allocate (apar_ext(nz_ext)); apar_ext = 0.0
+            allocate (bpar_ext(nz_ext)); bpar_ext = 0.0
             
-            ! Set up offset_apar and offset_bpar consistently
-            ! so that the array slices below are consistent with
-            ! the size of the response matrix
+            ! Set up offset_apar and offset_bpar consistently so that the array
+            ! slices below are consistent with the size of the response matrix
             if (include_apar) then
                offset_apar = nresponse
             else
@@ -1546,6 +1546,14 @@ contains
             
             ! Obtain the response matrix entries due to unit impulses in phi;
             ! this accounts for terms appearing both in quasineutrality and parallel ampere
+
+            !-------------------------------------------------------------------
+            !             Divide by fields pre-factor in field equation
+            !-------------------------------------------------------------------
+            ! We have the integrated response of the distribution function due to a unit
+            ! impulse in the fields. This is currently stored in <response_matrix%eigen%zloc>.
+            ! In order to get the correct form of the response matrix we need to first divide
+            ! by the appropriate prefactor in the fields equation. 
             do idx = 1, nresponse
                phi_ext(nz_ext) = 0.0
                phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx)
