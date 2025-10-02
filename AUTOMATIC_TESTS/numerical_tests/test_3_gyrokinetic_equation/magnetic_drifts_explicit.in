@@ -78,7 +78,7 @@
   y0 = 15
 /
 &z_grid
-  nzed = 24
+  nzed = 12
 /
 &z_boundary_condition
   boundary_option = 'linked'
