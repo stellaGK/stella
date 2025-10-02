@@ -491,43 +491,33 @@ contains
          ! Avoid double-counting of periodic points for zonal mode (and other periodic modes)
          ! Here, define <izup> as the upper zed value within a segment, If the mode is periodic
          ! this will be one less, as it has a repeated point.
-         if (periodic(iky)) then
-            izup = iz_up(iseg) - 1
-         else
-            izup = iz_up(iseg)
-         end if
+      
 
          ! Here, we apply a unit impulse at every value of zed in this sements, and find the 
          ! response of gext to this unit impulse. The impulse is provided at the <idx> value.
          ! Note - No need to obtain response to impulses at negative kx values
-         do iz = iz_low(iseg), izup
-            idx = idx + 1
-            call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-            if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-            if (include_bpar) call get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+   
+         ! Loop over all segments
+         do iseg = 1, nsegments(ie, iky)
+            ! Compute the index of kx that is connected in the given eigen chain in this segment 
+            ikx = ikxmod(iseg, ie, iky)
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
+            ! Now apply a unit impulse at each zed location. To do this loop over the zed index, but
+            ! recall that there is one less zed grid point in these connected segments as they share
+            ! a grid point with the previous segment. 
+            do iz = iz_low(iseg) + izl_offset, izup
+               idx = idx + 1
+               call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+               if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+               if (include_bpar) call get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            end do
+            if (izl_offset == 0) izl_offset = 1
          end do
 
-         ! Once we have used one segment, remaining segments have one fewer unique zed point
-         ! Note that these routines are identical to the lines above, and do the same thing, but are 
-         ! simply for the connected segments.
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            ! Loop over remaining segments
-            do iseg = 2, nsegments(ie, iky)
-               ! Compute the index of kx that is connected in the given eigen chain in this segment 
-               ikx = ikxmod(iseg, ie, iky)
-               ! Now apply a unit impulse at each zed location. To do this loop over the zed index, but
-               ! recall that there is one less zed grid point in these connected segments as they share
-               ! a grid point with the previous segment. 
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-                  if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-                  if (include_bpar) call get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-               end do
-               if (izl_offset == 0) izl_offset = 1
-            end do
-         end if
          deallocate (gext, phi_ext, apar_ext, bpar_ext)
          !----------------------------------------------------------------------
       end do
@@ -1094,6 +1084,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: periodic
          use calculations_velocity_integrals, only: integrate_species
          use calculations_gyro_averages, only: gyro_average
          use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
@@ -1106,7 +1097,7 @@ contains
 
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset
+         integer :: izl_offset, izup
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
          integer :: ivmu, imu, iv, is
@@ -1117,93 +1108,58 @@ contains
          wgt = spec%z * spec%dens_psi0
 
          ia = 1
-         idx = 0; izl_offset = 0
+         idx = 0
+         izl_offset = 0
          iseg = 1
          ikx = ikxmod(iseg, ie, iky)
 
          !----------------------------------------------------------------------
          !                          Integrals
          !----------------------------------------------------------------------
-         ! Start with the first segment. This needs to be treated seperately becuase
-         ! of the additional point in the segment. 
-         do iz = iz_low(iseg), iz_up(iseg)
-            ! We only need to consider the zed grid point that has a unit impulse
-            ! as all other grid points will be zero. 
-            idx = idx + 1
-            if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
-               !----------------------------------------------------------------
-               !                          Flux tube
-               !----------------------------------------------------------------
-               ! First get J0 * g
-               call gyro_average(g(idx, :), iky, ikx, iz, g0)
-               ! Now integrate over vpa, mu and sum over species.
-               ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
-               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-            else
-               !----------------------------------------------------------------
-               !                        Full Flux Surface
-               !----------------------------------------------------------------
-               ! First multiply by B and gyroaverage, but use the piece that is 
-               ! constant in alpha. This is because for FFS the response matrix 
-               ! only treats the part that is constant in alpha, and the remainder
-               ! is treated using an iterative approach. 
-               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  iv = iv_idx(vmu_lo, ivmu)
-                  imu = imu_idx(vmu_lo, ivmu)
-                  is = is_idx(vmu_lo, ivmu)
-                  g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
-               end do
-               ! Integrate over species, using the correct weights in order to 
-               ! return the constant-in-alpha component of 
-               !              2B/sqrt(π) int dvpa int dmu J_0 * g
-               call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-               !----------------------------------------------------------------
-            end if
-         end do
+         ! Do for all segments in the chain
+         do iseg = 1, nsegments(ie, iky)
 
-         ! Now treat all the other segments. This can be looped over, as all the 
-         ! remaining segments have the same number of zed points.
-         ! Note that this set of routines is identical to above, but is just for  
-         ! the remaining segments with iseg =/= 1
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            do iseg = 2, nsegments(ie, iky)
-               ikx = ikxmod(iseg, ie, iky)
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
-                     !----------------------------------------------------------
-                     !                       Flux tube
-                     !----------------------------------------------------------
-                     ! First get J0 * g
-                     call gyro_average(g(idx, :), iky, ikx, iz, g0)
-                     ! Now integrate over vpa, mu and sum over species.
-                     ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
-                     call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-                  else
-                     !----------------------------------------------------------
-                     !                  Full Flux Surface
-                     !----------------------------------------------------------
-                     ! First multiply by B and gyroaverage, but use the piece that
-                     ! is constant in alpha. This is because for FFS the response
-                     ! matrix only treats the part that is constant in alpha,
-                     ! and the remainder is treated using an iterative approach. 
-                     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                        iv = iv_idx(vmu_lo, ivmu)
-                        imu = imu_idx(vmu_lo, ivmu)
-                        is = is_idx(vmu_lo, ivmu)
-                        g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
-                     end do
-                     ! Integrate over species, using the correct weights in order
-                     ! to return the constant-in-alpha component of 
-                     !              2B/sqrt(π) int dvpa int dmu J_0 * g
-                     call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-                  end if
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
+
+            ikx = ikxmod(iseg, ie, iky)
+            do iz = iz_low(iseg) + izl_offset, izup
+               idx = idx + 1
+               if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
                   !-------------------------------------------------------------
-               end do
-               if (izl_offset == 0) izl_offset = 1
+                  !                          Flux tube
+                  !-------------------------------------------------------------
+                  ! First get J0 * g
+                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
+                  ! Now integrate over vpa, mu and sum over species.
+                  ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
+                  call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+               else
+                  !-------------------------------------------------------------
+                  !                     Full Flux Surface
+                  !-------------------------------------------------------------
+                  ! First multiply by B and gyroaverage, but use the piece that
+                  ! is constant in alpha. This is because for FFS the response
+                  ! matrix only treats the part that is constant in alpha,
+                  ! and the remainder is treated using an iterative approach. 
+                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                     iv = iv_idx(vmu_lo, ivmu)
+                     imu = imu_idx(vmu_lo, ivmu)
+                     is = is_idx(vmu_lo, ivmu)
+                     g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
+                  end do
+                  ! Integrate over species, using the correct weights in order
+                  ! to return the constant-in-alpha component of 
+                  !              2B/sqrt(π) int dvpa int dmu J_0 * g
+                  call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
+               end if
+               !----------------------------------------------------------------
             end do
-         end if
+            if (izl_offset == 0) izl_offset = 1
+         end do
 
          !----------------------------------------------------------------------
          ! Collect the parts of <phi> spread out across processors. 
@@ -1225,6 +1181,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: periodic
          use calculations_velocity_integrals, only: integrate_species
          use grids_velocity, only: vpa
          use calculations_gyro_averages, only: gyro_average
@@ -1235,7 +1192,7 @@ contains
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
          integer :: ivmu, iv
-         integer :: izl_offset
+         integer :: izl_offset, izup
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
 
@@ -1253,48 +1210,30 @@ contains
          !----------------------------------------------------------------------
          !                             Integrals
          !----------------------------------------------------------------------
-         ! Start with the first segment. This needs to be treated seperately 
-         ! becuase of the additional point in the segment. 
-         do iz = iz_low(iseg), iz_up(iseg)
-            ! We only need to consider the zed grid point that has a unit 
-            ! impulse as all other grid points will be zero. 
-            idx = idx + 1
-            ! First get J0 * g
-            call gyro_average(g(idx, :), iky, ikx, iz, g0)
-            ! Multiply by vpa to give: J0 * g * vpa
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               g0(ivmu) = g0(ivmu) * vpa(iv)
-            end do
-            ! Now integrate over vpa, mu and sum over species.
-            ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-            call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
-         end do
+         ! Do for all segments in the chain
+         do iseg = 1, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
 
-         ! Now treat all the other segments. This can be looped over, as all the  
-         ! remaining segments have the same number of zed points.
-         ! Note that this set of routines is identical to above, but is just for  
-         ! the remaining segments with iseg =/= 1
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            do iseg = 2, nsegments(ie, iky)
-               ikx = ikxmod(iseg, ie, iky)
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  ! First get J0 * g
-                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
-                  ! Multiply by vpa to give: J0 * g * vpa
-                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                     iv = iv_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g0(ivmu) * vpa(iv)
-                  end do
-                  ! Now integrate over vpa, mu and sum over species.
-                  ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-                  call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
+            do iz = iz_low(iseg) + izl_offset, izup
+               idx = idx + 1
+               ! First get J0 * g
+               call gyro_average(g(idx, :), iky, ikx, iz, g0)
+               ! Multiply by vpa to give: J0 * g * vpa
+               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                  iv = iv_idx(vmu_lo, ivmu)
+                  g0(ivmu) = g0(ivmu) * vpa(iv)
                end do
-               if (izl_offset == 0) izl_offset = 1
+               ! Now integrate over vpa, mu and sum over species.
+               ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+               call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
             end do
-         end if
+            if (izl_offset == 0) izl_offset = 1
+         end do
 
          !----------------------------------------------------------------------
          ! Collect the parts of <apar> spread out across processors. 
@@ -1316,6 +1255,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: periodic
          use calculations_velocity_integrals, only: integrate_species
          use grids_velocity, only: mu
          use calculations_gyro_averages, only: gyro_average_j1
@@ -1325,7 +1265,7 @@ contains
 
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia, imu, ivmu
-         integer :: izl_offset
+         integer :: izl_offset, izup
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
 
@@ -1341,50 +1281,32 @@ contains
          !----------------------------------------------------------------------
          !                          Integrals
          !----------------------------------------------------------------------
-         ! Start with the first segment. This needs to be treated seperately 
-         ! becuase of the additional point in the segment. 
-         do iz = iz_low(iseg), iz_up(iseg)
-            ! We only need to consider the zed grid point that has a unit 
-            ! impulse as all other grid points will be zero. 
-            idx = idx + 1
-            ! First get J1/a_s * g , where a_s is the argument of the Bessel
-            ! function. Note that 'J1' in the code is actually J1/a_s
-            call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
-            ! Multiply by mu to get: J1/a_s * g * mu
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               imu = imu_idx(vmu_lo, ivmu)
-               g0(ivmu) = g0(ivmu) * mu(imu)
-            end do
-            ! Now integrate over vpa, mu and sum over species.
-            ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-            call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
-         end do
+         ! Do for all segments in the chain
+         do iseg = 1, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
 
-         ! Now treat all the other segments. This can be looped over, as all the  
-         ! remaining segments have the same number of zed points.
-         ! Note that this set of routines is identical to above, but is just for 
-         ! the remaining segments with iseg =/= 1
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            do iseg = 2, nsegments(ie, iky)
-               ikx = ikxmod(iseg, ie, iky)
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  ! First get J1/a_s * g , where a_s is the argument of the Bessel
-                  ! function. Note that 'J1' in the code is actually J1/a_s
-                  call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
-                  ! Multiply by mu to get: J1/a_s * g * mu
-                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                     imu = imu_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g0(ivmu) * mu(imu)
-                  end do               
-                  ! Now integrate over vpa, mu and sum over species.
-                  ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-                  call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
-               end do
-               if (izl_offset == 0) izl_offset = 1
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
+
+            do iz = iz_low(iseg) + izl_offset, izup
+               idx = idx + 1
+               ! First get J1/a_s * g , where a_s is the argument of the Bessel
+               ! function. Note that 'J1' in the code is actually J1/a_s
+               call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
+               ! Multiply by mu to get: J1/a_s * g * mu
+               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                  imu = imu_idx(vmu_lo, ivmu)
+                  g0(ivmu) = g0(ivmu) * mu(imu)
+               end do               
+               ! Now integrate over vpa, mu and sum over species.
+               ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+               call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
             end do
-         end if
+            if (izl_offset == 0) izl_offset = 1
+         end do
 
          !----------------------------------------------------------------------
          ! Collect the parts of <bpar> spread out across processors. 
@@ -1448,6 +1370,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: periodic
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: denominator_fields, denominator_fields_MBR
          use arrays, only: denominator_fields_h, denominator_fields_MBR_h
@@ -1458,7 +1381,7 @@ contains
 
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset
+         integer :: izl_offset, izup
          complex :: tmp
          real, dimension(:), allocatable :: gamma_fac
 
@@ -1474,36 +1397,30 @@ contains
          iseg = 1
          ikx = ikxmod(iseg, ie, iky)
 
-         ! For this value of ky, kx, store the denominate from the fields equation
-         ! for this first segment. 
-         gamma_fac = denominator_fields(iky, ikx, :)
-
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             phi(:) = 0.0
             return
          end if
 
-         ! Divide by the correct factor for this first segment
-         !do iz = iz_low(iseg), iz_up(iseg)
-         !   idx = idx + 1
-         !   phi(idx) = phi(idx) / gamma_fac(iz)
-         !end do
-
-         ! Now do exactly the same for all remaining segments. 
-         !izl_offset = 1
-         !if (nsegments(ie, iky) > 1) then
          do iseg = 1, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
 
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
+
+            ! For this value of ky, kx, store the denominator from the fields
+            ! equation for this this segment. 
             gamma_fac = denominator_fields(iky, ikx, :)
 
-            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+            do iz = iz_low(iseg) + izl_offset, izup
                idx = idx + 1
                phi(idx) = phi(idx) / gamma_fac(iz)
             end do
             if (izl_offset == 0) izl_offset = 1
          end do
-         !end if
 
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             ! No connections for ky = 0
@@ -1532,6 +1449,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: periodic
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
          use arrays, only: denominator_fields_h
@@ -1543,7 +1461,7 @@ contains
 
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset
+         integer :: izl_offset, izup
          complex :: antot1, antot3
          real, dimension(:), allocatable :: gammainv11, gammainv13, gammainv31, gammainv33
 
@@ -1560,45 +1478,35 @@ contains
          iseg = 1
          ikx = ikxmod(iseg, ie, iky)
 
-         gammainv11 = denominator_fields_inv11(iky, ikx, :)
-         gammainv13 = denominator_fields_inv13(iky, ikx, :)
-         gammainv31 = denominator_fields_inv31(iky, ikx, :)
-         gammainv33 = denominator_fields_inv33(iky, ikx, :)
-
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             phi(:) = 0.0
             bpar(:) = 0.0
             return
          end if
 
-         do iz = iz_low(iseg), iz_up(iseg)
-            idx = idx + 1
-            antot1 = phi(idx)
-            antot3 = bpar(idx)
-            phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
-            bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
-         end do
+         do iseg = 1, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
 
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            do iseg = 2, nsegments(ie, iky)
-               ikx = ikxmod(iseg, ie, iky)
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
 
-               gammainv11 = denominator_fields_inv11(iky, ikx, :)
-               gammainv13 = denominator_fields_inv13(iky, ikx, :)
-               gammainv31 = denominator_fields_inv31(iky, ikx, :)
-               gammainv33 = denominator_fields_inv33(iky, ikx, :)
+            gammainv11 = denominator_fields_inv11(iky, ikx, :)
+            gammainv13 = denominator_fields_inv13(iky, ikx, :)
+            gammainv31 = denominator_fields_inv31(iky, ikx, :)
+            gammainv33 = denominator_fields_inv33(iky, ikx, :)
 
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  antot1 = phi(idx)
-                  antot3 = bpar(idx)
-                  phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
-                  bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
-               end do
-               if (izl_offset == 0) izl_offset = 1
+            do iz = iz_low(iseg) + izl_offset, izup
+               idx = idx + 1
+               antot1 = phi(idx)
+               antot3 = bpar(idx)
+               phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
+               bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
             end do
-         end if
+            if (izl_offset == 0) izl_offset = 1
+         end do
 
          if (.not. has_electron_species(spec) .and. &
             adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -1621,6 +1529,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: periodic
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: apar_denom
          use arrays, only: kperp2
@@ -1629,7 +1538,7 @@ contains
 
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset
+         integer :: izl_offset, izup
          real, dimension(:), allocatable :: denominator
 
          !----------------------------------------------------------------------
@@ -1642,30 +1551,28 @@ contains
          iseg = 1
          ikx = ikxmod(iseg, ie, iky)
 
-         denominator = kperp2(iky, ikx, ia, :)
-
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             apar(:) = 0.0
             return
          end if
-         do iz = iz_low(iseg), iz_up(iseg)
-            idx = idx + 1
-            apar(idx) = apar(idx) / denominator(iz)
-         end do
 
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            do iseg = 2, nsegments(ie, iky)
-               ikx = ikxmod(iseg, ie, iky)
-               denominator = kperp2(iky, ikx, ia, :)
+         do iseg = 1, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
 
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  apar(idx) = apar(idx) / denominator(iz)
-               end do
-               if (izl_offset == 0) izl_offset = 1
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
+
+            denominator = kperp2(iky, ikx, ia, :)
+
+            do iz = iz_low(iseg) + izl_offset, izup
+               idx = idx + 1
+               apar(idx) = apar(idx) / denominator(iz)
             end do
-         end if
+            if (izl_offset == 0) izl_offset = 1
+         end do
 
          deallocate (denominator)
 
