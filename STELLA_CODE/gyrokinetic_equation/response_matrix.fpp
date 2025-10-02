@@ -29,9 +29,8 @@ module response_matrix
 #ifdef ISO_C_BINDING
    integer(c_intptr_t) :: cur_pos
 #endif
-   character(100) :: message_dgdphi, message_QN, message_lu
-   real, dimension(2) :: time_dgdphi
-   real, dimension(2) :: time_QN
+   character(100) :: message_response_matrix, message_lu
+   real, dimension(2) :: time_response_matrix
    real, dimension(2) :: time_lu
    
    ! Only initialise once
@@ -128,11 +127,9 @@ contains
 
       implicit none
 
-      message_dgdphi = '     calculate dgdphi: '
-      message_QN = '     calculate QN:     '
+      message_response_matrix = '     calculate response matrix: '
       message_lu = '     calculate LU:     '
-      time_dgdphi = 0.0
-      time_QN = 0.0
+      time_response_matrix = 0.0
       time_lu = 0.0
 
    end subroutine setup_response_matrix_timings
@@ -301,7 +298,7 @@ contains
             allocate (response_matrix(iky)%eigen(neigen(iky)))
 
          ! Write time message
-         if (debug) call time_message(.false., time_dgdphi, message_dgdphi)
+         if (debug) call time_message(.false., time_response_matrix, message_response_matrix)
 
          call calculate_vspace_integrated_response(iky)
 
@@ -318,33 +315,13 @@ contains
 
          ! Debug time messages
          if (debug) then
-            call time_message(.true., time_dgdphi, message_dgdphi)
-            call time_message(.false., time_QN, message_QN)
-         end if
-
-#ifdef ISO_C_BINDING
-         call mpi_win_fence(0, response_window, ierr)
-#endif
-
-         ! ---------------------------------------------------------------------
-         !                     STEP 2) Apply field solve
-         ! ---------------------------------------------------------------------
-
-         !call apply_field_solve_to_finish_response_matrix(iky)
-
-         ! ---------------------------------------------------------------------
-         !                   Parallelisation + debug messages
-         ! ---------------------------------------------------------------------
-
-#ifdef ISO_C_BINDING
-         call mpi_win_fence(0, response_window, ierr)
-#endif
-
-         ! Debug time messages
-         if (debug) then
-            call time_message(.true., time_QN, message_QN)
+            call time_message(.true., time_response_matrix, message_response_matrix)
             call time_message(.false., time_lu, message_lu)
          end if
+
+#ifdef ISO_C_BINDING
+         call mpi_win_fence(0, response_window, ierr)
+#endif
 
          ! ---------------------------------------------------------------------
          !                   STEP 3) LU decompose the matrix 
@@ -359,8 +336,7 @@ contains
             call time_message(.true., time_lu, message_lu)
          end if
 
-         time_dgdphi = 0
-         time_QN = 0
+         time_response_matrix = 0
          time_lu = 0
 
          ! Write response matrix to file 
