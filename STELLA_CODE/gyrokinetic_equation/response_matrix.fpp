@@ -1397,6 +1397,13 @@ contains
    !============================================================================
    !                    Divide by appropriate field pre-factor
    !============================================================================
+   ! This is the main option for the field solve, and calls the appropriate
+   ! subroutines depending on which fields are being simulated. 
+   ! In this routine we divide by the appropriate pre-factors that appear in the 
+   ! field equations in front of the fields. The exact factor will depend on 
+   ! which fields are being simulated (as phi and bpar are coupled), and also 
+   ! on the species options (e.g. adiabatic, modified Boltzmann etc.)
+   !============================================================================
    subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
    
       use parameters_physics, only: include_apar, include_bpar
@@ -1417,6 +1424,8 @@ contains
       end if
       if (include_apar) call get_apar_for_response_matrix
 
+      !-------------------------------------------------------------------------
+      
    contains 
 
       !*************************************************************************
