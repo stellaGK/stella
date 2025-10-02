@@ -82,7 +82,7 @@ def test_z_grid_zedequalarc(tmp_path, stella_version, error=False):
         print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
         return 
     run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
-    compare_geometry_in_netcdf_files(run_data, error=False) 
+    compare_geometry_in_netcdf_files(run_data, error=False)
     print('  -->  The zed_equal_arc=False gives the correct VMEC geometry.')
     return
     

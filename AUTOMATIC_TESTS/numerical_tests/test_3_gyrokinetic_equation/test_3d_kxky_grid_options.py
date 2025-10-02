@@ -52,16 +52,49 @@ def test_kxky_grid_box_linear(tmp_path, stella_version, error=False):
 #-------------------------------------------------------------------------------
 #                                RANGE LINEAR                                  #
 #-------------------------------------------------------------------------------
-def test_kxky_grid_range_linear(tmp_path, stella_version, error=False):
+def test_kxky_grid_range_linear_ky1_rangekx(tmp_path, stella_version, error=False):
 
     # Run stella inside of <tmp_path>
-    run_data = run_local_stella_simulation('kxky_grid_range_linear.in', tmp_path, stella_version)
+    run_data = run_local_stella_simulation('kxky_grid_ky1_rangekx_linear.in', tmp_path, stella_version)
      
-    # Compare phi2(t) in the netCDF files   
-    compare_local_potential_with_expected_potential(run_data=run_data, error=False)    
+    # Compare phi2(t) in the netCDF files
+    compare_local_potential_with_expected_potential(run_data=run_data, error=False)
     print('  -->  The grid_option="range" is evolving correctly during a linear simulation.')
     return
-    
+
+#-------------------------------------------------------------------------------
+def test_kxky_grid_range_linear_rangeky_kx0(tmp_path, stella_version, error=False):
+
+    # Run stella inside of <tmp_path>
+    run_data = run_local_stella_simulation('kxky_grid_rangeky_kx0_linear.in', tmp_path, stella_version)
+     
+    # Compare phi2(t) in the netCDF files
+    compare_local_potential_with_expected_potential(run_data=run_data, error=False)
+    print('  -->  The grid_option="range" is evolving correctly during a linear simulation.')
+    return
+
+#-------------------------------------------------------------------------------
+def test_kxky_grid_range_linear_rangeky_kx0_withoutky0(tmp_path, stella_version, error=False):
+
+    # Run stella inside of <tmp_path>
+    run_data = run_local_stella_simulation('kxky_grid_rangeky_kx0_withoutky0_linear.in', tmp_path, stella_version)
+     
+    # Compare phi2(t) in the netCDF files
+    compare_local_potential_with_expected_potential(run_data=run_data, error=False)
+    print('  -->  The grid_option="range" is evolving correctly during a linear simulation.')
+    return
+
+#-------------------------------------------------------------------------------
+def test_kxky_grid_range_linear_rangeky_rangekx(tmp_path, stella_version, error=False):
+
+    # Run stella inside of <tmp_path>
+    run_data = run_local_stella_simulation('kxky_grid_rangeky_rangekx_linear.in', tmp_path, stella_version)
+     
+    # Compare phi2(t) in the netCDF files
+    compare_local_potential_with_expected_potential(run_data=run_data, error=False)
+    print('  -->  The grid_option="range" is evolving correctly during a linear simulation.')
+    return
+
 #-------------------------------------------------------------------------------
 #                                RANGE LINEAR                                  #
 #-------------------------------------------------------------------------------

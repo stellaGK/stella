@@ -1,18 +1,19 @@
-
 !###############################################################################
 !#################### CALCULATE FLUXES FOR RADIAL VARIATION ####################
 !###############################################################################
- 
+! This module calculates the fluxes for radial variation simulations.
+!###############################################################################
 module diagnostics_fluxes_radialvariation
+
+   ! Load debug flags
+   use debug_flags, only: debug => diagnostics_debug
 
    implicit none
  
+   ! Make routines available to other modules
    public :: calculate_fluxes_radialvariation
 
-   private     
-
-   ! Debugging
-   logical :: debug = .false.
+   private
 
    interface get_one_flux_vmulo
       module procedure get_one_flux_vmulo_int
@@ -25,75 +26,83 @@ contains
 !############################### CALCULATE FLUXES ##############################
 !###############################################################################
 
-   !==============================================
-   !============ GET FLUXES VMULO ================
-   !==============================================
+   !****************************************************************************
+   !                              CALCULATE FLUXES
+   !****************************************************************************
    subroutine calculate_fluxes_radialvariation(g, phi, pflux_vs_s, vflux_vs_s, qflux_vs_s, pflux_vs_kxs,  &
          vflux_vs_kxs, qflux_vs_kxs, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
  
       use mp, only: sum_reduce
       use constants, only: zi
-      use arrays_dist_fn, only: g1, g2, kperp2, dkperp2dr
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use species, only: spec
+      use arrays_distribution_function, only: g1, g2
+      use arrays, only: kperp2, dkperp2dr
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+      use grids_species, only: spec
       use geometry, only: grho_norm, bmag, btor
       use geometry, only: drhodpsi
-      use geometry, only: gds21, gds22
-      use geometry, only: dgds21dr, dgds22dr
+      use geometry, only: gradx_dot_grady, gradx_dot_gradx
+      use geometry, only: d_gradxdotgrady_drho, d_gradxdotgradx_drho
       use geometry, only: geo_surf
       use geometry, only: dBdrho, dIdrho
-      use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: vperp2, vpa, mu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use parameters_numerical, only: fphi
-      use parameters_numerical, only: maxwellian_normalization
+      use grids_z, only: nzgrid, ntubes
+      use grids_velocity, only: vperp2, vpa, mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use parameters_physics, only: fphi
       use grids_kxky, only: aky, theta0
-      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use parameters_physics, only: radial_variation
-      use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+      use arrays_gyro_averages, only: aj0x, aj1x
       
-      ! Flags 
+      ! Diagnostics flags
       use parameters_diagnostics, only: write_radial_fluxes 
       use parameters_diagnostics, only: flux_norm
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       real, dimension(:), intent(out) :: pflux_vs_s, vflux_vs_s, qflux_vs_s
       real, dimension(:, :), intent(out) :: pflux_vs_kxs, vflux_vs_kxs, qflux_vs_kxs
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts 
 
+      ! Local variables
+      complex, dimension(:, :), allocatable :: g0k, g1k
       integer :: ivmu, imu, iv, iz, it, is, ia
       real :: flx_norm
-      complex, dimension(:, :), allocatable :: g0k, g1k
+
+      !-------------------------------------------------------------------------
       
       ! Track the code
       if (debug) write (*, *) 'diagnostics::calculate_fluxes_radialvariation'
 
+      ! Initialise fluxes
       pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0.
       pflux_vs_kxs = 0.; vflux_vs_kxs = 0.; qflux_vs_kxs = 0.
       pflux_kxkyzts = 0.; vflux_kxkyzts = 0.; qflux_kxkyzts = 0.
 
+      ! Assume a single flux annulus
       ia = 1
+      
+      ! Get the fluxes prefactor
       if (flux_norm) then
          flx_norm = 1./grho_norm
       else
          flx_norm = 1.
       end if
 
+      ! Allocate temporary arrays
       allocate (g0k(naky, nakx))
       allocate (g1k(naky, nakx))
 
       ! FLAG - electrostatic for now
       ! get electrostatic contributions to fluxes
-
       if (fphi > epsilon(0.0)) then
-         ia = 1
 
-         !get particle flux
+         ! Get particle flux
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
@@ -115,10 +124,9 @@ contains
                   end if
 
                   !subtract adiabatic contribution part of g
-                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
+                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -143,7 +151,7 @@ contains
             call get_one_flux_radial(flx_norm * spec%dens_psi0, g1, phi, pflux_vs_kxs)
          end if
 
-         !get heat flux
+         ! Get heat flux
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
@@ -169,12 +177,11 @@ contains
 
                   end if
 
-                  !subtract adiabatic contribution part of g
+                  ! Subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * (vpa(iv)**2 + vperp2(ia, iz, imu))
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) * maxwell_vpa(iv, is) &
+                        * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                        
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -199,14 +206,15 @@ contains
             call get_one_flux_radial(flx_norm * spec%dens_psi0 * spec%temp_psi0, g1, phi, qflux_vs_kxs)
          end if
 
-         ! get momentum flux
+         ! Get momentum flux
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             is = is_idx(vmu_lo, ivmu)
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  ! parallel component
+               
+                  ! Parallel component
                   g0k = g(:, :, iz, it, ivmu) * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
                   call gyro_average(g0k, iz, ivmu, g1(:, :, iz, it, ivmu))
 
@@ -222,12 +230,12 @@ contains
                      g1(:, :, iz, it, ivmu) = g1(:, :, iz, it, ivmu) + g0k
 
                   end if
-                  !subtract adiabatic contribution part of g
+                  
+                  ! Subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        * vpa(iv) * geo_surf%rmaj * btor(iz) * maxwell_vpa(iv, is) &
+                        * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) / bmag(ia, iz)
+
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -242,20 +250,20 @@ contains
                   end if
                   g1(:, :, iz, it, ivmu) = g1(:, :, iz, it, ivmu) + g0k
 
-                  ! perpendicular component
+                  ! Perpendicular component
                   g0k = -g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                        * (gds21(ia, iz) + theta0 * gds22(ia, iz)) * spec(is)%smz &
-                        / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
+                        * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
+                        / (geo_surf%qinp * bmag(ia, iz)**2)
 
                   call gyro_average_j1(g0k, iz, ivmu, g2(:, :, iz, it, ivmu))
                   if (radial_variation) then
                      g0k = -g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (dgds21dr(ia, iz) + theta0 * dgds22dr(ia, iz)) * aj1x(:, :, iz, ivmu) * spec(is)%smz &
+                           * (d_gradxdotgrady_drho(ia, iz) + theta0 * d_gradxdotgradx_drho(ia, iz)) * aj1x(:, :, iz, ivmu) * spec(is)%smz &
                            / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
 
                      g0k = g0k - g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (gds21(ia, iz) + theta0 * gds22(ia, iz)) * spec(is)%smz &
-                           / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2) &
+                           * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
+                           / (geo_surf%qinp * bmag(ia, iz)**2) &
                            * (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))
 
@@ -268,27 +276,26 @@ contains
                      g2(:, :, iz, it, ivmu) = g2(:, :, iz, it, ivmu) + g0k
                   end if
 
-                  !subtract adiabatic contribution part of g
+                  ! Subtract adiabatic contribution part of g
                   g0k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
                         * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                        * (gds21(ia, iz) + theta0 * gds22(ia, iz)) * spec(is)%smz &
-                        / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
+                        / (geo_surf%qinp * bmag(ia, iz)**2)
+
+                  g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
                      g1k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
                            * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                            * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (dgds21dr(ia, iz) + theta0 * dgds22dr(ia, iz)) * spec(is)%smz &
+                           * (d_gradxdotgrady_drho(ia, iz) + theta0 * d_gradxdotgradx_drho(ia, iz)) * spec(is)%smz &
                            / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
 
                      g1k = g1k - spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) &
                            * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                            * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (gds21(ia, iz) + theta0 * gds22(ia, iz)) * spec(is)%smz &
-                           / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2) &
+                           * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
+                           / (geo_surf%qinp * bmag(ia, iz)**2) &
                            * (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))
 
@@ -320,44 +327,53 @@ contains
 
       end if
 
+      ! Deallocate temporary arrays
       if (allocated(g0k)) deallocate (g0k)
       if (allocated(g1k)) deallocate (g1k)
 
    end subroutine calculate_fluxes_radialvariation
 
-   !==============================================
-   !============ GET ONE FLUX VMULO ==============
-   !==============================================
+   !****************************************************************************
+   !                              CALCULATE FLUXES
+   !****************************************************************************
    subroutine get_one_flux_vmulo_int(weights, gin, fld, flxout)
 
-      use vpamu_grids, only: integrate_vmu
-      use stella_layouts, only: vmu_lo
-      use grids_kxky, only: aky, boundary_size
-      use parameters_kxky_grids, only: nakx, naky
-      use zgrid, only: nzgrid, ntubes
-      use species, only: nspec
-      use volume_averages, only: mode_fac
+      use calculations_velocity_integrals, only: integrate_vmu
+      use parallelisation_layouts, only: vmu_lo
+      use grids_kxky, only: aky
+      use parameters_multibox, only: boundary_size
+      use grids_kxky, only: nakx, naky
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: nspec
+      use calculations_volume_averages, only: mode_fac
       use geometry, only: dVolume
-      use stella_transforms, only: transform_kx2x_unpadded
+      use calculations_transforms, only: transform_kx2x_unpadded
       use parameters_physics, only: radial_variation
 
       implicit none
 
+      ! Arguments
       real, dimension(:), intent(in) :: weights
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: fld
       real, dimension(:), intent(in out) :: flxout
 
+      ! Local variables
       complex, dimension(:, :, :, :, :), allocatable :: totals
       complex, dimension(:, :), allocatable :: g0x, g1x
-
       integer :: ia, is, it, iz, ikx
       real, dimension(nspec) :: flux_sum
       real :: volume, factor
 
+      !-------------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (totals(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
+      ! Assume a single flux annulus
       ia = 1
+      
+      ! Initialise fluxes
       flux_sum = 0.
 
       ! The factor in front of all the flux definitions is <factor> = -sgn(psi_t)/2
@@ -368,7 +384,8 @@ contains
       factor = - 0.5 ! The clebsch_factor is inside <dVolume>, since it is inside <jacob>
 
       call integrate_vmu(gin, weights, totals)
-      if (radial_variation) then !do it in real-space
+      
+      if (radial_variation) then ! do it in real-space
          allocate (g0x(naky, nakx))
          allocate (g1x(naky, nakx))
          do is = 1, nspec
@@ -403,35 +420,46 @@ contains
 
       flxout = flxout + flux_sum / volume
 
+      ! Deallocate temporary arrays
       deallocate (totals)
 
    end subroutine get_one_flux_vmulo_int
 
+   !****************************************************************************
+   !                              CALCULATE FLUXES
+   !****************************************************************************
    subroutine get_one_flux_vmulo_kxkyz(weights, gin, fld, flxout)
 
-      use vpamu_grids, only: integrate_vmu
-      use stella_layouts, only: vmu_lo
+      use calculations_velocity_integrals, only: integrate_vmu
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: aky
-      use parameters_kxky_grids, only: nakx, naky
-      use zgrid, only: nzgrid, ntubes
-      use species, only: nspec
-      use volume_averages, only: mode_fac
+      use grids_kxky, only: nakx, naky
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: nspec
+      use calculations_volume_averages, only: mode_fac
 
       implicit none
 
+      ! Arguments
       real, dimension(:), intent(in) :: weights
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: fld
       real, dimension(:, :, -nzgrid:, :, :), intent(in out) :: flxout
 
+      ! Local variables
       complex, dimension(:, :, :, :, :), allocatable :: totals
-
       integer :: ia, is, it, iz, ikx
 
+      !-------------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (totals(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
-      ia = 1 
+      ! Assume a single flux annulus
+      ia = 1
+      
       call integrate_vmu(gin, weights, totals)
+      
       do is = 1, nspec
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -442,44 +470,50 @@ contains
          end do
       end do
 
+      ! Deallocate temporary arrays
       deallocate (totals)
 
    end subroutine get_one_flux_vmulo_kxkyz
 
-   !==============================================
-   !=========== GET ONE FLUX RADIAL ==============
-   !==============================================
+
+   !****************************************************************************
+   !                              CALCULATE FLUXES
+   !****************************************************************************
    subroutine get_one_flux_radial(weights, gin, fld, flxout)
 
-      use vpamu_grids, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use geometry, only: dVolume
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: aky
-      use parameters_kxky_grids, only: nakx, naky
-      use zgrid, only: nzgrid, ntubes
-      use species, only: nspec
-      use volume_averages, only: mode_fac
-      use stella_transforms, only: transform_kx2x_unpadded 
+      use grids_kxky, only: nakx, naky
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: nspec
+      use calculations_volume_averages, only: mode_fac
+      use calculations_transforms, only: transform_kx2x_unpadded 
 
       implicit none
 
+      ! Arguments
       real, dimension(:), intent(in) :: weights
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: fld
       real, dimension(:, :), intent(in out) :: flxout
 
+      ! Local variables
       real, dimension(:), allocatable :: dV_rad
       complex, dimension(:, :, :, :, :), allocatable :: totals
-
       complex, dimension(:, :), allocatable :: g0x, g1x
-
       integer :: ia, is, it, iz, ikx
 
+      !-------------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (dV_rad(nakx))
       allocate (g0x(naky, nakx))
       allocate (g1x(naky, nakx))
       allocate (totals(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
+      ! Assume a single flux annulus
       ia = 1
 
       dV_rad = sum(sum(dVolume, 3), 1) * ntubes
@@ -501,9 +535,9 @@ contains
          end do
       end do
 
+      ! Deallocate temporary arrays
       deallocate (dV_rad, g0x, g1x, totals)
 
    end subroutine get_one_flux_radial
-
 
 end module diagnostics_fluxes_radialvariation

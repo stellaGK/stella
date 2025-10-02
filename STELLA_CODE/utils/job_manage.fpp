@@ -7,8 +7,8 @@ module job_manage
    public :: timer_local
    public :: time_message
    public :: job_fork
-   public :: checkstop
-   public :: checktime
+   public :: check_stop_file
+   public :: check_cpu_time
    public :: njobs
 
    integer :: njobs = 1
@@ -161,7 +161,7 @@ contains
 
    end subroutine job_fork
 
-   subroutine checkstop(exit, list)
+   subroutine check_stop_file(exit, list)
 
       use mp, only: proc0, broadcast
       use file_utils, only: run_name, list_name
@@ -184,9 +184,9 @@ contains
 
       call broadcast(exit)
 
-   end subroutine checkstop
+   end subroutine check_stop_file
 
-   subroutine checktime(avail_time, exit)
+   subroutine check_cpu_time(avail_time, exit)
       use mp, only: proc0, broadcast
       use file_utils, only: error_unit
 
@@ -195,7 +195,7 @@ contains
       ! true if elapse time exceed available time
       logical, intent(in out) :: exit
       logical, save :: initialized = .false.
-      real :: elapse_time = 0.
+      real :: elapsed_time = 0.
       real :: initial_time = 0.
       real :: margin = 300. ! 5 minutes
 
@@ -205,12 +205,12 @@ contains
          return
       end if
 
-      elapse_time = timer_local() - initial_time
+      elapsed_time = timer_local() - initial_time
 
       if (proc0) then
-         if (elapse_time >= avail_time - margin) then
+         if (elapsed_time >= avail_time - margin) then
             write (error_unit(), '(a,f12.4,a,f12.4)') &
-                 & 'Elapse time ', elapse_time, &
+                 & 'Elapse time ', elapsed_time, &
                  & ' exceeds available time', avail_time - margin
             write (error_unit(), '(a,f12.4,a,f12.4,a)') &
                  & '  (Given CPU time: ', avail_time, &
@@ -221,6 +221,6 @@ contains
 
       call broadcast(exit)
 
-   end subroutine checktime
+   end subroutine check_cpu_time
 
 end module job_manage

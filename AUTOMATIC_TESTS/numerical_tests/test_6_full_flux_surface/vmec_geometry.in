@@ -1,15 +1,52 @@
 ! Simple linear example based on a VMEC equillibrium at rho=0.7 using stellarator symmetric boundary conditions
 ! We use nfield_periods = 6.073867 to ensure that dkx = dky when using stellarator symmetric boundary conditions
 
-&physics_flags
-  adiabatic_option = 'field-line-average-term'
-  const_alpha_geo = .false.
-  full_flux_surface = .true.
-  include_apar = .false.
-  include_bpar = .false.
-  nonlinear = .true.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'vmec'
 /
-&species_knobs
+&geometry_vmec
+  nfield_periods = 6.073867
+  torflux = 0.49
+  vmec_filename = 'wout_w7x_kjm.nc'
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&adiabatic_electron_response
+  adiabatic_option = 'field-line-average-term'
+/
+
+&gyrokinetic_terms
+  simulation_domain = 'full_flux_annulus'
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .true.
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .false.
+/
+
+&physics_inputs
+  rhostar = 0.02
+/
+
+&flux_annulus
+  nitt = 5
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
   nspec = 1
 /
 &species_parameters_1
@@ -21,61 +58,76 @@
   type = 'ion'
   z = 1.0
 /
-&species_parameters_2
-  dens = 1.0
-  fprim = 1.0
-  mass = 0.0005446
-  temp = 1.0
-  tprim = 3.0
-  type = 'electron'
-  z = -1.0
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
 /
-&parameters
-  rhostar = 0.02
-/
-&vmec_parameters
-  nfield_periods = 6.073867
-  torflux = 0.49
-  vmec_filename = 'wout_w7x_kjm.nc'
-/
-&kt_grids_box_parameters
+&kxky_grid_box
   jtwist = 5
   nx = 4
   ny = 6
 /
-&zgrid_parameters
-  boundary_option = 'stellarator'
-  nperiod = 1
+&z_grid
   nzed = 24
 /
-&vpamu_grids_parameters
+&z_boundary_condition
+  boundary_option = 'stellarator'
+/
+&velocity_grids
   nmu = 2 
   nvgrid = 3 
 /
-&knobs
-  mirror_semi_lagrange = .false.
-  delt = 0.01 
-  nstep = 10
-  print_extra_info_to_terminal = .false. 
-/
-&stella_diagnostics_knobs
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
   nsave = 10
   nwrite = 1
 /
-&init_g_knobs
-  ginit_option = 'default'
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
   phiinit = 0.01
+/
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
-&dissipation
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 10
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+  mirror_semi_lagrange = .false.
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation_and_collisions_options
   hyper_dissipation = .true.
-/
-&geo_knobs
-  geo_option = 'vmec'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
 /

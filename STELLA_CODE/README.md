@@ -13,32 +13,39 @@ stellarators.
 ## Table of contents 
   * [Code](#code)
     + [stella.f90](#stellaf90)
+    + [arrays](#arrays)
     + [Calculations](#calculations)
     + [Diagnostics](#diagnostics)
     + [Dissipation](#dissipation)
-    + [Fields](#fields)
+    + [Field_equations](#field_equations)
     + [Geometry](#geometry)
     + [Grids](#grids)
     + [Gyrokinetic_terms](#gyrokinetic-terms)
     + [Neoclassical](#neoclassical)
+    + [Parallelisation](#parallelisation)
     + [Parameters](#parameters)
     + [Radial_variation](#radial-variation)
+    + [Read_namelists_from_input_file](#read-namelists-from-input-file)
 
 <br>
 
 ## Code
 
 The code is organized in the following folders:
-- calculations 
-- diagnostics  
-- dissipation  
-- fields  
-- geometry  
-- grids  
-- gyrokinetic_terms  
-- neoclassical  
-- parameters  
-- radial_variation  
+- arrays
+- calculations
+- diagnostics
+- dissipation
+- field_equations
+- geometry
+- grids
+- gyrokinetic_equation
+- neoclassical
+- parallelisation
+- parameters
+- radial_variation
+- read_namelists_from_input_file
+- init_stella.f90
 - stella.f90
 
 <br>
@@ -49,17 +56,34 @@ This is the main script.
 
 <br>
 
+### Arrays
+
+The `arrays` folder contains the following scripts:
+
+- arrays.f90
+- arrays_distribution_function.f90
+- arrays_fields.f90
+- arrays_gyro_averages.f90
+- initialise_arrays.f90
+- initialise_distribution_function.f90 
+
+<br>
+
 ### Calculations
 
 The `calculations` folder contains the following scripts:
 
-- calculations_kxky.f90  
-- dist_redistribute.f90  
-- finite_differences.f90  
-- g_tofrom_h.f90  
-- gyro_averages.f90  
-- stella_transforms.f90  
-- volume_averages.f90
+- calculations_add_explicit_terms.f90
+- calculations_checksum.f90
+- calculations_finite_differences.f90
+- calculations_gyro_averages.f90
+- calculations_kxky.f90
+- calculations_kxky_derivatives.f90
+- calculations_timestep.f90
+- calculations_tofrom_ghf.f90
+- calculations_transforms.f90
+- calculations_velocity_integrals.f90
+- calculations_volume_averages.f90
 
 <br>
 
@@ -75,42 +99,39 @@ The `diagnostics` folder contains the following scripts:
 - diagnostics_fluxes_radialvariation.f90
 - diagnostics_moments.f90
 - diagnostics_omega.f90
-- diagnostics_potential.f90 
-- stella_io.fpp
-- stella_save.fpp
+- diagnostics_potential.f90
+- diagnostics_write_radial_grid.f90
+- save_stella_for_restart.fpp
+- write_diagnostics_to_netcdf.fpp
 
 <br>
 
-
-### Dissipation  
+### Dissipation
 
 The `dissipation` folder contains the following scripts:
 
-- coll_dougherty.f90
-- coll_fokkerplanck.f90
-- dissipation.f90
-- hyper.f90
+- collisions_dougherty.f90
+- collisions_fokkerplanck.f90
+- dissipation_and_collisions.f90
+- dissipation_hyper.f90
+
+<br>
+
+### Field_equations
+
+The `field_equations` folder contains the following scripts:
+
+- field_equations.fpp
+- field_equations_collisions.fpp
+- field_equations_electromagnetic.fpp
+- field_equations_fluxtube.fpp
+- field_equations_fullfluxsurface.fpp
+- field_equations_radialvariation.fpp
 
 <br>
 
 
-### Fields  
-
-The `fields` folder contains the following scripts:
-
-- dist_fn.f90
-- fields.fpp
-- fields_collisions
-- fields_electromagnetic.fpp
-- fields_fluxtube.fpp
-- fields_fullfluxsurface.fpp
-- fields_radialvariation.fpp
-- init_g.f90
-
-<br>
-
-
-### Geometry  
+### Geometry
 
 The `geometry` folder contains the following scripts:
 
@@ -123,74 +144,99 @@ The `geometry` folder contains the following scripts:
 
 <br>
 
-
-
-### Grids  
+### Grids
 
 The `grids` folder contains the following scripts:
 
-- arrays_dist_fn.f90
-- arrays_fields.f90
-- common_types.f90
-- extended_zgrid.f90
+- grids_extended_zgrid.f90
 - grids_kxky.f90
-- species.f90
-- stella_layouts.f90
-- stella_time.f90
-- vpamu_grids.f90
-- write_radial_grid.f90
-- zgrid.f90
+- grids_species.f90
+- grids_species_from_euterpe.f90
+- grids_time.f90
+- grids_velocity.f90
+- grids_z.f90
 
 <br>
 
+### Gyrokinetic Equation
 
-### Gyrokinetic terms  
+The `gyrokinetic_equation` folder contains the following scripts:
 
-The `gyrokinetic_terms` folder contains the following scripts:
-
-- ffs_solve.f90
-- flow_shear.f90
-- implicit_solve.f90
-- mirror_terms.f90
-- parallel_streaming.f90
+- gk_drive.f90
+- gk_ffs_solve.f90
+- gk_flow_shear.f90
+- gk_implicit_terms.f90
+- gk_magnetic_drift.f90
+- gk_mirror.f90
+- gk_nonlinearity.f90
+- gk_parallel_streaming.f90
+- gyrokinetic_equation_explicit.f90
+- gyrokinetic_equation_implicit.f90
+- gyrokinetic_equation_initialisation.f90
 - response_matrix.fpp
-- sources.fpp
-- time_advance.f90
 
 <br>
 
-
-### Neoclassical  
+### Neoclassical
 
 The `neoclassical` folder contains the following scripts:
 
-- euterpe_interface.f90
 - neoclassical_terms.f90
 - sfincs_interface.fpp
 
 <br>
 
+### Parallelisation
 
-### Parameters  
+The `parallelisation` folder contains the following scripts:
+
+- common_type.f90
+- initialise_redistribute.f90
+- parallelisation_layouts.f90
+- redistribute.f90 
+- timers.f90
+
+<br>
+
+### Parameters
 
 The `parameters` folder contains the following scripts:
 
 - debug_flags.f90
-- parameters_diagnostics.f90  
-- parameters_kxky_grids_box.f90  
-- parameters_kxky_grids.f90  
-- parameters_kxky_grids_range.f90  
-- parameters_numerical.f90  
+- parameters_diagnostics.f90
+- parameters_multibox.f90
+- parameters_numerical.f90
 - parameters_physics.f90
 
 <br>
 
-### Radial variation 
+### Radial variation
 
 The `radial_variation` folder contains the following scripts:
 
+- gk_radial_variation.f90
+- gk_sources.fpp
 - multibox.f90
 
 <br>
 
+### Read Namelists from input file
 
+The `read_namelists_from_input_file` folder contains the following scripts:
+
+- default_input_file.in
+- namelist_debug.f90
+- namelist_diagnostics.f90
+- namelist_dissipation.f90
+- namelist_flow_shear.f90
+- namelist_geometry.f90
+- namelist_initialise_distribution_function.f90
+- namelist_kxky_grid.f90
+- namelist_neoclassical_input.f90
+- namelist_parameters_numerical.f90
+- namelist_parallelisation.f90
+- namelist_physics_parameters.f90
+- namelist_radial_variation.f90
+- namelist_species.f90
+- namelist_velocity_grids.f90
+- namelist_z_grid.f90

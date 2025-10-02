@@ -1,0 +1,135 @@
+
+&geo_knobs
+ geo_option = 'vmec'
+/
+&vmec_parameters
+ zeta_center = 0.0
+ vmec_filename = 'wout_w7xr003.nc'
+ torflux = 0.0625
+ nfield_periods = 7.60868
+ surface_option = 0
+ verbose=.true.
+/
+
+&physics_flags
+ include_parallel_streaming = .true.
+ nonlinear = .true.
+ full_flux_surface = .false.
+/
+&parameters
+ zeff = 1.0
+ beta = 0.0
+ rhostar = 0.0
+ vnew_ref = 0.0
+ nine = 1.0
+ tite = 1.0
+/
+&dist_fn_knobs
+ adiabatic_option="iphi00=2"
+/
+
+&kt_grids_knobs
+ grid_option='box'
+/
+&kt_grids_range_parameters
+ nalpha=1
+/
+&kt_grids_box_parameters
+ ny = 6
+ nx = 6
+ y0 = 10
+/
+&zgrid_parameters
+ nzed = 12
+ nperiod = 1
+ boundary_option = 'linked'
+ zed_equal_arc = T
+ twist_shift_option = 'stellarator'
+/
+&vpamu_grids_parameters
+ nvgrid = 12
+ nmu = 6
+ vpa_max = 3.0
+ vperp_max = 3.0
+/
+&species_knobs
+ nspec=2
+ species_option = 'stella'
+/
+&species_parameters_1
+ z=1.0
+ mass=1.0
+ dens=1.0
+ temp=1.0
+ tprim = 0.0
+ fprim = 1.5
+/
+&species_parameters_2
+ z=-1.0
+ mass=5.43867E-04
+ dens=1.0
+ temp=1.0
+ tprim = 3.0
+ fprim = 1.5
+ type='electron'
+/
+
+&stella_diagnostics_knobs
+ nwrite = 20
+ nsave = 100
+ save_for_restart = .true.
+ write_omega = .false.
+ write_kspectra = .true.
+ write_phi_vs_time = .true.
+ write_gvmus = .true.
+ write_gzvs = .true.
+ write_moments = .true.
+ flux_norm = .false.
+ write_fluxes_kxkyz = .true.
+/
+
+&init_g_knobs
+ chop_side = F
+ phiinit = 1.0
+ restart_file = "restart.nc"
+ restart_dir = "restart"
+ ginit_option = "noise"
+ width0 = 1.0
+/
+
+&knobs
+ fphi = 1.0
+ fapar = 0.0
+ fbpar = 0.0
+ delt = 0.1
+ tend = 500
+ cfl_cushion = 0.50
+ mat_read=.false.
+ mat_gen=.false.
+/
+&time_advance_knobs
+ ydriftknob = 1.0
+ xdriftknob = 1.0
+ explicit_option="rk2"
+/
+
+&dissipation
+ hyper_dissipation = .true.
+ D_hyper = 0.1
+/
+
+&layouts_knobs
+ xyzs_layout = 'yxzs'
+ vms_layout = 'vms'
+/
+
+&neoclassical_input
+ include_neoclassical_terms = .false.
+ neo_option = 'sfincs'
+ nradii = 3
+/
+&sfincs_input
+ nproc_sfincs = 2
+ nxi = 16
+ nx = 5
+/
