@@ -663,7 +663,7 @@ contains
       ! connected kx values corresponding to a unit impulse in phi at this 
       ! location now integrate over velocities to get a square response matrix.
       !
-      ! integrate_over_velocity is the operator that acts on the pdf in 
+      ! solve_field_equations_using_pdf_response is the operator that acts on the pdf in 
       ! quasineutrality. e.g. if using g for the pdf: 
       !
       !        sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]
@@ -671,7 +671,7 @@ contains
       ! and divide by the appropriate factors to get the field. 
       ! (this ends the parallelisation over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
+      call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
@@ -830,7 +830,7 @@ contains
       ! connected kx values corresponding to a unit impulse in apar at this 
       ! location now integrate over velocities to get a square response matrix.
       !
-      ! integrate_over_velocity is the operator that acts on the pdf in 
+      ! solve_field_equations_using_pdf_response is the operator that acts on the pdf in 
       ! Parallel Ampere Law. e.g. if using g for the pdf: 
       !
       !          β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
@@ -838,7 +838,7 @@ contains
       ! and divide by the appropriate factors to get the field. 
       ! (this ends the parallelisation over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
+      call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
       !                    1.D) Compute the matrix to invert                
@@ -998,7 +998,7 @@ contains
       ! connected kx values corresponding to a unit impulse in apar at this 
       ! location now integrate over velocities to get a square response matrix.
       !
-      ! integrate_over_velocity is the operator that acts on the pdf in 
+      ! solve_field_equations_using_pdf_response is the operator that acts on the pdf in 
       ! quasineutrality and perpendicular Ampere Law. e.g. if using g for the pdf: 
       !
       !           sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]
@@ -1008,7 +1008,7 @@ contains
       ! and divide by the appropriate factors to get the field. 
       ! (this ends the parallelisation over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
+      call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
       !               1.D) Compute the matrix to invert                
@@ -1046,14 +1046,18 @@ contains
    end subroutine get_response_matrix_for_bpar
 
    !============================================================================
-   !                          Perform velocity integral
+   !      Solve the field equations with the distribution function response
    !============================================================================
-   ! Perform the appropriate velocity integral for the fields: 
-   ! For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
-   ! For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-   ! For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+   ! We have the response of the distribution function from a unit impulse in the 
+   ! fields. This is incoming as <g>. We now use this and solve the field equations.
+   ! This is done in two steps:
+   ! I)  Perform the appropriate velocity integral for the fields: 
+   !     For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
+   !     For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+   !     For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+   ! II) Divide by the appropriate pre-factor in the field equations
    !============================================================================
-   subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie, nz_ext)
+   subroutine solve_field_equations_using_pdf_response(g, phi, apar, bpar, iky, ie, nz_ext)
 
       use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
@@ -1066,19 +1070,44 @@ contains
       integer, intent(in) :: iky, ie, nz_ext
 
       ! ------------------------------------------------------------------------
+      !                         I) Velocity integrals
+      ! ------------------------------------------------------------------------
+      ! For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
+      ! For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+      ! For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+      ! ------------------------------------------------------------------------
       call integrate_over_velocity_phi
-      ! ------------------------------------------------------------------------
-      !                             Electromagnetic 
-      ! ------------------------------------------------------------------------
       if (include_apar) call integrate_over_velocity_apar
       if (include_bpar) call integrate_over_velocity_bpar
+
+      ! ------------------------------------------------------------------------
+      !                  II) Divide by the appropriate prefactor
+      ! ------------------------------------------------------------------------
+      ! Call the appropriate subroutines depending on which fields are being simulated. 
+      ! 
+      ! In these routine we divide by the appropriate pre-factors that appear in the 
+      ! field equations in front of the fields. The exact factor will depend on 
+      ! which fields are being simulated (as phi and bpar are coupled), and also 
+      ! on the species options (e.g. adiabatic, modified Boltzmann etc.)
+      !
+      ! These routines cannot just be called from the field_equations modules
+      ! as we need to get the correct factor given the location on the extended 
+      ! zed grid, so much of these routines are about mapping the prefactors onto 
+      ! the extended zed domain.
+      ! ------------------------------------------------------------------------
+      if (include_bpar) then
+         call calculate_phi_and_bpar_for_response_matrix
+      else
+         call calculate_phi_for_response_matrix
+      end if
+      if (include_apar) call get_apar_for_response_matrix
       ! ------------------------------------------------------------------------
 
-      ! In order to get the correct form of the response matrix we need to first divide
-      ! by the appropriate prefactor in the fields equation. 
-      call get_fields_for_response_matrix(phi, apar, bpar, iky, ie, nz_ext)
-
    contains
+
+      !=========================================================================
+      !                          I) Velocity integrals
+      !=========================================================================
 
       !*************************************************************************
       !                       Velocity integral for phi
@@ -1121,7 +1150,7 @@ contains
          izl_offset = 0
 
          ! ---------------------------------------------------------------------
-         !                          Integrals
+         !                            Integrals
          ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
          do iseg = 1, nsegments(ie, iky)
@@ -1356,48 +1385,13 @@ contains
 
       end subroutine integrate_over_velocity_bpar
 
-   end subroutine integrate_over_velocity
 
-   !============================================================================
-   !                    Divide by appropriate field pre-factor
-   !============================================================================
-   ! This is the main option for the field solve, and calls the appropriate
-   ! subroutines depending on which fields are being simulated. 
-   ! In this routine we divide by the appropriate pre-factors that appear in the 
-   ! field equations in front of the fields. The exact factor will depend on 
-   ! which fields are being simulated (as phi and bpar are coupled), and also 
-   ! on the species options (e.g. adiabatic, modified Boltzmann etc.)
-   !
-   ! These routines cannot just be called from the field_equations modules
-   ! as we need to get the correct factor given the location on the extended 
-   ! zed grid, so much of these routines are about mapping the prefactors onto 
-   ! the extended zed domain.
-   !============================================================================
-   subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, nz_ext)
-   
-      use parameters_physics, only: include_apar, include_bpar
-   
-      implicit none
-   
-      ! Arguments
-      complex, dimension(:), intent(in out) :: phi, apar, bpar
-      integer, intent(in) :: iky, ie, nz_ext
-   
-      ! ------------------------------------------------------------------------
-   
-      if (include_bpar) then
-         call calculate_phi_and_bpar_for_response_matrix
-      else
-         call calculate_phi_for_response_matrix
-      end if
-      if (include_apar) call get_apar_for_response_matrix
-
-      ! ------------------------------------------------------------------------
-
-   contains 
+      !=========================================================================
+      !                II) Divide by the appropriate prefactor
+      !=========================================================================
 
       !*************************************************************************
-      !             Divide by the appropriate denominator for phi
+      !              Divide by the appropriate denominator for phi
       !*************************************************************************
       ! This is the case used if bpar is not included in the simulation, as the 
       ! field equations for phi and bpar are coupled. 
@@ -1716,7 +1710,7 @@ contains
 
       end subroutine get_apar_for_response_matrix
 
-   end subroutine get_fields_for_response_matrix
+   end subroutine solve_field_equations_using_pdf_response
 
    !============================================================================
    !                            Allocate zloc and idx 
