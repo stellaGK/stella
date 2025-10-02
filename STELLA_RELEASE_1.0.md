@@ -1,11 +1,11 @@
 
-The $\texttt{stella}$ code has been extensively cleaned and reorganized by **H. Thienpondt** and **G. Acton**. Numerous files have been moved, renamed, split, and streamlined. Additional comments and headers have been introduced throughout the code to enhance readability and clarity. Each folder now includes a dedicated README file providing an overview of its contents. Furthermore, new automated tests have been added to strengthen reliability.
+The $\texttt{stella}$ code has been extensively cleaned and reorganised by **H. Thienpondt** and **G. Acton**. Numerous files have been moved, renamed, split, and streamlined. Additional comments and headers have been introduced throughout the code to enhance readability and clarity. Each folder now includes a dedicated README file providing an overview of its contents. Furthermore, new automated tests have been added to strengthen reliability.
 
 ## Restructuring of the code in July 2024
 
 The cleanup of the $\texttt{stella}$ code began in July 2024. To preserve the pre-cleanup version, it was released as `stella release v0.6`. Subsequently, the electromagnetic extension was implemented and released as `stella release v0.7`, which introduced the following restructurings and improvements:
 
-- The code has been organized into subfolders:
+- The code has been organised into subfolders:
    - AUTOMATIC_TESTS
    - COMPILATION
    - DOCUMENTATION
@@ -25,7 +25,7 @@ The cleanup of the $\texttt{stella}$ code began in July 2024. To preserve the pr
       - utils
       - stella.f90
 
-- Most importantly, the main $\texttt{stella}$ code has been centralized in the "STELLA_CODE" folder and further organized into subfolders. This structure makes it easier for users to search for keywords, to locate key sections, and to focus on the core scripts.
+- Most importantly, the main $\texttt{stella}$ code has been centralised in the "STELLA_CODE" folder and further organised into subfolders. This structure makes it easier for users to search for keywords, to locate key sections, and to focus on the core scripts.
 
 - The compilation process using `make` has been fully revamped and moved to the "COMPILATION" folder, preventing compiled object files from cluttering the main code.
 
@@ -38,7 +38,7 @@ This initial cleaned version of $\texttt{stella}$ has been saved and released as
 
 The cleanup of the $\texttt{stella}$ code was resumed in the summer of 2025. Key updates include:
 
-- The input variables have been fully reorganized, with most variables and namelists renamed. 
+- The input variables have been fully reorganised, with most variables and namelists renamed. 
 
 - The main stella code within "STELLA_CODE" has been split up further into the following subfolders:
    - arrays
@@ -58,7 +58,9 @@ The cleanup of the $\texttt{stella}$ code was resumed in the summer of 2025. Key
    - init_stella.f90
    - stella.f90
    
-- Many variable and routine names have been updated to improve clarity and readability.
+- Many modules, routine and variable names have been updated to improve clarity and readability.
+
+- Many more comments have been added throughout the code to help others follow what the code is doing. 
 
 - Additional `abort` statements have been added throughout the code to prevent incorrect usage.
 
@@ -69,7 +71,7 @@ The cleanup of the $\texttt{stella}$ code was resumed in the summer of 2025. Key
 
 ### New input variables
 
-The default $\texttt{stella}$ input file can be found at:
+Many of the namelists and variable names have been changed to make them more intuitive. An up-to-date default $\texttt{stella}$ input file can be found at:
 
 ```
 STELLA_CODE/read_namelists_from_input_file/default_input_file.in
@@ -174,7 +176,7 @@ In addition, within the other scripts, code specific to the radially global vers
 
 ## Automatic tests
 
-To ensure that the stella code is functioning correctly, a suite of numerical tests has been implemented and is automatically run on every push to GitHub. These tests cover a wide range of routines and options within stella. The automatic testing infrastructure was implemented by **H. Thienpondt**, who also designed most of the tests, while the full-flux-surface tests were added by **G. Acton** and the electromagnetic tests were contributed by **M. Hardman**. The numerical tests are organized into seven categories. Tests 1–5 use the electrostatic flux-tube version of stella, while tests 6 and 7 target the full-flux-surface and electromagnetic versions, respectively.
+To ensure that the stella code is functioning correctly, a suite of numerical tests has been implemented and is automatically run on every push to GitHub. These tests cover a wide range of routines and options within stella. The automatic testing infrastructure was implemented by **H. Thienpondt**, who also designed most of the tests, while the full-flux-surface tests were added by **G. Acton** and the electromagnetic tests were contributed by **M. Hardman**. The numerical tests are organised into seven categories. Tests 1–5 use the electrostatic flux-tube version of stella, while tests 6 and 7 target the full-flux-surface and electromagnetic versions, respectively.
 
 - **Test 1**: Confirms that the stella executable exists and that stella runs correctly by
 checking that the executable produces output files.
@@ -182,7 +184,7 @@ checking that the executable produces output files.
 geometries based on Miller parameters, VMEC equilibria, and slab geometry.
 - **Test 3**: Checks each term of the gyrokinetic equation independently. It confirms that
 the electrostatic potential remains constant when no terms (nor collisions or dissipation)
-are included; validates the initialization options for the distribution function, and verifies
+are included; validates the initialsation options for the distribution function, and verifies
 the correct evolution of the potential for each term. The (kx , ky ) grid options (“box” and
 “range”) are also tested.
 - **Test 4**: Tests the parallel boundary conditions: (1) standard twist-and-shift, (2) stellarator-
@@ -229,11 +231,12 @@ cd AUTOMATIC_TESTS/numerical_tests/
 - Broadcast the phase shift (it was only defined on one processor).
 - The `theta0` grid was badly defined when using the "range" mode when selecting a range in both kx and ky. This lead to issues in `kperp2` and the Bessel functions.
 - Restarted simulations were off by 1 time step.
+- The boundary conditions in the response_matrix were not being dealt with carefully for the periodic eigenchains - this has been resolved. 
 
 ## Contributors
 
-- **H. Thienpondt** – Code cleanup, restructuring, input reorganization, automatic testing framework, and extensive commenting within the code and documentation, including README files.
-- **G. Acton** – Code cleanup, restructuring, input reorganization, and extensive commenting within the code and documentation, including README files.
+- **H. Thienpondt** – Code cleanup, restructuring, input reorgansation, automatic testing framework, and extensive commenting within the code and documentation, including README files.
+- **G. Acton** – Code cleanup, restructuring, input reorganisation, and extensive commenting within the code and documentation, including README files.
 
 
 
