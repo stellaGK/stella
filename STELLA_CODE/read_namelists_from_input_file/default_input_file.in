@@ -60,7 +60,6 @@
   overwrite_B_times_gradB_dot_gradx = .false.
   overwrite_gds23 = .false.
   overwrite_gds24 = .false.
-  set_bmag_const = .false.
 /
 
 !===============================================================================

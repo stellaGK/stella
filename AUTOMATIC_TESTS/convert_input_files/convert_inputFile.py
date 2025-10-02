@@ -60,7 +60,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'geo_knobs:overwrite_gbdrift0:False'        : 'geometry_from_txt:overwrite_B_times_gradB_dot_gradx:False',
         'geo_knobs:overwrite_gds23:False'           : 'geometry_from_txt:overwrite_gds23:False',
         'geo_knobs:overwrite_gds24:False'           : 'geometry_from_txt:overwrite_gds24:False',
-        'geo_knobs:set_bmag_const:False'            : 'geometry_from_txt:set_bmag_const:False',
+        'geo_knobs:set_bmag_const:False'            : 'geometry_from_txt:set_bmag_const:DEPRECATED',
         'geo_knobs:geo_file:input.geometry'         : 'geometry_from_txt:geometry_file:input.geometry',
         #------------------- vmec_parameters --> geometry_vmec ------------------
         'vmec_parameters:vmec_filename:wout*.nc'    : 'geometry_vmec:vmec_filename:wout*.nc',

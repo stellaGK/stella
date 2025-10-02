@@ -273,6 +273,8 @@ if (STELLA_ENABLE_DOUBLE)
       -fdefault-real-8 -fdefault-double-8 >
     $<$<Fortran_COMPILER_ID:Intel>:
       -r8 >
+    $<$<Fortran_COMPILER_ID:IntelLLVM>:
+      -r8 >
     $<$<Fortran_COMPILER_ID:Cray>:
       -s real64 >
     )
@@ -299,9 +301,10 @@ target_link_libraries(libstella PUBLIC fortran_git::fortran_git)
 target_compile_definitions(libstella PRIVATE
   $<$<Fortran_COMPILER_ID:GNU>:FCOMPILER=_GFORTRAN_>
   $<$<Fortran_COMPILER_ID:Intel>:FCOMPILER=_INTEL_>
+  $<$<Fortran_COMPILER_ID:IntelLLVM>:FCOMPILER=_INTEL_>
   $<$<Fortran_COMPILER_ID:Cray>:FCOMPILER=_CRAY_>
   )
-  
+
 
 # Find hdf5 packages (their CMake file needs the C language)
 # These lines are only needed for Mac systems on Github since January 2025
@@ -320,6 +323,8 @@ target_compile_options(libstella PRIVATE
       -g -Wall -fimplicit-none -fbounds-check >
     $<$<Fortran_COMPILER_ID:Intel>:
       -g -implicitnone -warn all -nogen-interfaces -CB -traceback >
+    $<$<Fortran_COMPILER_ID:IntelLLVM>:
+      -g -warn all -CB -traceback >
     $<$<Fortran_COMPILER_ID:Cray>:
       -g -Rb >
     >
