@@ -276,11 +276,11 @@ def compare_local_potential_with_expected_potential(local_netcdf_file='', expect
         expected_phi2 = expected_netcdf['phi2'] 
                      
         # Check whether we have the same time and potential data
-        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+        if not (np.allclose(local_time, expected_time, equal_nan=True, rtol=1e-05, atol=1e-20)):
             print('\nERROR: The time axis does not match in the netCDF files.'); error = True
             print('\nCompare the time arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_time, expected_time)  
-        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True, rtol=1e-05, atol=1e-20)):
             print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
