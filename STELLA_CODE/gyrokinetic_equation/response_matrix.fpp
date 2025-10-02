@@ -673,8 +673,10 @@ contains
       !-------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
       !-------------------------------------------------------------------------
-      ! The matrix to invert is just simply the output from the routine above
-      ! so just fill in the response matrix with these values.
+      ! The response matrix is the output from <get_fields_for_response_matrix>.
+      ! We then just need to compute the matrix that is to be inverted in 
+      ! parallel streaming. 
+
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
@@ -682,10 +684,9 @@ contains
          if (include_apar) offset_apar = nresponse
          if (include_bpar) offset_bpar = offset_apar + nresponse
          
-         dist = 'g' 
          ! In order to get the correct form of the response matrix we need to first divide
          ! by the appropriate prefactor in the fields equation. 
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -841,8 +842,10 @@ contains
       !-------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
       !-------------------------------------------------------------------------
-      ! The matrix to invert is just simply the output from the routine above
-      ! so just fill in the response matrix with these values. 
+      ! The response matrix is the output from <get_fields_for_response_matrix>.
+      ! We then just need to compute the matrix that is to be inverted in 
+      ! parallel streaming. 
+
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
@@ -850,11 +853,10 @@ contains
          if (include_apar) offset_apar = nresponse
          if (include_bpar) offset_bpar = offset_apar + nresponse
 
-         dist = 'g' 
          ! In order to get the correct form of the response matrix we need to first divide
          ! by the appropriate prefactor in the fields equation. 
          ! This accounts for terms appearing both in quasineutrality and parallel ampere
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -1011,9 +1013,9 @@ contains
       !-------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
       !-------------------------------------------------------------------------
-      ! The matrix to invert is just simply the output from the routine above
-      ! so just fill in the response matrix with these values. 
-      ! Note that phi_ext = 0.0 and bpar_ext = 0.0 below
+      ! The response matrix is the output from <get_fields_for_response_matrix>.
+      ! We then just need to compute the matrix that is to be inverted in 
+      ! parallel streaming. 
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
@@ -1022,12 +1024,11 @@ contains
          offset_apar = 0
          if (include_apar) offset_apar = nresponse
          if (include_bpar) offset_bpar = offset_apar + nresponse
-         dist = 'g' 
 
          ! In order to get the correct form of the response matrix we need to first divide
          ! by the appropriate prefactor in the fields equation. 
          ! This accounts for terms appearing both in quasineutrality and parallel ampere
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -1403,8 +1404,13 @@ contains
    ! field equations in front of the fields. The exact factor will depend on 
    ! which fields are being simulated (as phi and bpar are coupled), and also 
    ! on the species options (e.g. adiabatic, modified Boltzmann etc.)
+   !
+   ! These routines cannot just be called from the field_equations modules
+   ! as we need to get the correct factor given the location on the extended 
+   ! zed grid, so much of these routines are about mapping the prefactors onto 
+   ! the extended zed domain.
    !============================================================================
-   subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
+   subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie)
    
       use parameters_physics, only: include_apar, include_bpar
    
@@ -1425,7 +1431,7 @@ contains
       if (include_apar) call get_apar_for_response_matrix
 
       !-------------------------------------------------------------------------
-      
+
    contains 
 
       !*************************************************************************
@@ -1459,35 +1465,39 @@ contains
 
          !----------------------------------------------------------------------
 
-         ia = 1
 
          allocate (gamma_fac(-nzgrid:nzgrid))
 
+         ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
+         ! <ikx> value on the local domain given our position on the extended domain.
+         ia = 1
          idx = 0; izl_offset = 0
          iseg = 1
          ikx = ikxmod(iseg, ie, iky)
-         if (dist == 'h') then
-            gamma_fac = denominator_fields_h
-         else
-            gamma_fac = denominator_fields(iky, ikx, :)
-         end if
+
+         ! For this value of ky, kx, store the denominate from the fields equation
+         ! for this first segment. 
+         gamma_fac = denominator_fields(iky, ikx, :)
+
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             phi(:) = 0.0
             return
          end if
+
+         ! Divide by the correct factor for this first segment
          do iz = iz_low(iseg), iz_up(iseg)
             idx = idx + 1
             phi(idx) = phi(idx) / gamma_fac(iz)
          end do
+
+         ! Now do exactly the same for all remaining segments. 
          izl_offset = 1
          if (nsegments(ie, iky) > 1) then
             do iseg = 2, nsegments(ie, iky)
                ikx = ikxmod(iseg, ie, iky)
-               if (dist == 'h') then
-                  gamma_fac = denominator_fields_h
-               else
-                  gamma_fac = denominator_fields(iky, ikx, :)
-               end if
+
+               gamma_fac = denominator_fields(iky, ikx, :)
+
                do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                   idx = idx + 1
                   phi(idx) = phi(idx) / gamma_fac(iz)
@@ -1497,16 +1507,11 @@ contains
          end if
 
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-            
             ! No connections for ky = 0
             if (zonal_mode(iky)) then
                iseg = 1
                tmp = sum(dl_over_b(ia, :) * phi)
-               if (dist == 'h') then
-                  phi = phi + tmp * denominator_fields_MBR_h
-               else
-                  phi = phi + tmp * denominator_fields_MBR(ikxmod(1, ie, iky), :)
-               end if
+               phi = phi + tmp * denominator_fields_MBR(ikxmod(1, ie, iky), :)
             end if
          end if
 
@@ -1555,22 +1560,18 @@ contains
          idx = 0; izl_offset = 0
          iseg = 1
          ikx = ikxmod(iseg, ie, iky)
-         if (dist == 'h') then
-            gammainv11 = 1.0/denominator_fields_h
-            gammainv13 = 0.0
-            gammainv31 = 0.0
-            gammainv33 = 1.0
-         else
-            gammainv11 = denominator_fields_inv11(iky, ikx, :)
-            gammainv13 = denominator_fields_inv13(iky, ikx, :)
-            gammainv31 = denominator_fields_inv31(iky, ikx, :)
-            gammainv33 = denominator_fields_inv33(iky, ikx, :)
-         end if
+
+         gammainv11 = denominator_fields_inv11(iky, ikx, :)
+         gammainv13 = denominator_fields_inv13(iky, ikx, :)
+         gammainv31 = denominator_fields_inv31(iky, ikx, :)
+         gammainv33 = denominator_fields_inv33(iky, ikx, :)
+
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             phi(:) = 0.0
             bpar(:) = 0.0
             return
          end if
+
          do iz = iz_low(iseg), iz_up(iseg)
             idx = idx + 1
             antot1 = phi(idx)
@@ -1578,21 +1579,17 @@ contains
             phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
             bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
          end do
+
          izl_offset = 1
          if (nsegments(ie, iky) > 1) then
             do iseg = 2, nsegments(ie, iky)
                ikx = ikxmod(iseg, ie, iky)
-               if (dist == 'h') then
-                  gammainv11 = 1.0/denominator_fields_h
-                  gammainv13 = 0.0
-                  gammainv31 = 0.0
-                  gammainv33 = 1.0
-               else
-                  gammainv11 = denominator_fields_inv11(iky, ikx, :)
-                  gammainv13 = denominator_fields_inv13(iky, ikx, :)
-                  gammainv31 = denominator_fields_inv31(iky, ikx, :)
-                  gammainv33 = denominator_fields_inv33(iky, ikx, :)
-               end if
+
+               gammainv11 = denominator_fields_inv11(iky, ikx, :)
+               gammainv13 = denominator_fields_inv13(iky, ikx, :)
+               gammainv31 = denominator_fields_inv31(iky, ikx, :)
+               gammainv33 = denominator_fields_inv33(iky, ikx, :)
+
                do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                   idx = idx + 1
                   antot1 = phi(idx)
@@ -1645,11 +1642,9 @@ contains
          idx = 0; izl_offset = 0
          iseg = 1
          ikx = ikxmod(iseg, ie, iky)
-         if (dist == 'g') then
-            denominator = kperp2(iky, ikx, ia, :)
-         else if (dist == 'gbar') then
-            denominator = apar_denom(iky, ikx, :)
-         end if
+
+         denominator = kperp2(iky, ikx, ia, :)
+
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             apar(:) = 0.0
             return
@@ -1658,15 +1653,13 @@ contains
             idx = idx + 1
             apar(idx) = apar(idx) / denominator(iz)
          end do
+
          izl_offset = 1
          if (nsegments(ie, iky) > 1) then
             do iseg = 2, nsegments(ie, iky)
                ikx = ikxmod(iseg, ie, iky)
-               if (dist == 'g') then
-                  denominator = kperp2(iky, ikx, ia, :)
-               elseif (dist == 'gbar') then
-                  denominator = apar_denom(iky, ikx, :)
-               end if
+               denominator = kperp2(iky, ikx, ia, :)
+
                do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                   idx = idx + 1
                   apar(idx) = apar(idx) / denominator(iz)
