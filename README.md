@@ -216,7 +216,7 @@ It is the responsibility of the respective authors to list their contributions t
 
 - The electrostatic flux-tube version of the $\texttt{stella}$ gyrokinetic code has been developed by M. Barnes in 2018. The details of the code can be found in [[2019 - Barnes - Journal of Computational Physics](https://doi.org/10.1016/j.jcp.2019.01.025)].
 - The "parallel nonlinearity" term has been added to the gyrokinetic equation by M. Barnes in 2018, as detailed in [[2018 - Barnes - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aaeb69)].
-- A Linearised Fokker--Planck collision model has been implemented by A. von Boetticher in August 2021, as detailed in [[2024 - A. von Boetticher - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/ad6c7c)].
+- A Linearised Fokker-Planck collision model has been implemented by A. von Boetticher in August 2021, as detailed in [[2024 - A. von Boetticher - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/ad6c7c)].
 - Stellarator-symmetric parallel boundary conditions have been implemented by A. González-Jerez in November 2021, based on [[2018 - Martin - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aad38a)].
 - The radially global version of the $\texttt{stella}$ code has been developed by D. A. St-Onge in 2022, as detailed in [[2022 - D. A. St-Onge - Journal of Computational Physics](https://doi.org/10.1016/j.jcp.2022.111498)]. This paper used [stella release 0.5.1](https://github.com/stellaGK/stella/releases/tag/v0.5.1).
 - The electromagnetic extension of the $\texttt{stella}$ code has been implemented by M. Hardman in July 2024, with the help of G. Acton, M. Barnes and R. Davies.
@@ -234,5 +234,19 @@ It is the responsibility of the respective authors to list their contributions t
 - The automatic testing infrastructure has been implemented by H. Thienpondt in July 2024.
 - The $\texttt{stella}$ code has been reorganized and cleaned up by H. Thienpondt and G. Acton in October 2025.
 
+### Diagnostics
 
+- Expanded the `gvmu` and `gvpas` diagnostics to print various diagnostics related to the distribution function, i.e. `|g|^2(t, mu, vpa, s)`; `|g|^2(t, z, vpa, s)`; `|g|^2(t, z, mu, s)`; `|g|^2(t, kx, ky, z, s)` and `|g|^2(t, z, vpa, mu, s)`, as well as their non-zonal components. Moreover, these diagnostics can be written for the perturbed distribution function $f$, the gyro-averaged distribution function $g$ and the non-adiabatic part of the distribution function $h$ (H. Thienpondt, July 2024).
+
+### Small features
+
+- Print GitHub commit number, brach and date to the NetCDF file and header (H. Thienpondt and P. Hill, January 2022).
+- Add more detailed code timers to the code (H. Thienpondt, January 2022).
+- Improved the writing of the diagnostics to the NetCDF file using `neasyf` (P. Hill, May 2022).
+- The CFL condition is now capable of increasing the time step as well, which is controlled by `cfl_cushion_upper`, `cfl_cushion_middle` and `cfl_cushion_lower` (H. Thienpondt, March 2023).
+- Automatically stop linear simulations if `(gamma, omega)` has saturated. This is controlled by the `autostop` and `navg` input variables (H. Thienpondt, September 2024).
+
+### Bug fixes
+
+- September 2024: Unmasked the omega data in the NetCDF file (H. Thienpondt).
 
