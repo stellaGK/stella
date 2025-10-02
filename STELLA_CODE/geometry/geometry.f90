@@ -156,11 +156,7 @@ module geometry
    character(100) :: geometry_file
   
    ! Only initialise once
-   logical :: initialised_geometry = .false.
-   
-   ! Debug options
-   logical :: set_bmag_const
-   
+   logical :: initialised_geometry = .false.   
 
 contains
 
@@ -213,7 +209,7 @@ contains
             call read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, overwrite_b_dot_gradzeta, &
                overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
                overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
-               overwrite_B_times_gradB_dot_gradx, set_bmag_const, overwrite_geometry)
+               overwrite_B_times_gradB_dot_gradx, overwrite_geometry)
          end if
 
          ! Use Miller parameters or VMEC to get the geometry needed for stella
@@ -328,19 +324,6 @@ contains
       end select
 
       if (proc0) call write_geometric_coefficients(nalpha)
-
-      ! AVB: temporary, set bmag = constant in z for Spitzer problem
-      if (set_bmag_const) then
-         bmag_z0 = bmag(1, 0)
-         print *, ''
-         print *, '! SETTING BMAG = CONSTANT IN Z'
-         print *, ''
-         do ia = 1, nalpha
-            do iz = -nzgrid, nzgrid
-               bmag(ia, iz) = bmag_z0
-            end do
-         end do
-      end if
       
       ! Deallocate the local arrays within the Miller module
       call finish_init_geometry
@@ -1081,7 +1064,6 @@ contains
 
       ! Flags
       call broadcast(q_as_x)
-      call broadcast(set_bmag_const)
 
       ! Switch between coordinates
       call broadcast(clebsch_factor)

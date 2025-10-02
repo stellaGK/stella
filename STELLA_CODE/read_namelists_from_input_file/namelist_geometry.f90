@@ -55,7 +55,6 @@
 !     overwrite_B_times_gradB_dot_grady = .false.
 !     overwrite_B_times_kappa_dot_grady = .false.
 !     overwrite_B_times_gradB_dot_gradx = .false.
-!     set_bmag_const = .false.
 ! 
 ! Text options for <geometry_option>:
 !    - miller: {default, miller, local}
@@ -243,7 +242,7 @@ contains
    subroutine read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, &
       overwrite_b_dot_gradzeta, overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, &
       overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
-      overwrite_B_times_gradB_dot_gradx, set_bmag_const, overwrite_geometry)
+      overwrite_B_times_gradB_dot_gradx, overwrite_geometry)
 
       use mp, only: proc0
 
@@ -254,7 +253,7 @@ contains
       logical, intent (out) :: overwrite_bmag, overwrite_b_dot_gradzeta, &
          overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, &
          overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady, &
-         overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_gradx, set_bmag_const
+         overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_gradx
       logical, intent (out) :: overwrite_geometry
 
       !-------------------------------------------------------------------------
@@ -283,7 +282,6 @@ contains
          overwrite_B_times_gradB_dot_grady = .false.
          overwrite_B_times_kappa_dot_grady = .false.
          overwrite_B_times_gradB_dot_gradx = .false.
-         set_bmag_const = .false.
          overwrite_geometry = .false.
 
      end subroutine set_default_geometry_from_txt
@@ -299,7 +297,7 @@ contains
          namelist /geometry_from_txt/ geometry_file, &
             overwrite_bmag, overwrite_b_dot_gradzeta, overwrite_grady_dot_grady, &
             overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
-            overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_grady, overwrite_B_times_gradB_dot_gradx, set_bmag_const
+            overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_grady, overwrite_B_times_gradB_dot_gradx
 
          !----------------------------------------------------------------------
 
@@ -343,7 +341,6 @@ contains
          write (unit, '(A, L0)') '  overwrite_B_times_kappa_dot_grady = ', overwrite_B_times_kappa_dot_grady
          write (unit, '(A, L0)') '  overwrite_B_times_gradB_dot_grady = ', overwrite_B_times_gradB_dot_grady
          write (unit, '(A, L0)') '  overwrite_B_times_gradB_dot_gradx = ', overwrite_B_times_gradB_dot_gradx
-         write (unit, '(A, L0)') '  set_bmag_const = ', set_bmag_const
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
