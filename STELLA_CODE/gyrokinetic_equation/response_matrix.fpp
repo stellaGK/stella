@@ -5,6 +5,7 @@
 ! This module computes the response matrix for inverting the parallel streaming
 ! operator when parallel_streaming is treated implicitly.
 ! 
+! 
 !###############################################################################
 module response_matrix
 
@@ -43,7 +44,7 @@ contains
 !###############################################################################
 
    !============================================================================
-   !            Main Routine Called to Initialise the Response Matrix           
+   !            Main routine called to initialise the response matrix           
    !============================================================================
    subroutine init_response_matrix
 
@@ -65,11 +66,12 @@ contains
       integer :: ierr
 #endif
 
-      !-------------------------------------------------------------------------
-
+      ! ------------------------------------------------------------------------
+      !              Set up memory and timings for response matrix              
+      ! ------------------------------------------------------------------------
       ! Debug message -> print to terminal
       if (debug) call write_response_matrix_message (1)
-
+s
       ! Set up response matrix utils
       call setup_response_matrix_timings
       call setup_response_matrix_file_io
@@ -80,19 +82,23 @@ contains
 
       ! Allocate response matrix
       if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
-
+      
 #ifdef ISO_C_BINDING
       call setup_shared_memory_window
 #endif
-
-      ! Construct the response matrix -> This is the main routine for 
-      ! initialising the response matrix, where all the calculations are done.
+      ! ------------------------------------------------------------------------
+      !                      Construct the response matrix                      
+      ! ------------------------------------------------------------------------
+      ! This is the main routine for computing the response matrix, where all
+      ! the calculations are done.
       call construct_response_matrix
 
+      ! ------------------------------------------------------------------------
+      !                         Close the initialisation                        
+      ! ------------------------------------------------------------------------
 #ifdef ISO_C_BINDING
       call mpi_win_fence(0, response_window, ierr)
 #endif
-
       ! Write the response matrix to an output file
       if (proc0 .and. mat_gen) then
          close (unit=unit_response_matrix)
@@ -100,6 +106,9 @@ contains
 
       ! End debug message -> print to terminal
       if (debug) call write_response_matrix_message (2)
+      ! ------------------------------------------------------------------------
+
+#ifdef ISO_C_BINDING
 
    end subroutine init_response_matrix
 
@@ -129,6 +138,7 @@ contains
    !                      response matrix
    ! *_lu              -> computational timing associated with LU-decomposing
    !                      the respoinse matrix
+   !============================================================================
    subroutine setup_response_matrix_timings
 
       implicit none
@@ -157,7 +167,7 @@ contains
       character(len=15) :: job_str
       character(len=100) :: file_name
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! All matrices handled by processor i_proc and job are stored
       ! on a single file named: response_mat_job.iproc
@@ -199,7 +209,7 @@ contains
       integer :: iky, ie
       integer :: nresponse
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       if (response_window == MPI_WIN_NULL) then
          win_size = 0
@@ -288,8 +298,8 @@ contains
       integer :: ierr
 #endif
 
-      !-------------------------------------------------------------------------
-
+      ! ------------------------------------------------------------------------
+      ! Loop over all ky modes, as these are all independent of one another. 
       do iky = 1, naky
 
          if (proc0 .and. mat_gen) then
@@ -312,10 +322,10 @@ contains
          ! ---------------------------------------------------------------------
          !                   Parallelisation + debug messages
          ! ---------------------------------------------------------------------
-         ! This ends parallelisation over velocity space.
-         ! At this point every processor has int dv dgdphi for a given ky
-         ! and so the quasineutrality solve and LU decomposition can be
-         ! parallelised locally if need be.
+         ! This ends parallelisation over velocity space. At this point every
+         ! processor has the response matrix for a given ky and so the LU
+         ! decomposition can be parallelised locally if need be.
+         ! 
          ! This is preferable to parallelisation over ky as the LU
          ! decomposition (and perhaps QN) will be dominated by the
          ! ky with the most connections -- (DSO)
@@ -408,15 +418,15 @@ contains
       complex, dimension(:, :), allocatable :: gext
       complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! Loop over the independent chains for a given ky value  <neigen> is an
       ! integer that depends on ky, as different ky modes will have a different
       ! number of eigen chains.
       do ie = 1, neigen(iky)
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !              Set up system to compute response of the pdf
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! <nz_ext> is the dimension of the extended zed domain, i.e.,
          ! <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
          ! <nzed_segment> = (number of zeds)
@@ -465,11 +475,11 @@ contains
          allocate (bpar_ext(nz_ext)); bpar_ext = 0.0
          allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gext = 0.0
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !              Get Response of the pdf to unit impulses
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Steps 1.A), 1.B), 1.C) and 1.D) occur below
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
          ! <idx> here is the index in the extended zed domain that we are giving
          ! a unit impulse to.
@@ -522,7 +532,7 @@ contains
          end do
 
          deallocate (gext, phi_ext, apar_ext, bpar_ext)
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
       end do
 
    end subroutine calculate_vspace_integrated_response
@@ -592,9 +602,9 @@ contains
       integer :: offset_apar, offset_bpar
       character(5) :: dist
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !                    1.A) Initialise a unit impulse in phi
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! Provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
       ! note that it is sufficient to give a unit real impulse (as opposed to
@@ -624,9 +634,9 @@ contains
       ! coming from the previous time step in the response matrix equation.
       allocate (dum(nz_ext)); dum = 0.0
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !      1.B) Get distribution function response to unit impulse in phi
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! Set the flux tube index to one - eed to check, but think this is okay as 
       ! the homogeneous equation solved here for the response matrix construction 
@@ -647,9 +657,9 @@ contains
 
       deallocate (dum)
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !          1.C) Integrate over velocity to get the matrix to invert
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in phi at this 
       ! location now integrate over velocities to get a square response matrix.
@@ -663,9 +673,9 @@ contains
       ! copy of phi_ext)
       call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
       ! We then just need to compute the matrix that is to be inverted in 
       ! parallel streaming. 
@@ -698,7 +708,7 @@ contains
 #ifdef ISO_C_BINDING
       end if
 #endif
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
    end subroutine get_dpdf_dphi_matrix_column
 
@@ -766,9 +776,9 @@ contains
       integer :: offset_apar, offset_bpar
       character(5) :: dist
       
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !                   1.A) Initialise a unit impulse in apar
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! Provide a unit impulse to apar^{n+1} (or Delta apar^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
       ! note that it is sufficient to give a unit real impulse (as opposed to
@@ -793,9 +803,9 @@ contains
       ! coming from the previous time step in the response matrix equation.
       allocate (dum(nz_ext)); dum = 0.0
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !      1.B) Get distribution function response to unit impulse in apar
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! Set the flux tube index to one - eed to check, but think this is okay as 
       ! the homogeneous equation solved here for the response matrix construction 
@@ -816,9 +826,9 @@ contains
 
       deallocate (dum)
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !          1.C) Integrate over velocity to get the matrix to invert
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in apar at this 
       ! location now integrate over velocities to get a square response matrix.
@@ -832,9 +842,9 @@ contains
       ! copy of phi_ext)
       call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
       ! We then just need to compute the matrix that is to be inverted in 
       ! parallel streaming. 
@@ -935,9 +945,9 @@ contains
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
       character(5) :: dist
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !                  1.A) Initialise a unit impulse in bpar
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! Provide a unit impulse to bpar^{n+1} (or Delta bpar^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
       ! note that it is sufficient to give a unit real impulse (as opposed to
@@ -964,9 +974,9 @@ contains
       ! coming from the previous time step in the response matrix equation.
       allocate (dum(nz_ext)); dum = 0.0
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !      1.B) Get distribution function response to unit impulse in bpar
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! Set the flux tube index to one - eed to check, but think this is okay as 
       ! the homogeneous equation solved here for the response matrix construction 
@@ -987,9 +997,9 @@ contains
 
       deallocate (dum)
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !         1.C) Integrate over velocity to get the matrix to invert
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in apar at this 
       ! location now integrate over velocities to get a square response matrix.
@@ -1003,9 +1013,9 @@ contains
       ! copy of phi_ext)
       call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !               1.D) Compute the response matrix to invert                
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
       ! We then just need to compute the matrix that is to be inverted in 
       ! parallel streaming. 
@@ -1063,14 +1073,14 @@ contains
       complex, dimension(:), intent(out) :: phi, apar, bpar
       integer, intent(in) :: iky, ie
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       call integrate_over_velocity_phi
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       !                             Electromagnetic 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       if (include_apar) call integrate_over_velocity_apar
       if (include_bpar) call integrate_over_velocity_bpar
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
    contains
 
@@ -1105,7 +1115,7 @@ contains
          complex, dimension(:), allocatable :: g0
          integer :: ivmu, imu, iv, is
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          phi = 0.
          wgt = spec%z * spec%dens_psi0
@@ -1114,9 +1124,9 @@ contains
          idx = 0
          izl_offset = 0
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                          Integrals
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
          do iseg = 1, nsegments(ie, iky)
 
@@ -1140,18 +1150,18 @@ contains
             do iz = iz_low(iseg) + izl_offset, izup
                idx = idx + 1
                if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
-                  !-------------------------------------------------------------
+                  ! ------------------------------------------------------------
                   !                          Flux tube
-                  !-------------------------------------------------------------
+                  ! ------------------------------------------------------------
                   ! First get J0 * g
                   call gyro_average(g(idx, :), iky, ikx, iz, g0)
                   ! Now integrate over vpa, mu and sum over species.
                   ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
                   call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
                else
-                  !-------------------------------------------------------------
+                  ! ------------------------------------------------------------
                   !                     Full Flux Surface
-                  !-------------------------------------------------------------
+                  ! ------------------------------------------------------------
                   ! First multiply by B and gyroaverage, but use the piece that
                   ! is constant in alpha. This is because for FFS the response
                   ! matrix only treats the part that is constant in alpha,
@@ -1167,17 +1177,17 @@ contains
                   !              2B/sqrt(π) int dvpa int dmu J_0 * g
                   call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
                end if
-               !----------------------------------------------------------------
+               ! ---------------------------------------------------------------
             end do
             ! Set the offset to 1 - all other connected segments need to start one point
             ! displaced as they share a point with the previous segment. 
             if (izl_offset == 0) izl_offset = 1
          end do
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Collect the parts of <phi> spread out across processors. 
          call sum_allreduce(phi)
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
       end subroutine integrate_over_velocity_phi
 
@@ -1209,7 +1219,7 @@ contains
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
          allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          apar = 0.
@@ -1219,9 +1229,9 @@ contains
          idx = 0
          izl_offset = 0
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                             Integrals
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
          do iseg = 1, nsegments(ie, iky)
             
@@ -1260,10 +1270,10 @@ contains
             if (izl_offset == 0) izl_offset = 1
          end do
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Collect the parts of <apar> spread out across processors. 
          call sum_allreduce(apar)
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
       end subroutine integrate_over_velocity_apar
 
@@ -1294,7 +1304,7 @@ contains
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          bpar = 0.
          wgt = -2.0 * beta * spec%temp_psi0 * spec%dens_psi0
@@ -1302,9 +1312,9 @@ contains
          ia = 1
          idx = 0
          izl_offset = 0
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                          Integrals
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
          do iseg = 1, nsegments(ie, iky)
             ! Make sure the boundary points are being treated correctly depending
@@ -1343,10 +1353,10 @@ contains
             if (izl_offset == 0) izl_offset = 1
          end do
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Collect the parts of <bpar> spread out across processors. 
          call sum_allreduce(bpar)
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
       end subroutine integrate_over_velocity_bpar
 
@@ -1377,7 +1387,7 @@ contains
       complex, dimension(:), intent(in out) :: phi, apar, bpar
       integer, intent(in) :: iky, ie, nz_ext
    
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
    
       if (include_bpar) then
          call calculate_phi_and_bpar_for_response_matrix
@@ -1386,7 +1396,7 @@ contains
       end if
       if (include_apar) call get_apar_for_response_matrix
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
    contains 
 
@@ -1420,7 +1430,7 @@ contains
          complex :: tmp
          real, dimension(:), allocatable :: denominator_seg
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
          ia = 1
          idx = 0
@@ -1428,9 +1438,9 @@ contains
          
          allocate (denominator_seg(-nzgrid:nzgrid))
          
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                             iky = ikx = 0 mode
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this
          ! mode and make sure it is set to zero.
 
@@ -1443,9 +1453,9 @@ contains
             return
          end if
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                      Divide by correct field factor
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain. 
          do iseg = 1, nsegments(ie, iky)
             ! Make sure the boundary points are being treated correctly depending
@@ -1483,9 +1493,9 @@ contains
 
          end do
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                           Adiabatic electrons
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! If using adiabatic electrons, or the modified Boltzmann response
          ! then we need to modify the denominator appropriately. 
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -1532,7 +1542,7 @@ contains
          complex :: antot1, antot3
          real, dimension(:), allocatable :: gammainv11, gammainv13, gammainv31, gammainv33
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
          ia = 1
 
@@ -1544,9 +1554,9 @@ contains
          idx = 0
          izl_offset = 0
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                             iky = ikx = 0 mode
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this
          ! mode and make sure it is set to zero.
 
@@ -1560,9 +1570,9 @@ contains
             return
          end if
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                      Divide by correct field factor
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain. 
          do iseg = 1, nsegments(ie, iky)
             ! Make sure the boundary points are being treated correctly depending
@@ -1607,9 +1617,9 @@ contains
             if (izl_offset == 0) izl_offset = 1
          end do
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                           Adiabatic electrons
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! If using adiabatic electrons, or the modified Boltzmann response
          ! then we need to modify the denominator appropriately. 
          if (.not. has_electron_species(spec) .and. &
@@ -1645,16 +1655,16 @@ contains
          integer :: izl_offset, izup
          real, dimension(:), allocatable :: denominator
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
 
          ia = 1
          idx = 0
          izl_offset = 0
 
          allocate (denominator(-nzgrid:nzgrid))
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                             iky = ikx = 0 mode
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this
          ! mode and make sure it is set to zero.
 
@@ -1667,9 +1677,9 @@ contains
             return
          end if
 
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          !                      Divide by correct field factor
-         !----------------------------------------------------------------------
+         ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain. 
          do iseg = 1, nsegments(ie, iky)
             ! Make sure the boundary points are being treated correctly depending
@@ -1750,11 +1760,11 @@ contains
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! Exploit MPIs shared memory framework to reduce memory consumption 
       ! of the response matrices by mapping existing memory blocks instead 
       ! of allocating separately on each process.
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! Associate zloc (a 2D response matrix) if not already connected
       if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
@@ -1780,10 +1790,10 @@ contains
          cur_pos = cur_pos + nresponse * 4
       end if
 #else
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! If ISO_C_BINDING is not available:
       ! Allocate arrays normally in Fortran
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
       ! For each ky and set of connected kx values, so we must have a response
       ! matrix that is N x N , with N = number of zeds per 2pi segment x number 
       ! of 2pi segments
@@ -1833,7 +1843,7 @@ contains
       integer :: ie
       real :: dum
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! Now we have the full response matrix. Finally, perform its LU decomposition
       select case (lu_option_switch)
@@ -1906,7 +1916,7 @@ contains
       integer :: disp_unit = 1
       real :: dmax
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       prior_focus = curr_focus
 
@@ -2081,7 +2091,7 @@ contains
       integer :: ediv, emod
       real :: dmax, tmp
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       prior_focus = curr_focus
 
@@ -2250,9 +2260,9 @@ contains
                end do
             end do
             
-            !-------------------------------------------------------------------
+            ! ------------------------------------------------------------------
             ! LU decomposition ends here
-            !-------------------------------------------------------------------
+            ! ------------------------------------------------------------------
 
             ! Copy the decomposed matrix over
             do j = 0, ncomm - 1
@@ -2338,7 +2348,7 @@ contains
       integer :: ie_dump, istat
       logical, parameter :: debug = .false.
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       ! All matrices handled for the job i_job are read
       ! from a single file named: responst_mat.ijob by that
@@ -2438,7 +2448,7 @@ contains
 
       integer :: ierr
 
-      !-------------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
 
       if (response_window /= MPI_WIN_NULL) call mpi_win_free(response_window, ierr)
 #endif
