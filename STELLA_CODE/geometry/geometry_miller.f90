@@ -742,9 +742,6 @@ contains
 
       dpsip_drho_out = dpsip_drho
       dpsip_drho_psi0_out = dpsip_drho_psi0
-
-      ! Round functions - This is needed for the automatic tests
-      call round_functions
       
       ! The <d_BtimesgradBdotgradx_drho> and <d_nablarnablatheta_drho> variables differ on macos-14 (CMake) 
       ! with respect to the other operating systems
@@ -832,78 +829,6 @@ contains
             call geo_spline(theta, djac_drho / dpsip_drho, zed_in, djac_drho_out)
          end if
       end subroutine interpolate_functions
-
-      ! ------------------------------------------------------------------------
-      !                          Rounding functions                          
-      ! ------------------------------------------------------------------------
-      subroutine round_functions
-
-         implicit none
-         
-         !----------------------------------------------------------------------
-
-         ! We test stella on macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04 and ubuntu-24.04
-         ! and the different operating systems give differences in the last digits, so round the values.
-         n = 12
-         do i = -nz, nz
-            theta(i) = round(theta(i), n)
-            Rr(2, i) = round(Rr(2, i), n)
-            dR_drho(i) = round(dR_drho(i), n)
-            d2R_dr2(i) = round(d2R_dr2(i), n) 
-            dR_dtheta(i) = round(dR_dtheta(i), n) 
-            d2R_dr_dtheta(i) = round(d2R_dr_dtheta(i), n) 
-            dZ_drho(i) = round(dZ_drho(i), n)
-            d2Z_dr2(i) = round(d2Z_dr2(i), n)
-            dZ_dtheta(i) = round(dZ_dtheta(i), n)
-            d2Z_dr_dtheta(i) = round(d2Z_dr_dtheta(i), n) 
-            bmag(i) = round(bmag(i), n) 
-            dB_drho(i) = round(dB_drho(i), n)
-            d2B_dr2(i) = round(d2B_dr2(i), n)
-            dB_dtheta(i) = round(dB_dtheta(i), n) 
-            d2B_dR_dtheta(i) = round(d2B_dR_dtheta(i), n)
-            vartheta(i) = round(vartheta(i), n) 
-            dvartheta_dr(i) = round(dvartheta_dr(i), n)
-            d2vartheta_dr2(i) = round(d2vartheta_dr2(i), n)
-            jacrho(i) = round(jacrho(i), n)
-            djacr_drho(i) = round(djacr_drho(i), n) 
-            djac_drho(i) = round(djac_drho(i), n) 
-            d2jac_dr2(i) = round(d2jac_dr2(i), n)
-            gradrho(i) = round(gradrho(i), n)
-            d_gradr2_drho(i) = round(d_gradr2_drho(i), n)
-            gradtheta2(i) = round(gradtheta2(i), n)
-            d_nablatheta2_drho(i) = round(d_nablatheta2_drho(i), n)
-            gradrho_gradtheta(i) = round(gradrho_gradtheta(i), n)
-            gradalpha_gradtheta(i) = round(gradalpha_gradtheta(i), n)
-            d_nablaalphanablatheta_drho(i) = round(d_nablaalphanablatheta_drho(i), n) 
-            gradrho_gradalpha(i) = round(gradrho_gradalpha(i), n) 
-            d_nablaalphanablarho_drho(i) = round(d_nablaalphanablarho_drho(i), n) 
-            gradalpha2(i) = round(gradalpha2(i), n) 
-            d_nablaalpha2_drho(i) = round(d_nablaalpha2_drho(i), n)
-            gradalpha_times_B_dot_gradtheta(i) = round(gradalpha_times_B_dot_gradtheta(i), n) 
-            d_gradalphatimesBdotgradtheta_drho(i) = round(d_gradalphatimesBdotgradtheta_drho(i), n) 
-            B_times_gradB_dot_gradx(i) = round(B_times_gradB_dot_gradx(i), n) 
-            B_times_kappa_dot_gradx(i) = round(B_times_kappa_dot_gradx(i), n) 
-            d_Btimeskappadotgradx_drho(i) = round(d_Btimeskappadotgradx_drho(i), n)
-            B_times_gradB_dot_grady(i) = round(B_times_gradB_dot_grady(i), n)
-            d_BtimesgradBdotgrady_drho(i) = round(d_BtimesgradBdotgrady_drho(i), n)
-            B_times_kappa_dot_grady(i) = round(B_times_kappa_dot_grady(i), n)
-            d_Btimeskappadotgrady_drho(i) = round(d_Btimeskappadotgrady_drho(i), n)
-            drz_dtheta(i) = round(drz_dtheta(i), n)
-            b_dot_gradtheta(i) = round(b_dot_gradtheta(i), n)
-            d_bdotgradtheta_drho(i) = round(d_bdotgradtheta_drho(i), n)
-            b_dot_gradB(i) = round(b_dot_gradB(i), n)
-            d_bdotgradB_drho(i) = round(d_bdotgradB_drho(i), n)
-            grady_dot_grady(i) = round(grady_dot_grady(i), n)
-            d_gradydotgrady_drho(i) = round(d_gradydotgrady_drho(i), n)
-            gradx_dot_grady(i) = round(gradx_dot_grady(i), n)
-            d_gradxdotgrady_drho(i) = round(d_gradxdotgrady_drho(i), n)
-            gradx_dot_gradx(i) = round(gradx_dot_gradx(i), n)
-            d_gradxdotgradx_drho(i) = round(d_gradxdotgradx_drho(i), n)
-            gds23(i) = round(gds23(i), n)
-            gds24(i) = round(gds24(i), n) 
-            Zr(2, i) = round(Zr(2,i), n)
-         end do
-      end subroutine round_functions
 
       ! ------------------------------------------------------------------------
       !                           Write to text files                           
@@ -1431,7 +1356,7 @@ contains
    !                           Compute Gradient Factors
    !****************************************************************************
    ! Define:
-   ! <grady_dot_grady> = ∇y.∇y = ∇α|^2 * (∂ψ_N/∂r)^2
+   ! <grady_dot_grady> = ∇y.∇y = |∇α|^2 * (∂ψ_N/∂r)^2
    ! <gradx_dot_grady> = ∇x.∇y = (∇q . ∇α) * (∂ψ_N/∂r)^2
    ! <gradx_dot_gradx> = ∇x.∇x = |∇q|^2 * (∂ψ_N/∂r)^2
    ! <gds23> = ∇θ . [∇α x (∇r x ∇α)] * (∂ψ_N/∂r)^2 / B^2
@@ -1450,7 +1375,7 @@ contains
       ! Debug
       if (debug) write (*, *) 'geometry_miller::get_gds'
       
-      ! <grady_dot_grady> = ∇y.∇y = ∇α|^2 * (∂ψ_N/∂r)^2
+      ! <grady_dot_grady> = ∇y.∇y = ∇|α|^2 * (∂ψ_N/∂r)^2
       ! Note: the (∂ψ_N/∂r) factor accounts for ky normalization
       grady_dot_grady = gradalpha2 * dpsip_drho_psi0**2
 
