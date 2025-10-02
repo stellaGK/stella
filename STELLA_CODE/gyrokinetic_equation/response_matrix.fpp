@@ -1419,7 +1419,6 @@ contains
       ! Arguments
       complex, dimension(:), intent(in out) :: phi, apar, bpar
       integer, intent(in) :: iky, ie
-      character(*), intent(in) :: dist
    
       !-------------------------------------------------------------------------
    
