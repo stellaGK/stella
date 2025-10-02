@@ -1559,11 +1559,11 @@ contains
                phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx)
                if (include_apar) then
                   apar_ext(nz_ext) = 0.0
-                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx)
+                  !apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx)
                end if
                if (include_bpar) then
                   bpar_ext(nz_ext) = 0.0
-                  bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx)
+                  !bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx)
                end if
                call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
@@ -1577,8 +1577,8 @@ contains
                ! add in contribution from identity matrix
                phi_ext(idx) = phi_ext(idx) - 1.0
                response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
-               if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
-               if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
+               if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = 0.0! -apar_ext(:nresponse)
+               if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = 0.0! -bpar_ext(:nresponse)
             end do
 
             ! Obtain the response matrix entries due to unit impulses in apar;
@@ -1586,12 +1586,12 @@ contains
             if (include_apar) then
                do idx = 1, nresponse
                   phi_ext(nz_ext) = 0.0
-                  phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_apar)
+                  !phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_apar)
                   apar_ext(nz_ext) = 0.0
                   apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_apar)
                   if (include_bpar) then
                      bpar_ext(nz_ext) = 0.0
-                     bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_apar)
+                     !bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_apar)
                   end if
                   call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
@@ -1600,9 +1600,9 @@ contains
                   ! is identity matrix - response matrix
                   ! add in contribution from identity matrix for diagonal entries
                   apar_ext(idx) = apar_ext(idx) - 1.0
-                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_apar + idx) = -phi_ext(:nresponse)
+                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_apar + idx) = 0.0 !-phi_ext(:nresponse)
                   response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_apar + idx) = -apar_ext(:nresponse)
-                  if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_apar + idx) = -bpar_ext(:nresponse) 
+                  if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_apar + idx) = 0.0! -bpar_ext(:nresponse) 
                end do
             end if
             
@@ -1611,10 +1611,10 @@ contains
             if (include_bpar) then
                do idx = 1, nresponse
                   phi_ext(nz_ext) = 0.0
-                  phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar)
+                  !phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar)
                   if (include_apar) then
                      apar_ext(nz_ext) = 0.0
-                     apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_bpar)
+                     !apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_bpar)
                   end if
                   bpar_ext(nz_ext) = 0.0
                   bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_bpar)
@@ -1626,7 +1626,7 @@ contains
                   ! add in contribution from identity matrix for diagonal entries
                   bpar_ext(idx) = bpar_ext(idx) - 1.0
                   response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_bpar + idx) = -phi_ext(:nresponse)
-                  if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_bpar + idx) = -apar_ext(:nresponse)
+                  if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_bpar + idx) = 0.0 !-apar_ext(:nresponse)
                   response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_bpar + idx) = -bpar_ext(:nresponse) 
                end do
             end if
