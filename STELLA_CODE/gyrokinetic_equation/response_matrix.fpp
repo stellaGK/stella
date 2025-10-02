@@ -768,8 +768,7 @@ contains
       !                          Fill in the response matrix
       !-------------------------------------------------------------------------
       ! The matrix to invert is just simply the output from the routine above
-      ! so just fill in the response matrix with these values. 
-      ! Note that apar_ext = 0.0, and bpar_ext = 0.0 below 
+      ! so just fill in the response matrix with these values.
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
@@ -778,8 +777,6 @@ contains
 
          ! For apar - the response column is shifted by <nresponse>, which is the number
          ! of independent zed points taken up by the <phi> response.
-         ! Note that apar_ext = 0.0 here, but we still need to fill in the response
-         ! matrix. 
          !offset_apar = 0
          !if (include_apar) then
          !   offset_apar = nresponse
@@ -789,8 +786,6 @@ contains
          ! For bpar - the response column is shifted by another <nresponse>, which is the 
          ! number of independent zed points taken up by the <phi> or <apar> response (depending
          ! on if include_apar = .true.)
-         ! Note that bpar_ext = 0.0 here, but we still need to fill in the response
-         ! matrix. 
          !if (include_bpar) then
          !   offset_bpar = offset_apar + nresponse
          !   response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = bpar_ext(:nresponse)
@@ -942,7 +937,6 @@ contains
       !-------------------------------------------------------------------------
       ! The matrix to invert is just simply the output from the routine above
       ! so just fill in the response matrix with these values. 
-      ! Note that phi_ext = 0.0 and bpar_ext = 0.0 below
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
@@ -1116,9 +1110,6 @@ contains
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
-         offset_apar = 0
-         if (include_apar) offset_apar = nresponse
-         if (include_bpar) offset_bpar = offset_apar + nresponse
 
          ! For phi         
          !response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar) = phi_ext(:nresponse)
@@ -1133,6 +1124,10 @@ contains
 #ifdef ISO_C_BINDING
       end if
 #endif
+      offset_apar = 0
+      if (include_apar) offset_apar = nresponse
+      if (include_bpar) offset_bpar = offset_apar + nresponse
+
       dist = 'g' 
       call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
