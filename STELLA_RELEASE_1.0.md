@@ -62,6 +62,8 @@ The cleanup of the $\texttt{stella}$ code was resumed in the summer of 2025. Key
 
 - Additional `abort` statements have been added throughout the code to prevent incorrect usage.
 
+- Added an `Acknowledgments` section to the main `README.md` file to keep track of contributions to the $\texttt{stella}$ code. This list is incomplete and it is the responsibility of the various authors to add their contributions.
+
 - Various bugs have been fixed.
 
 
