@@ -42,9 +42,9 @@ contains
 !########################## INITIALISE RESPONSE MATRIX #########################
 !###############################################################################
 
-   !****************************************************************************
+   !============================================================================
    !            Main Routine Called to Initialise the Response Matrix           
-   !****************************************************************************
+   !============================================================================
    subroutine init_response_matrix
 
       use linear_solve, only: lu_decomposition
@@ -69,6 +69,7 @@ contains
 
       ! Debug message -> print to terminal
       if (debug) call write_response_matrix_message (1)
+
       ! Set up response matrix utils
       call setup_response_matrix_timings
       call setup_response_matrix_file_io
@@ -84,7 +85,8 @@ contains
       call setup_shared_memory_window
 #endif
 
-      ! Construct the response matrix
+      ! Construct the response matrix -> This is the main routine for 
+      ! initialising the response matrix, where all the calculations are done.
       call construct_response_matrix
 
 #ifdef ISO_C_BINDING
@@ -101,9 +103,9 @@ contains
 
    end subroutine init_response_matrix
 
-   !****************************************************************************
+   !============================================================================
    !                         Write message to terminal
-   !****************************************************************************
+   !============================================================================
    subroutine write_response_matrix_message (toggle)
 
       integer, intent (in) :: toggle
@@ -120,9 +122,13 @@ contains
 
    end subroutine write_response_matrix_message
 
-   !****************************************************************************
+   !============================================================================
    !                 Write timings for dealing with response matrix
-   !****************************************************************************
+   !============================================================================
+   ! *_response_matrix -> computational timing associated with computing the 
+   !                      response matrix
+   ! *_lu              -> computational timing associated with LU-decomposing
+   !                      the respoinse matrix
    subroutine setup_response_matrix_timings
 
       implicit none
@@ -134,9 +140,9 @@ contains
 
    end subroutine setup_response_matrix_timings
 
-   !****************************************************************************
+   !============================================================================
    !                     Set up .io file for response matrix                    
-   !****************************************************************************
+   !============================================================================
    subroutine setup_response_matrix_file_io
 
       use mp, only: proc0, job
@@ -166,13 +172,13 @@ contains
 
    end subroutine setup_response_matrix_file_io
 
-   !****************************************************************************
+   !============================================================================
    !                          Set up shared memory window
-   !****************************************************************************
+   !============================================================================
    ! Create a single shared memory window for all the response matrices and
    ! permutation arrays. Creating a window for each matrix/array would lead 
    ! to performance degradation on some clusters
-   !****************************************************************************
+   !============================================================================
 #ifdef ISO_C_BINDING
    subroutine setup_shared_memory_window
 
@@ -217,28 +223,29 @@ contains
    end subroutine setup_shared_memory_window
 #endif
 
+!===============================================================================
+!===============================================================================
+!========================== CONSTRUCT RESPONSE MATRIX ==========================
+!===============================================================================
+!===============================================================================
 
-!###############################################################################
-!########################## CONSTRUCT RESPONSE MATRIX ##########################
-!###############################################################################
-
-   !****************************************************************************
+   !============================================================================
    !               Main routine for constructing response martrix
-   !****************************************************************************
+   !============================================================================
    ! Background:
    ! -----------
    ! Different ky modes are independent, so this creates sets of connected kx values:
    !
    ! After one full 2π orbit in zed, the eddy becomes sheared, shifting the mode 
    ! to a higher kx value. To represent this effect, we apply the 
-   ! 'twist-and-shift' boundary conditions, which connect these shifted kx values 
+   ! twist-and-shift boundary conditions, which connect these shifted kx values 
    ! along an extended z-grid. For a given ky, the connected kx modes are spaced 
    ! by
    !                 δkx = 2π p ∂ι/∂r * (∂y/∂α) * (∂ψ/∂x) * ky
    ! where ∂ι/∂r is the radial derivative of the rotational transform. 
    !
    ! This construction implies that not all kx modes are mutually connected. 
-   ! Instead, for each ky we form distinct "chains" of connected modes, with the 
+   ! Instead, for each ky we form distinct chains of connected modes, with the 
    ! number of such chains determined by the spacing δkx. 
    !
    ! <neigen> gives the number of distinct chains for a given ky. If we use periodic 
@@ -259,7 +266,7 @@ contains
    !        Then, we apply the field solve to find the matrix that we need to invert.
    !        This is essentially dividing by the correct factor from the field equations. 
    !     2) LU decompose the matrix.
-   !****************************************************************************
+   !============================================================================
    subroutine construct_response_matrix
 
       use mp, only: proc0
@@ -352,9 +359,9 @@ contains
    end subroutine construct_response_matrix
 
    !============================================================================
-   !****************************************************************************
+   !============================================================================
    !                Step 1) Find distribution function response                      
-   !****************************************************************************
+   !============================================================================
    !============================================================================
    ! The next routines are all dedicated to step 1).
    !
@@ -527,9 +534,9 @@ contains
 
    end subroutine calculate_vspace_integrated_response
 
-   !****************************************************************************
+   !============================================================================
    !                       Get dg/dphi response matrix column
-   !****************************************************************************
+   !============================================================================
    ! Here, we apply a unit impulse to phi at a given point on the extended zed
    ! domain. This location is indicated via <idx>
    ! 
@@ -565,7 +572,7 @@ contains
    ! 1.D) Then we need to divide by the appropriate prefactor from the fields 
    !      equations, and take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
-   !****************************************************************************
+   !============================================================================
    subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
    
 #ifdef ISO_C_BINDING
@@ -701,9 +708,9 @@ contains
 
    end subroutine get_dpdf_dphi_matrix_column
 
-   !****************************************************************************
+   !============================================================================
    !                       Get dg/dapar response matrix column
-   !****************************************************************************
+   !============================================================================
    ! Here, we apply a unit impulse to apar at a given point on the extended zed
    ! domain. This location is indicated via <idx>
    ! 
@@ -739,7 +746,7 @@ contains
    ! 1.D) Then we need to divide by the appropriate prefactor from the fields 
    !      equations, and take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
-   !****************************************************************************
+   !============================================================================
    subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use parallelisation_layouts, only: vmu_lo
@@ -869,9 +876,9 @@ contains
       
    end subroutine get_dpdf_dapar_matrix_column
 
-   !****************************************************************************
+   !============================================================================
    !                       Get dg/dbpar response matrix column
-   !****************************************************************************
+   !============================================================================
    ! Here, we apply a unit impulse to bpar at a given point on the extended zed
    ! domain. This location is indicated via <idx>
    ! 
@@ -907,7 +914,7 @@ contains
    ! 1.D) Then we need to divide by the appropriate prefactor from the fields 
    !      equations, and take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
-   !****************************************************************************
+   !============================================================================
    subroutine get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
    
 #ifdef ISO_C_BINDING
@@ -1042,14 +1049,14 @@ contains
 
    end subroutine get_dpdf_dbpar_matrix_column
 
-   !****************************************************************************
+   !============================================================================
    !                          Perform velocity integral
-   !****************************************************************************
+   !============================================================================
    ! Perform the appropriate velocity integral for the fields: 
    ! For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
    ! For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
    ! For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   !****************************************************************************
+   !============================================================================
    subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
 
       use parallelisation_layouts, only: vmu_lo
@@ -1063,347 +1070,333 @@ contains
       integer, intent(in) :: iky, ie
 
       !-------------------------------------------------------------------------
-      call integrate_over_velocity_phi(g, phi, iky, ie)
+      call integrate_over_velocity_phi
       !-------------------------------------------------------------------------
       !                             Electromagnetic 
       !-------------------------------------------------------------------------
-      if (include_apar) call integrate_over_velocity_apar(g, apar, iky, ie)
-      if (include_bpar) call integrate_over_velocity_bpar(g, bpar, iky, ie)
+      if (include_apar) call integrate_over_velocity_apar
+      if (include_bpar) call integrate_over_velocity_bpar
       !-------------------------------------------------------------------------
+
+   contains
+
+      !*************************************************************************
+      !                       Velocity integral for phi
+      !*************************************************************************
+      !                   2B/sqrt(π) int dvpa int dmu J_0 * g
+      !*************************************************************************
+      subroutine integrate_over_velocity_phi
+
+         use mp, only: sum_allreduce
+         use parallelisation_layouts, only: vmu_lo
+         use grids_species, only: nspec, spec
+         use grids_extended_zgrid, only: iz_low, iz_up
+         use grids_extended_zgrid, only: ikxmod
+         use grids_extended_zgrid, only: nsegments
+         use calculations_velocity_integrals, only: integrate_species
+         use calculations_gyro_averages, only: gyro_average
+         use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+         use parameters_numerical, only: driftkinetic_implicit
+         use calculations_velocity_integrals, only: integrate_species_ffs_rm
+         use parameters_physics, only: full_flux_surface
+         use arrays_gyro_averages, only: j0_B_const
+
+         implicit none
+
+         ! Local variables
+         integer :: idx, iseg, ikx, iz, ia
+         integer :: izl_offset
+         real, dimension(nspec) :: wgt
+         complex, dimension(:), allocatable :: g0
+         integer :: ivmu, imu, iv, is
+
+         !----------------------------------------------------------------------
+         allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         phi = 0.
+         wgt = spec%z * spec%dens_psi0
+
+         ia = 1
+         idx = 0; izl_offset = 0
+         iseg = 1
+         ikx = ikxmod(iseg, ie, iky)
+
+         !----------------------------------------------------------------------
+         !                          Integrals
+         !----------------------------------------------------------------------
+         ! Start with the first segment. This needs to be treated seperately becuase
+         ! of the additional point in the segment. 
+         do iz = iz_low(iseg), iz_up(iseg)
+            ! We only need to consider the zed grid point that has a unit impulse
+            ! as all other grid points will be zero. 
+            idx = idx + 1
+            if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
+               !----------------------------------------------------------------
+               !                          Flux tube
+               !----------------------------------------------------------------
+               ! First get J0 * g
+               call gyro_average(g(idx, :), iky, ikx, iz, g0)
+               ! Now integrate over vpa, mu and sum over species.
+               ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
+               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+            else
+               !----------------------------------------------------------------
+               !                        Full Flux Surface
+               !----------------------------------------------------------------
+               ! First multiply by B and gyroaverage, but use the piece that is 
+               ! constant in alpha. This is because for FFS the response matrix 
+               ! only treats the part that is constant in alpha, and the remainder
+               ! is treated using an iterative approach. 
+               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                  iv = iv_idx(vmu_lo, ivmu)
+                  imu = imu_idx(vmu_lo, ivmu)
+                  is = is_idx(vmu_lo, ivmu)
+                  g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
+               end do
+               ! Integrate over species, using the correct weights in order to 
+               ! return the constant-in-alpha component of 
+               !              2B/sqrt(π) int dvpa int dmu J_0 * g
+               call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
+               !----------------------------------------------------------------
+            end if
+         end do
+
+         ! Now treat all the other segments. This can be looped over, as all the 
+         ! remaining segments have the same number of zed points.
+         ! Note that this set of routines is identical to above, but is just for  
+         ! the remaining segments with iseg =/= 1
+         izl_offset = 1
+         if (nsegments(ie, iky) > 1) then
+            do iseg = 2, nsegments(ie, iky)
+               ikx = ikxmod(iseg, ie, iky)
+               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+                  idx = idx + 1
+                  if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
+                     !----------------------------------------------------------
+                     !                       Flux tube
+                     !----------------------------------------------------------
+                     ! First get J0 * g
+                     call gyro_average(g(idx, :), iky, ikx, iz, g0)
+                     ! Now integrate over vpa, mu and sum over species.
+                     ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
+                     call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+                  else
+                     !----------------------------------------------------------
+                     !                  Full Flux Surface
+                     !----------------------------------------------------------
+                     ! First multiply by B and gyroaverage, but use the piece that
+                     ! is constant in alpha. This is because for FFS the response
+                     ! matrix only treats the part that is constant in alpha,
+                     ! and the remainder is treated using an iterative approach. 
+                     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                        iv = iv_idx(vmu_lo, ivmu)
+                        imu = imu_idx(vmu_lo, ivmu)
+                        is = is_idx(vmu_lo, ivmu)
+                        g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
+                     end do
+                     ! Integrate over species, using the correct weights in order
+                     ! to return the constant-in-alpha component of 
+                     !              2B/sqrt(π) int dvpa int dmu J_0 * g
+                     call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
+                  end if
+                  !-------------------------------------------------------------
+               end do
+               if (izl_offset == 0) izl_offset = 1
+            end do
+         end if
+
+         !----------------------------------------------------------------------
+         ! Collect the parts of <phi> spread out across processors. 
+         call sum_allreduce(phi)
+         !----------------------------------------------------------------------
+
+      end subroutine integrate_over_velocity_phi
+
+      !*************************************************************************
+      !                            Velocity integral for apar
+      !*************************************************************************
+      !             β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g          
+      !*************************************************************************
+      subroutine integrate_over_velocity_apar
+
+         use parallelisation_layouts, only: vmu_lo, iv_idx
+         use parameters_physics, only: beta
+         use grids_species, only: nspec, spec
+         use grids_extended_zgrid, only: iz_low, iz_up
+         use grids_extended_zgrid, only: ikxmod
+         use grids_extended_zgrid, only: nsegments
+         use calculations_velocity_integrals, only: integrate_species
+         use grids_velocity, only: vpa
+         use calculations_gyro_averages, only: gyro_average
+         use mp, only: sum_allreduce
+
+         implicit none
+
+         ! Local variables
+         integer :: idx, iseg, ikx, iz, ia
+         integer :: ivmu, iv
+         integer :: izl_offset
+         real, dimension(nspec) :: wgt
+         complex, dimension(:), allocatable :: g0
+
+         !----------------------------------------------------------------------
+
+         allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         apar = 0.
+         wgt = spec%z * spec%dens_psi0 * spec%stm_psi0 * beta
+
+         ia = 1
+         idx = 0; izl_offset = 0
+         iseg = 1
+         ikx = ikxmod(iseg, ie, iky)
+
+         !----------------------------------------------------------------------
+         !                             Integrals
+         !----------------------------------------------------------------------
+         ! Start with the first segment. This needs to be treated seperately 
+         ! becuase of the additional point in the segment. 
+         do iz = iz_low(iseg), iz_up(iseg)
+            ! We only need to consider the zed grid point that has a unit 
+            ! impulse as all other grid points will be zero. 
+            idx = idx + 1
+            ! First get J0 * g
+            call gyro_average(g(idx, :), iky, ikx, iz, g0)
+            ! Multiply by vpa to give: J0 * g * vpa
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               g0(ivmu) = g0(ivmu) * vpa(iv)
+            end do
+            ! Now integrate over vpa, mu and sum over species.
+            ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+            call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
+         end do
+
+         ! Now treat all the other segments. This can be looped over, as all the  
+         ! remaining segments have the same number of zed points.
+         ! Note that this set of routines is identical to above, but is just for  
+         ! the remaining segments with iseg =/= 1
+         izl_offset = 1
+         if (nsegments(ie, iky) > 1) then
+            do iseg = 2, nsegments(ie, iky)
+               ikx = ikxmod(iseg, ie, iky)
+               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+                  idx = idx + 1
+                  ! First get J0 * g
+                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
+                  ! Multiply by vpa to give: J0 * g * vpa
+                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                     iv = iv_idx(vmu_lo, ivmu)
+                     g0(ivmu) = g0(ivmu) * vpa(iv)
+                  end do
+                  ! Now integrate over vpa, mu and sum over species.
+                  ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+                  call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
+               end do
+               if (izl_offset == 0) izl_offset = 1
+            end do
+         end if
+
+         !----------------------------------------------------------------------
+         ! Collect the parts of <apar> spread out across processors. 
+         call sum_allreduce(apar)
+         !----------------------------------------------------------------------
+
+      end subroutine integrate_over_velocity_apar
+
+      !*************************************************************************
+      !                         Velocity integral for bpar                      
+      !*************************************************************************
+      !        - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g          
+      !*************************************************************************
+      subroutine integrate_over_velocity_bpar
+
+         use parallelisation_layouts, only: vmu_lo, imu_idx
+         use grids_species, only: nspec, spec
+         use parameters_physics, only: beta
+         use grids_extended_zgrid, only: iz_low, iz_up
+         use grids_extended_zgrid, only: ikxmod
+         use grids_extended_zgrid, only: nsegments
+         use calculations_velocity_integrals, only: integrate_species
+         use grids_velocity, only: mu
+         use calculations_gyro_averages, only: gyro_average_j1
+         use mp, only: sum_allreduce
+
+         implicit none
+
+         ! Local variables
+         integer :: idx, iseg, ikx, iz, ia, imu, ivmu
+         integer :: izl_offset
+         real, dimension(nspec) :: wgt
+         complex, dimension(:), allocatable :: g0
+
+         !----------------------------------------------------------------------
+         allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         bpar = 0.
+         wgt = -2.0 * beta * spec%temp_psi0 * spec%dens_psi0
+
+         ia = 1
+         idx = 0; izl_offset = 0
+         iseg = 1
+         ikx = ikxmod(iseg, ie, iky)
+         !----------------------------------------------------------------------
+         !                          Integrals
+         !----------------------------------------------------------------------
+         ! Start with the first segment. This needs to be treated seperately 
+         ! becuase of the additional point in the segment. 
+         do iz = iz_low(iseg), iz_up(iseg)
+            ! We only need to consider the zed grid point that has a unit 
+            ! impulse as all other grid points will be zero. 
+            idx = idx + 1
+            ! First get J1/a_s * g , where a_s is the argument of the Bessel
+            ! function. Note that 'J1' in the code is actually J1/a_s
+            call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
+            ! Multiply by mu to get: J1/a_s * g * mu
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               imu = imu_idx(vmu_lo, ivmu)
+               g0(ivmu) = g0(ivmu) * mu(imu)
+            end do
+            ! Now integrate over vpa, mu and sum over species.
+            ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+            call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
+         end do
+
+         ! Now treat all the other segments. This can be looped over, as all the  
+         ! remaining segments have the same number of zed points.
+         ! Note that this set of routines is identical to above, but is just for 
+         ! the remaining segments with iseg =/= 1
+         izl_offset = 1
+         if (nsegments(ie, iky) > 1) then
+            do iseg = 2, nsegments(ie, iky)
+               ikx = ikxmod(iseg, ie, iky)
+               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+                  idx = idx + 1
+                  ! First get J1/a_s * g , where a_s is the argument of the Bessel
+                  ! function. Note that 'J1' in the code is actually J1/a_s
+                  call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
+                  ! Multiply by mu to get: J1/a_s * g * mu
+                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                     imu = imu_idx(vmu_lo, ivmu)
+                     g0(ivmu) = g0(ivmu) * mu(imu)
+                  end do               
+                  ! Now integrate over vpa, mu and sum over species.
+                  ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+                  call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
+               end do
+               if (izl_offset == 0) izl_offset = 1
+            end do
+         end if
+
+         !----------------------------------------------------------------------
+         ! Collect the parts of <bpar> spread out across processors. 
+         call sum_allreduce(bpar)
+         !----------------------------------------------------------------------
+
+      end subroutine integrate_over_velocity_bpar
 
    end subroutine integrate_over_velocity
 
-   !****************************************************************************
-   !                          Velocity integral for phi
-   !****************************************************************************
-   !                       2B/sqrt(π) int dvpa int dmu J_0 * g
-   !****************************************************************************
-   subroutine integrate_over_velocity_phi(g, phi, iky, ie)
-
-      use mp, only: sum_allreduce
-      use parallelisation_layouts, only: vmu_lo
-      use grids_species, only: nspec, spec
-      use grids_extended_zgrid, only: iz_low, iz_up
-      use grids_extended_zgrid, only: ikxmod
-      use grids_extended_zgrid, only: nsegments
-      use calculations_velocity_integrals, only: integrate_species
-      use calculations_gyro_averages, only: gyro_average
-      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
-      use parameters_numerical, only: driftkinetic_implicit
-      use calculations_velocity_integrals, only: integrate_species_ffs_rm
-      use parameters_physics, only: full_flux_surface
-      use arrays_gyro_averages, only: j0_B_const
-
-      implicit none
-
-      ! Arguments
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:), intent(out) :: phi
-      integer, intent(in) :: iky, ie
-
-      ! Local variables
-      integer :: idx, iseg, ikx, iz, ia
-      integer :: izl_offset
-      real, dimension(nspec) :: wgt
-      complex, dimension(:), allocatable :: g0
-      integer :: ivmu, imu, iv, is
-
-      !-------------------------------------------------------------------------
-      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      phi = 0.
-      wgt = spec%z * spec%dens_psi0
-
-      ia = 1
-      idx = 0; izl_offset = 0
-      iseg = 1
-      ikx = ikxmod(iseg, ie, iky)
-
-      !-------------------------------------------------------------------------
-      !                             Integrals
-      !-------------------------------------------------------------------------
-      ! Start with the first segment. This needs to be treated seperately becuase
-      ! of the additional point in the segment. 
-      do iz = iz_low(iseg), iz_up(iseg)
-         ! We only need to consider the zed grid point that has a unit impulse
-         ! as all other grid points will be zero. 
-         idx = idx + 1
-         if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
-            !-------------------------------------------------------------------
-            !                             Flux tube
-            !-------------------------------------------------------------------
-            ! First get J0 * g
-            call gyro_average(g(idx, :), iky, ikx, iz, g0)
-            ! Now integrate over vpa, mu and sum over species.
-            ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
-            call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-         else
-            !-------------------------------------------------------------------
-            !                           Full Flux Surface
-            !-------------------------------------------------------------------
-            ! First multiply by B and gyroaverage, but use the piece that is 
-            ! constant in alpha. This is because for FFS the response matrix 
-            ! only treats the part that is constant in alpha, and the remainder
-            ! is treated using an iterative approach. 
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               imu = imu_idx(vmu_lo, ivmu)
-               is = is_idx(vmu_lo, ivmu)
-               g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
-            end do
-            ! Integrate over species, using the correct weights in order to 
-            ! return the constant-in-alpha component of 
-            !              2B/sqrt(π) int dvpa int dmu J_0 * g
-            call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-            !-------------------------------------------------------------------
-         end if
-      end do
-
-      ! Now treat all the other segments. This can be looped over, as all the remaining 
-      ! segments have the same number of zed points.
-      ! Note that this set of routines is identical to above, but is just for the 
-      ! remaining segments with iseg =/= 1
-      izl_offset = 1
-      if (nsegments(ie, iky) > 1) then
-         do iseg = 2, nsegments(ie, iky)
-            ikx = ikxmod(iseg, ie, iky)
-            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-               idx = idx + 1
-               if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
-                  !-------------------------------------------------------------
-                  !                       Flux tube
-                  !-------------------------------------------------------------
-                  ! First get J0 * g
-                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
-                  ! Now integrate over vpa, mu and sum over species.
-                  ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
-                  call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-               else
-                  !-------------------------------------------------------------
-                  !                     Full Flux Surface
-                  !-------------------------------------------------------------
-                  ! First multiply by B and gyroaverage, but use the piece that is 
-                  ! constant in alpha. This is because for FFS the response matrix 
-                  ! only treats the part that is constant in alpha, and the remainder
-                  ! is treated using an iterative approach. 
-                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                     iv = iv_idx(vmu_lo, ivmu)
-                     imu = imu_idx(vmu_lo, ivmu)
-                     is = is_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
-                  end do
-                  ! Integrate over species, using the correct weights in order to 
-                  ! return the constant-in-alpha component of 
-                  !              2B/sqrt(π) int dvpa int dmu J_0 * g
-                  call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-               end if
-               !-------------------------------------------------------------
-            end do
-            if (izl_offset == 0) izl_offset = 1
-         end do
-      end if
-
-      !-------------------------------------------------------------------------
-      ! Collect the parts of <phi> spread out across processors. 
-      call sum_allreduce(phi)
-      !-------------------------------------------------------------------------
-
-   end subroutine integrate_over_velocity_phi
-
-   !****************************************************************************
-   !                            Velocity integral for apar
-   !****************************************************************************
-   !             β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g          
-   !****************************************************************************
-   subroutine integrate_over_velocity_apar(g, apar, iky, ie)
-
-      use parallelisation_layouts, only: vmu_lo, iv_idx
-      use parameters_physics, only: beta
-      use grids_species, only: nspec, spec
-      use grids_extended_zgrid, only: iz_low, iz_up
-      use grids_extended_zgrid, only: ikxmod
-      use grids_extended_zgrid, only: nsegments
-      use calculations_velocity_integrals, only: integrate_species
-      use grids_velocity, only: vpa
-      use calculations_gyro_averages, only: gyro_average
-      use mp, only: sum_allreduce
-
-      implicit none
-
-      ! Arguments
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:), intent(out) :: apar
-      integer, intent(in) :: iky, ie
-
-      ! Local variables
-      integer :: idx, iseg, ikx, iz, ia
-      integer :: ivmu, iv
-      integer :: izl_offset
-      real, dimension(nspec) :: wgt
-      complex, dimension(:), allocatable :: g0
-
-      !-------------------------------------------------------------------------
-
-      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      apar = 0.
-      wgt = spec%z * spec%dens_psi0 * spec%stm_psi0 * beta
-
-      ia = 1
-      idx = 0; izl_offset = 0
-      iseg = 1
-      ikx = ikxmod(iseg, ie, iky)
-
-      !-------------------------------------------------------------------------
-      !                             Integrals
-      !-------------------------------------------------------------------------
-      ! Start with the first segment. This needs to be treated seperately becuase
-      ! of the additional point in the segment. 
-      do iz = iz_low(iseg), iz_up(iseg)
-         ! We only need to consider the zed grid point that has a unit impulse
-         ! as all other grid points will be zero. 
-         idx = idx + 1
-         ! First get J0 * g
-         call gyro_average(g(idx, :), iky, ikx, iz, g0)
-         ! Multiply by vpa to give: J0 * g * vpa
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            iv = iv_idx(vmu_lo, ivmu)
-            g0(ivmu) = g0(ivmu) * vpa(iv)
-         end do
-         ! Now integrate over vpa, mu and sum over species.
-         ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-         call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
-      end do
-
-      ! Now treat all the other segments. This can be looped over, as all the remaining 
-      ! segments have the same number of zed points.
-      ! Note that this set of routines is identical to above, but is just for the 
-      ! remaining segments with iseg =/= 1
-      izl_offset = 1
-      if (nsegments(ie, iky) > 1) then
-         do iseg = 2, nsegments(ie, iky)
-            ikx = ikxmod(iseg, ie, iky)
-            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-               idx = idx + 1
-               ! First get J0 * g
-               call gyro_average(g(idx, :), iky, ikx, iz, g0)
-               ! Multiply by vpa to give: J0 * g * vpa
-               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  iv = iv_idx(vmu_lo, ivmu)
-                  g0(ivmu) = g0(ivmu) * vpa(iv)
-               end do
-               ! Now integrate over vpa, mu and sum over species.
-               ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-               call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
-            end do
-            if (izl_offset == 0) izl_offset = 1
-         end do
-      end if
-
-      !-------------------------------------------------------------------------
-      ! Collect the parts of <apar> spread out across processors. 
-      call sum_allreduce(apar)
-      !-------------------------------------------------------------------------
-
-   end subroutine integrate_over_velocity_apar
-
-   !****************************************************************************
-   !                            Velocity integral for bpar                      
-   !****************************************************************************
-   !           - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g          
-   !****************************************************************************
-   subroutine integrate_over_velocity_bpar(g, bpar, iky, ie)
-
-      use parallelisation_layouts, only: vmu_lo, imu_idx
-      use grids_species, only: nspec, spec
-      use parameters_physics, only: beta
-      use grids_extended_zgrid, only: iz_low, iz_up
-      use grids_extended_zgrid, only: ikxmod
-      use grids_extended_zgrid, only: nsegments
-      use calculations_velocity_integrals, only: integrate_species
-      use grids_velocity, only: mu
-      use calculations_gyro_averages, only: gyro_average_j1
-      use mp, only: sum_allreduce
-
-      implicit none
-
-      ! Arguments
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:), intent(out) :: bpar
-      integer, intent(in) :: iky, ie
-
-      ! Local variables
-      integer :: idx, iseg, ikx, iz, ia, imu, ivmu
-      integer :: izl_offset
-      real, dimension(nspec) :: wgt
-      complex, dimension(:), allocatable :: g0
-
-      !-------------------------------------------------------------------------
-      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      bpar = 0.
-      wgt = -2.0 * beta * spec%temp_psi0 * spec%dens_psi0
-
-      ia = 1
-      idx = 0; izl_offset = 0
-      iseg = 1
-      ikx = ikxmod(iseg, ie, iky)
-      !-------------------------------------------------------------------------
-      !                             Integrals
-      !-------------------------------------------------------------------------
-      ! Start with the first segment. This needs to be treated seperately becuase
-      ! of the additional point in the segment. 
-      do iz = iz_low(iseg), iz_up(iseg)
-         ! We only need to consider the zed grid point that has a unit impulse
-         ! as all other grid points will be zero. 
-         idx = idx + 1
-         ! First get J1/a_s * g , where a_s is the argument of the Bessel function.
-         ! Note that 'J1' in the code is actually J1/a_s
-         call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
-         ! Multiply by mu to get: J1/a_s * g * mu
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            imu = imu_idx(vmu_lo, ivmu)
-            g0(ivmu) = g0(ivmu) * mu(imu)
-         end do
-         ! Now integrate over vpa, mu and sum over species.
-         ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-         call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
-      end do
-
-      ! Now treat all the other segments. This can be looped over, as all the remaining 
-      ! segments have the same number of zed points.
-      ! Note that this set of routines is identical to above, but is just for the 
-      ! remaining segments with iseg =/= 1
-      izl_offset = 1
-      if (nsegments(ie, iky) > 1) then
-         do iseg = 2, nsegments(ie, iky)
-            ikx = ikxmod(iseg, ie, iky)
-            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-               idx = idx + 1
-               ! First get J1/a_s * g , where a_s is the argument of the Bessel function.
-               ! Note that 'J1' in the code is actually J1/a_s
-               call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
-               ! Multiply by mu to get: J1/a_s * g * mu
-               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  imu = imu_idx(vmu_lo, ivmu)
-                  g0(ivmu) = g0(ivmu) * mu(imu)
-               end do               
-               ! Now integrate over vpa, mu and sum over species.
-               ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-               call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
-            end do
-            if (izl_offset == 0) izl_offset = 1
-         end do
-      end if
-
-      !-------------------------------------------------------------------------
-      ! Collect the parts of <bpar> spread out across processors. 
-      call sum_allreduce(bpar)
-      !-------------------------------------------------------------------------
-
-   end subroutine integrate_over_velocity_bpar
-
-
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
+   !============================================================================
+   !                    Divide by appropriate field pre-factor
+   !============================================================================
    subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
    
       use parameters_physics, only: include_apar, include_bpar
@@ -1418,21 +1411,21 @@ contains
       !-------------------------------------------------------------------------
    
       if (include_bpar) then
-         call calculate_phi_and_bpar_for_response_matrix!(phi, bpar, iky, ie, dist)
+         call calculate_phi_and_bpar_for_response_matrix
       else
-         call calculate_phi_for_response_matrix!(phi, iky, ie, dist)
+         call calculate_phi_for_response_matrix
       end if
-      if (include_apar) call get_apar_for_response_matrix!(apar, iky, ie, dist)
+      if (include_apar) call get_apar_for_response_matrix
 
    contains 
 
-      !****************************************************************************
+      !*************************************************************************
       !             Divide by the appropriate denominator for phi
-      !****************************************************************************
+      !*************************************************************************
       ! This is the case used if bpar is not included in the simulation, as the 
       ! field equations for phi and bpar are coupled. 
-      !****************************************************************************
-      subroutine calculate_phi_for_response_matrix!(phi, iky, ie, dist)
+      !*************************************************************************
+      subroutine calculate_phi_for_response_matrix
 
          use grids_z, only: nzgrid
          use grids_species, only: spec
@@ -1449,18 +1442,13 @@ contains
 
          implicit none
 
-         ! Arguments
-         !complex, dimension(:), intent(inout) :: phi
-         !integer, intent(in) :: iky, ie
-         !character(*), intent(in) :: dist
-
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
          integer :: izl_offset
          complex :: tmp
          real, dimension(:), allocatable :: gamma_fac
 
-         !-------------------------------------------------------------------------
+         !----------------------------------------------------------------------
 
          ia = 1
 
@@ -1517,13 +1505,13 @@ contains
 
       end subroutine calculate_phi_for_response_matrix
 
-      !****************************************************************************
+      !*************************************************************************
       !           Divide by the appropriate denominator for phi + bpar
-      !****************************************************************************
-      ! This is the case used if bpar is included in the simulation, as the field
-      ! equations for phi and bpar are coupled. 
-      !****************************************************************************
-      subroutine calculate_phi_and_bpar_for_response_matrix!(phi, bpar, iky, ie, dist)
+      !*************************************************************************
+      ! This is the case used if bpar is included in the simulation, as the 
+      ! field equations for phi and bpar are coupled. 
+      !*************************************************************************
+      subroutine calculate_phi_and_bpar_for_response_matrix
 
          use grids_z, only: nzgrid
          use grids_species, only: spec
@@ -1540,18 +1528,13 @@ contains
          
          implicit none
 
-         ! Arguments
-         !complex, dimension(:), intent(inout) :: phi, bpar
-         !integer, intent(in) :: iky, ie
-         !character(*), intent(in) :: dist
-
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
          integer :: izl_offset
          complex :: antot1, antot3
          real, dimension(:), allocatable :: gammainv11, gammainv13, gammainv31, gammainv33
 
-         !-------------------------------------------------------------------------
+         !----------------------------------------------------------------------
 
          ia = 1
 
@@ -1621,13 +1604,13 @@ contains
 
       end subroutine calculate_phi_and_bpar_for_response_matrix
 
-      !****************************************************************************
+      !*************************************************************************
       !              Divide by the appropriate denominator for apar
-      !****************************************************************************
+      !*************************************************************************
       ! This is the routine used if apar is included. Note that it is separated 
       ! from the phi and bpar equations, as the field equation for apar is decoupled.
-      !****************************************************************************
-      subroutine get_apar_for_response_matrix!(apar, iky, ie, dist)
+      !*************************************************************************
+      subroutine get_apar_for_response_matrix
 
          use grids_z, only: nzgrid
          use grids_extended_zgrid, only: iz_low, iz_up
@@ -1639,17 +1622,12 @@ contains
 
          implicit none
 
-         ! Arguments
-         !complex, dimension(:), intent(in out) :: apar
-         !integer, intent(in) :: iky, ie
-         !character(*), intent(in) :: dist
-
          ! Local variables
          integer :: idx, iseg, ikx, iz, ia
          integer :: izl_offset
          real, dimension(:), allocatable :: denominator
 
-         !-------------------------------------------------------------------------
+         !----------------------------------------------------------------------
 
          ia = 1
 
@@ -1694,9 +1672,9 @@ contains
 
    end subroutine get_fields_for_response_matrix
 
-   !****************************************************************************
+   !============================================================================
    !                            Allocate zloc and idx 
-   !****************************************************************************
+   !============================================================================
    ! Sets up the response matrix storage for a given (iky, ie) eigenmode.  
    !
    ! Allocate the following: 
@@ -1715,7 +1693,7 @@ contains
    ! - Otherwise, it allocates fresh Fortran arrays.  
    !   cur_pos acts as a memory cursor that steps through a shared memory block, 
    !   ensuring each zloc and idx block points to its own reserved region.
-   !****************************************************************************
+   !============================================================================
    subroutine setup_response_matrix_zloc_idx(iky, ie, nresponse)
 
 #ifdef ISO_C_BINDING
@@ -1781,20 +1759,19 @@ contains
 
    end subroutine setup_response_matrix_zloc_idx
 
-
    !============================================================================
-   !****************************************************************************
+   !============================================================================
    !                    Step 2) LU decompose the response matrix
-   !****************************************************************************
+   !============================================================================
    !============================================================================
    ! This section LU decomposes the response matrix for each eigen chain.
    ! It prepares the matrix for efficient inversion during the implicit solve.
    ! The decomposition is performed according to the parallelisation option.
    !============================================================================
 
-   !****************************************************************************
+   !============================================================================
    !                       Main LU decomposition routine 
-   !****************************************************************************
+   !============================================================================
    subroutine lu_decompose_response_matrix(iky)
 
 #ifdef ISO_C_BINDING
@@ -1849,14 +1826,14 @@ contains
 
 #ifdef ISO_C_BINDING
 
-   !****************************************************************************
+   !============================================================================
    !                          LU decomposition - Local
-   !****************************************************************************
+   !============================================================================
    ! This subroutine parallelises the LU decomposition on a single
    ! node using MPIs shared memory interface
    ! It also splits up jtwist the independent matrices across nodes
    ! Ideal speed up: cores_per_node*min(jtwist,ncores)
-   !****************************************************************************
+   !============================================================================
    subroutine parallel_LU_decomposition_local(iky)
 
       use mpi
@@ -2015,12 +1992,12 @@ contains
 
 #endif /* ISO_C_BINDING */
 
-   !****************************************************************************
+   !============================================================================
    !                          LU decomposition - Global
-   !****************************************************************************
+   !============================================================================
    ! This subroutine parallelises the LU decomposition across
    ! all cores. Ideal speed up: ncores
-   !****************************************************************************
+   !============================================================================
    subroutine parallel_LU_decomposition_global(iky)
 
 #ifdef ISO_C_BINDING
@@ -2290,14 +2267,13 @@ contains
    end subroutine parallel_LU_decomposition_global
 
 
-
 !###############################################################################
 !########################### READ RESPONSE MATRIX ##############################
 !###############################################################################
 
-   !****************************************************************************
+   !============================================================================
    !                         Read the response matrix                        
-   !****************************************************************************
+   !============================================================================
    subroutine read_response_matrix
 
       use arrays, only: response_matrix
@@ -2407,9 +2383,6 @@ contains
 !############################# FINISH RESPONSE MATRIX ##########################
 !###############################################################################
 
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
    subroutine finish_response_matrix
 
       use arrays, only: response_matrix
@@ -2434,9 +2407,5 @@ contains
       initialised_response_matrix = .false.
 
    end subroutine finish_response_matrix
-
-!###############################################################################
-!########################## PARALLEL LU DECOMPOSITIONS #########################
-!###############################################################################
 
 end module response_matrix
