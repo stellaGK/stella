@@ -1423,7 +1423,7 @@ contains
                phi(idx) = phi(idx) / gamma_fac(iz)
             end do
 
-            if (periodic(iky) .and. iseg == 1 ) phi(nz_ext) = phi (1) / phase_shift(iky)
+            if (periodic(iky)) phi(nz_ext) = phi (1) / phase_shift(iky)
 
             if (izl_offset == 0) izl_offset = 1
 
@@ -1513,8 +1513,8 @@ contains
                bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
             end do
 
-            if (periodic(iky) .and. iseg == 1 ) phi(nz_ext) = phi(1) / phase_shift(iky)
-            if (periodic(iky) .and. iseg == 1 ) bpar(nz_ext) = bpar(1) / phase_shift(iky)
+            if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
+            if (periodic(iky)) bpar(nz_ext) = bpar(1) / phase_shift(iky)
             
             if (izl_offset == 0) izl_offset = 1
          end do
@@ -1583,7 +1583,7 @@ contains
                apar(idx) = apar(idx) / denominator(iz)
             end do
 
-            if (periodic(iky) .and. iseg == 1) apar(nz_ext) = apar(1) / phase_shift(iky)
+            if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
 
             if (izl_offset == 0) izl_offset = 1
          end do
