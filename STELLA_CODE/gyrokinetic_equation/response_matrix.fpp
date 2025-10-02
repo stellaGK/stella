@@ -676,7 +676,7 @@ contains
          
          ! In order to get the correct form of the response matrix we need to first divide
          ! by the appropriate prefactor in the fields equation. 
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie)
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -846,7 +846,7 @@ contains
          ! In order to get the correct form of the response matrix we need to first divide
          ! by the appropriate prefactor in the fields equation. 
          ! This accounts for terms appearing both in quasineutrality and parallel ampere
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie)
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -1018,7 +1018,7 @@ contains
          ! In order to get the correct form of the response matrix we need to first divide
          ! by the appropriate prefactor in the fields equation. 
          ! This accounts for terms appearing both in quasineutrality and parallel ampere
-         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie)
+         call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -1332,7 +1332,7 @@ contains
    ! zed grid, so much of these routines are about mapping the prefactors onto 
    ! the extended zed domain.
    !============================================================================
-   subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie)
+   subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, nz_ext)
    
       use parameters_physics, only: include_apar, include_bpar
    
@@ -1340,7 +1340,7 @@ contains
    
       ! Arguments
       complex, dimension(:), intent(in out) :: phi, apar, bpar
-      integer, intent(in) :: iky, ie
+      integer, intent(in) :: iky, ie, nz_ext
    
       !-------------------------------------------------------------------------
    
@@ -1370,7 +1370,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
-         use grids_extended_zgrid, only: periodic
+         use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: denominator_fields, denominator_fields_MBR
          use arrays, only: denominator_fields_h, denominator_fields_MBR_h
@@ -1405,6 +1405,9 @@ contains
          do iseg = 1, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
 
+            ! Make sure the boundary points are being treated correctly depending
+            ! on whether the mode is periodic or not.
+
             if (periodic(iky)) then
                izup = iz_up(iseg) - 1
             else
@@ -1419,7 +1422,11 @@ contains
                idx = idx + 1
                phi(idx) = phi(idx) / gamma_fac(iz)
             end do
+
+            if (periodic(iky) .and. iseg == 1 ) phi(nz_ext) = phi (1) / phase_shift(iky)
+
             if (izl_offset == 0) izl_offset = 1
+
          end do
 
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -1449,7 +1456,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
-         use grids_extended_zgrid, only: periodic
+         use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
          use arrays, only: denominator_fields_h
@@ -1505,6 +1512,10 @@ contains
                phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
                bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
             end do
+
+            if (periodic(iky) .and. iseg == 1 ) phi(nz_ext) = phi(1) / phase_shift(iky)
+            if (periodic(iky) .and. iseg == 1 ) bpar(nz_ext) = bpar(1) / phase_shift(iky)
+            
             if (izl_offset == 0) izl_offset = 1
          end do
 
@@ -1529,7 +1540,7 @@ contains
          use grids_extended_zgrid, only: iz_low, iz_up
          use grids_extended_zgrid, only: ikxmod
          use grids_extended_zgrid, only: nsegments
-         use grids_extended_zgrid, only: periodic
+         use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: apar_denom
          use arrays, only: kperp2
@@ -1571,6 +1582,9 @@ contains
                idx = idx + 1
                apar(idx) = apar(idx) / denominator(iz)
             end do
+
+            if (periodic(iky) .and. iseg == 1) apar(nz_ext) = apar(1) / phase_shift(iky)
+
             if (izl_offset == 0) izl_offset = 1
          end do
 
