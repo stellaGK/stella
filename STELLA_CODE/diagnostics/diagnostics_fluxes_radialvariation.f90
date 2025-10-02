@@ -49,7 +49,6 @@ contains
       use grids_velocity, only: vperp2, vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use parameters_physics, only: fphi
-      use parameters_numerical, only: maxwellian_normalization
       use grids_kxky, only: aky, theta0
       use grids_kxky, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
@@ -125,10 +124,9 @@ contains
                   end if
 
                   !subtract adiabatic contribution part of g
-                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
+                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -181,10 +179,9 @@ contains
 
                   ! Subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * (vpa(iv)**2 + vperp2(ia, iz, imu))
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) * maxwell_vpa(iv, is) &
+                        * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                        
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -236,10 +233,9 @@ contains
                   
                   ! Subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        * vpa(iv) * geo_surf%rmaj * btor(iz) * maxwell_vpa(iv, is) &
+                        * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) / bmag(ia, iz)
+
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -285,9 +281,8 @@ contains
                         * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
                         * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
                         / (geo_surf%qinp * bmag(ia, iz)**2)
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+
+                  g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
                      g1k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &

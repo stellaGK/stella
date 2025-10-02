@@ -633,7 +633,6 @@ contains
       use arrays_gyro_averages, only: aj0v
 
       ! Parameters
-      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: fphi
       
       ! Grids
@@ -698,12 +697,8 @@ contains
             is = is_idx(kxkyz_lo, ikxkyz)
 
             ! Calculate (1 - J_0(a_k)²) exp(v²) for each (kx,ky,z)
-            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa)
-
-            ! Multiply by the Maxwellian if needed
-            if (.not. maxwellian_normalization) then
-               g0 = g0 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-            end if
+            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) &
+               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
 
             ! Calculate denominator_fields[iky,ikz,iz] = sum_s (Z_s² n_s/T_s) (1 - Gamma0)
             ! with (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J_0(a_k)²) exp(v²)

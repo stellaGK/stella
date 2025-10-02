@@ -375,7 +375,6 @@
   split_parallel_dynamics = .false.
   maxwellian_inside_zed_derivative = .false.
   use_deltaphi_for_response_matrix = .false.
-  maxwellian_normalization = .false.
 /
 
 &numerical_upwinding_for_derivatives

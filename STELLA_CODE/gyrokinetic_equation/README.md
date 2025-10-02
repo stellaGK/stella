@@ -16,8 +16,6 @@ $$
 \end{aligned}
 $$
 
-If maxwellian_normalization = .true., the evolved distribution function is normalised by a Maxwellian.
-
 ## Terms in the gyrokinetic equation
 
 In the gyrokinetic equation given above, there are 6 terms

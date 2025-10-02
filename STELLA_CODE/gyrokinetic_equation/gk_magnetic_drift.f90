@@ -84,9 +84,8 @@ contains
       
       ! Parallelisation
       use mp, only: mp_abort
-      
-      ! Numerics
-      use parameters_numerical, only: maxwellian_normalization
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
       ! Geometry
       use geometry, only: B_times_kappa_dot_grady, B_times_gradB_dot_grady
@@ -94,8 +93,6 @@ contains
       use geometry, only: geo_surf, q_as_x
       
       ! Grids
-      use parallelisation_layouts, only: vmu_lo
-      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use grids_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
@@ -167,10 +164,8 @@ contains
          wdrifty_g(:, :, ivmu) = wcvdrifty + wgbdrifty
          
          ! Calculate <wdrifty_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdrifty> + <wgbdrifty>)
-         wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wcvdrifty + wgbdrifty)
-         if (.not. maxwellian_normalization) then
-            wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         end if
+         wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wcvdrifty + wgbdrifty) &
+               * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          
          ! TODO - write documentation and neoclassical terms not supported
          wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu) * spec(is)%tz
@@ -194,10 +189,8 @@ contains
          wdriftx_g(:, :, ivmu) = wcvdriftx + wgbdriftx
          
          ! Calculate <wdriftx_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdriftx> + <wgbdriftx>)
-         wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wcvdriftx + wgbdriftx)
-         if (.not. maxwellian_normalization) then
-            wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         end if
+         wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wcvdriftx + wgbdriftx) &
+               * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          
          ! TODO - write documentation and neoclassical terms not supported
          wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu) * spec(is)%tz
@@ -220,7 +213,6 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
-      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: xdriftknob, ydriftknob
       
       ! Grids
@@ -284,13 +276,8 @@ contains
                wdrifty_g(:, :, ivmu) = wdrifty_g(:, :, ivmu) + code_dt * 0.5 * (gds23 * dphineo_dzed + drhodpsi * dydalpha * dphineo_drho)
          end if
 
-         wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wgbdrifty + wcvdrifty * vpa(iv))
-
-         ! if maxwwellian_normalization = .true., evolved distribution function is normalised by a Maxwellian
-         ! otherwise, it is not; a Maxwellian weighting factor must thus be included
-         if (.not. maxwellian_normalization) then
-               wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         end if
+         wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wgbdrifty + wcvdrifty * vpa(iv))& 
+               * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          
          ! assign wdrifty_bpar, neoclassical terms not supported
          wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu) * spec(is)%tz
@@ -300,10 +287,6 @@ contains
          ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
          if (include_neoclassical_terms) then
                ! NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
-               ! if maxwellian_normalization = .true.
-               if (maxwellian_normalization) then
-               call mp_abort("include_neoclassical_terms=T not currently supported for maxwellian_normalization=T.  aborting")
-               end if
                wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) &
                   - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdrifty &
                   - code_dt * 0.5 * dfneo_dzed(:, :, ivmu) * gds23
@@ -330,13 +313,8 @@ contains
                wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed - dxdpsi * dphineo_dalpha)
          end if
          
-         wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
-         
-         ! if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
-         ! otherwise, it is not; a Maxwellian weighting factor must thus be included
-         if (.not. maxwellian_normalization) then
-               wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         end if
+         wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv)) &
+               * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          
          ! assign wdriftx_bpar, neoclassical terms not supported
          wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu) * spec(is)%tz
@@ -347,10 +325,6 @@ contains
          ! and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
          if (include_neoclassical_terms) then
                ! NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
-               ! if running with maxwellian_normalzation = .true.
-               if (maxwellian_normalization) then
-               call mp_abort("include_neoclassical_terms=T not currently supported for maxwellian_normalization=T.  aborting")
-               end if
                wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
                                        - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
                                        + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdpsi - dfneo_dzed(:, :, ivmu) * gds24)

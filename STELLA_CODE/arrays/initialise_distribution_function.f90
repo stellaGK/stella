@@ -292,7 +292,6 @@ contains
 
       ! Flags
       use save_stella_for_restart, only: init_tstart
-      use parameters_numerical, only: maxwellian_normalization
       
       ! Load the <init_distribution_switch> parameters
       use namelist_initialise_distribution_function, only: init_distribution_option_maxwellian
@@ -340,12 +339,6 @@ contains
          restarted = .true.
          scale = 1.
       end select
-
-      ! If <maxwwellian_normalization> = .true., the pdf is normalized by F0 (which is not the case otherwise)
-      ! unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
-      if (maxwellian_normalization .and. init_distribution_switch /= init_distribution_option_restart) then
-         call normalize_by_maxwellian
-      end if
 
    end subroutine init_distribution_function_vs_muvpa
 

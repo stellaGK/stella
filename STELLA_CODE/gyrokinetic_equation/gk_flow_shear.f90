@@ -133,7 +133,6 @@ contains
       
       ! Calculations and flags
       use constants, only: zi, pi
-      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation
       
       ! Flow shear arrays
@@ -212,12 +211,10 @@ contains
          end do
          
          ! Add the Mawellian exp(v²)
-         if (.not. maxwellian_normalization) then
-            do iz = -nzgrid, nzgrid
-               prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
-                   * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-            end do
-         end if
+         do iz = -nzgrid, nzgrid
+            prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
+                  * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+         end do
          
          ! Add correction due to radial variation
          if (radial_variation) then

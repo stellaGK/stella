@@ -186,7 +186,6 @@ contains
       ! Parameters
       use parameters_physics, only: full_flux_surface
       use parameters_numerical, only: vpa_upwind, time_upwind
-      use parameters_numerical, only: maxwellian_normalization
 
       ! Grids
       use grids_z, only: nzgrid
@@ -282,12 +281,6 @@ contains
       tupwndfac = 0.5 * (1.0 + time_upwind)
       a = a * tupwndfac
       c = c * tupwndfac
-      if (maxwellian_normalization) then
-         ! Account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
-         ! this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
-         ! we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
-         b = b + spread(2.0 * vpa, 2, 3)
-      end if
 
       if (full_flux_surface) then
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -403,7 +396,6 @@ contains
       
       ! Parameters
       use parameters_physics, only: full_flux_surface
-      use parameters_numerical, only: maxwellian_normalization
 
       ! Grids + Arrays
       use grids_z, only: nzgrid, ntubes
@@ -486,18 +478,8 @@ contains
          ! Get dg/dvpa and store in g0v
          g0v = gvmu
 
-         ! Remove exp(-vpa^2) normalization from pdf before differentiating
-         if (maxwellian_normalization) then
-            do iv = 1, nvpa
-               g0v(iv, :, :) = g0v(iv, :, :) * maxwell_vpa(iv, 1)
-            end do
-         end if
          call get_dgdvpa_explicit(g0v)
-         if (maxwellian_normalization) then
-            do iv = 1, nvpa
-               g0v(iv, :, :) = g0v(iv, :, :) / maxwell_vpa(iv, 1) + 2.0 * vpa(iv) * gvmu(iv, :, :)
-            end do
-         end if
+
          ! Swap layouts so that (z,kx,ky) are local
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g0x)
@@ -682,7 +664,7 @@ contains
       use parameters_physics, only: include_apar
       use parameters_numerical, only: time_upwind
       use parameters_numerical, only: vpa_upwind, time_upwind
-      use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
+      use parameters_numerical, only: mirror_semi_lagrange
 
       ! Calculations
       use calculations_tofrom_ghf, only: gbar_to_g
@@ -749,15 +731,8 @@ contains
             call vpa_interpolation(gvmu, g0v)
          else
             allocate (rhs(nvpa))
-            ! remove exp(-vpa^2) normalization from pdf before differentiating
-            if (maxwellian_normalization) then
-               do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                  is = is_idx(kxkyz_lo, ikxkyz)
-                  gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * spread(maxwell_vpa(:, is), 2, nmu)
-               end do
-            end if
 
-            ! if fields are not updated, then update apar before converting from g to gbar
+            ! If fields are not updated, then update apar before converting from g to gbar
             ! in get_mirror_rhs_g_contribution below
             if (include_apar .and. .not. fields_updated) call advance_apar(gvmu, dist, apar)
 
@@ -809,13 +784,6 @@ contains
                end do
             end if
 
-            ! re-insert maxwellian normalization
-            if (maxwellian_normalization) then
-               do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                  is = is_idx(kxkyz_lo, ikxkyz)
-                  g0v(:, :, ikxkyz) = g0v(:, :, ikxkyz) / spread(maxwell_vpa(:, is), 2, nmu)
-               end do
-            end if
             deallocate (rhs)
          end if
 
@@ -923,7 +891,6 @@ contains
 
       use parameters_physics, only: include_apar
       use parameters_numerical, only: vpa_upwind, time_upwind_minus
-      use parameters_numerical, only: maxwellian_normalization
       use calculations_tofrom_ghf, only: gbar_to_g
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
@@ -951,9 +918,7 @@ contains
       ! When advancing apar, need to compute g^{n+1} = gbar^{n} + dt * dg/dvpa * (...)
       ! the vpa derivative appearing on the RHS of the mirror equation
       ! should be operating on g, so need to have both gbar and g.
-      ! NB: changes may need to be made to this call to gbar_to_g if using
-      ! maxwellian_normalization; not worried aobut it too much yet, as not
-      ! sure if it will ever be in use here
+      ! NB: changes may need to be made to this call to gbar_to_g 
       if (include_apar) then
          ! RHS is converted from g to gbar
          call gbar_to_g(rhs, apar, imu, ikxkyz, -1.0)
@@ -967,11 +932,8 @@ contains
       ! Construct RHS of GK equation for mirror advance;
       ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
       ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
-      if (maxwellian_normalization) then
-         rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * (dgdv + 2.0 * vpa * g_in)
-      else
-         rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
-      end if
+
+      rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
 
       deallocate (dgdv)
 
@@ -985,7 +947,6 @@ contains
       use grids_species, only: spec
       use grids_velocity, only: nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
-      use parameters_numerical, only: maxwellian_normalization
       use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
       use calculations_gyro_averages, only: gyro_average
 
@@ -1011,9 +972,8 @@ contains
       ia = 1
       pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
       call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
-      if (.not. maxwellian_normalization) then
-         vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
-      end if
+
+      vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
 
       rhs = vpa_scratch
 

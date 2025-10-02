@@ -211,7 +211,6 @@ $(OBJ_DIR)/calculations_tofrom_ghf.o: \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/calculations_transforms.o: \
 	 $(OBJ_DIR)/fft_work.o \
@@ -413,7 +412,6 @@ $(OBJ_DIR)/diagnostics_fluxes_radialvariation.o: \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/diagnostics_moments.o: \
 	 $(OBJ_DIR)/arrays.o \
@@ -434,7 +432,6 @@ $(OBJ_DIR)/diagnostics_moments.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/write_diagnostics_to_netcdf.o 
 $(OBJ_DIR)/diagnostics_omega.o: \
@@ -586,7 +583,6 @@ $(OBJ_DIR)/field_equations_fluxtube.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/multibox.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/timers.o 
@@ -711,7 +707,6 @@ $(OBJ_DIR)/gk_drive.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_ffs_solve.o: \
@@ -745,7 +740,6 @@ $(OBJ_DIR)/gk_flow_shear.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_flow_shear.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/gk_implicit_terms.o: \
 	 $(OBJ_DIR)/arrays.o \
@@ -790,7 +784,6 @@ $(OBJ_DIR)/gk_magnetic_drift.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_mirror.o: \

@@ -49,7 +49,6 @@ module parameters_numerical
    public :: fully_implicit, fully_explicit
    public :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
    public :: split_parallel_dynamics
-   public :: maxwellian_normalization
 
    ! numerical_upwinding_for_derivatives
    public :: time_upwind, time_upwind_plus, time_upwind_minus
@@ -88,9 +87,6 @@ module parameters_numerical
    ! if split_parallel_dynamics = .true. (default), use operator splitting
    ! to treat parallel streaming and mirror term separately
    logical :: split_parallel_dynamics
-   
-   ! GA - REMOVE
-   logical :: maxwellian_normalization
 
    ! numerical_upwinding_for_derivatives
    real :: time_upwind, time_upwind_plus, time_upwind_minus
@@ -141,8 +137,7 @@ contains
                         fully_implicit, fully_explicit, &
                         maxwellian_inside_zed_derivative, &
                         use_deltaphi_for_response_matrix, & 
-                        split_parallel_dynamics, &
-                        maxwellian_normalization)
+                        split_parallel_dynamics)
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
@@ -260,14 +255,6 @@ contains
             if (stream_implicit) then
                driftkinetic_implicit = .true.
             end if
-            if (maxwellian_normalization) then 
-               write (*, *)
-               write (*, *) '!!!WARNING!!!'
-               write (*, *) 'The option maxwellian_normalisation=T is not consistent with full_flux_surface=T.'
-               write (*, *) 'Forcing maxwellian_normalisation=F.'
-               write (*, *) '!!!WARNING!!!'
-               maxwellian_normalization = .false.
-            end if
             
          else
             driftkinetic_implicit = .false.
@@ -350,7 +337,6 @@ contains
          call broadcast(maxwellian_inside_zed_derivative)
          call broadcast(use_deltaphi_for_response_matrix)
          call broadcast(split_parallel_dynamics)
-         call broadcast(maxwellian_normalization)
 
          ! numerical_upwinding_for_derivatives
          call broadcast(time_upwind_plus)

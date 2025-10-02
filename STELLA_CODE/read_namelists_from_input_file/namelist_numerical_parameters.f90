@@ -35,7 +35,6 @@
 !     split_parallel_dynamics = .false.
 !     maxwellian_inside_zed_derivative = .false.
 !     use_deltaphi_for_response_matrix = .false.
-!     maxwellian_normalization = .false.
 !   
 !   numerical_upwinding_for_derivatives
 !     zed_upwind = 0.02
@@ -274,7 +273,7 @@ contains
       stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
       mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
       fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
-      use_deltaphi_for_response_matrix, split_parallel_dynamics, maxwellian_normalization)
+      use_deltaphi_for_response_matrix, split_parallel_dynamics)
 
       use mp, only: proc0
 
@@ -286,7 +285,7 @@ contains
       logical, intent(out) :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
       logical, intent(out) :: drifts_implicit, fully_implicit, fully_explicit, flip_flop
       logical, intent(out) :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
-      logical, intent(out) :: split_parallel_dynamics, maxwellian_normalization
+      logical, intent(out) :: split_parallel_dynamics
 
       ! Local variable to set <explicit_algorithm_switch>
       character(30) :: explicit_algorithm
@@ -320,7 +319,6 @@ contains
          maxwellian_inside_zed_derivative = .false.
          use_deltaphi_for_response_matrix = .false.
          split_parallel_dynamics = .false.
-         maxwellian_normalization = .false.
 
      end subroutine set_default_parameters_numerical_algorithms
 
@@ -348,7 +346,7 @@ contains
             stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
             mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
             fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
-            use_deltaphi_for_response_matrix, split_parallel_dynamics, maxwellian_normalization
+            use_deltaphi_for_response_matrix, split_parallel_dynamics
          
          !----------------------------------------------------------------------
 
@@ -387,7 +385,6 @@ contains
          write (unit, '(A, L0)') '  maxwellian_inside_zed_derivative = ', maxwellian_inside_zed_derivative
          write (unit, '(A, L0)') '  use_deltaphi_for_response_matrix = ', use_deltaphi_for_response_matrix
          write (unit, '(A, L0)') '  split_parallel_dynamics = ', split_parallel_dynamics
-         write (unit, '(A, L0)') '  maxwellian_normalization = ', maxwellian_normalization
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

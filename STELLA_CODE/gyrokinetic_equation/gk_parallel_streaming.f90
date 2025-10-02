@@ -287,7 +287,6 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
-      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: full_flux_surface, include_bpar
 	
       use grids_velocity, only: mu
@@ -406,15 +405,10 @@ contains
             ! ------------------------------------------------------------------
             ! Bpar term is zero unless include_bpar = T, see if statement above.
             ia = 1
-            if (maxwellian_normalization) then
-               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt & 
-                                               + 4.*mu(imu)*dgbpar_dz(:, :, :, :) 
-            else
-               g0(:, :, :, :) = g0(:, :, :, :) + (dgphi_dz(:, :, :, :) * spec(is)%zt &
-                                               + 4.*mu(imu)*dgbpar_dz(:, :, :, :)) &
-                                               * maxwell_fac(is) * maxwell_vpa(iv, is) & 
-               * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-            end if
+
+            g0(:, :, :, :) = g0(:, :, :, :) + (dgphi_dz(:, :, :, :) * spec(is)%zt &
+                  + 4.*mu(imu)*dgbpar_dz(:, :, :, :))* maxwell_fac(is) * maxwell_vpa(iv, is) &
+                  * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
 
             ! Multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))

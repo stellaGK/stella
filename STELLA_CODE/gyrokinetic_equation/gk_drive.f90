@@ -77,19 +77,19 @@ contains
       ! Parallelisation
       use mp, only: mp_abort
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use grids_time, only: code_dt
-      use geometry, only: dydalpha, drhodpsi, clebsch_factor
-      use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
-      use parameters_numerical, only: maxwellian_normalization
-      use arrays, only: wstar, initialised_wstar
       
       ! Grids
+      use grids_time, only: code_dt
       use grids_kxky, only: nalpha
       use grids_z, only: nzgrid
       use grids_species, only: spec
       use grids_velocity, only: vperp2, vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
+      use geometry, only: dydalpha, drhodpsi, clebsch_factor
+      use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
+      use arrays, only: wstar, initialised_wstar
+
       ! Rescale the drive term with <wstarknob>
       use parameters_physics, only: wstarknob
 
@@ -128,22 +128,15 @@ contains
          ! Calculate wstar = - code_dt*omega_{*,k,s}/ky = - code_dt * 0.5/C <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho 
          !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²)
          if (include_neoclassical_terms) then
-            if (maxwellian_normalization) then
-               call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
-            else
             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
-            end if
          else
              wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                   * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
          
-         ! Add exp(-v²) = exp(-v²_parallel -v²_perp) = maxwell_vpa(iv, is) * maxwell_mu(ialpha, iz, imu, is) to wstar
-         if (.not. maxwellian_normalization) then
-               wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         end if
+         wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          
       end do
 

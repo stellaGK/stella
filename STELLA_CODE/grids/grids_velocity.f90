@@ -303,7 +303,6 @@ contains
       
          use mp, only: mp_abort
          use constants, only: pi
-         use parameters_numerical, only: maxwellian_normalization
 
          implicit none
           
@@ -351,14 +350,6 @@ contains
          
          ! Add the 1/sqrt(pi) factor of velocity integrations to <wgts_vpa>
          wgts_vpa = wgts_vpa / sqrt(pi)
-
-         ! If maxwellian_normalization = .true., then the evolved pdf is normalized
-         ! by a Maxwellian; this normalisation must be accounted for in the velocity
-         ! space integrals, so include exp(-vpa^2) factor in the vpa weights.
-         ! NB: the species index of maxwell_vpa is not needed for the radially local version 
-         ! of the code and would otherwise add a species index to wgts_vpa, so currently 
-         ! maxwellian_normalization is not supported for the radially global version of the code.
-         if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:, 1)
          
       end subroutine initialise_vpa_integration_weights_Simpsons
 
@@ -375,9 +366,6 @@ contains
    !     <wgts_mu>[ialpha, iz, imu] = <wgts_mu_bare>[imu] * 2 * bmag[iz]
    !****************************************************************************
    subroutine init_mu_grid
-   
-      ! Flags
-      use parameters_numerical, only: maxwellian_normalization
       
       ! Geometry
       use geometry, only: bmag
@@ -403,12 +391,6 @@ contains
 
       ! Add the constant factor [ 2 bmag(z) ] of the velocity integration to the mu integration weights
       wgts_mu = 2.*spread(spread(wgts_mu_bare, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu)
-
-      ! If <maxwellian_normalization>, the evolved pdf is normalized by a Maxwwellian;
-      ! in this case, the velocity integration must account for the Maxwellian.
-      ! NB: the species index on maxwell_mu is only needed for radially global simulations,
-      ! which are not currently supported for maxwellian_normalization = .true.
-      if (maxwellian_normalization) wgts_mu = wgts_mu * maxwell_mu(:, :, :, 1)
       
    contains
    

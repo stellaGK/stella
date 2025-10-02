@@ -514,7 +514,7 @@ contains
       use grids_z, only: nzgrid
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use grids_velocity, only: vpa
-      use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
+      use parameters_numerical, only: driftkinetic_implicit
       use parameters_numerical, only: drifts_implicit
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
@@ -595,12 +595,8 @@ contains
             z_scratch = maxwell_mu_avg(ia, :, imu, is)
             call center_zed(iv, z_scratch, -nzgrid)
          else
-            if (.not. maxwellian_normalization) then
-               z_scratch = maxwell_mu(ia, :, imu, is)
-               call center_zed(iv, z_scratch, -nzgrid)
-            else
-               z_scratch = 1.0
-            end if
+            z_scratch = maxwell_mu(ia, :, imu, is)
+            call center_zed(iv, z_scratch, -nzgrid)
          end if
 
          ! Multiply by Maxwellian factor
@@ -610,8 +606,7 @@ contains
 
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
-         z_scratch = vpa(iv) * spec(is)%zt
-         if (.not. maxwellian_normalization) z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
+         z_scratch = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
          ! If including neoclassical correction to equilibrium distribution function
          ! then must also account for -vpa*dF_neo/dvpa*Z/T
          ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -691,7 +686,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vpa, mu
       use grids_extended_zgrid, only: map_to_iz_ikx_from_izext
-      use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
+      use parameters_numerical, only: driftkinetic_implicit
       use parameters_numerical, only: drifts_implicit
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
@@ -775,19 +770,16 @@ contains
          call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, scratch2)
 
          ! Center Maxwellian factor in mu and store in dummy variable z_scratch
-         if (.not. maxwellian_normalization) then
-            z_scratch = maxwell_mu(ia, :, imu, is)
-            call center_zed(iv, z_scratch, -nzgrid)
-            ! multiply by Maxwellian factor
-            do izext = 1, nz_ext
-               scratch2(izext) = scratch2(izext) * z_scratch(iz_from_izext(izext))
-            end do
-         end if
+         z_scratch = maxwell_mu(ia, :, imu, is)
+         call center_zed(iv, z_scratch, -nzgrid)
+         ! multiply by Maxwellian factor
+         do izext = 1, nz_ext
+            scratch2(izext) = scratch2(izext) * z_scratch(iz_from_izext(izext))
+         end do
 
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
-         z_scratch = vpa(iv) * 4. * mu(imu)
-         if (.not. maxwellian_normalization) z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
+         z_scratch = vpa(iv) * 4. * mu(imu) * maxwell_vpa(iv, is) * maxwell_fac(is)
          ! If including neoclassical correction to equilibrium distribution function
          ! then must also account for -vpa*dF_neo/dvpa*4*mu
          ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -922,11 +914,10 @@ contains
    !****************************************************************************
    subroutine add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
 
-      use parameters_numerical, only: maxwellian_normalization
       use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
-      use gk_parallel_streaming, only: center_zed
       use grids_species, only: spec
       use grids_extended_zgrid, only: periodic
+      use gk_parallel_streaming, only: center_zed
 
       implicit none
 
@@ -951,13 +942,12 @@ contains
          scratch2(izext) = constant_factor * scratch2(izext)
       end do
 
-      ! If the pdf is not normalized by a Maxwellian then the source term contains a Maxwellian factor
-      if (.not. maxwellian_normalization) then
-         do izext = 1, nz_ext
-            iz = iz_from_izext(izext)
-            scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-         end do
-      end if
+      ! The source term contains a Maxwellian factor
+      do izext = 1, nz_ext
+         iz = iz_from_izext(izext)
+         scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+      end do
+
       call center_zed(iv, scratch2, 1, periodic(iky))
       rhs = rhs + scratch2
 
@@ -1014,10 +1004,9 @@ contains
    subroutine gbar_to_g_zext(pdf, apar, facapar, iky, ivmu, ikx_from_izext, iz_from_izext)
 
       use grids_species, only: spec
-      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use parameters_numerical, only: maxwellian_normalization
       use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
-
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      
       implicit none
 
       complex, dimension(:), intent(in out) :: pdf
@@ -1048,12 +1037,12 @@ contains
       ia = 1
 
       field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar
-      if (.not. maxwellian_normalization) then
-         do izext = 1, nz_ext
-            iz = iz_from_izext(izext)
-            field(izext) = field(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-         end do
-      end if
+
+      do izext = 1, nz_ext
+         iz = iz_from_izext(izext)
+         field(izext) = field(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+      end do
+
       call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, field, gyro_field)
       pdf = pdf - gyro_field
 
