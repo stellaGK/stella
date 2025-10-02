@@ -340,7 +340,16 @@ contains
          ! Write time message
          if (debug) call time_message(.false., time_response_matrix, message_response_matrix)
 
-         call calculate_response_matrix_to_invert(iky)
+         ! TO VALENTIN: This part could be parallelised over iky and ie as 
+         ! these are all computed independently. It's not until the LU decomposition
+         ! that they are needed together
+         !
+         ! Loop over the independent chains for a given ky value  <neigen> is an
+         ! integer that depends on ky, as different ky modes will have a different
+         ! number of eigen chains.
+         do ie = 1, neigen(iky)
+            call calculate_response_matrix_to_invert(iky, ie)
+         end do 
 
          ! ---------------------------------------------------------------------
          !                   Parallelisation + debug messages
@@ -402,7 +411,7 @@ contains
    !============================================================================
    !============================================================================
 
-   subroutine calculate_response_matrix_to_invert(iky)
+   subroutine calculate_response_matrix_to_invert(iky, ie)
 
       use mp, only: proc0
       use parallelisation_layouts, only: mat_gen
@@ -418,128 +427,121 @@ contains
       implicit none
 
       ! Arguments
-      integer, intent(in) :: iky
+      integer, intent(in) :: iky, ie 
 
       ! Local variables
-      integer :: ie, idx, ikx, iseg
+      integer :: idx, ikx, iseg
       integer :: iz, izl_offset, izup
       integer :: nz_ext, nresponse, nresponse_per_field
       complex, dimension(:, :), allocatable :: gext
       complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
 
-      ! ------------------------------------------------------------------------
+      ! ---------------------------------------------------------------------
+      !              Set up system to compute response of the pdf
+      ! ---------------------------------------------------------------------
+      ! <nz_ext> is the dimension of the extended zed domain, i.e.,
+      ! <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
+      ! <nzed_segment> = (number of zeds)
+      !                -> This is the number of unique zed values in all segments 
+      !                   except the first. The first segment has one extra unique 
+      !                   zed value (all others have one grid common with the
+      !                   previous segment due to periodicity)
+      ! <nsegments>    = (number of segments on extended zed domain)
+      !                = (Nkx -1)/neigen 
+      !                -> <nsegments> is how many 2π segments in z are linked together
+      nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
-      ! Loop over the independent chains for a given ky value  <neigen> is an
-      ! integer that depends on ky, as different ky modes will have a different
-      ! number of eigen chains.
-      do ie = 1, neigen(iky)
-         ! ---------------------------------------------------------------------
-         !              Set up system to compute response of the pdf
-         ! ---------------------------------------------------------------------
-         ! <nz_ext> is the dimension of the extended zed domain, i.e.,
-         ! <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
-         ! <nzed_segment> = (number of zeds)
-         !                -> This is the number of unique zed values in all segments 
-         !                   except the first. The first segment has one extra unique 
-         !                   zed value (all others have one grid common with the
-         !                   previous segment due to periodicity)
-         ! <nsegments>    = (number of segments on extended zed domain)
-         !                = (Nkx -1)/neigen 
-         !                -> <nsegments> is how many 2π segments in z are linked together
-         nz_ext = nsegments(ie, iky) * nzed_segment + 1
+      ! We need to treat zonal mode specially to avoid double counting the end
+      ! points in zed, as it is periodic so these end points are the same.
+      ! This is also needed if 'periodic' is chosen for the boundary conditions.
+      ! At this point <nresponse> is the number of independednt zed values for
+      ! each field. This is the number of unit impulses we need to apply in order
+      ! to get the response matrix.
+      if (periodic(iky)) then
+         nresponse_per_field = nz_ext - 1
+      else
+         nresponse_per_field = nz_ext
+      end if
 
-         ! We need to treat zonal mode specially to avoid double counting the end
-         ! points in zed, as it is periodic so these end points are the same.
-         ! This is also needed if 'periodic' is chosen for the boundary conditions.
-         ! At this point <nresponse> is the number of independednt zed values for
-         ! each field. This is the number of unit impulses we need to apply in order
-         ! to get the response matrix.
+      ! If electromagnetic, we need to consider the response of phi, apar, and bpar. 
+      ! If we have more fields we need to apply more unit impulses -> for each of
+      ! phi, apar, and bpar.
+      nresponse = nresponse_per_field * nfields
+
+      ! Write <ie>, <nresponse> to file
+      if (proc0 .and. mat_gen) then
+         write (unit=unit_response_matrix) ie, nresponse
+      end if
+
+      ! Allocate response_matrix%eigen%zloc - size of response matrix to invert
+      !          response_matrix%idx        - pivot index needed for LU decomposition
+      call setup_response_matrix_zloc_idx(iky, ie, nresponse)
+
+      ! Allocate arrays on the extended zed domain
+      ! Fields only have 1 index, as we are looping over ky modes, and kx and zed are connected
+      ! on via the extended zed domain
+      ! The distribution function, gext, has 2 dimensions - the extended zed dimension, and
+      ! velocity.
+      allocate (phi_ext(nz_ext)); phi_ext = 0.0 
+      allocate (apar_ext(nz_ext)); apar_ext = 0.0
+      allocate (bpar_ext(nz_ext)); bpar_ext = 0.0
+      allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gext = 0.0
+
+      ! ---------------------------------------------------------------------
+      !   Get the matrix we need to invert depending on the fields included
+      ! ---------------------------------------------------------------------
+      ! <idx> here is the index in the extended zed domain that we are giving
+      ! a unit impulse to.
+      idx = 0
+
+      ! Loop over segments, and idex this with <iseg>. 
+      ! The first segment is special because it has one more unique
+      ! zed value than all the other segments since the domain
+      ! is [z0-pi:z0+pi], and we are including both endpoints.
+      ! For iseg > 1 one endpoint is shared with the previous segment.
+      izl_offset = 0
+
+      ! Here, we apply a unit impulse at every value of zed in this sements, and find the 
+      ! response of gext to this unit impulse. The impulse is provided at the <idx> value.
+      ! Note - No need to obtain response to impulses at negative kx values
+      ! Loop over all segments
+      do iseg = 1, nsegments(ie, iky)
+         ! Compute the index of kx that is connected in the given eigen chain in this segment.
+         ! <ikxmod> gives the kx corresponding to (iseg,ie,iky)
+         ! i.e. given a ky (iky), which chain are we in (ie), and within that chain
+         !      which segment of 2π are we considering -> this is associated with a specific
+         !      kx value. 
+         ikx = ikxmod(iseg, ie, iky)
+
+         ! Make sure the boundary points are being treated correctly depending
+         ! on whether the mode is periodic or not. Here, define <izup> as the 
+         ! upper zed value within a segment. If the mode is periodic, then 
+         ! reduce the upper bound by one, as this is a repeated point so it is 
+         ! obtained using the periodicity condition. This avoids and double-counting.
          if (periodic(iky)) then
-            nresponse_per_field = nz_ext - 1
+            izup = iz_up(iseg) - 1
          else
-            nresponse_per_field = nz_ext
+            izup = iz_up(iseg)
          end if
-
-         ! If electromagnetic, we need to consider the response of phi, apar, and bpar. 
-         ! If we have more fields we need to apply more unit impulses -> for each of
-         ! phi, apar, and bpar.
-         nresponse = nresponse_per_field * nfields
-
-         ! Write <ie>, <nresponse> to file
-         if (proc0 .and. mat_gen) then
-            write (unit=unit_response_matrix) ie, nresponse
-         end if
-
-         ! Allocate response_matrix%eigen%zloc - size of response matrix to invert
-         !          response_matrix%idx        - pivot index needed for LU decomposition
-         call setup_response_matrix_zloc_idx(iky, ie, nresponse)
-
-         ! Allocate arrays on the extended zed domain
-         ! Fields only have 1 index, as we are looping over ky modes, and kx and zed are connected
-         ! on via the extended zed domain
-         ! The distribution function, gext, has 2 dimensions - the extended zed dimension, and
-         ! velocity.
-         allocate (phi_ext(nz_ext)); phi_ext = 0.0 
-         allocate (apar_ext(nz_ext)); apar_ext = 0.0
-         allocate (bpar_ext(nz_ext)); bpar_ext = 0.0
-         allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gext = 0.0
-
-         ! ---------------------------------------------------------------------
-         !   Get the matrix we need to invert depending on the fields included
-         ! ---------------------------------------------------------------------
-         ! <idx> here is the index in the extended zed domain that we are giving
-         ! a unit impulse to.
-         idx = 0
-
-         ! Loop over segments, and idex this with <iseg>. 
-         ! The first segment is special because it has one more unique
-         ! zed value than all the other segments since the domain
-         ! is [z0-pi:z0+pi], and we are including both endpoints.
-         ! For iseg > 1 one endpoint is shared with the previous segment.
-         izl_offset = 0
-
-         ! Here, we apply a unit impulse at every value of zed in this sements, and find the 
-         ! response of gext to this unit impulse. The impulse is provided at the <idx> value.
-         ! Note - No need to obtain response to impulses at negative kx values
-         ! Loop over all segments
-         do iseg = 1, nsegments(ie, iky)
-            ! Compute the index of kx that is connected in the given eigen chain in this segment.
-            ! <ikxmod> gives the kx corresponding to (iseg,ie,iky)
-            ! i.e. given a ky (iky), which chain are we in (ie), and within that chain
-            !      which segment of 2π are we considering -> this is associated with a specific
-            !      kx value. 
-            ikx = ikxmod(iseg, ie, iky)
-
-            ! Make sure the boundary points are being treated correctly depending
-            ! on whether the mode is periodic or not. Here, define <izup> as the 
-            ! upper zed value within a segment. If the mode is periodic, then 
-            ! reduce the upper bound by one, as this is a repeated point so it is 
-            ! obtained using the periodicity condition. This avoids and double-counting.
-            if (periodic(iky)) then
-               izup = iz_up(iseg) - 1
-            else
-               izup = iz_up(iseg)
-            end if
-            ! Now apply a unit impulse at each zed location. To do this loop over the zed index, but
-            ! recall that there is one less zed grid point in these connected segments as they share
-            ! a grid point with the previous segment. 
-            ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-            ! iz is only cycling through the zed location within a given segment. 
-            do iz = iz_low(iseg) + izl_offset, izup
-               idx = idx + 1
-               call get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-               if (include_apar) call get_response_matrix_for_apar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-               if (include_bpar) call get_response_matrix_for_bpar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-            end do
-
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
+         ! Now apply a unit impulse at each zed location. To do this loop over the zed index, but
+         ! recall that there is one less zed grid point in these connected segments as they share
+         ! a grid point with the previous segment. 
+         ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
+         ! iz is only cycling through the zed location within a given segment. 
+         do iz = iz_low(iseg) + izl_offset, izup
+            idx = idx + 1
+            call get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            if (include_apar) call get_response_matrix_for_apar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            if (include_bpar) call get_response_matrix_for_bpar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
          end do
 
-         deallocate (gext, phi_ext, apar_ext, bpar_ext)
-         ! ---------------------------------------------------------------------
+         ! Set the offset to 1 - all other connected segments need to start one point
+         ! displaced as they share a point with the previous segment. 
+         if (izl_offset == 0) izl_offset = 1
       end do
+
+      deallocate (gext, phi_ext, apar_ext, bpar_ext)
+      ! ---------------------------------------------------------------------
 
    end subroutine calculate_response_matrix_to_invert
 
