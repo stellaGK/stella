@@ -149,13 +149,13 @@ In addition, within the other scripts, code specific to the radially global vers
    - <bmag>(ia,iz) = $B / B_ref$
    - <gradx_dot_gradx>(ia,iz) = $|\nabla x|^2$
    - <grady_dot_grady>(ia,iz) = $|\nabla y|^2$
-   - <gradx_dot_grady>(ia,iz) = $\nabla x \cdot \nabla y$
-   - <B_times_gradB_dot_gradx>(ia,iz) = $B × \nabla B · \nabla x (a*B_ref/B^3)$
-   - <B_times_gradB_dot_grady>(ia,iz) = $B × \nabla B · \nabla y (a*B_ref/B^3)$
-   - <B_times_kappa_dot_gradx>(ia,iz) = $B × \kappa · \nabla x (a*B_ref/B^2)$
-   - <B_times_kappa_dot_grady>(ia,iz) = $B × \kappa · \nabla y (a*B_ref/B^2)$
+   - <gradx_dot_grady>(ia,iz) = $\nabla \times \cdot \nabla y$
+   - <B_times_gradB_dot_gradx>(ia,iz) = $B \times \nabla B \cdot \nabla x (a*B_ref/B^3)$
+   - <B_times_gradB_dot_grady>(ia,iz) = $B \times \nabla B \cdot \nabla y (a*B_ref/B^3)$
+   - <B_times_kappa_dot_gradx>(ia,iz) = $B \times \kappa \cdot \nabla x (a*B_ref/B^2)$
+   - <B_times_kappa_dot_grady>(ia,iz) = $B \times \kappa \cdot \nabla y (a*B_ref/B^2)$
    - <b_dot_gradz>(ia,iz) = $b \cdot \nabla z$
-   - <b_dot_gradz_avg>(iz) = $\sum_\alpha b · \nabla z \mathcal{J} d \alpha / \sum_\alpha \mathcal{J} d \alpha$
+   - <b_dot_gradz_avg>(iz) = $\sum_\alpha b \cdot \nabla z \mathcal{J} d \alpha / \sum_\alpha \mathcal{J} d \alpha$
    
 - Therefore, the following name changes have been implemented:
    - gds22 → gradx_dot_gradx * shat * shat
