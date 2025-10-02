@@ -1,27 +1,60 @@
-
 !###############################################################################
 !############################### DIAGNOSE MOMENTS ##############################
 !###############################################################################
 ! 
-! Routines for calculating and writing the moments. 
+! Routines for calculating and writing the moments.
 ! 
-! The dens_vs_kykxzts is denoted by dens.
-! The temp_vs_kykxzts is denoted by temp.
+! The density is denoted by dens.
+! The temperature is denoted by temp.
 ! The parallel velocity is denoted by upar.
 ! 
+!---------------------------------- Input file ---------------------------------
+! 
+! The diagnostics are writen to text files after every <nwrite> time steps. Moreover,
+! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps.
+! 
+!&diagnostics
+!   nwrite = 50.0
+!   nc_mult = 1.0
+!   write_all = .false.
+!   write_all_time_traces = .true.
+!   write_all_moments = .false.
+!/
+!&diagnostics_moments
+!   write_moments = .false.
+!   write_radial_moments = .false.
+!/
+! 
+!---------------------------------- Diagnostics --------------------------------
+! 
+! The following moments can be calculated within stella:
+!   - Density (dens)
+!   - Temperature (temp)
+!   - Parallel velocity (upar)
+! 
+! If <write_moments> = .true. the following complex quantities are calculated:
+!   - dens(t, kx, ky, z, s, ri)  -->  density in the NetCDF file
+!   - temp(t, kx, ky, z, s, ri)  -->  temperature in the NetCDF file
+!   - upar(t, kx, ky, z, s, ri)  -->  upar in the NetCDF file
+! 
+! If <write_radial_moments> = .true. the following complex quantities are calculated:
+!   - dens(t, kx, s, ri)  -->  dens_x in the NetCDF file
+!   - temp(t, kx, s, ri)  -->  upar_x in the NetCDF file
+!   - upar(t, kx, s, ri)  -->  temp_x in the NetCDF file
+! 
 !###############################################################################
- 
 module diagnostics_moments
+
+   ! Load debug flags
+   use debug_flags, only: debug => diagnostics_debug
 
    implicit none
  
+   ! Make routines available to other modules
    public :: init_diagnostics_moments 
    public :: write_moments_to_netcdf_file 
 
-   private 
-
-   ! Debugging
-   logical :: debug = .false.
+   private
 
 contains
 
@@ -35,34 +68,34 @@ contains
    subroutine write_moments_to_netcdf_file(nout, timer)
 
       ! Data
-      use arrays_dist_fn, only: gnew
+      use arrays_distribution_function, only: gnew
 
       ! Dimensions
-      use parameters_kxky_grids, only: naky, nakx
-      use zgrid, only: nztot, ntubes
-      use species, only: nspec
-      
-      ! Flags 
+      use grids_kxky, only: naky, nakx
+      use grids_z, only: nztot, ntubes
+      use grids_species, only: nspec
+
+      ! Flags
       use parameters_physics, only: radial_variation
       use parameters_physics, only: full_flux_surface
 
       ! Write to netcdf file 
-      use stella_io, only: write_radial_moments_nc
-      use stella_io, only: write_moments_nc
-      
+      use write_diagnostics_to_netcdf, only: write_radial_moments_nc
+      use write_diagnostics_to_netcdf, only: write_moments_nc
+
       ! Routines
       use job_manage, only: time_message
       use mp, only: proc0
-      
+
       ! Input file
       use parameters_diagnostics, only: write_radial_moments
       use parameters_diagnostics, only: write_moments
 
-      implicit none 
+      implicit none
 
       ! The pointer in the netcdf file and a timer
-      real, dimension(:), intent(in out) :: timer   
-      integer, intent(in) :: nout    
+      real, dimension(:), intent(in out) :: timer
+      integer, intent(in) :: nout
 
       ! Variables needed to write and calculate diagnostics 
       complex, dimension(:, :, :, :, :), allocatable :: dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, spitzer2_vs_kykxzts 
@@ -75,7 +108,7 @@ contains
 
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'Write moments')
-      
+
       ! Allocate the arrays for the moments
       allocate (dens_vs_kykxzts(naky, nakx, nztot, ntubes, nspec))
       allocate (upar_vs_kykxzts(naky, nakx, nztot, ntubes, nspec))
@@ -86,15 +119,15 @@ contains
       if (write_radial_moments) allocate (temp_kxs(nakx, nspec)) 
 
       ! Calculate the moments delta n(ky,kx,z,tube,s); delta T(ky,kx,z,tube,s); delta u_par(ky,kx,z,tube,s)
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_moments'
+      if (debug) write (*, *) 'diagnostics::diagnose_distribution_function_and_fields::write_moments'
 
       ! Calculate the moments if <radial_variation> = True
       if (radial_variation .or. write_radial_moments) then 
          call get_moments_radial_variation(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
       end if
-      
+
       ! Calculate the moments if <full_flux_surface> = True
-      if (full_flux_surface .and. write_moments) then  
+      if (full_flux_surface .and. write_moments) then
          
          ! TODO-GA The moments for FFS are calculated in the fluxes routine
          ! Since the fluxes rely on the moments
@@ -129,37 +162,49 @@ contains
    ! g     = h     - Ze*<phi>_R/T * F0
    ! <f>_r = g J_0 + Ze*(J_0<phi>_R-phi)/T * F0
    !============================================================================
-   subroutine get_moments_fluxtube(g, density, upar_vs_kykxzts, temperature, spitzer2_vs_kykxzts)
+   subroutine get_moments_fluxtube(g, density, upar, temperature, spitzer2_vs_kykxzts)
 
-      use zgrid, only: nzgrid, ntubes
-      use species, only: spec, nspec
-      use vpamu_grids, only: vpa, vperp2, integrate_vmu
-      use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use parameters_kxky_grids, only: naky, nakx
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+      
+      ! Grids
+      use grids_kxky, only: naky, nakx
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: spec
+      use grids_velocity, only: vpa, vperp2
+      
+      ! Maxwellian
+      use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac, ztmax
+      use calculations_transforms, only: transform_kx2x_unpadded
+      
+      ! Calculations
+      use calculations_velocity_integrals, only: integrate_vmu
       use calculations_kxky, only: multiply_by_rho
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use gyro_averages, only: aj0x, gyro_average
+      use calculations_gyro_averages, only: gyro_average
+      use calculations_transforms, only: transform_kx2x_unpadded
+      use arrays_gyro_averages, only: aj0x
+      
+      ! Fields
       use arrays_fields, only: phi
-      use parameters_numerical, only: fphi
-      use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: radial_variation
-      use stella_transforms, only: transform_kx2x_unpadded
+      use parameters_physics, only: fphi
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-      use arrays_dist_fn, only: g_gyro => g1 
-      use arrays_dist_fn, only: integrand => g2 
+      use arrays_distribution_function, only: g_gyro => g1
+      use arrays_distribution_function, only: integrand => g2
 
       implicit none
 
-		! The distribution function enters with dimensions (ky, kx, z, tube, ivmus)
+      ! The distribution function enters with dimensions (ky, kx, z, tube, ivmus)
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       
-		! The moments are returned with dimensions (ky, kx, z, tube, s)
-      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: density, temperature, upar_vs_kykxzts, spitzer2_vs_kykxzts
+      ! The moments are returned with dimensions (ky, kx, z, tube, s)
+      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: density, temperature, upar, spitzer2_vs_kykxzts
 
-		! Local variables
+      ! Local variables
       integer :: ivmu, iv, imu, is, ia
+
+      !-------------------------------------------------------------------------
       
       ! We only have one field line because <full_flux_surface> = .false.
       ia = 1
@@ -167,14 +212,14 @@ contains
       !=========================================================================
       !                     TURBULENT DENSITY FLUCTUATIONS                     !
       !=========================================================================
-		! The normalized turbulent density fluctuations are calculated as:
-		!		<dens> = tilde{δn} = (δn_s / n_r) (a / rho_r) 
-		! 		<dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
-		! We do this in the following steps
-		! 		<g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, ivmu)>
-		! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) = <spec(is)%zt> * <phi> * (<aj0x>**2 - 1)
-		! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <integrand> * <maxwell_vpa> * <maxwell_mu> * <maxwell_fac> 
-		! 		<integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <g_gyro> + <integrand> 
+      ! The normalized turbulent density fluctuations are calculated as:
+      !     <dens> = tilde{δn} = (δn_s / n_r) (a / rho_r) 
+      !     <dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
+      ! We do this in the following steps
+      !     <g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, ivmu)>
+      !     <integrand> = (Zs/Ts)*phi*(J0^2 - 1) = <spec(is)%zt> * <phi> * (<aj0x>**2 - 1)
+      !     <integrand> = (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <integrand> * <maxwell_vpa> * <maxwell_mu> * <maxwell_fac> 
+      !     <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <g_gyro> + <integrand> 
       !=========================================================================
       
       ! Calculate <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s)
@@ -183,11 +228,10 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g_gyro(:, :, :, :, ivmu))
-         integrand(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi
-         if (.not. maxwellian_normalization) then
-            integrand(:, :, :, :, ivmu) = integrand(:, :, :, :, ivmu) * maxwell_vpa(iv, is) * &
-                  spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
-         end if
+         integrand(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
+                  * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) & 
+                  * maxwell_fac(is), 4, ntubes)
+
          integrand(:, :, :, :, ivmu) = integrand(:, :, :, :, ivmu) + g_gyro(:, :, :, :, ivmu)
       end do
       
@@ -197,9 +241,9 @@ contains
       !=========================================================================
       !                   TURBULENT TEMPERATURE FLUCTUATIONS                   !
       !=========================================================================
-		! Calculate the turbulent temperature fluctuations
-		!		<temp> = tilde{δT} = (δT_s / T_r) (a / rho_r) 
-		! 		<temp> = tilde{T_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
+      ! Calculate the turbulent temperature fluctuations
+      !     <temp> = tilde{δT} = (δT_s / T_r) (a / rho_r) 
+      !     <temp> = tilde{T_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
       !=========================================================================
          
       ! Calculate <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s)
@@ -207,16 +251,12 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         if (maxwellian_normalization) then
-            integrand(:, :, :, :, ivmu) = (g_gyro(:, :, :, :, ivmu) + spec(is)%zt &
-                  * spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * phi * fphi) &
-                  * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
-         else
-            integrand(:, :, :, :, ivmu) = (g_gyro(:, :, :, :, ivmu) + ztmax(iv, is) &
-                  * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-                  * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
-                  * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
-         end if
+
+         integrand(:, :, :, :, ivmu) = (g_gyro(:, :, :, :, ivmu) + ztmax(iv, is) &
+               * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+               * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+               * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+
       end do
       
       ! Calculate <temp> = tilde{T_s}/tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
@@ -232,7 +272,7 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          integrand(:,:,:,:,ivmu) = g(:,:,:,:,ivmu) * ( vpa(iv) * (vpa(iv)**2 + &
-                  spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2. * vpa(iv) )
+            spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2. * vpa(iv) )
       end do
       call integrate_vmu(integrand, spec%stm, spitzer2_vs_kykxzts) ! AVB: stm is the thermal speed
 
@@ -245,51 +285,69 @@ contains
          is = is_idx(vmu_lo, ivmu)
          integrand(:, :, :, :, ivmu) = vpa(iv) * g_gyro(:, :, :, :, ivmu)
       end do
-      call integrate_vmu(integrand, spec%stm_psi0, upar_vs_kykxzts)
+      call integrate_vmu(integrand, spec%stm_psi0, upar)
 
    end subroutine get_moments_fluxtube
  
    !============================================================================
    !==================== GET MOMENTS FOR RADIAL VARIATION =====================
    !============================================================================
-   subroutine get_moments_radial_variation(g, dens, upar_vs_kykxzts, temp, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
+   subroutine get_moments_radial_variation(g, dens, upar, temp, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
 
-      use zgrid, only: nzgrid, ntubes
-      use species, only: spec, nspec
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: vpa, vperp2, mu
-      use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use parameters_kxky_grids, only: naky, nakx
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+      
+      ! Grids
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: spec, nspec
+      use grids_kxky, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
+      use grids_velocity, only: vpa, vperp2, mu
+      
+      ! Calculations
+      use calculations_transforms, only: transform_kx2x_unpadded
+      use calculations_velocity_integrals, only: integrate_vmu
       use calculations_kxky, only: multiply_by_rho
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use arrays_dist_fn, only: g1, g2, kperp2, dkperp2dr
+      use calculations_gyro_averages, only: gyro_average
+      use arrays_gyro_averages, only: aj0x, aj1x
+      
+      ! Maxwellian
+      use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac, ztmax
+      
+      ! Geometry
+      use arrays, only: kperp2, dkperp2dr
       use geometry, only: bmag, dBdrho
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use gyro_averages, only: aj0x, aj1x, gyro_average
-      use arrays_fields, only: phi, phi_corr_QN, phi_proj
-      use parameters_numerical, only: fphi
-      use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: radial_variation
-      use stella_transforms, only: transform_kx2x_unpadded
       
-      ! Input file
+      ! Fields
+      use arrays_fields, only: phi, phi_corr_QN, phi_proj
+      use parameters_physics, only: fphi
+      
+      ! Flags
+      use parameters_physics, only: radial_variation
       use parameters_diagnostics, only: write_radial_moments
-      use parameters_diagnostics, only: write_moments
+      
+      ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
+      use arrays_distribution_function, only: g1, g2
 
       implicit none
 
+      ! The distribution function enters with dimensions (ky, kx, z, tube, ivmus)
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: dens, upar_vs_kykxzts, temp, spitzer2_vs_kykxzts
+      
+      ! The moments are returned with dimensions (ky, kx, z, tube, s) or (kx, s)
+      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: dens, upar, temp, spitzer2_vs_kykxzts
       real, dimension(:, :), intent(out) :: dens_kxs, upar_kxs, temp_kxs
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: g0k, g1k, g1x
+      integer :: ivmu, iv, imu, is, ia, iz, it
       real :: zero
 
-      integer :: ivmu, iv, imu, is, ia
-      integer :: iz, it
+      !-------------------------------------------------------------------------
 
+      ! Allocate temporary arrays
       if (radial_variation) then
          allocate (g0k(naky, nakx))
       end if
@@ -316,11 +374,10 @@ contains
          ! obtain the gyro-average of g that appears in the dens_vs_kykxzts integral
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g1(:, :, :, :, ivmu))
          ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-         g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi
-         if (.not. maxwellian_normalization) then
-            g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) * maxwell_vpa(iv, is) * &
-                                   spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
-         end if
+         g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
+                  * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) & 
+                  * maxwell_fac(is), 4, ntubes)
+         
          g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) + g1(:, :, :, :, ivmu)
          ! g2(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) + ztmax(iv, is) &
          !                        * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
@@ -380,16 +437,12 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         if (maxwellian_normalization) then
-            g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + spec(is)%zt &
-                                    * spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * phi * fphi) &
-                                   * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
-         else
-            g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
-                                    * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-                                             * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
-                                   * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
-         end if
+
+         g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
+                  * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+                  * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+                  * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+
          if (radial_variation) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -475,13 +528,13 @@ contains
             end do
          end if
       end do
-      call integrate_vmu(g2, spec%stm_psi0, upar_vs_kykxzts)
+      call integrate_vmu(g2, spec%stm_psi0, upar)
       if (write_radial_moments) then
          upar_kxs = 0.0
          do is = 1, nspec
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  g1k(1, :) = upar_vs_kykxzts(1, :, iz, it, is)
+                  g1k(1, :) = upar(1, :, iz, it, is)
                   call transform_kx2x_unpadded(g1k, g1x)
                   upar_kxs(:, is) = upar_kxs(:, is) &
                                   + real(g1x(1, :) * (dl_over_b(ia, iz) + rho_d_clamped * d_dl_over_b_drho(ia, iz)))
@@ -491,13 +544,13 @@ contains
          upar_kxs = upar_kxs / ntubes
       end if
 
+      ! Deallocate temporary arrays
       if (allocated(g0k)) deallocate (g0k)
       if (allocated(g1k)) deallocate (g1k)
       if (allocated(g1x)) deallocate (g1x)
 
    end subroutine get_moments_radial_variation
    
-
 !###############################################################################
 !############################ INITALIZE & FINALIZE #############################
 !###############################################################################
@@ -505,18 +558,9 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnostics_moments()  
-
-      use mp, only: proc0
-
-      implicit none 
-
-      !----------------------------------------------------------------------
-      
-      ! Only debug on the first processor
-      debug = debug .and. proc0
-
-   end subroutine init_diagnostics_moments 
+   subroutine init_diagnostics_moments()
+      implicit none
+   end subroutine init_diagnostics_moments
 
 end module diagnostics_moments
 

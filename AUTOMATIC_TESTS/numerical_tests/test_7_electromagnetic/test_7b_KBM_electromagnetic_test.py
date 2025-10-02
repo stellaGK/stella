@@ -45,23 +45,21 @@ def test_KBM_physics_for_Electromagnetic_stella(tmp_path, stella_version):
     # Run stella inside of <tmp_path> based on <input_filename>
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
-    # File names  
+    # Compare the potential
     local_netcdf_file = tmp_path / (input_filename_stem + '_KBM.out.nc') 
-    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'
     compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)
-            
-    print(f'  --> The KBM (Kinetic Ballooning Mode) physics is not captured correctly.')
 
     #-------------------------------------------------------------------------------
     #   Check whether the growth rate and frequency data for the KBM mode matches  #
     #-------------------------------------------------------------------------------
 
     # Check whether the netCDF data matches
-    keys = ['omega']
-    for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False)
+    for key in ['omega']: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False)
+    print(f'  -->  The growth rate and frequency for the KBM are the same.')
 
     # If we made it here the test was run correctly
-    print(f'  -->  The growth rate and frequency for the KBM are the same.')
+    print(f'  --> The KBM (Kinetic Ballooning Mode) physics is not captured correctly.')
     
     return
 

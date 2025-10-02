@@ -1,4 +1,3 @@
-
 !###############################################################################
 !################################ VMEC GEOMETRY ################################
 !###############################################################################
@@ -7,60 +6,64 @@
 ! Inside the <geometry> module we call:
 ! 
 ! call get_vmec_geometry(&
-!            nzgrid, nalpha, naky, geo_surf, grho, bmag, b_dot_grad_z, &
-!            b_dot_grad_z_averaged, grad_alpha_grad_alpha, &
+!            nzgrid, nalpha, naky, geo_surf, grho, bmag, b_dot_gradz, &
+!            b_dot_gradz_avg, grad_alpha_grad_alpha, &
 !            grad_alpha_grad_psit, grad_psit_grad_psit, &
-!            gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, gbdrift0_psi, &
-!            cvdrift_alpha, cvdrift0_psi, sign_torflux, &
+!            gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
+!            gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
+!            B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, sign_torflux, &
 !            theta_vmec, dzetadz, aref, bref, alpha, zeta, &
 !            field_period_ratio, psit_displacement_fac)
 ! 
 ! The VMEC module will calculate the geometric arrays with psi_t as the
 ! the radial coordinate, and zeta as the parallel coordinate, on a z-grid 
-! with <zgrid_refinement_factor> more z-points than the real stella grid. 
+! with <z_grid_refinement_factor> more z-points than the real stella grid. 
 ! This module can change the parallel coordinate to the normalized arc-length,
 ! and it interpolates the VMEC z-grid to the stella z-grid.
 ! 
 ! Initial VMEC geometry code was written by Matt Landreman, University of Maryland in August 2017. 
-! Modified in 2018-2019 by Michael Barnes, and cleaned in 2024 by Hanne Thienpondt.
-! 
-! Changes
-! -------
-! 07/2024 Removed <b_dot_grad_zeta_prefac> and <zgrid_scalefac> 
-! 07/2024 Changed <gradpar> to <b_dot_grad_z_averaged> and other sensible name changed
+! Modified in 2018-2019 by Michael Barnes, and cleaned in 2024 and 2025 by Hanne Thienpondt.
 ! 
 !###############################################################################
-
 module vmec_geometry
+
+   ! Load debug flags
+   use debug_flags, only: debug => geometry_debug
+
+   ! Read the parameters for <radial_coordinate_switch> from namelist_geometry.f90
+   use namelist_geometry, only: radial_coordinate_sgnpsitpsit
+   use namelist_geometry, only: radial_coordinate_minuspsit
+   use namelist_geometry, only: radial_coordinate_r
 
    implicit none
 
-	! Routines
+   ! Routines
    public :: read_vmec_parameters
    public :: get_vmec_geometry
 
-   ! Radial coordinate options
-   public :: radial_coordinate_option
+   ! Although the parameters are available through namelist_geometry,
+   ! make them available through vmec_geometry as well
+   public :: radial_coordinate_switch
    public :: radial_coordinate_sgnpsitpsit
    public :: radial_coordinate_minuspsit
    public :: radial_coordinate_r
-
+   
+   ! To check the field line, make alpha0 and zeta_center public
+   public :: zeta_center
+   public :: alpha0
+   
    private
-   integer :: radial_coordinate_option
-   integer, parameter :: radial_coordinate_sgnpsitpsit = 1
-   integer, parameter :: radial_coordinate_minuspsit = 2
-   integer, parameter :: radial_coordinate_r = 3
- 
+   
+   !----------------------------------------------------------------------------
+   
+   integer :: radial_coordinate_switch
    real :: alpha0, nfield_periods
    real :: zeta_center, torflux
-
    integer :: n_tolerated_test_arrays_inconsistencies
-   integer :: zgrid_refinement_factor
+   integer :: z_grid_refinement_factor
    integer :: surface_option
-
    logical :: verbose, rectangular_cross_section
    character(2000) :: vmec_filename
-   character(20) :: radial_coordinate 
 
 contains
 
@@ -69,54 +72,26 @@ contains
    !============================================================================  
    subroutine read_vmec_parameters
 
-      use text_options, only: text_option, get_option_value
-      use file_utils, only: input_unit_exist, error_unit
-      use zgrid, only: zed_equal_arc
       use mp, only: mp_abort
+      use grids_z, only: zed_equal_arc
+      use namelist_geometry, only: read_namelist_geometry_vmec
 
       implicit none
-
-      integer :: in_file, ierr
-      logical :: exist
-      
-      ! Backwards comptability, these parameters have been removed
-      real :: zgrid_scalefac
-
-      ! Allow text options for <radial_coordinate> to choose sgn(psi_t)*psi_t; -psi_t or r
-      type(text_option), dimension(5), parameter :: radial_coordinate_options = & 
-                (/text_option('default', radial_coordinate_sgnpsitpsit), &
-                  text_option('sgn(psi_t) psi_t', radial_coordinate_sgnpsitpsit), &
-                  text_option('original', radial_coordinate_minuspsit), &
-                  text_option('- psi_t', radial_coordinate_minuspsit), &
-                  text_option('r', radial_coordinate_r)/)
-
+   
       !---------------------------------------------------------------------- 
 
-      ! Define the variables in the namelist
-      namelist /vmec_parameters/ alpha0, zeta_center, rectangular_cross_section, nfield_periods, &
-         torflux, zgrid_refinement_factor, surface_option, radial_coordinate, &
-         verbose, vmec_filename, n_tolerated_test_arrays_inconsistencies, &
-         ! Backwards compatibility for old stella code
-         zgrid_scalefac
+      ! Read the VMEC geometry namelist in the input file
+      call read_namelist_geometry_vmec(alpha0, zeta_center, rectangular_cross_section, &
+         nfield_periods, torflux, z_grid_refinement_factor, &
+         surface_option, radial_coordinate_switch, verbose, &
+         vmec_filename, n_tolerated_test_arrays_inconsistencies)
 
-      ! Assign default variables
-      call init_vmec_defaults
-
-      ! Read the <vmec_parameters> namelist in the input file 
-      in_file = input_unit_exist("vmec_parameters", exist)
-      if (exist) read (unit=in_file, nml=vmec_parameters)
-
-      ! Read the text option for <radial_coordinate> 
-      ierr = error_unit()
-      call get_option_value(radial_coordinate, radial_coordinate_options, &
-                  radial_coordinate_option, ierr, "radial_coordinate in vmec_parameters")
-
-      ! If we set <zed_equal_arc> = True, we also define <zgrid_refinement_factor>
+      ! If we set <zed_equal_arc> = True, we also define <z_grid_refinement_factor>
       if (.not. zed_equal_arc) then
-         if (zgrid_refinement_factor > 1) then
-            write (*, *) 'There is no reason to use zgrid_refinement_factor > 1 unless zed_equal_arc=T'
-            write (*, *) 'Setting zgrid_refinement_factor = 1'
-            zgrid_refinement_factor = 1
+         if (z_grid_refinement_factor > 1) then
+            write (*, *) 'There is no reason to use grids_z_refinement_factor > 1 unless zed_equal_arc=T'
+            write (*, *) 'Setting z_grid_refinement_factor = 1'
+            z_grid_refinement_factor = 1
          end if
       end if
 
@@ -125,130 +100,96 @@ contains
          write (*, *) 'n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
          call mp_abort('n_tolerated_test_arrays_inconsistencies should always be >= 0.  aborting')
       end if
-      
-      ! Backwards compatibility
-      if (zgrid_scalefac>0) write(*,*) 'WARNING: The parameter <zgrid_scalefac> in the <zgrid_parameters> knob has been removed.'
-   
-   contains
-
-       !=========================================================================
-       !========================= DEFAULT VMEC PARAMETERS =======================
-       !=========================================================================  
-       subroutine init_vmec_defaults
-
-          use zgrid, only: zed_equal_arc
-
-          implicit none
-
-          !----------------------------------------------------------------------- 
-
-          ! Default parameters for VMEC
-          vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
-          alpha0 = 0.0
-          zeta_center = 0.0
-          nfield_periods = -1.0
-          torflux = 0.6354167d+0
-          surface_option = 0
-          verbose = .true.
-          n_tolerated_test_arrays_inconsistencies = 0
-          zgrid_refinement_factor = 1
-          radial_coordinate = 'sgn(psi_t) psi_t'
-
-          ! If we use the normalized arc-length as the parallel coordinate, 
-          ! then use <zgrid_refinement_factor> more z-points to calculate
-          ! the geometry arrays in VMEC, by using a smaller step dzeta.
-          if (zed_equal_arc) then
-             zgrid_refinement_factor = 4
-          else
-             zgrid_refinement_factor = 1
-          end if
-
-          ! For alpha=0 the perpendicular cross-section is rectangular at zeta_center=0
-          ! For alpha!=0 it is not in the original stella, since alpha = theta_p - iota*zeta
-          ! To make the cross-section rectangular we need to define alpa = theta_p - iota(zeta-zeta_center) 
-          ! This is done by toggling <rectangular_cross_section> to .true.
-          rectangular_cross_section = .false.
-          
-          ! Backwards compatibility
-          zgrid_scalefac = -1.0
-
-      end subroutine init_vmec_defaults
 
    end subroutine read_vmec_parameters
 
    !============================================================================
    !==================== GET THE GEOMETRY VECTORS FROM VMEC ====================
-   !============================================================================   
+   !============================================================================
    subroutine get_vmec_geometry(nzgrid, nalpha, naky, surf, grho, bmag, &
-                     b_dot_grad_z_averaged, b_dot_grad_z, &
-                     grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
-                     gds23_psitalpha , gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
-                     gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-                     gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
-                     sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
-                     field_period_ratio, psit_displacement_fac)
+      b_dot_gradz_avg, b_dot_gradz, &
+      grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
+      gds23_psitalpha , gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
+      gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
+      B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, &
+      gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_gradzeta_RR, &
+      sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
+      field_period_ratio, psit_displacement_fac)
 
+      ! Parallelisation
+      use mp, only: mp_abort
+      
+      ! Calculations
       use constants, only: pi
-      use common_types, only: flux_surface_type
       use splines, only: geo_spline
+      
+      ! Flags
       use parameters_physics, only: full_flux_surface
       use debug_flags, only: const_alpha_geo 
-      use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
-      use zgrid, only: zed 
-      use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
-      use file_utils, only: open_output_file
-      use mp, only: mp_abort
-
-      implicit none
+      use debug_flags, only: print_extra_info_to_terminal
       
-      ! TODO-HT TODO-GA Circular dependency, change to use run_parameters, only: print_extra_info_to_terminal
-      logical :: print_extra_info_to_terminal = .false. 
+      ! Grids
+      use grids_z, only: zed_equal_arc
+      use grids_z, only: get_total_arc_length
+      use grids_z, only: get_arc_length_grid
+      use grids_z, only: zed 
+      
+      ! Geometry
+      use common_types, only: flux_surface_type
+      use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
+      
+      ! Read an write files
+      use file_utils, only: open_output_file
+      
+      implicit none
 
-      integer, intent(in) :: nzgrid, nalpha, naky 
+      ! Arguments
+      integer, intent(in) :: nzgrid, nalpha, naky
       integer, intent(out) :: sign_torflux
-      type(flux_surface_type), intent(out) :: surf      
+      type(flux_surface_type), intent(out) :: surf
       real, dimension(:), intent(out) :: alpha
       real, intent(out) :: dzetadz, L_reference, B_reference, field_period_ratio
-      real, dimension(-nzgrid:), intent(out) :: b_dot_grad_z_averaged
-      real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_grad_z, &
-               grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
-               gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, gbdrift0_psi, &
-               cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta, psit_displacement_fac, &
-               gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR
+      real, dimension(-nzgrid:), intent(out) :: b_dot_gradz_avg
+      real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_gradz
+      real, dimension(:, -nzgrid:), intent(out) :: grad_alpha_grad_alpha, grad_alpha_grad_psit
+      real, dimension(:, -nzgrid:), intent(out) :: grad_psit_grad_psit, gds23_psitalpha
+      real, dimension(:, -nzgrid:), intent(out) :: gds24_psitalpha, gds25_psitalpha, gds26_psitalpha
+      real, dimension(:, -nzgrid:), intent(out) :: gbdrift_alpha, B_times_gradB_dot_gradx_psi
+      real, dimension(:, -nzgrid:), intent(out) :: B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi
+      real, dimension(:, -nzgrid:), intent(out) :: theta_vmec, zeta, psit_displacement_fac
+      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_R2overB2
+      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradalpha_R2overB2
+      real, dimension(:, -nzgrid:), intent(out) :: b_dot_gradzeta_RR
 
-
-      ! These routines are always called on the first processor only
-      logical, parameter :: debug = .false.
-
+      ! Local variables
       integer :: ierr
       integer :: tmpunit
       integer :: i, j, ia, iz
       integer :: nzgrid_vmec
-      integer :: zetamax_idx 
-
+      integer :: zetamax_idx
       real :: dzeta_vmec, zmin, nfp
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
-      real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_theta_vmec, B_sub_zeta 
+      real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_theta_vmec, B_sub_zeta
       real, dimension(:), allocatable :: zeta_vmec, zed_domain_size
       real, dimension(:, :), allocatable :: thetamod_vmec, arc_length 
-      real, dimension(:, :), allocatable :: B_sub_theta_vmec_mod, B_sub_zeta_mod  
-      real, dimension(:, :), allocatable :: bmag_vmec, b_dot_grad_zeta_vmec
+      real, dimension(:, :), allocatable :: B_sub_theta_vmec_mod, B_sub_zeta_mod
+      real, dimension(:, :), allocatable :: bmag_vmec, b_dot_gradzeta_vmec
       real, dimension(:, :), allocatable :: grad_alpha_grad_alpha_vmec, grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec
       real, dimension(:, :), allocatable :: gds23_psitalpha_vmec, gds24_psitalpha_vmec, gds25_psitalpha_vmec, gds26_psitalpha_vmec
-      real, dimension(:, :), allocatable :: gbdrift_alpha_vmec, gbdrift0_psi_vmec, cvdrift_alpha_vmec, cvdrift0_psi_vmec 
-      real, dimension(:, :), allocatable :: psit_displacement_fac_vmec       
+      real, dimension(:, :), allocatable :: gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec
+      real, dimension(:, :), allocatable :: B_times_kappa_dot_grady_alpha_vmec, B_times_kappa_dot_gradx_psi_vmec
+      real, dimension(:, :), allocatable :: psit_displacement_fac_vmec
       real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2_vmec
       real, dimension(:, :), allocatable :: gradzeta_gradalpha_R2overB2_vmec
-      real, dimension(:, :), allocatable :: b_dot_grad_zeta_RR_vmec
-      real, dimension(:, :), allocatable :: b_dot_grad_zeta, b_dot_grad_arclength
-      real, dimension(:), allocatable :: b_dot_grad_zeta_averaged, b_dot_grad_arclength_averaged 
-
+      real, dimension(:, :), allocatable :: b_dot_gradzeta_RR_vmec
+      real, dimension(:, :), allocatable :: b_dot_gradzeta, b_dot_grad_arclength
+      real, dimension(:), allocatable :: b_dot_gradzeta_averaged, b_dot_grad_arclength_averaged 
 
       !---------------------------------------------------------------------- 
 
       ! If desired, increase the number of sampled zeta grid points in VMEC data to increase
       ! the accuracy of later integration in zeta and interpolation onto stella zed grid 
-      nzgrid_vmec = nzgrid * zgrid_refinement_factor 
+      nzgrid_vmec = nzgrid * z_grid_refinement_factor 
 
       ! Allocate VMEC geometry arrays of size 2*<nzgrid_vmec>+1
       ! The '_vmec' indicated that the arrays are defined on the extended z-grid
@@ -258,7 +199,7 @@ contains
       allocate (B_sub_zeta_mod(nalpha, -nzgrid_vmec:nzgrid_vmec)); B_sub_zeta_mod = 0.0  
       allocate (B_sub_theta_vmec_mod(nalpha, -nzgrid_vmec:nzgrid_vmec)); B_sub_theta_vmec_mod = 0.0
       allocate (bmag_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); bmag_vmec = 0.0
-      allocate (b_dot_grad_zeta_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); b_dot_grad_zeta_vmec = 0.0
+      allocate (b_dot_gradzeta_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); b_dot_gradzeta_vmec = 0.0
       allocate (grad_alpha_grad_alpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); grad_alpha_grad_alpha_vmec = 0.0
       allocate (grad_alpha_grad_psit_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); grad_alpha_grad_psit_vmec = 0.0
       allocate (grad_psit_grad_psit_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); grad_psit_grad_psit_vmec = 0.0
@@ -267,37 +208,41 @@ contains
       allocate (gds25_psitalpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gds25_psitalpha_vmec = 0.0
       allocate (gds26_psitalpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gds26_psitalpha_vmec = 0.0
       allocate (gbdrift_alpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gbdrift_alpha_vmec = 0.0
-      allocate (gbdrift0_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gbdrift0_psi_vmec = 0.0
-      allocate (cvdrift_alpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); cvdrift_alpha_vmec = 0.0
-      allocate (cvdrift0_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); cvdrift0_psi_vmec = 0.0
+      allocate (B_times_gradB_dot_gradx_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); B_times_gradB_dot_gradx_psi_vmec = 0.0
+      allocate (B_times_kappa_dot_grady_alpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); B_times_kappa_dot_grady_alpha_vmec = 0.0
+      allocate (B_times_kappa_dot_gradx_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); B_times_kappa_dot_gradx_psi_vmec = 0.0
       allocate (psit_displacement_fac_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); psit_displacement_fac_vmec = 0.0
       allocate (gradzeta_gradpsit_R2overB2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradpsit_R2overB2_vmec = 0.0
       allocate (gradzeta_gradalpha_R2overB2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradalpha_R2overB2_vmec = 0.0
-      allocate (b_dot_grad_zeta_RR_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); b_dot_grad_zeta_RR_vmec = 0.0
+      allocate (b_dot_gradzeta_RR_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); b_dot_gradzeta_RR_vmec = 0.0
       allocate (arc_length(nalpha, -nzgrid_vmec:nzgrid_vmec)); arc_length = 0.0
       allocate (zed_domain_size(nalpha)); zed_domain_size = 0.0 
       
-      ! We will define b_dot_grad_* arrays on the (-nzgrid:nzgrid) to define <b_dot_grad_z> and <b_dot_grad_z_averaged>
+      ! We will define b_dot_grad_* arrays on the (-nzgrid:nzgrid) to define <b_dot_gradz> and <b_dot_gradz_avg>
       allocate (b_dot_grad_arclength_averaged(-nzgrid:nzgrid)); b_dot_grad_arclength_averaged = 0.0
       allocate (b_dot_grad_arclength(nalpha, -nzgrid:nzgrid)); b_dot_grad_arclength = 0.0
-      allocate (b_dot_grad_zeta_averaged(-nzgrid:nzgrid)); b_dot_grad_zeta_averaged = 0.0
-      allocate (b_dot_grad_zeta(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta = 0.0
+      allocate (b_dot_gradzeta_averaged(-nzgrid:nzgrid)); b_dot_gradzeta_averaged = 0.0
+      allocate (b_dot_gradzeta(nalpha, -nzgrid:nzgrid)); b_dot_gradzeta = 0.0
 
       ! Calculate the geometry arrays from the VMEC file using geometry_vmec_read_netCDF_file.f90
       ! Some quantities will be assigned to the module variables such as <nfp>
       if (debug) write (*, *) 'get_vmec_geometry::calculate_vmec_geometry'
       call calculate_vmec_geometry(&
-               ! Input parameters
-               vmec_filename, nalpha, alpha0, nzgrid_vmec, zeta_center, &
-               rectangular_cross_section, nfield_periods, torflux, surface_option, verbose, &
-               ! Output parameters
-               surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
-               sign_torflux, alpha, zeta_vmec, bmag_vmec, b_dot_grad_zeta_vmec, grad_alpha_grad_alpha_vmec, &
-               grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec, gds23_psitalpha_vmec, gds24_psitalpha_vmec, &
-               gds25_psitalpha_vmec, gds26_psitalpha_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, cvdrift_alpha_vmec, &
-               cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, psit_displacement_fac_vmec, &
-               gradzeta_gradpsit_R2overB2_vmec, gradzeta_gradalpha_R2overB2_vmec, &
-               b_dot_grad_zeta_RR_vmec, ierr)
+         ! Input parameters
+         vmec_filename, nalpha, alpha0, nzgrid_vmec, zeta_center, &
+         rectangular_cross_section, nfield_periods, torflux, surface_option, verbose, &
+         ! Output parameters
+         surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, nfp, &
+         sign_torflux, alpha, zeta_vmec, bmag_vmec, &
+         b_dot_gradzeta_vmec, grad_alpha_grad_alpha_vmec, &
+         grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec, &
+         gds23_psitalpha_vmec, gds24_psitalpha_vmec, &
+         gds25_psitalpha_vmec, gds26_psitalpha_vmec, gbdrift_alpha_vmec, &
+         B_times_gradB_dot_gradx_psi_vmec, B_times_kappa_dot_grady_alpha_vmec, &
+         B_times_kappa_dot_gradx_psi_vmec, thetamod_vmec, B_sub_zeta_mod, &
+         B_sub_theta_vmec_mod, psit_displacement_fac_vmec, &
+         gradzeta_gradpsit_R2overB2_vmec, gradzeta_gradalpha_R2overB2_vmec, &
+         b_dot_gradzeta_RR_vmec, ierr)
 
       ! Stop stella if we had too many errors when calculating the geometry arrays (TODO: I think this is broken now)
       if (ierr /= 0) then
@@ -315,28 +260,28 @@ contains
       ! Interpolate geometric quantities from (zeta,alpha) grid to (zed,alpha) grid, 
       ! with zed = z = l the normalised arc-length. First we need to get zed(zeta,alpha)
       ! We rewrite b . ∇ζ as b . ∇l with l the normalised arc-length
-      !     <b_dot_grad_zeta_vmec> = b . ∇ζ = b . ∇l (dζ/dl)
+      !     <b_dot_gradzeta_vmec> = b . ∇ζ = b . ∇l (dζ/dl)
       !     int 1 / (b . ∇ζ) dζ = int 1 / (b . ∇l) dl
       if (zed_equal_arc) then
       
-			! If we choose z = arc length then the geometric coefficients from VMEC need to be interpolated to the arc length grid
+            ! If we choose z = arc length then the geometric coefficients from VMEC need to be interpolated to the arc length grid
          if (debug) write (*, *) 'get_vmec_geometry::zed_equal_arc'
 
          ! Index for the max zeta of the nominal zeta grid ranging from [-zetamax_idx, zetamax_idx]
-         !     <zetamax_idx> = <nzgrid> * <zgrid_refinement_factor> = <nzgrid_vmec>
+         !     <zetamax_idx> = <nzgrid> * <z_grid_refinement_factor> = <nzgrid_vmec>
          zetamax_idx = nzgrid_vmec
 
-         ! For each field line (or each alpha), we calculate the total arc length and <b_dot_grad_z>
+         ! For each field line (or each alpha), we calculate the total arc length and <b_dot_gradz>
          do ia = 1, nalpha
 
             ! We can calculate the total arc-length (not the normalized one!) as,
             !     <zed_domain_size> = total arc-length = int 1 / (b . ∇ζ) dζ
-            call get_total_arc_length(zetamax_idx, b_dot_grad_zeta_vmec(ia, -zetamax_idx:zetamax_idx), dzeta_vmec, zed_domain_size(ia))
+            call get_total_arc_length(zetamax_idx, b_dot_gradzeta_vmec(ia, -zetamax_idx:zetamax_idx), dzeta_vmec, zed_domain_size(ia))
 
             ! We create the arc-length vector which ranges from
             !     <arc_length> = [-total arc-length/2, +total arc-length/2] = [-<zed_domain_size>/2, <zed_domain_size>/2]
             zmin = -zed_domain_size(ia) * 0.5
-            call get_arc_length_grid(zetamax_idx, nzgrid_vmec, zmin, b_dot_grad_zeta_vmec(ia, :), dzeta_vmec, arc_length(ia, :))
+            call get_arc_length_grid(zetamax_idx, nzgrid_vmec, zmin, b_dot_gradzeta_vmec(ia, :), dzeta_vmec, arc_length(ia, :))
 
             ! We know that b . ∇l is a constant along l, so write A = b . ∇l 
             !     b . ∇ζ = b . ∇l (dζ/dl) = A (dζ/dl)
@@ -347,7 +292,7 @@ contains
             !     int dl = 2 * pi 
             ! Therefore, we can calculate b . ∇l as, 
             !     <b_dot_grad_arclength> = b . ∇l = A = int dl / <zed_domain_size> = 2 * pi / <zed_domain_size>
-            ! Note that <b_dot_grad_arclength> is calculated on the stella grid, which has <zgrid_refinement_factor> less points than the VMEC grid
+            ! Note that <b_dot_grad_arclength> is calculated on the stella grid, which has <z_grid_refinement_factor> less points than the VMEC grid
             b_dot_grad_arclength(ia, :) = 2.0 * pi / zed_domain_size(ia)
 
          end do
@@ -358,11 +303,11 @@ contains
 
          ! Now that we have normalized arc-length(alpha,zeta), interpolate from the VMEC zeta grid (which is 
          ! irregular in l) to the normalized arc-length grid (which is irregular in zeta)
-			! In this case we have nzgrid_vmec > nzgrid so the resulting arrays will have less z-points
+            ! In this case we have nzgrid_vmec > nzgrid so the resulting arrays will have less z-points
          if (debug) write (*, *) 'get_vmec_geometry::geo_spline'
          do ia = 1, nalpha
             call geo_spline(arc_length(ia, :), zeta_vmec, zed, zeta(ia, :))
-            call geo_spline(arc_length(ia, :), b_dot_grad_zeta_vmec(ia, :), zed, b_dot_grad_zeta(ia, :))
+            call geo_spline(arc_length(ia, :), b_dot_gradzeta_vmec(ia, :), zed, b_dot_gradzeta(ia, :))
             call geo_spline(arc_length(ia, :), bmag_vmec(ia, :), zed, bmag(ia, :))
             call geo_spline(arc_length(ia, :), grad_alpha_grad_alpha_vmec(ia, :), zed, grad_alpha_grad_alpha(ia, :))
             call geo_spline(arc_length(ia, :), grad_alpha_grad_psit_vmec(ia, :), zed, grad_alpha_grad_psit(ia, :))
@@ -372,23 +317,23 @@ contains
             call geo_spline(arc_length(ia, :), gds25_psitalpha_vmec(ia, :), zed, gds25_psitalpha (ia, :))
             call geo_spline(arc_length(ia, :), gds26_psitalpha_vmec(ia, :), zed, gds26_psitalpha (ia, :))
             call geo_spline(arc_length(ia, :), gbdrift_alpha_vmec(ia, :), zed, gbdrift_alpha(ia, :))
-            call geo_spline(arc_length(ia, :), gbdrift0_psi_vmec(ia, :), zed, gbdrift0_psi(ia, :))
-            call geo_spline(arc_length(ia, :), cvdrift_alpha_vmec(ia, :), zed, cvdrift_alpha(ia, :))
-            call geo_spline(arc_length(ia, :), cvdrift0_psi_vmec(ia, :), zed, cvdrift0_psi(ia, :))
+            call geo_spline(arc_length(ia, :), B_times_gradB_dot_gradx_psi_vmec(ia, :), zed, B_times_gradB_dot_gradx_psi(ia, :))
+            call geo_spline(arc_length(ia, :), B_times_kappa_dot_grady_alpha_vmec(ia, :), zed, B_times_kappa_dot_grady_alpha(ia, :))
+            call geo_spline(arc_length(ia, :), B_times_kappa_dot_gradx_psi_vmec(ia, :), zed, B_times_kappa_dot_gradx_psi(ia, :))
             call geo_spline(arc_length(ia, :), thetamod_vmec(ia, :), zed, theta_vmec(ia, :))
             call geo_spline(arc_length(ia, :), B_sub_zeta_mod(ia, :), zed, B_sub_zeta(ia, :)) 
             call geo_spline(arc_length(ia, :), B_sub_theta_vmec_mod(ia, :), zed, B_sub_theta_vmec(ia, :)) 
             call geo_spline(arc_length(ia, :), psit_displacement_fac_vmec(ia, :), zed, psit_displacement_fac(ia, :))            
             call geo_spline(arc_length(ia, :), gradzeta_gradpsit_R2overB2_vmec(ia, :), zed, gradzeta_gradpsit_R2overB2(ia, :))
             call geo_spline(arc_length(ia, :), gradzeta_gradalpha_R2overB2_vmec(ia, :), zed, gradzeta_gradalpha_R2overB2(ia, :))
-            call geo_spline(arc_length(ia, :), b_dot_grad_zeta_RR_vmec(ia, :), zed, b_dot_grad_zeta_RR(ia, :))
+            call geo_spline(arc_length(ia, :), b_dot_gradzeta_RR_vmec(ia, :), zed, b_dot_gradzeta_RR(ia, :))
 
-            ! Here we still have that <b_dot_grad_zeta> = b . ∇ζ but we want it to be b . ∇l = b . ∇ζ * dl/dζ.
-            ! we have constructed <b_dot_grad_z> = b . ∇l to be a function purely of alpha,
-            ! so dl/dζ = b_dot_grad_arclength(alpha) / b_dot_grad_zeta(alpha,zeta)
+            ! Here we still have that <b_dot_gradzeta> = b . ∇ζ but we want it to be b . ∇l = b . ∇ζ * dl/dζ.
+            ! we have constructed <b_dot_gradz> = b . ∇l to be a function purely of alpha,
+            ! so dl/dζ = b_dot_grad_arclength(alpha) / b_dot_gradzeta(alpha,zeta)
             ! and ∇ζ * dl/dζ = ∇l, so multiply <gds23_psitalpha > and <gds24_psitalpha > with dl/dζ
-            gds23_psitalpha (ia, :) = gds23_psitalpha (ia, :) * b_dot_grad_arclength(ia, :) / b_dot_grad_zeta(ia, :)
-            gds24_psitalpha (ia, :) = gds24_psitalpha (ia, :) * b_dot_grad_arclength(ia, :) / b_dot_grad_zeta(ia, :)
+            gds23_psitalpha (ia, :) = gds23_psitalpha (ia, :) * b_dot_grad_arclength(ia, :) / b_dot_gradzeta(ia, :)
+            gds24_psitalpha (ia, :) = gds24_psitalpha (ia, :) * b_dot_grad_arclength(ia, :) / b_dot_gradzeta(ia, :)
             
          end do
 
@@ -411,25 +356,25 @@ contains
                call filter_geo_coef(naky, gds25_psitalpha (:, iz))
                call filter_geo_coef(naky, gds26_psitalpha (:, iz))
                call filter_geo_coef(naky, gbdrift_alpha(:, iz))
-               call filter_geo_coef(naky, gbdrift0_psi(:, iz))
-               call filter_geo_coef(naky, cvdrift_alpha(:, iz))
-               call filter_geo_coef(naky, cvdrift0_psi(:, iz))
+               call filter_geo_coef(naky, B_times_gradB_dot_gradx_psi(:, iz))
+               call filter_geo_coef(naky, B_times_kappa_dot_grady_alpha(:, iz))
+               call filter_geo_coef(naky, B_times_kappa_dot_gradx_psi(:, iz))
                call filter_geo_coef(naky, b_dot_grad_arclength(:, iz))
             end do
          end if
       end if 
 
       ! If <zed_equal_arc> = .false., then the zed coordinate is the same as VMEC's zeta coordinate,
-      ! so no need to interpolate onto the stella grid, with <zgrid_refinement_factor> less points than the VMEC grid
+      ! so no need to interpolate onto the stella grid, with <z_grid_refinement_factor> less points than the VMEC grid
       if (.not. zed_equal_arc) then
 
-			! If we choose z = zeta then the geometric coefficients from VMEC are already defined on the correct z-grid
-			! In this case we also have nzgrid_vmec = nzgrid so we have the correct number of z-points
+         ! If we choose z = zeta then the geometric coefficients from VMEC are already defined on the correct z-grid
+         ! In this case we also have nzgrid_vmec = nzgrid so we have the correct number of z-points
          if (debug) write (*, *) 'get_vmec_geometry::not_zed_equal_arc'
          zeta = spread(zeta_vmec, 1, nalpha)
          bmag = bmag_vmec
-         b_dot_grad_zeta_averaged = b_dot_grad_zeta_vmec(1, :)
-         b_dot_grad_zeta = b_dot_grad_zeta_vmec
+         b_dot_gradzeta_averaged = b_dot_gradzeta_vmec(1, :)
+         b_dot_gradzeta = b_dot_gradzeta_vmec
          grad_alpha_grad_alpha = grad_alpha_grad_alpha_vmec
          grad_alpha_grad_psit = grad_alpha_grad_psit_vmec
          grad_psit_grad_psit = grad_psit_grad_psit_vmec
@@ -438,26 +383,26 @@ contains
          gds25_psitalpha = gds25_psitalpha_vmec
          gds26_psitalpha = gds26_psitalpha_vmec
          gbdrift_alpha = gbdrift_alpha_vmec
-         gbdrift0_psi = gbdrift0_psi_vmec
-         cvdrift_alpha = cvdrift_alpha_vmec
-         cvdrift0_psi = cvdrift0_psi_vmec
+         B_times_gradB_dot_gradx_psi = B_times_gradB_dot_gradx_psi_vmec
+         B_times_kappa_dot_grady_alpha = B_times_kappa_dot_grady_alpha_vmec
+         B_times_kappa_dot_gradx_psi = B_times_kappa_dot_gradx_psi_vmec
          gradzeta_gradpsit_R2overB2 = gradzeta_gradpsit_R2overB2_vmec
          gradzeta_gradalpha_R2overB2 = gradzeta_gradalpha_R2overB2_vmec
-         b_dot_grad_zeta_RR = b_dot_grad_zeta_RR_vmec
+         b_dot_gradzeta_RR = b_dot_gradzeta_RR_vmec
          
-         ! TODO-HT Not sure what these are for
+         ! TODO - Not sure what these are for
          psit_displacement_fac = psit_displacement_fac_vmec
          theta_vmec = thetamod_vmec
          
-         ! TODO-HT these are not used and can be removed I think
+         ! TODO - these are not used and can be removed I think
          B_sub_theta_vmec = B_sub_theta_vmec_mod ! JFP
          B_sub_zeta = B_sub_zeta_mod ! JFP
  
          ! The parallel coordinate is zeta, but we want to use z = zeta/P so that z 
          ! is compressed (or expanded) to the range [-pi,pi], hence dzeta/dz = P = nfp/nfield_periods
          dzetadz = real(nfp) / nfield_periods  
-         b_dot_grad_zeta_averaged = b_dot_grad_zeta_averaged * dzetadz
-         b_dot_grad_zeta = b_dot_grad_zeta * dzetadz
+         b_dot_gradzeta_averaged = b_dot_gradzeta_averaged * dzetadz
+         b_dot_gradzeta = b_dot_gradzeta * dzetadz
          gds23_psitalpha  = gds23_psitalpha  * dzetadz
          gds24_psitalpha  = gds24_psitalpha  * dzetadz 
 
@@ -465,30 +410,30 @@ contains
       
       ! Choose z-coordinate
       if (zed_equal_arc) then
-         b_dot_grad_z_averaged = b_dot_grad_arclength_averaged
-         b_dot_grad_z = b_dot_grad_arclength
+         b_dot_gradz_avg = b_dot_grad_arclength_averaged
+         b_dot_gradz = b_dot_grad_arclength
       else if (.not.zed_equal_arc) then 
-         b_dot_grad_z_averaged = b_dot_grad_zeta_averaged
-         b_dot_grad_z = b_dot_grad_zeta
+         b_dot_gradz_avg = b_dot_gradzeta_averaged
+         b_dot_gradz = b_dot_gradzeta
       end if
      
       ! The arrays over the extended zeta-grid are no longer needed, so deallocate
       deallocate (grad_alpha_grad_alpha_vmec, grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec)
-      deallocate (B_sub_theta_vmec_mod, B_sub_zeta_mod, bmag_vmec, b_dot_grad_zeta_vmec)
+      deallocate (B_sub_theta_vmec_mod, B_sub_zeta_mod, bmag_vmec, b_dot_gradzeta_vmec)
       deallocate (gds23_psitalpha_vmec, gds24_psitalpha_vmec, gds25_psitalpha_vmec, gds26_psitalpha_vmec)
-      deallocate (b_dot_grad_arclength_averaged, b_dot_grad_arclength, b_dot_grad_zeta_averaged, b_dot_grad_zeta) 
+      deallocate (b_dot_grad_arclength_averaged, b_dot_grad_arclength, b_dot_gradzeta_averaged, b_dot_gradzeta)
       deallocate (zed_domain_size, zeta_vmec, thetamod_vmec)
-      deallocate (gbdrift_alpha_vmec, gbdrift0_psi_vmec)
-      deallocate (cvdrift_alpha_vmec, cvdrift0_psi_vmec)
-      deallocate (psit_displacement_fac_vmec, arc_length) 
+      deallocate (gbdrift_alpha_vmec, B_times_gradB_dot_gradx_psi_vmec)
+      deallocate (B_times_kappa_dot_grady_alpha_vmec, B_times_kappa_dot_gradx_psi_vmec)
+      deallocate (psit_displacement_fac_vmec, arc_length)
       deallocate (gradzeta_gradpsit_R2overB2_vmec)
-      deallocate (gradzeta_gradalpha_R2overB2_vmec) 
-      deallocate (b_dot_grad_zeta_RR_vmec) 
+      deallocate (gradzeta_gradalpha_R2overB2_vmec)
+      deallocate (b_dot_gradzeta_RR_vmec)
 
-      !> calculate_vmec_geometry returns psitor/psitor_lcfs as rhoc
-      !> stella uses rhoc = rho = sqrt(psitor/psitor_lcfs) = rhotor
+      ! Calculate_vmec_geometry returns psitor/psitor_lcfs as rhoc
+      ! stella uses rhoc = rho = sqrt(psitor/psitor_lcfs) = rhotor
       surf%rhoc = sqrt(surf%rhoc)
-      surf%rhotor = surf%rhoc 
+      surf%rhotor = surf%rhoc
 
       ! Use rho = sqrt(psi_t / psi_{t,LCFS}) and Bref = 2 |psi_LCFS|/a^2
       ! drho/dpsi_t = 1/(2*sqrt(psi_t*psi_{t,LCFS})) * 2 |psi_LCFS|/ (a^2*Bref) = sgn(psi_t)/(rho*a^2*Bref)
@@ -509,8 +454,8 @@ contains
 
       ! When we plot the modes on the extended z-grid from the ballooning transformation
       ! We need to move the z-domains by a factor zed0, i.e., we plot |phi|^2 versus zed(iz) - zed0(iky, ikx)
-      ! with zed0(ky,kx) = theta0 * geo_surf%zed0_fac; theta0(ky,kx) = kx/(ky*shat) and theta = q*zeta
-      ! The (zed/theta)-value at the end of the z-domain is
+      ! with zed0(ky,kx) = theta0 * geo_surf%zed0_fac; theta0(ky,kx) = kx/(ky*shat) and q = dzeta/dtheta
+      ! The (zed/theta)-value at the end of the z-domain is,
       surf%zed0_fac = -zed(nzgrid) / zeta(1, nzgrid) * surf%qinp
 
       ! VMEC theta is the cylindrical theta-angle (not straight-field-line coordinate) scaled between [-pi:pi]
@@ -526,15 +471,20 @@ contains
       call open_output_file(tmpunit, '.vmec.geo')
       write (tmpunit, '(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'dzetadz'
       write (tmpunit, '(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, dzetadz
-      write (tmpunit, '(17a12)') '#    alpha', 'zeta', 'bmag', 'b_dot_grad_z_avg', 'bdot_grad_z', 'grad_alpha2', &
-         'gd_alph_psi', 'grad_psi2', 'gds23_psitalpha ', 'gds24_psitalpha ', 'gbdriftalph', 'gbdrift0psi', 'cvdriftalph', &
-         'cvdrift0psi', 'theta_vmec', 'B_sub_theta', 'B_sub_zeta' 
+      write (tmpunit, '(17a12)') '#    alpha', 'zeta', 'bmag', &
+         'b_dot_gradz_avg', 'bdot_grad_z', 'grad_alpha2', &
+         'gd_alph_psi', 'grad_psi2', 'gds23_psitalpha ', 'gds24_psitalpha ', &
+         'gbdriftalph', 'B_times_gradB_dot_gradx_psi', 'B_times_kappa_dot_grady_alph', &
+         'B_times_kappa_dot_gradx_psi', 'theta_vmec', 'B_sub_theta', 'B_sub_zeta' 
       do j = -nzgrid, nzgrid
          do i = 1, nalpha
-            write (tmpunit, '(17e12.4)') alpha(i), zeta(i, j), bmag(i, j), b_dot_grad_z_averaged(j), b_dot_grad_z(i, j), &
+            write (tmpunit, '(17e12.4)') alpha(i), zeta(i, j), bmag(i, j), &
+               b_dot_gradz_avg(j), b_dot_gradz(i, j), &
                grad_alpha_grad_alpha(i, j), grad_alpha_grad_psit(i, j), grad_psit_grad_psit(i, j), &
-               gds23_psitalpha (i, j), gds24_psitalpha (i, j),  gbdrift_alpha(i, j), gbdrift0_psi(i, j), & 
-               cvdrift_alpha(i, j), cvdrift0_psi(i, j), theta_vmec(i, j), B_sub_theta_vmec(i, j), B_sub_zeta(i, j)  
+               gds23_psitalpha (i, j), gds24_psitalpha (i, j),  &
+               gbdrift_alpha(i, j), B_times_gradB_dot_gradx_psi(i, j), & 
+               B_times_kappa_dot_grady_alpha(i, j), B_times_kappa_dot_gradx_psi(i, j), &
+               theta_vmec(i, j), B_sub_theta_vmec(i, j), B_sub_zeta(i, j)  
          end do
          write (tmpunit, *)
       end do
@@ -542,9 +492,9 @@ contains
 
       ! Write some information to the command prompt
       if (verbose .and. print_extra_info_to_terminal) then 
-         if (radial_coordinate_option==radial_coordinate_r) write(*,*) '  The radial coordinate psi is chosen to be psi = r = a*sqrt(psi_t/psi_{t,LCFS})'
-         if (radial_coordinate_option==radial_coordinate_minuspsit) write(*,*) '  The radial coordinate psi is chosen to be psi = -psi_t'
-         if (radial_coordinate_option==radial_coordinate_sgnpsitpsit) write(*,*) '  The radial coordinate psi is chosen to be psi = sgn(psi_t) psi_t'
+         if (radial_coordinate_switch==radial_coordinate_r) write(*,*) '  The radial coordinate psi is chosen to be psi = r = a*sqrt(psi_t/psi_{t,LCFS})'
+         if (radial_coordinate_switch==radial_coordinate_minuspsit) write(*,*) '  The radial coordinate psi is chosen to be psi = -psi_t'
+         if (radial_coordinate_switch==radial_coordinate_sgnpsitpsit) write(*,*) '  The radial coordinate psi is chosen to be psi = sgn(psi_t) psi_t'
          write(*,*) ' '
       end if
 
@@ -555,14 +505,15 @@ contains
    !============================================================================ 
    subroutine filter_geo_coef(naky, geocoef)
 
-      use stella_transforms, only: transform_alpha2kalpha, transform_kalpha2alpha
+      use calculations_transforms, only: transform_alpha2kalpha, transform_kalpha2alpha
 
       implicit none
 
       integer, intent(in) :: naky
       real, dimension(:), intent(in out) :: geocoef
-
       complex, dimension(:), allocatable :: fourier
+
+      !-------------------------------------------------------------------------
 
       ! Filtering and padding are built-in to the Fourier transform routines below
       allocate (fourier(naky))

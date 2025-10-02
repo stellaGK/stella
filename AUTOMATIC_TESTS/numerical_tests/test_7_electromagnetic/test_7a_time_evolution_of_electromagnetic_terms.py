@@ -66,10 +66,12 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
     compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)
             
     print(f'  -->  Without gyrokinetic terms the potential in EM stella does not evolve in time.')
-
+    return 
 #-------------------------------------------------------------------------------
 #     Check whether the implicit parallel streaming term evolves correctly     #
 #------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_parallel_streaming_implicit(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_parallel_streaming_implicit.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -84,6 +86,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #     Check whether the explicit parallel streaming term evolves correctly     #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_parallel_streaming_explicit(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_parallel_streaming_explicit.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -97,6 +101,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #           Check whether the implicit mirror term evolves correctly           #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_mirror_implicit(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_mirror_implicit.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -110,6 +116,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #           Check whether the explicit mirror term evolves correctly           #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_mirror_explicit(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_mirror_explicit.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -123,6 +131,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #          Check whether the diagmagnetic drift term evolves correctly         #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_diagmagnetic_drift(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_diagmagnetic_drift.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -137,6 +147,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #          Check whether the magnetic drifts term evolves correctly         #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_magnetic_drifts(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_magnetic_drifts.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -150,6 +162,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #              Check whether the nonlinear term evolves correctly              #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_nonlinear_term(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_nonlinear_term.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -163,6 +177,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #       Check whether the all the terms combined term evolves correctly        #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_kxky_grid_box_linear(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_kxky_grid_box_linear.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
@@ -176,6 +192,8 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
 #-------------------------------------------------------------------------------
 #              Check whether the nonlinear term evolves correctly              #
 #-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_kxky_grid_box_nonlinear(tmp_path, stella_version):
+
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_kxky_grid_box_nonlinear.in'
     run_local_stella_simulation(input_filename, tmp_path, stella_version)

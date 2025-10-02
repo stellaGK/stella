@@ -289,12 +289,17 @@ module mp
 contains
 
    subroutine init_mp(comm_in)
+   
       use constants, only: pi, kind_rs, kind_rd
       use file_utils, only: error_unit
+      
       implicit none
+      
       integer, intent(in), optional :: comm_in
       integer :: ierror
       logical :: init
+      
+      !-------------------------------------------------------------------------
 
       call mpi_initialized(init, ierror)
       if (.not. init) call mpi_init(ierror)
@@ -308,7 +313,7 @@ contains
       call mpi_comm_rank(comm_all, aproc, ierror)
       aproc0 = aproc == 0
 
-      !the next communicator is between all cores on a given node (i.e. shared memory)
+      ! The next communicator is between all cores on a given node (i.e. shared memory)
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
 
       call mpi_comm_size(comm_shared, nshared_proc, ierror)
@@ -319,7 +324,7 @@ contains
       call mpi_comm_size(comm_node, numnodes, ierror)
       call mpi_comm_rank(comm_node, inode, ierror)
 
-      !group communicator is global communicator unless changed by job fork
+      ! Group communicator is global communicator unless changed by job fork
       comm_group = comm_all
       ngroup_proc = ntot_proc
       gproc = aproc
@@ -527,9 +532,9 @@ contains
    end subroutine init_job_topology
 
 #ifdef ISO_C_BINDING
-!> creates a shared memory window of the specific size
-!> Returns the MPI window, as well as the pointer to the specific
-!> address in memory to be used with c_f_pointer
+! creates a shared memory window of the specific size
+! Returns the MPI window, as well as the pointer to the specific
+! address in memory to be used with c_f_pointer
    subroutine create_shared_memory_window(win_size, window, cur_pos)
 
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
@@ -575,8 +580,8 @@ contains
    end subroutine create_shared_memory_window
 #endif
 
-!> split n tasks over current communicator. Returns the low and high
-!> indices for a given processor. Assumes indices start at 1
+! split n tasks over current communicator. Returns the low and high
+! indices for a given processor. Assumes indices start at 1
    subroutine split_n_tasks(n, lo, hi)
 
       implicit none
@@ -1961,6 +1966,7 @@ contains
       integer, parameter :: error_code = MPI_ERR_UNKNOWN
 
       if (proc0) then
+         write(*,*) ' '; write (*,*) "Error: "//msg; write(*,*) ' '
          write (error_unit(), *) "Error: "//msg
          call flush_output_file(error_unit())
       end if

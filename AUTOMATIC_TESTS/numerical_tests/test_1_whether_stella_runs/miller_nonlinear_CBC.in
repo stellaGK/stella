@@ -5,10 +5,10 @@
 !                               Magnetic Geometry                               
 !===============================================================================
 
-&geo_knobs
-  geo_option = 'miller'
+&geometry_options
+  geometry_option = 'miller'
 /
-&millergeo_parameters
+&geometry_miller
   nzed_local = 128
   rhoc = 0.5
   shat = 0.796
@@ -32,18 +32,21 @@
 ! Here we include apar and bpar to check whether their diagnostic are written.
 !===============================================================================
 
-&parameters_physics
-  adiabatic_option = 'iphi00=2'
+&electromagnetic
   include_apar = .true.
   include_bpar = .true.
-  nonlinear = .true.
+/
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
+  include_electromagnetic = .true.
 /
 
 !===============================================================================
 !                                Kinetic species                                
 !===============================================================================
 
-&species_knobs
+&species_options
   nspec = 2
 /
 &species_parameters_1
@@ -69,29 +72,31 @@
 !                       Discretized (kx,ky,z,mu,vpa) grid                       
 !===============================================================================
 
-&kt_grids_knobs
+&kxky_grid_option
   grid_option = 'box'
 /
-&parameters_kxky_grids_box
+&kxky_grid_box
   jtwist = 5
   nx = 6
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'linked' 
+&z_grid
   nzed = 12
 /
-&vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3 
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
 /
 
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================
 
-&stella_diagnostics_knobs
+&diagnostics
   nsave = 10
   nwrite = 1
   write_all = .true.
@@ -101,21 +106,31 @@
 !                              Initialize potential                             
 !===============================================================================
 
-&init_g_knobs
-  ginit_option = 'noise'
+&initialize_distribution
+  initialize_distribution_option = 'noise'
   phiinit = 0.01
+/
+
+&initialise_distribution_noise
+  rng_seed = 1
 /
 
 !===============================================================================
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
-  delt = 0.01 
-  explicit_option = 'rk2'
+&time_trace_options
   nstep = 10
-  print_extra_info_to_terminal = .false.
-  rng_seed = 1
 /
 
- 
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/

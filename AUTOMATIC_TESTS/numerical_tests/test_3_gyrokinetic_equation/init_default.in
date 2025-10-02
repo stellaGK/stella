@@ -1,14 +1,51 @@
  
-! Simple linear example using CBC to test that without any gyrokinetic  
+! Simple linear example using CBC to test that without any gyrokinetic
 ! terms and without dissipation, the! potential does not evolve in time
-! Using the <ginit_option> = 'default' initialization  
+! Using the <ginit_option> = 'default' initialization
 
-&physics_flags
-  nonlinear = .false.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/ 
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
   include_parallel_streaming = .false.
   include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .false.
+  include_drive = .false.
+  include_nonlinear = .false.
 /
-&species_knobs
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
   nspec = 2
 /
 &species_parameters_1
@@ -29,66 +66,72 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters 
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
   nx = 6
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
+&z_grid
   nzed = 12
 /
-&vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3 
+&z_boundary_condition
+  boundary_option = 'linked'
 /
-&knobs
-  delt = 0.01 
-  nstep = 1
-  print_extra_info_to_terminal = .false. 
-  stream_implicit = .true.
-  mirror_implicit = .true.
-  drifts_implicit = .false. 
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
 /
-&stella_diagnostics_knobs
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
   nsave = 1
   nwrite = 1
 /
-&init_g_knobs
-  ginit_option = 'default'
-  phiinit = 0.01 
+
+!===============================================================================
+!                              initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.01
+/
+
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
-&dissipation
-  hyper_dissipation = .false.
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 1
 /
-&geo_knobs
-  geo_option = 'miller'
+
+&time_step
+  delt = 0.01
 /
-&kt_grids_knobs
-  grid_option = 'box'
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+  stream_implicit = .true.
+  mirror_implicit = .true.
+  drifts_implicit = .false.
 /
-&time_advance_knobs
-  xdriftknob = 0
-  ydriftknob = 0
-  wstarknob = 0
-  explicit_option = 'rk2'
+
+&debug_flags 
+  print_extra_info_to_terminal = .false.
 /
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+

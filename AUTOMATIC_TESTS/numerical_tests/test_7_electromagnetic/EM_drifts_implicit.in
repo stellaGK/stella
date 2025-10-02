@@ -1,20 +1,57 @@
  
 ! Simple linear example using CBC, only including the implicit drifts + parallel streaming term
 
-&physics_flags
-  nonlinear = .false.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/ 
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
   include_parallel_streaming = .true.
   include_mirror = .false.
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .true.
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .true.
+/
+
+&electromagnetic
   include_apar = .true.
   include_bpar = .true.
-/
-&parameters
-  zeff = 1.0
   beta = 0.04
-  vnew_ref = 0.01
-  rhostar = 0.01
 /
-&species_knobs
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
   nspec = 2
 /
 &species_parameters_1
@@ -35,66 +72,81 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
   nx = 6
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 2
+&z_grid
   nzed = 16
+  nperiod = 2
 /
-&vpamu_grids_parameters
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
   nmu = 2 
   nvgrid = 3 
 /
-&knobs
-  delt = 0.01 
-  nstep = 100
-  stream_implicit = .true.
-  mirror_implicit = .false.
-  drifts_implicit = .true.
-  print_extra_info_to_terminal = .false.
-/
-&stella_diagnostics_knobs
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
   nsave = 100
   nwrite = 10
 /
-&init_g_knobs
-  ginit_option = 'default'
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
   phiinit = 0.01
+/
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
-&dissipation
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 100
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+  mirror_semi_lagrange = .false.
+  stream_implicit = .true.
+  mirror_implicit = .false.
+  drifts_implicit = .true.
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation_and_collisions_options
   hyper_dissipation = .false.
 /
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  xdriftknob = 1
-  ydriftknob = 1
-  wstarknob = 1
-  explicit_option = 'rk2'
-/
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+

@@ -130,23 +130,7 @@ def test_whether_fluxes_diagnostics_are_correct(error=False):
     print(f'  -->  The final fields diagnostics are working.')
     return 
     
-#-------------------------------------------------------------------------------
-def test_whether_omega_diagnostics_are_correct(error=False): 
-    
-    # Txt file names 
-    local_file = stella_local_run_directory / f'{input_file_stem}.omega' 
-    expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.omega'  
-     
-    # Check whether the txt files match (Skip the header line)
-    compare_local_txt_with_expected_txt(local_file, expected_file, name='Omega txt', skiplines=1, error=False)
-    
-    # Check whether the netCDF data matches 
-    keys = ['omega']
-    for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False) 
 
-    # If we made it here the test was run correctly 
-    print(f'  -->  The omega diagnostics are working.')
-    return 
     
 #-------------------------------------------------------------------------------
 def test_whether_moments_diagnostics_are_correct(error=False): 
@@ -170,4 +154,42 @@ def test_whether_distribution_function_diagnostics_are_correct(error=False):
 
     # If we made it here the test was run correctly 
     print(f'  -->  The distribution function diagnostics are working.')
+    return 
+    
+#-------------------------------------------------------------------------------
+def test_whether_omega_diagnostics_are_correct(tmp_path, stella_version, error=False):
+
+    # Save the temporary folder <tmp_path> as a global variable so the
+    # other tests can access the output files from the local stella run.
+    global stella_local_run_directory
+    stella_local_run_directory = tmp_path
+    input_filename = 'miller_linear.in'
+    input_file_stem = input_filename.replace(".in","")
+    
+    # Run a local stella simulation
+    run_local_stella_simulation(input_filename, stella_local_run_directory, stella_version)
+     
+    # Check whether the txt files match (Skip the header line)
+    # Compare the columns (time, ky, kx, Re[om], Im[om], Re[omavg], Im[omavg])
+    # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes
+    local_file = stella_local_run_directory / f'{input_file_stem}.omega' 
+    expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.omega'  
+    local_omega_data = np.loadtxt(local_file, dtype='float').reshape(-1, 7) 
+    expected_omega_data = np.loadtxt(expected_file, dtype='float').reshape(-1, 7)  
+    for i in range(len(local_omega_data[0,:])):
+        if not np.allclose(local_omega_data[:,i], expected_omega_data[:,i], rtol = 0.0, atol = 1e-12, equal_nan=True):
+            print(f'\nERROR: The omega arrays do not match in the txt files.'); error = True
+            print(f'Compare the omega arrays in the local and expected txt files:')
+            for j in range(len(local_omega_data[:,i])):
+                print(f'    column {i}: {local_omega_data[j,i]:14.6e}, {expected_omega_data[j,i]:14.6e}')
+    assert (not error), f'The omega data does not match in the txt files.'   
+    
+    # Check whether the netCDF data matches 
+    keys = ['omega']
+    local_netcdf_file = stella_local_run_directory / input_filename.replace('.in', '.out.nc') 
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.out.nc'
+    for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False) 
+
+    # If we made it here the test was run correctly 
+    print(f'  -->  The omega diagnostics are working.')
     return 

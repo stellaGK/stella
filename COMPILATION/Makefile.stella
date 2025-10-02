@@ -44,22 +44,28 @@ COMPILATION_DIR := $(PROJECT_DIR)/COMPILATION
 # Export the externals directory for the mini_libstell makefile
 export EXTERNALS_DIR
 
-# Define the subfolders within the STELLA_DIR directory and  
-# export the directories so they are available to child processes 
+# Define the subfolders within the STELLA_DIR directory and
+# export the directories so they are available to child processes
 export CALCULATIONS=$(STELLA_DIR)/calculations
 export DIAGNOSTICS=$(STELLA_DIR)/diagnostics
 export COLLISIONS=$(STELLA_DIR)/dissipation
-export FIELDS=$(STELLA_DIR)/fields
+export STELLA_UTILS=$(STELLA_DIR)/stella_utils
 export GEOMETRY=$(STELLA_DIR)/geometry
 export GRIDS=$(STELLA_DIR)/grids
-export GYROKINETIC_TERMS=$(STELLA_DIR)/gyrokinetic_terms
+export ARRAYS=$(STELLA_DIR)/arrays
+export GYROKINETIC_EQUATION=$(STELLA_DIR)/gyrokinetic_equation
+export FIELD_EQUATIONS=$(STELLA_DIR)/field_equations
 export NEOCLASSICAL=$(STELLA_DIR)/neoclassical
+export PARALLELISATION=$(STELLA_DIR)/parallelisation
 export PARAMETERS=$(STELLA_DIR)/parameters
+export INPUT_PARAMETERS=$(STELLA_DIR)/read_namelists_from_input_file
 export RADIAL_VARIATION=$(STELLA_DIR)/radial_variation
-SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(GEOMETRY) $(GRIDS)
-SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_TERMS) $(NEOCLASSICAL) $(PARAMETERS) $(RADIAL_VARIATION)
-VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS):$(FIELDS):$(GEOMETRY):$(GRIDS):
-VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_TERMS):$(NEOCLASSICAL):$(PARAMETERS):$(RADIAL_VARIATION):
+SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS)
+SUBFOLDERS := $(SUBFOLDERS) $(FIELD_EQUATIONS) $(STELLA_UTILS) $(GRIDS) $(ARRAYS)
+SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_EQUATION) $(NEOCLASSICAL) $(PARAMETERS) $(PARALLELISATION) $(INPUT_PARAMETERS) $(RADIAL_VARIATION) $(GEOMETRY)
+VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS)
+VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(FIELD_EQUATIONS):$(STELLA_UTILS):$(GEOMETRY):$(GRIDS):$(ARRAYS)
+VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_EQUATION):$(NEOCLASSICAL):$(PARAMETERS):$(PARALLELISATION):$(INPUT_PARAMETERS):$(RADIAL_VARIATION):
 
 # Check directories
 .PHONY: print-directories
@@ -140,8 +146,8 @@ include $(DEPEND_FILE)
 # For the prerequisites, we need to make sure that the external libraries 
 # 'git_version' and 'neasyf' are correctly downloaded, these prerequisites
 # will trigger the 'submodules' target. We also need to make sure that 
-# the 'build_make' directory exists.  
-.PHONY: depend  
+# the 'build_make' directory exists.
+.PHONY: depend
 depend: $(GIT_VERSION_DIR)/git_version.f90 $(NEASYF_DIR)/neasyf.f90 $(BUILD_DIR) ensure-that-all-f90-files-exist
 	@$(MAKE) --no-print-directory -C $(UTILS_DIR) ensure-that-all-f90-files-exist 
 	@echo "          "
@@ -248,7 +254,7 @@ $(OBJ)/%.o: $(DIAGNOSTICS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 $(OBJ)/%.o: $(COLLISIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(FIELDS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+$(OBJ)/%.o: $(STELLA_UTILS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ) $(MOD)
@@ -257,13 +263,25 @@ $(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 $(OBJ)/%.o: $(GRIDS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(GYROKINETIC_TERMS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+$(OBJ)/%.o: $(ARRAYS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(GYROKINETIC_EQUATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(FIELD_EQUATIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(NEOCLASSICAL)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(PARALLELISATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(INPUT_PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
@@ -277,8 +295,8 @@ $(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 # In STELLA_CODE/* and EXTERNALS/utils/*, we have *.fpp files, that need to be preprocessed into *.f90 files
 # We will use a pattern rule to create symbolic links of these *.fpp files in the $(FPP) directory
 # And we define the *.f90 file paths inside $(FPP), since we will preprocess $(FPP)/*.fpp to $(FPP)/*.f90
-existing_fpp_files := $(wildcard $(FIELDS)/*.fpp) $(wildcard $(DIAGNOSTICS)/*.fpp) $(wildcard $(GYROKINETIC_TERMS)/*.fpp) 
-existing_fpp_files := $(existing_fpp_files) $(wildcard $(NEOCLASSICAL)/*.fpp) $(UTILS_DIR)/define.inc
+existing_fpp_files := $(wildcard $(STELLA_UTILS)/*.fpp) $(wildcard $(FIELD_EQUATIONS)/*.fpp) $(wildcard $(DIAGNOSTICS)/*.fpp) $(wildcard $(GYROKINETIC_EQUATION)/*.fpp) $(wildcard $(RADIAL_VARIATION)/*.fpp)
+existing_fpp_files := $(existing_fpp_files) $(wildcard $(parallelisation)/*.fpp) $(wildcard $(NEOCLASSICAL)/*.fpp) $(UTILS_DIR)/define.inc
 existing_fpp_file_names := $(notdir $(existing_fpp_files))
 fpp_files_in_build_directory := $(addprefix $(FPP)/, $(existing_fpp_file_names)) 
 f90_from_fpp_files = $(fpp_files_in_build_directory:.fpp=.f90)
@@ -304,16 +322,22 @@ $(FPP)/%.f90: $(FPP)/%.fpp $(FPP)/define.inc | $(FPP)
 	@$(CPP) $(CPPFLAGS) $< $@
 	
 # Create symbolic links from STELLA_CODE/*/*.fpp to $(FPP)/*.fpp 
-$(FPP)/%.fpp: $(FIELDS)/%.fpp | $(FPP)
+$(FPP)/%.fpp: $(FIELD_EQUATIONS)/%.fpp | $(FPP)
+	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
+	@ln -sf $< $(FPP)
+$(FPP)/%.fpp: $(STELLA_UTILS)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
 $(FPP)/%.fpp: $(DIAGNOSTICS)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
-$(FPP)/%.fpp: $(GYROKINETIC_TERMS)/%.fpp | $(FPP)
+$(FPP)/%.fpp: $(GYROKINETIC_EQUATION)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
 $(FPP)/%.fpp: $(NEOCLASSICAL)/%.fpp | $(FPP)
+	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
+	@ln -sf $< $(FPP)
+$(FPP)/%.fpp: $(RADIAL_VARIATION)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
 	
@@ -410,8 +434,8 @@ remove-stella-files:
 remove-temp-files:
 	@echo "   - remove temp files" 
 	@-rm -f $(UTILS)/*~ $(CALCULATIONS)/*~ $(DIAGNOSTICS)/*~ $(COLLISIONS)/*~ 
-	@-rm -f $(FIELDS)/*~ $(GEOMETRY)/*~ $(GRIDS)/*~ $(GYROKINETIC_TERMS)/*~ 
-	@-rm -f $(NEOCLASSICAL)/*~ $(PARAMETERS)/*~ $(RADIAL_VARIATION)/*~ 
+	@-rm -f $(GEOMETRY)/*~ $(GRIDS)/*~ $(ARRAYS)/*~ $(GYROKINETIC_EQUATION)/*~ $(STELLA_UTILS)/*~ 
+	@-rm -f $(NEOCLASSICAL)/*~ $(PARALLELISATION)/*~ $(PARAMETERS)/*~ $(RADIAL_VARIATION)/*~ $(FIELD_EQUATIONS)/*~ 
 
 # In case cmake was used, clean it up as well
 CMAKE := $(COMPILATION_DIR)/build_cmake

@@ -6,10 +6,11 @@
 set(STELLA_UTILS_SOURCES_f90
   convert.f90
   fft_work.f90
+  file_units.f90
   gauss_quad.f90
+  interface_random_number_generator.f90
   linear_solve.f90
   mt19937.f90
-  redistribute.f90
   spl.f90
   text_options.f90
   )
@@ -83,6 +84,8 @@ if (STELLA_ENABLE_DOUBLE)
       -fdefault-real-8 -fdefault-double-8 >
     $<$<Fortran_COMPILER_ID:Intel>:
       -r8 >
+    $<$<Fortran_COMPILER_ID:IntelLLVM>:
+      -r8 >
     )
   set(STELLA_DEFAULT_REAL_KIND "double")
 else()
@@ -131,6 +134,7 @@ target_compile_definitions(stella_utils PRIVATE
 target_compile_definitions(stella_utils PRIVATE
   $<$<Fortran_COMPILER_ID:GNU>:FCOMPILER=_GFORTRAN_>
   $<$<Fortran_COMPILER_ID:Intel>:FCOMPILER=_INTEL_>
+  $<$<Fortran_COMPILER_ID:IntelLLVM>:FCOMPILER=_INTEL_>
   )
 
 find_package(MPI)

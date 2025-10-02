@@ -1,18 +1,17 @@
-
 !###############################################################################
 !####################### CALCULATE FLUXES IN A FLUXTUBE ########################
 !###############################################################################
 ! 
-! Routines for calculating and writing the turbulent fluxes. 
+! Routines for calculating and writing the turbulent fluxes.
 ! 
 ! 
-! DEFINITION DISTRIBUTION
-! -----------------------
+! DEFINITION DISTRIBUTION FUNCTION
+! --------------------------------
 ! δf = h - Zs*e/Ts * phi * F0
 ! h = <h>_gyroaverage
 ! g = <delta f>_gyroaverage 
 ! g = h - Zs*e/Ts * <phi>_gyroaverage * F0 
-! δf = g + Zs*e/Ts * (<phi>_gyroaverage - phi) * F0   
+! δf = g + Zs*e/Ts * (<phi>_gyroaverage - phi) * F0
 ! 
 ! 
 ! DEFINITIONS FLUXES
@@ -40,21 +39,22 @@
 !            CONSTANT       VELOCITY_INTEGRAND
 ! pflux:       ñ_s                δf*J0 
 ! qflux:     ñ_s*T̃_s            δf*J0*v^2 
-! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(sqrt(T*m)/Z)/(q*shat*B^2))
+! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gradx_dot_grady*shat+theta0*gradx_dot_gradx*shat^2)*(sqrt(T*m)/Z)/(q*shat*B^2))
 !  
 ! Note that for pflux and qflux, we can replace δf by g or h in the integrand.
 ! This has been tested numerically, and gives the same fluxes.
 !###############################################################################
- 
 module diagnostics_fluxes_fluxtube
 
+   ! Load debug flags
    use debug_flags, only: debug => diagnostics_fluxes_fluxtube_debug
   
    implicit none
- 
-   public :: calculate_fluxes_fluxtube  
+   
+   ! Make routines available to other modules
+   public :: calculate_fluxes_fluxtube
 
-   private      
+   private
 
 contains
 
@@ -82,7 +82,7 @@ contains
    !            CONSTANT       VELOCITY_INTEGRAND
    ! pflux:       ñ_s                δf*J0 
    ! qflux:     ñ_s*T̃_s            δf*J0*v^2 
-   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(sqrt(T*m)/Z)/(q*shat*B^2))
+   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gradx_dot_grady*shat+theta0*gradx_dot_gradx*shat^2)*(sqrt(T*m)/Z)/(q*shat*B^2))
    ! 
    ! For <flux>(s) we integrate over all the z-points so we need to add the factor <fluxnorm_vs_z> = < . >_ψ / <∇̃ρ>_ψ
    ! For <flux>(ky,kx,z,t,s) we do not integrate over z so we only add the factor 1/<∇̃ρ>_ψ 
@@ -92,7 +92,7 @@ contains
    ! we have g = h - Zs*e/Ts * <phi>_gyroaverage * F0 and δf = g + Zs*e/Ts * (<phi>_gyroaverage - phi) * F0   
    ! It's been tested numerically, and whether we give <g>, <h> or <δf> does not make a difference for 
    ! <qflux> or <pflux>, but it does matter for <vflux>! Only <δf> is the correct options for <vflux> TODO is it? 
-   !============================================================================ 
+   !============================================================================
    subroutine calculate_fluxes_fluxtube(df_vs_vpamuikxkyzs, pflux_vs_s, vflux_vs_s, qflux_vs_s, &
       pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
 
@@ -100,33 +100,34 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       
       ! Input file
-      use parameters_diagnostics, only: write_fluxes_kxkyz 
+      use parameters_diagnostics, only: write_fluxes_kxkyz
       use parameters_diagnostics, only: write_fluxes_kxky
 
       ! Data 
       use arrays_fields, only: phi, apar, bpar
-      use parameters_numerical, only: fphi
+      use parameters_physics, only: fphi
       
       ! Geometry 
-      use geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 
+      use geometry, only: bmag, btor, geo_surf
+      use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: gradzeta_gradx_R2overB2
       use geometry, only: gradzeta_grady_R2overB2
-      use geometry, only: b_dot_grad_zeta_RR 
+      use geometry, only: b_dot_gradzeta_RR 
       
       ! Dimensions
-      use vpamu_grids, only: vperp2, vpa, mu
-      use vpamu_grids, only: nvpa, nmu
-      use zgrid, only: nzgrid, ntubes
+      use grids_velocity, only: vperp2, vpa, mu
+      use grids_velocity, only: nvpa, nmu
+      use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: aky, theta0
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
 
       ! Calculations
-      use volume_averages, only: fieldline_average
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_volume_averages, only: fieldline_average
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use constants, only: zi
 
       ! Routines
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo
       use mp, only: sum_reduce
 
       implicit none
@@ -144,26 +145,32 @@ contains
       real, dimension(:), allocatable :: fluxnorm_vs_z
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       real :: one_over_nablarho
+      logical :: write_vs_kxkyz
+
+      !-------------------------------------------------------------------------
 
       ! Allocate arrays
       allocate (fluxnorm_vs_z(-nzgrid:nzgrid))
       allocate (velocityintegrand_vs_vpamu(nvpa, nmu), temp1_vs_vpamu(nvpa, nmu), temp2_vs_vpamu(nvpa, nmu))
-
-      !-------------------------------------------------------------------------  
       
       ! Track the code 
       if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube'
 
-      ! Make sure that the ararys we will fill are empty 
-      pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0. 
+      ! Make sure that the ararys we will fill are empty
+      pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0.
       pflux_vs_kxkyzts = 0.; vflux_vs_kxkyzts = 0.; qflux_vs_kxkyzts = 0.
 
-      ! Get <fluxnorm_vs_z> which takes care of the flux surface average, 
-      ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1. 
-      call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho) 
+      ! Get <fluxnorm_vs_z> which takes care of the flux surface average,
+      ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1.
+      call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho)
 
       ! We only have one flux tube since <radial_variation> = False
       ia = 1
+      
+      ! We need to calculate fluxes(kx,ky,z,s,t) both for <write_fluxes_kxkyz> and 
+      ! <write_fluxes_kxky> since the latter will field line average fluxes(kx,ky,z,s,t)
+      ! If both are false only fluxes(s,t) are calculated.
+      write_vs_kxkyz = write_fluxes_kxkyz .or. write_fluxes_kxky
 
       !===================================
       !           ELECTROSTATIC           
@@ -185,44 +192,45 @@ contains
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the particle flux 
             call gyro_average(df_vs_vpamuikxkyzs(:, :, ikxkyz), ikxkyz, velocityintegrand_vs_vpamu)
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), pflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                   phi(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! For the heat flux we have <VELOCITY_INTEGRAND>(vpa,mu) = h(mu,vpa)*J0*v^2
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the heat flux 
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(1, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), qflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
                   phi(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! For the parallel (first term) and perpendicular (second term) component of the momentum flux we have,
             ! <VELOCITY_INTEGRAND>(vpa,mu) = δf*J0*vpa*(b.∇ζ)*R^2 
-            !			- i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
-            ! 			+ i*δf*J1*ky*vperp^2*rho*(theta0*gds21+gds2)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
+            !        - i*δf*J1*ky*vperp^2*rho*(gradx_dot_grady*shat+theta0*gradx_dot_gradx*shat^2)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
+            !        + i*δf*J1*ky*vperp^2*rho*(theta0*gradx_dot_grady*shat+grady_dot_grady)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
             
             ! First add the parallel component of the momentum flux: δf*J0*vpa*(b.∇ζ)*R^2 
-            velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_grad_zeta_RR(ia, iz)
+            velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_gradzeta_RR(ia, iz)
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             
             ! Next add the perpendicular component
             velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
-                    * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) * (gds21(ia, iz) &
-                    + theta0(iky, ikx) * gds22(ia, iz)) / geo_surf%shat &
-                    - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
+                    * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) *  &
+                    (gradx_dot_grady(ia, iz) + theta0(iky, ikx) * gradx_dot_gradx (ia, iz) * geo_surf%shat) &
+                    - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gradx_dot_grady(ia, iz) * geo_surf%shat + grady_dot_grady(ia, iz)))
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             
             ! Sum parallel and perpendicular components together
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
-	
-			! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
+
+            ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
+               phi(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
          end do
       end if
 
       !===================================
-      !          ELECTROMAGNETIC                    
+      !          ELECTROMAGNETIC    
       !===================================
       if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::apar'
       if (include_apar) then
@@ -231,19 +239,19 @@ contains
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz) 
+            is = is_idx(kxkyz_lo, ikxkyz)
 
             ! Apar contribution to particle flux
             temp1_vs_vpamu = -2.0*df_vs_vpamuikxkyzs(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
             call gyro_average(temp1_vs_vpamu, ikxkyz, velocityintegrand_vs_vpamu)
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), pflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! Apar contribution to heat flux
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), qflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! TODO -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !! Only valid for axis-symmetric devices now
@@ -253,16 +261,16 @@ contains
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             velocityintegrand_vs_vpamu = 2.0*spread(vpa, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
                     * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
-                    * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) * spec(is)%smz &
-                    / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
+                    * (gradx_dot_grady(ia, iz) + theta0(iky, ikx) * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
+                    / (geo_surf%qinp * bmag(ia, iz)**2)
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), vflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
          end do
-      end if 
+      end if
       
       
       if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::bpar'
@@ -297,7 +305,7 @@ contains
          end do
       end if
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_reduce(pflux_vs_s, 0)
       call sum_reduce(qflux_vs_s, 0)
       call sum_reduce(vflux_vs_s, 0)
@@ -312,7 +320,7 @@ contains
       qflux_vs_s = qflux_vs_s / real(ntubes)
       vflux_vs_s = vflux_vs_s / real(ntubes)
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_reduce(pflux_vs_kxkyzts, 0)
       call sum_reduce(qflux_vs_kxkyzts, 0)
       call sum_reduce(vflux_vs_kxkyzts, 0) 
@@ -331,7 +339,7 @@ contains
             call fieldline_average(qflux_vs_kxkyzts(:, :, :, :, is), qflux_vs_kxkys(:, :, is))
             call fieldline_average(vflux_vs_kxkyzts(:, :, :, :, is), vflux_vs_kxkys(:, :, is)) 
          end do
-      end if 
+      end if
 
       ! Deallocate the arrays
       deallocate (velocityintegrand_vs_vpamu, temp1_vs_vpamu, temp2_vs_vpamu)
@@ -365,15 +373,15 @@ contains
    !            CONSTANT       VELOCITY_INTEGRAND
    ! pflux:       ñ_s                δf*J0 
    ! qflux:     ñ_s*T̃_s            δf*J0*v^2 
-   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(sqrt(T*m)/Z)/(q*shat*B^2))
+   ! vflux:   ñ_s*√(m̃_s*T̃_s)    δf*J0*vpa*R*Btor/B - i*δf*J1*ky*vperp^2*rho*(gradx_dot_grady*shat+theta0*gradx_dot_gradx*shat²)*(sqrt(T*m)/Z)/(q*shat*B^2))
    ! 
    ! If the goal is to integrate over z, then NORM = < . >_ψ[iz] / <∇̃ρ>_ψ if
    ! If we want to calculate the flux at every z-point, then NORM = 1 / <∇̃ρ>_ψ and the integral can be performed manually later
    !============================================================================ 
    subroutine get_one_flux(iky, iz, norm, velocityintegrand_vs_vpamu, phi, flux_out)
 
-      use vpamu_grids, only: integrate_vmu
-      use volume_averages, only: mode_fac
+      use calculations_velocity_integrals, only: integrate_vmu
+      use calculations_volume_averages, only: mode_fac
       use geometry, only: flux_fac
       use grids_kxky, only: aky
 
@@ -424,7 +432,7 @@ contains
 
       use parameters_diagnostics, only: flux_norm
       use geometry, only: jacob, grho
-      use zgrid, only: delzed, nzgrid  
+      use grids_z, only: delzed, nzgrid  
 
       implicit none
 

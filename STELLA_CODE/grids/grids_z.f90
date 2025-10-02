@@ -1,0 +1,262 @@
+!###############################################################################
+!                                 Z-GRID MODULE                                 
+!###############################################################################
+! 
+! This module defines and manages the grid structures and related operations
+! for the z (parallel) direction in stella.
+! 
+! Z is a field-aligned coordinate, often defined as the distance along a magnetic
+! field line, normalized to the poloidal angle. It is used in gyrokinetic simulations to
+! represent the parallel direction along the magnetic field. Common choices for z include:
+!    - arc length along the field line, ℓ
+!    - poloidal angle, θ
+!    - toroidal angle, ζ
+! 
+! This module handles grid spacing, boundary conditions, and mapping between physical
+! and the choice for the coordinates in the z-direction.
+! 
+! The parallel coordinate, z, is the field-aligned coordinate, measuring the distance
+! along the magnetic field. The parallel dynamics are treated using the real space
+! coordinate z to correctly capture the parallel boundary conditions.
+! 
+!###############################################################################
+module grids_z
+
+   ! Read the parameters for <boundary_option_switch> from namelist_z_grid.f90
+   use namelist_z_grid, only: boundary_option_zero
+   use namelist_z_grid, only: boundary_option_self_periodic
+   use namelist_z_grid, only: boundary_option_linked
+   use namelist_z_grid, only: boundary_option_linked_stellarator 
+
+   implicit none
+   
+   ! Although the parameters are available through namelist_species,
+   ! make them available through grids_species as well
+   public :: boundary_option_switch
+   public :: boundary_option_zero
+   public :: boundary_option_self_periodic
+   public :: boundary_option_linked
+   public :: boundary_option_linked_stellarator
+   
+   ! Make the routines available to other modules
+   public :: read_parameters_z_grid
+   public :: init_z_grid
+   public :: finish_z_grid
+   
+   ! Make the parameters available to other modules
+   public :: nzgrid
+   public :: nztot, nz2pi
+   public :: zed
+   public :: delzed
+   public :: get_total_arc_length
+   public :: get_arc_length_grid
+   public :: nzed, nperiod, ntubes, shat_zero, dkx_over_dky
+   public :: zed_equal_arc, grad_x_grad_y_zero
+   public :: initialised_grids_z
+
+   private
+
+   ! Parameters
+   integer :: nzed, nzgrid, nztot, nz2pi
+   integer :: nperiod, ntubes
+   logical :: zed_equal_arc
+   real :: shat_zero, grad_x_grad_y_zero, dkx_over_dky
+   real, dimension(:), allocatable :: zed, delzed
+   integer :: boundary_option_switch
+   
+   ! Only initialise once
+   logical :: initialised_grids_z = .false.
+   logical :: initialised_read_grids_z = .false.
+
+contains
+
+!###############################################################################
+!################################ READ NAMELIST ################################
+!###############################################################################
+
+   subroutine read_parameters_z_grid
+
+      use namelist_z_grid, only: read_namelist_z_grid
+      use namelist_z_grid, only: read_namelist_z_boundary_condition
+
+      implicit none
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_read_grids_z) return
+      initialised_read_grids_z = .true.
+
+      ! Read the "z_grid" and "z_boundary_condition" namelists in the input file
+      call read_namelist_z_grid(nzed, nzgrid, nperiod, ntubes, zed_equal_arc)
+      call read_namelist_z_boundary_condition (boundary_option_switch, &
+         shat_zero, grad_x_grad_y_zero, dkx_over_dky)
+      
+      ! Broadcast the parameters to all processors
+      call broadcast_parameters
+      
+   contains
+
+      subroutine broadcast_parameters
+
+         use mp, only: broadcast
+
+         implicit none
+
+         call broadcast(nzed)
+         call broadcast(nzgrid)
+         call broadcast(nperiod)
+         call broadcast(ntubes)
+         call broadcast(zed_equal_arc)
+         call broadcast(shat_zero)
+         call broadcast(boundary_option_switch)
+         call broadcast(grad_x_grad_y_zero)
+         call broadcast(dkx_over_dky)
+
+      end subroutine broadcast_parameters
+
+   end subroutine read_parameters_z_grid
+
+!###############################################################################
+!############################### INITIALISE Z GRID #############################
+!###############################################################################
+
+   subroutine init_z_grid
+   
+      use constants, only: pi
+
+      implicit none
+      
+      integer :: i
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_grids_z) return
+      initialised_grids_z = .true.
+
+      ! Allocate arrays
+      if (.not. allocated(zed)) allocate (zed(-nzgrid:nzgrid))
+      if (.not. allocated(delzed)) allocate (delzed(-nzgrid:nzgrid))
+
+      ! Note that <nzed> is an input parameter, denoting the number of z-points 
+      ! in a single period or 2*pi segment. ! It is used to calculate the total 
+      ! number of positive z-points as <nzgrid> = <nzed>/2 + (<nperiod> - 1) * <nzed>.
+      ! Construct the z-grid, which ranges from -pi to pi.
+      zed = (/(i * pi / real(nzed / 2), i=-nzgrid, nzgrid)/)
+      delzed(:nzgrid - 1) = zed(-nzgrid + 1:) - zed(:nzgrid - 1)
+      delzed(nzgrid) = delzed(-nzgrid)
+
+      ! Total number of z-points
+      nztot = 2 * nzgrid + 1
+      
+      ! Number of z-points in a 2*pi segment, including points at +/- pi
+      nz2pi = 2 * (nzed / 2) + 1
+
+   end subroutine init_z_grid
+
+!###############################################################################
+!################################ FINIALISE Z GRID #############################
+!############################################################################### 
+
+   subroutine finish_z_grid
+
+      implicit none
+
+      if (allocated(zed)) deallocate (zed)
+      if (allocated(delzed)) deallocate (delzed)
+
+      initialised_grids_z = .false.
+
+   end subroutine finish_z_grid
+
+!###############################################################################
+!################################# CALCULATIONS ################################
+!############################################################################### 
+
+
+   !****************************************************************************
+   !                         CALCULATE TOTAL ARC LENGTH
+   !****************************************************************************
+   subroutine get_total_arc_length(nz, gp, dz, length)
+
+      implicit none
+
+      integer, intent(in) :: nz
+      real, dimension(-nz:), intent(in) :: gp
+      real, intent(in) :: dz
+      real, intent(out) :: length
+
+      !----------------------------------------------------------------------
+
+      ! <nz> is the number of positive or negative z-points, i.e., f(-nz:nz)
+      ! <dz> is the step size along z  
+      ! 1/<gp> is the function to integration along z
+      call integrate_zed(nz, dz, 1./gp, length)
+
+   end subroutine get_total_arc_length
+
+   !****************************************************************************
+   !                         CALCULATE ARC LENGTH GRID 
+   !****************************************************************************
+   subroutine get_arc_length_grid(nz_max, nzext_max, zboundary, gp, dz, zarc)
+
+      implicit none
+
+      integer, intent(in) :: nz_max, nzext_max
+      real, intent(in) :: zboundary, dz
+      real, dimension(-nzext_max:), intent(in) :: gp 
+      real, dimension(-nzext_max:), intent(out) :: zarc
+
+      integer :: iz
+
+      !---------------------------------------------------------------------- 
+
+      zarc(-nz_max) = zboundary
+      if (nz_max /= nzext_max) then
+         do iz = -nzext_max, -nz_max - 1
+            call integrate_zed(nzext_max, dz, 1./gp(iz:-nz_max), zarc(iz))
+            zarc(iz) = zarc(-nz_max) - zarc(iz)
+         end do
+      end if
+      ! TODO: this seems very inefficient -- could just add incremental change at each zed,
+      ! rather than recomputing from the boundary each time
+      do iz = -nz_max + 1, nzext_max
+         call integrate_zed(nz_max, dz, 1./gp(-nz_max:iz), zarc(iz))
+         zarc(iz) = zarc(-nz_max) + zarc(iz)
+      end do
+
+   end subroutine get_arc_length_grid
+
+   !****************************************************************************
+   !                             INTEGRATE ALONG Z 
+   !****************************************************************************
+   ! Use the trapezoidal rule to integrate in zed
+   subroutine integrate_zed(nz, dz, f, intf)
+
+      implicit none
+
+      integer, intent(in) :: nz
+      real, intent(in) :: dz
+      real, dimension(-nz:), intent(in) :: f
+      real, intent(out) :: intf
+
+      integer :: iz, iz_max
+
+      !---------------------------------------------------------------------- 
+
+      ! <nz> is the number of positive or negative z-points, i.e., f(-nz:nz)
+      iz_max = -nz + size(f) - 1
+
+      ! Initialize the intgration
+      intf = 0.
+
+      ! For each z-point add ( f(iz) + f(iz-1) ) * dz / 2
+      do iz = -nz + 1, iz_max
+         intf = intf + dz * (f(iz - 1) + f(iz))
+      end do
+      intf = 0.5 * intf
+
+   end subroutine integrate_zed
+
+end module grids_z

@@ -3,10 +3,32 @@
 ! We use nfield_periods = 6.073867 to ensure that dkx = dky when using stellarator symmetric boundary conditions
 ! Only simulate a single mode to make a quick test
 
-&physics_flags
-  nonlinear = .false.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'vmec'
 /
-&species_knobs
+&geometry_vmec
+  nfield_periods = 6.073867
+  torflux = 0.49
+  vmec_filename = 'wout_w7x_kjm.nc'
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
   nspec = 1
 /
 &species_parameters_1
@@ -18,12 +40,15 @@
   type = 'ion'
   z = 1.0
 /
-&vmec_parameters
-  nfield_periods = 6.073867
-  torflux = 0.49
-  vmec_filename = 'wout_w7x_kjm.nc'
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'range'
 /
-&kt_grids_range_parameters
+&kxky_grid_range
   akx_max = 0.0
   akx_min = 0.0
   aky_max = 1.5
@@ -31,39 +56,65 @@
   nakx = 1
   naky = 1
 /
-&zgrid_parameters
-  boundary_option = 'stellarator'
-  nperiod = 1
+&z_grid
   nzed = 24
   zed_equal_arc = .true.
 /
-&vpamu_grids_parameters
+&z_boundary_condition
+  boundary_option = 'stellarator'
+/
+&velocity_grids
   nmu = 2 
   nvgrid = 3 
 /
-&knobs
-  delt = 0.01 
-  nstep = 2
-  print_extra_info_to_terminal = .false. 
-/
-&stella_diagnostics_knobs
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
   nsave = 2
   nwrite = 1
 /
-&init_g_knobs
-  ginit_option = 'default'
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
+&initialize_distribution
+  initialize_distribution_option = 'default'
   phiinit = 0.01
+/
+
+&initialize_distribution_maxwellian
   width0 = 1.0
 /
-&dissipation
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 2
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&debug_flags 
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation_and_collisions_options
   hyper_dissipation = .true.
 /
-&geo_knobs
-  geo_option = 'vmec'
-/
-&kt_grids_knobs
-  grid_option = 'range'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/
+

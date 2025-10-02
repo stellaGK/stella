@@ -57,7 +57,6 @@ ARCHFLAGS = cr
 RANLIB    = ranlib
 AWK       = awk
 PERL      = perl
-FORD     ?= ford
 
 # The following variables can be set in platform-dependent Makefile's
 # For example, inside stella/Makefiles/Makefile.marconi

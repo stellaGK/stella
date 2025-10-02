@@ -1,3 +1,8 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module sfincs_interface
 
    implicit none
@@ -12,11 +17,9 @@ module sfincs_interface
    real :: Er_window
    logical :: includeXDotTerm
    logical :: includeElectricFieldTermInXiDot
-!  logical :: includeRadialExBDrive
    integer :: magneticDriftScheme
    logical :: includePhi1
    logical :: includePhi1InKineticEquation
-!  logical :: includePhi1InCollisionOperator
    integer :: geometryScheme
    integer :: VMECRadialOption
    integer :: coordinateSystem
@@ -34,17 +37,20 @@ module sfincs_interface
 
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_neo_from_sfincs(nradii, drho, f_neoclassical, phi_neoclassical, &
-                                  dfneo_dalpha, dphineo_dalpha)
+      dfneo_dalpha, dphineo_dalpha)
 
 # ifdef USE_SFINCS
       use mp, only: proc0, iproc
       use mp, only: comm_split, comm_free
       use geometry, only: geo_surf
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
 # endif
       use mp, only: mp_abort
-      use zgrid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -62,6 +68,8 @@ contains
       real :: dPhiHatdrN_best_guess
       logical :: Er_converged
       integer :: nsfincs_calls
+
+      !-------------------------------------------------------------------------
 
       if (.not. allocated(fprim_local)) allocate (fprim_local(nspec))
       if (.not. allocated(tprim_local)) allocate (tprim_local(nspec))
@@ -163,6 +171,9 @@ contains
 
    end subroutine get_neo_from_sfincs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
 # ifdef USE_SFINCS
    subroutine iterate_sfincs_until_electric_field_converged( &
       sfincs_comm, irad, drho, nrad_max, dPhiHatdrN_best_guess, &
@@ -185,6 +196,8 @@ contains
       integer :: it
       real :: a, b, c, d, e, fa, fb, fc, p, q, r, s, tol1, xm, eps
       real :: converged_dPhiHatdrN
+
+      !-------------------------------------------------------------------------
 
       dPhiHatdrN_is_converged = .false.
 
@@ -296,13 +309,16 @@ contains
 
    end subroutine iterate_sfincs_until_electric_field_converged
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_total_charge_flux(sfincs_comm, irad, drho, nrad_max, &
-                                    dPhiHatdrN_in, total_charge_flux)
+      dPhiHatdrN_in, total_charge_flux)
 
       use mp, only: iproc, broadcast_with_comm
       use sfincs_main, only: finish_sfincs
       use globalVariables, only: Zs, particleFlux_vd_psiHat
-      use species, only: nspec
+      use grids_species, only: nspec
 
       implicit none
 
@@ -310,6 +326,8 @@ contains
       real, intent(in) :: drho
       real, intent(in) :: dPhiHatdrN_in
       real, intent(out) :: total_charge_flux
+
+      !-------------------------------------------------------------------------
 
       dPhiHatdrN = dPhiHatdrN_in
       call init_and_run_sfincs(sfincs_comm, irad, drho, nrad_max)
@@ -321,17 +339,22 @@ contains
 
    end subroutine get_total_charge_flux
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_and_run_sfincs(sfincs_comm, irad, drho, nrad_max)
 
       use mp, only: proc0, iproc
       use sfincs_main, only: init_sfincs, prepare_sfincs, run_sfincs, finish_sfincs
       use globalVariables, only: Zs, particleFlux_vd_psiHat
-      use species, only: nspec
+      use grids_species, only: nspec
 
       implicit none
 
       integer, intent(in) :: sfincs_comm, irad, nrad_max
       real, intent(in) :: drho
+
+      !-------------------------------------------------------------------------
 
       if (.not. sfincs_finished) then
          call finish_sfincs
@@ -367,11 +390,14 @@ contains
 
    end subroutine init_and_run_sfincs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine write_and_finish_sfincs(fneo, phineo, dfneo, dphineo, irad)
 
       use mp, only: proc0
       use sfincs_main, only: finish_sfincs
-      use zgrid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -380,6 +406,8 @@ contains
       real, dimension(:, -nzgrid:, :, :, :), intent(in out) :: dfneo
       real, dimension(:, -nzgrid:), intent(in out) :: dphineo
       integer, intent(in) :: irad
+
+      !-------------------------------------------------------------------------
 
       if (proc0) then
          ! only need to compute dfneo_dalpha and dphineo_dalpha
@@ -395,13 +423,17 @@ contains
 
    end subroutine write_and_finish_sfincs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_sfincs_parameters(nradii)
 
       use constants, only: pi
       use mp, only: nproc
       use file_utils, only: input_unit_exist
-      use species, only: nspec
-      use parameters_physics, only: rhostar, vnew_ref
+      use grids_species, only: nspec
+      use parameters_physics, only: rhostar
+      use dissipation_and_collisions, only: vnew_ref
       use geometry, only: geo_surf, aref, bref
 
       implicit none
@@ -416,7 +448,6 @@ contains
          magneticDriftScheme, &
          includePhi1, &
          includePhi1InKineticEquation, &
-         !         includePhi1InCollisionOperator, &
          geometryScheme, &
          VMECRadialOption, &
          equilibriumFile, &
@@ -430,6 +461,8 @@ contains
 
       logical :: exist
       integer :: in_file
+
+      !-------------------------------------------------------------------------
 
       ! if read_sfincs_output_from_file=.true.,
       ! will try to read in Phi1Hat and delta_f
@@ -544,6 +577,9 @@ contains
 
    end subroutine read_sfincs_parameters
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine broadcast_sfincs_parameters
 
       use mp, only: broadcast
@@ -558,11 +594,9 @@ contains
       call broadcast(calculate_radial_electric_field)
       call broadcast(includeXDotTerm)
       call broadcast(includeElectricFieldTermInXiDot)
-!    call broadcast (includeRadialExBDrive)
       call broadcast(magneticDriftScheme)
       call broadcast(includePhi1)
       call broadcast(includePhi1InKineticEquation)
-!    call broadcast (includePhi1InCollisionOperator)
       call broadcast(geometryScheme)
       call broadcast(VMECRadialOption)
       call broadcast(equilibriumFile)
@@ -588,16 +622,14 @@ contains
 
       use mp, only: mp_abort
       use geometry, only: geo_surf
-      use species, only: spec, nspec
-      use zgrid, only: nzed
-      use parameters_physics, only: nine, tite
+      use grids_species, only: spec, nspec
+      use grids_z, only: nzed
+      use grids_species, only: nine, tite
       use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
       use globalVariables, only: includeElectricFieldTermInXiDot_sfincs => includeElectricFieldTermInXiDot
-!    use globalVariables, only: includeRadialExBDrive_sfincs => includeRadialExBDrive
       use globalVariables, only: magneticDriftScheme_sfincs => magneticDriftScheme
       use globalVariables, only: includePhi1_sfincs => includePhi1
       use globalVariables, only: includePhi1InKineticEquation_sfincs => includePhi1InKineticEquation
-!    use globalVariables, only: includePhi1InCollisionOperator_sfincs => includePhi1InCollisionOperator
       use globalVariables, only: geometryScheme_sfincs => geometryScheme
       use globalVariables, only: equilibriumFile_sfincs => equilibriumFile
       use globalVariables, only: VMECRadialOption_sfincs => VMECRadialOption
@@ -622,6 +654,8 @@ contains
       implicit none
 
       real, intent(in) :: delrho
+
+      !-------------------------------------------------------------------------
 
       includeXDotTerm_sfincs = includeXDotTerm
       includeElectricFieldTermInXiDot_sfincs = includeElectricFieldTermInXiDot
@@ -675,6 +709,9 @@ contains
 
    end subroutine pass_inputoptions_to_sfincs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine pass_outputoptions_to_sfincs
       use export_f, only: export_f_theta_option
       use export_f, only: export_f_zeta_option
@@ -692,6 +729,9 @@ contains
       export_f_stella = .true.
    end subroutine pass_outputoptions_to_sfincs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! if this subroutine is being called, then
    ! using sfincs in tokamak geometry
    ! so zed in stella is theta
@@ -699,9 +739,9 @@ contains
 
       use constants, only: pi
       use splines, only: linear_interp_periodic
-      use zgrid, only: nz2pi, zed
-      use geometry, only: bmag, dbdzed, gradpar
-      use geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
+      use grids_z, only: nz2pi, zed
+      use geometry, only: bmag, dbdzed, b_dot_gradz_avg
+      use geometry, only: dBdrho, d2Bdrdth, d_bdotgradz_drho, dIdrho
       use geometry, only: geo_surf
       use globalVariables, only: BHat
       use globalVariables, only: dBHatdtheta
@@ -718,14 +758,16 @@ contains
       integer :: nzeta = 1
       integer :: nzpi
       real :: q_local
-      real, dimension(:), allocatable :: B_local, dBdz_local, gradpar_local
+      real, dimension(:), allocatable :: B_local, dBdz_local, b_dot_gradz_local
       real, dimension(:), allocatable :: zed_stella
       real, dimension(:), allocatable :: theta_sfincs
+
+      !-------------------------------------------------------------------------
 
       nzpi = nz2pi / 2
       allocate (B_local(-nzpi:nzpi))
       allocate (dBdz_local(-nzpi:nzpi))
-      allocate (gradpar_local(-nzpi:nzpi))
+      allocate (b_dot_gradz_local(-nzpi:nzpi))
       allocate (theta_sfincs(ntheta))
       allocate (zed_stella(-nzpi:nzpi))
 
@@ -736,7 +778,7 @@ contains
       q_local = geo_surf%qinp * (1.0 + delrho * geo_surf%shat / geo_surf%rhoc)
       B_local = bmag(1, -nzpi:nzpi) + delrho * dBdrho(-nzpi:nzpi)
       dBdz_local = dbdzed(1, -nzpi:nzpi) + delrho * d2Bdrdth(-nzpi:nzpi)
-      gradpar_local = gradpar(-nzpi:nzpi) + delrho * dgradpardrho(-nzpi:nzpi)
+      b_dot_gradz_local = b_dot_gradz_avg(-nzpi:nzpi) + delrho * d_bdotgradz_drho(-nzpi:nzpi)
 
       zed_stella = zed(-nzpi:nzpi) + pi
       theta_sfincs = export_f_theta(:ntheta)
@@ -755,8 +797,8 @@ contains
       dBHatdtheta = spread(dBHatdtheta(:, 1), 2, nzeta)
 
       ! this is bhat . grad theta
-      BHat_sup_theta(1, 1) = B_local(-nzpi) * gradpar_local(-nzpi)
-      call linear_interp_periodic(zed_stella, B_local * gradpar_local, theta_sfincs(2:), BHat_sup_theta(2:, 1))
+      BHat_sup_theta(1, 1) = B_local(-nzpi) * b_dot_gradz_local(-nzpi)
+      call linear_interp_periodic(zed_stella, B_local * b_dot_gradz_local, theta_sfincs(2:), BHat_sup_theta(2:, 1))
       BHat_sup_theta = spread(BHat_sup_theta(:, 1), 2, nzeta)
       ! this is I(psi) / (aref*Bref)
       BHat_sub_zeta = geo_surf%rgeo + delrho * dIdrho
@@ -764,11 +806,14 @@ contains
       ! note that + sign below relies on B = I grad zeta + grad zeta x grad psi
       DHat = q_local * BHat_sup_theta
 
-      deallocate (B_local, dBdz_local, gradpar_local)
+      deallocate (B_local, dBdz_local, b_dot_gradz_local)
       deallocate (theta_sfincs, zed_stella)
 
    end subroutine pass_geometry_to_sfincs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_zero_arrays
       use globalVariables, only: dBHatdzeta
       use globalVariables, only: dBHatdpsiHat
@@ -803,16 +848,19 @@ contains
       dBHat_sup_zeta_dtheta = 0.
    end subroutine init_zero_arrays
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_sfincs_output(f_neoclassical, phi_neoclassical, &
-                                dfneo_dalpha, dphineo_dalpha)
+      dfneo_dalpha, dphineo_dalpha)
 
       use constants, only: pi
       use sort, only: sort_array_ascending, unsort_array_ascending
-      use species, only: nspec
-      use zgrid, only: nzgrid, nz2pi
+      use grids_species, only: nspec
+      use grids_z, only: nzgrid, nz2pi
       use export_f, only: h_sfincs => delta_f
       use globalVariables, only: Phi1Hat
-      use parameters_kxky_grids, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -840,6 +888,8 @@ contains
       real, dimension(:, :), allocatable :: tmp_sfincs, tmp_stella_zgrid, tmp_stella
       real, dimension(:, :), allocatable :: dh_stella_zgrid
       real, dimension(:, :, :, :), allocatable :: h_stella, dh_stella
+
+      !-------------------------------------------------------------------------
 
       ! zed coordinate in stella is zeta when simulating stellarators (using vmec)
       ! and theta otherwise.  this leads to some complications, treated below
@@ -981,13 +1031,16 @@ contains
 
    end subroutine get_sfincs_output
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_stella_theta_zeta_grids(alpha_like_stella, zed_stella)
 
       use constants, only: pi
-      use zgrid, only: nz2pi, zed
+      use grids_z, only: nz2pi, zed
       use geometry, only: dzetadz
       use geometry, only: alpha
-      use parameters_kxky_grids, only: nalpha
+      use grids_kxky, only: nalpha
       use globalVariables, only: iota
 
       implicit none
@@ -996,6 +1049,8 @@ contains
       real, dimension(:), intent(out) :: zed_stella
 
       integer :: nzpi
+
+      !-------------------------------------------------------------------------
 
       nzpi = nz2pi / 2
 
@@ -1022,10 +1077,13 @@ contains
 
    end subroutine get_stella_theta_zeta_grids
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_nzed_per_field_period(zed_stella, nfp, nzed_per_field_period)
 
       use constants, only: pi
-      use zgrid, only: nz2pi
+      use grids_z, only: nz2pi
 
       implicit none
 
@@ -1034,6 +1092,8 @@ contains
       integer, dimension(:), intent(out)  :: nzed_per_field_period
 
       integer :: ifp, iz
+
+      !-------------------------------------------------------------------------
 
       nzed_per_field_period = 0
 
@@ -1049,6 +1109,9 @@ contains
 
    end subroutine get_nzed_per_field_period
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine sort_zed_by_field_period(zed_ext, nzed_per_fp, nfp, zed_by_fp)
 
       use constants, only: pi
@@ -1062,6 +1125,8 @@ contains
 
       integer :: ifp, llim, ulim
 
+      !-------------------------------------------------------------------------
+
       ulim = 0
       do ifp = 1, size(zed_by_fp, 2)
          llim = ulim + 1
@@ -1074,6 +1139,9 @@ contains
 
    end subroutine sort_zed_by_field_period
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_sfincs_theta_zeta_grid_sizes(nalpha_sfincs, nzed_sfincs, nfp)
 
       use constants, only: pi
@@ -1082,6 +1150,8 @@ contains
       implicit none
 
       integer, intent(out) :: nalpha_sfincs, nzed_sfincs, nfp
+
+      !-------------------------------------------------------------------------
 
       ! if geometryScheme is 5, then using vmec geo
       ! and thus zed in stella is scaled zeta
@@ -1104,6 +1174,9 @@ contains
 
    end subroutine get_sfincs_theta_zeta_grid_sizes
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_sfincs_theta_zeta_grids(alpha_like_sfincs, zed_sfincs)
 
       use export_f, only: export_f_theta, export_f_zeta
@@ -1111,6 +1184,8 @@ contains
       implicit none
 
       real, dimension(:), intent(out) :: zed_sfincs, alpha_like_sfincs
+
+      !-------------------------------------------------------------------------
 
       if (geometryScheme == 5) then
          ! zed is zeta.  it goes from 0 to 2*pi/nfp - dzeta in sfincs,
@@ -1135,6 +1210,9 @@ contains
 
    end subroutine get_sfincs_theta_zeta_grids
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_sfincs_field_theta_zeta(field_in, field_out)
 
       implicit none
@@ -1143,6 +1221,8 @@ contains
       real, dimension(:, :), intent(out) :: field_out
 
       integer :: itheta, izeta
+
+      !-------------------------------------------------------------------------
 
       ! want phi from sfincs such that alpha-like coordinate
       ! appears in first index and zed coordinate in second index
@@ -1166,8 +1246,11 @@ contains
 
    end subroutine get_sfincs_field_theta_zeta
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_field_on_stella_zed_grid(field_sfincs, nfp_stella, nfp, nzed_per_field_period, &
-                                           nalpha_sfincs, zed_sfincs, zed_stella_by_field_period, field_stella_zgrid)
+      nalpha_sfincs, zed_sfincs, zed_stella_by_field_period, field_stella_zgrid)
 
       use constants, only: pi
       use splines, only: linear_interp_periodic
@@ -1184,6 +1267,8 @@ contains
       integer :: ialpha, ifp
       integer :: llim, ulim
 
+      !-------------------------------------------------------------------------
+
       do ialpha = 1, nalpha_sfincs
          ulim = 0
          do ifp = 1, nfp_stella
@@ -1197,10 +1282,13 @@ contains
 
    end subroutine get_field_on_stella_zed_grid
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_field_stella(field_stella_zgrid, alpha_like_sfincs, alpha_like_stella, field_stella)
 
       use splines, only: linear_interp_periodic
-      use zgrid, only: nz2pi
+      use grids_z, only: nz2pi
 
       implicit none
 
@@ -1211,6 +1299,8 @@ contains
 
       integer :: iz
 
+      !-------------------------------------------------------------------------
+
       do iz = 1, nz2pi
          call linear_interp_periodic(alpha_like_sfincs, field_stella_zgrid(:, iz), &
                                      alpha_like_stella(:, iz), field_stella(:, iz))
@@ -1218,10 +1308,13 @@ contains
 
    end subroutine get_field_stella
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_field_on_extended_zed(field_stella, field_neoclassical)
 
-      use zgrid, only: nzgrid, nz2pi, nperiod
-      use parameters_kxky_grids, only: nalpha
+      use grids_z, only: nzgrid, nz2pi, nperiod
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -1231,6 +1324,8 @@ contains
       integer :: ialpha
       integer :: iz_low, iz_up
       integer :: ip
+
+      !-------------------------------------------------------------------------
 
       ! need to account for cases with nperiod > 1
       do ialpha = 1, nalpha
@@ -1250,13 +1345,16 @@ contains
 
    end subroutine get_field_on_extended_zed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine sfincs_vspace_to_stella_vspace(ialpha, iz, is, h_stella, phi_neoclassical, f_neoclassical)
 
       use constants, only: pi
-      use species, only: spec
-      use vpamu_grids, only: nvpa, nvgrid, nmu
-      use vpamu_grids, only: vpa, vperp2
-      use vpamu_grids, only: maxwell_mu, maxwell_vpa
+      use grids_species, only: spec
+      use grids_velocity, only: nvpa, nvgrid, nmu
+      use grids_velocity, only: vpa, vperp2
+      use grids_velocity, only: maxwell_mu, maxwell_vpa
       use globalVariables, only: nxi_sfincs => nxi
       use globalVariables, only: nx_sfincs => nx
       use globalVariables, only: x_sfincs => x
@@ -1276,6 +1374,8 @@ contains
       real, dimension(:), allocatable :: xi_stella, hstella
       real, dimension(:, :), allocatable :: xsfincs_to_xstella, legpoly
       real, dimension(:), allocatable :: htmp
+
+      !-------------------------------------------------------------------------
 
       ! each (vpa,mu) pair in stella specifies a speed
       ! on each speed arc, there are two (vpa,mu) pairs:
@@ -1345,9 +1445,12 @@ contains
 
    end subroutine sfincs_vspace_to_stella_vspace
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dfield_dalpha(field, alpha_like_sfincs, dfield_dalpha)
 
-      use zgrid, only: nz2pi
+      use grids_z, only: nz2pi
 
       implicit none
 
@@ -1357,12 +1460,17 @@ contains
 
       integer :: iz
 
+      !-------------------------------------------------------------------------
+
       do iz = 1, nz2pi
          call get_periodic_derivative(field(:, iz), alpha_like_sfincs, dfield_dalpha(:, iz))
       end do
 
    end subroutine get_dfield_dalpha
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! 4th order accurate, centered differences, assumes
    ! first and last elements of f are equal (periodic)
    subroutine get_periodic_derivative(f, x, dfdx)
@@ -1374,6 +1482,8 @@ contains
 
       integer :: i, n
       real, dimension(:), allocatable :: fp
+
+      !-------------------------------------------------------------------------
 
       n = size(x)
 
@@ -1391,52 +1501,10 @@ contains
       deallocate (fp)
 
    end subroutine get_periodic_derivative
-
-!   subroutine bilinear_interpolation (alpha_in, zed_in, phi_in, alpha_out, zed_out, phi_out)
-
-!     use zgrid, only: nz2pi
-
-!     implicit none
-
-!     real, dimension (:,:), intent (in) :: alpha_sfincs, phi_sfincs
-!     real, dimension (:), intent (in) :: zed_sfincs
-!     real, dimension (:), intent (in) :: alpha_stella, zed_stella
-!     real, dimension (:,:), intent (out) :: phi_stella
-
-!     integer :: ialpha, iz
-
-!     do ialpha = 1, nalpha
-!        do iz = 1, nz2pi
-!           call find_sfincs_cell (alpha_stella(ialpha), zed_stella(iz), alpha_sfincs, zed_sfincs, &
-!                alpha_grids, zed_grids)
-!        end do
-!     end do
-
-!   contains
-
-!     subroutine find_sfincs_cell (alpha_target, zed_target, alpha, zed, ialpha_out, ized_out)
-
-!       use zgrid, only: nz2pi
-
-!       implicit none
-
-!       real, intent (in) :: alpha_target, zed_target
-!       real, dimension (:,:), intent (in) :: alpha
-!       real, dimension (:), intent (in) :: zed
-!       integer, dimension (2), intent (out) :: ialpha_out, ized_out
-
-!       integer :: iz, ia
-
-!       do iz = 1, nz2pi
-!          do ia = 1, size(alpha,1)
-!             if (
-!          end do
-!       end do
-
-!     end subroutine find_sfincs_cell
-
-!   end subroutine bilinear_interpolation
-
+   
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! returns the Legendre polynomials (legp)
    ! on requested grid (x)
    subroutine legendre(x, legp)
@@ -1447,6 +1515,8 @@ contains
       real, dimension(:, 0:), intent(out) :: legp
 
       integer :: n, idx
+
+      !-------------------------------------------------------------------------
 
       n = size(legp, 2) - 1
 
@@ -1459,6 +1529,9 @@ contains
 
    end subroutine legendre
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine legendre_transform(legp, coefs, func)
 
       implicit none
@@ -1469,6 +1542,8 @@ contains
 
       integer :: i
 
+      !-------------------------------------------------------------------------
+
       func = 0.
       do i = 1, size(coefs)
          func = func + legp(:, i - 1) * coefs(i)
@@ -1476,30 +1551,47 @@ contains
 
    end subroutine legendre_transform
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine broadcast_sfincs_output(fneo, phineo)
+   
       use mp, only: broadcast
-      use zgrid, only: nzgrid
+      use grids_z, only: nzgrid
+      
       implicit none
+      
       real, dimension(-nzgrid:, :, :, :, :), intent(in out) :: fneo
       real, dimension(-nzgrid:, :), intent(in out) :: phineo
+
+      !-------------------------------------------------------------------------
+      
       call broadcast(fneo)
       call broadcast(phineo)
+      
    end subroutine broadcast_sfincs_output
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine write_sfincs(irad, nrad_max)
 
-      use species, only: nspec
+      use grids_species, only: nspec
       use globalVariables, only: Phi1Hat
       use export_f, only: export_f_zeta, export_f_theta
       use export_f, only: delta_f
+      use file_units, only: unit => unit_sfincs_file
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: irad, nrad_max
 
-      integer :: unit = 999
+      ! Local variables
       integer :: izeta, itheta, is, i, j
       character(1) :: irad_str
+
+      !-------------------------------------------------------------------------
 
       write (irad_str, '(i0)') irad + min(nrad_max, 1)
       open (unit=unit, file='sfincs.output.rad'//irad_str, status='replace', action='write')
@@ -1531,21 +1623,28 @@ contains
 
    end subroutine write_sfincs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_sfincs_output(irad, nrad_max)
 
-      use species, only: nspec
+      use grids_species, only: nspec
       use globalVariables, only: Phi1Hat
       use export_f, only: export_f_zeta, export_f_theta
       use export_f, only: delta_f
+      use file_units, only: unit => unit_sfincs_file
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: irad, nrad_max
 
-      integer :: unit = 999
+      ! Local variables
       integer :: izeta, itheta, is, i, j
       character(8) :: dum
       character(1) :: irad_str
+
+      !-------------------------------------------------------------------------
 
       write (irad_str, '(i0)') irad + nrad_max
       open (unit=unit, file='sfincs.output.rad'//irad_str, status='old', action='read')
