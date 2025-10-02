@@ -245,6 +245,7 @@ It is the responsibility of the respective authors to list their contributions t
 - Improved the writing of the diagnostics to the NetCDF file using `neasyf` (P. Hill, May 2022).
 - The CFL condition is now capable of increasing the time step as well, which is controlled by `cfl_cushion_upper`, `cfl_cushion_middle` and `cfl_cushion_lower` (H. Thienpondt, March 2023).
 - Automatically stop linear simulations if `(gamma, omega)` has saturated. This is controlled by the `autostop` and `navg` input variables (H. Thienpondt, September 2024).
+- Extended the `CMake` setup to make sure stella builds on newer compilers, since `ifort` has been deprecated (V. Seitz, October 2025).
 
 ### Bug fixes
 
