@@ -195,7 +195,10 @@ contains
       !**********************************************************************
 
       ! 0nly write data to the ascii and netcdf files every <nwrite> time steps
-      if (.not. write_to_ascii_files) return
+      if (.not. write_to_ascii_files) then
+         call time_message(.false., time_all_diagnostics, ' diagnostics')
+         return
+      end if
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false.
@@ -211,7 +214,10 @@ contains
       !**********************************************************************
 
       ! The ascii files are finished, the netcdf files are written every <nwrite*nc_mult> time steps
-      if (.not. write_to_netcdf_file) return
+      if (.not. write_to_netcdf_file) then
+         call time_message(.false., time_all_diagnostics, ' diagnostics')
+         return
+      end if
  
       ! Write data to the netcdf files
       call write_moments_to_netcdf_file(nout, time_individual_diagnostics(:, 5))

@@ -7,35 +7,40 @@
 ! 
 ! Method:
 ! -------
-! (Note: to see a certain part of the code search the step it is listed under,
-! for example to see where the homogeneous parallel streaming equation is solved,
-! search 1.B) 
+! (Note: to see a certain part of the code, search the step it is listed under, for
+! example to see where the homogeneous parallel streaming equation is solved, search 1.B)
 ! 
-! Step 1) Getting matrix that we need to invert in implicit parallel streaming. 
+! Step 1) Get the matrix that we need to invert in implicit parallel streaming.
 !         To do this we take the following steps:
-!         1.A) First initialise unit impulse for each field at each grid point in  
+! 
+!         1.A) First initialise an unit impulse for each field and for each grid point in
 !              the extended zed domain for a given ky and set of connected kx modes.
-!         1.B) Then solve the homogeneous parallel streaming equation for the 
-!              distribution function given a field with a unit impulse. This is done 
-!              for each field that is included (phi, apar, bpar).
-!         1.C) Then solve the field equations given the distribution function response. 
-!              To do this:
-!              1.C.I)  Integrate over velocities to get the appropriate field operator 
+! 
+!         1.B) Next, solve the homogeneous parallel streaming equation for the
+!              distribution function, given a field with a unit impulse. This is
+!              done for each field (i.e. phi, apar, bpar) that is included.
+! 
+!         1.C) Next, solve the field equations given the distribution function response.
+! 
+!              1.C.I)  Integrate over velocities to get the appropriate field operator
 !                      that acts on the distibution function:
 !                      For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
-!                      For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-!                      For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-!              1.C.II) Divide by the appropriate pre-factor in the field equations
-!         1.D) Construct the matrix we need to invert by including the identity matrix
-!              where appropriate
-!
+!                      For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g
+!                      For bpar:  - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g
+! 
+!              1.C.II) Divide by the appropriate pre-factor in the field equations.
+! 
+!         1.D) Construct the matrix that we need to invert by including the 
+!              identity matrix where appropriate.
+! 
 ! Step 2) LU decompose the matrix.
 ! 
 !###############################################################################
 module response_matrix
 
-   use netcdf
+   ! Load libraries
    use mpi
+   use netcdf
 #ifdef ISO_C_BINDING
    use, intrinsic :: iso_c_binding, only: c_intptr_t
 #endif
@@ -46,18 +51,19 @@ module response_matrix
    implicit none
 
    ! Make routines available to other modules
-   public :: init_response_matrix, finish_response_matrix
+   public :: init_response_matrix
+   public :: finish_response_matrix
    public :: read_response_matrix
+   
+   ! Only initialise once
    public :: initialised_response_matrix
 
    private
 
+   ! Local variables
 #ifdef ISO_C_BINDING
    integer(c_intptr_t) :: cur_pos
 #endif
-   character(100) :: message_response_matrix, message_lu
-   real, dimension(2) :: time_response_matrix
-   real, dimension(2) :: time_lu
    
    ! Only initialise once
    logical :: initialised_response_matrix = .false.
@@ -73,13 +79,13 @@ contains
    !============================================================================
    subroutine init_response_matrix
 
-      use linear_solve, only: lu_decomposition
-      use arrays, only: response_matrix
-      use parallelisation_layouts, only: iv_idx, is_idx
-      use grids_kxky, only: naky
       use mp, only: proc0
+      use linear_solve, only: lu_decomposition
+      use parallelisation_layouts, only: iv_idx, is_idx
       use parallelisation_layouts, only: mat_gen
       use file_units, only: unit_response_matrix
+      use arrays, only: response_matrix
+      use grids_kxky, only: naky
 #ifdef ISO_C_BINDING
       use arrays, only: response_window
 #endif
@@ -94,11 +100,11 @@ contains
       ! ------------------------------------------------------------------------
       !              Set up memory and timings for response matrix              
       ! ------------------------------------------------------------------------
+      
       ! Debug message -> print to terminal
       if (debug) call write_response_matrix_message (1)
 
       ! Set up response matrix utils
-      call setup_response_matrix_timings
       call setup_response_matrix_file_io
 
       ! Only initialise once
@@ -114,6 +120,7 @@ contains
       ! ------------------------------------------------------------------------
       !                      Construct the response matrix                      
       ! ------------------------------------------------------------------------
+      
       ! This is the main routine for computing the response matrix, where all
       ! the calculations are done.
       call construct_response_matrix
@@ -121,18 +128,20 @@ contains
       ! ------------------------------------------------------------------------
       !                         Close the initialisation                        
       ! ------------------------------------------------------------------------
+      
+      ! Close the MPI window
 #ifdef ISO_C_BINDING
       call mpi_win_fence(0, response_window, ierr)
 #endif
-      ! Write the response matrix to an output file
+
+      ! Write the response matrix to an output file if <mat_gen> = True
       if (proc0 .and. mat_gen) then
          close (unit=unit_response_matrix)
       end if
 
       ! End debug message -> print to terminal
       if (debug) call write_response_matrix_message (2)
-      ! ------------------------------------------------------------------------
-
+      
    end subroutine init_response_matrix
 
    !============================================================================
@@ -153,25 +162,6 @@ contains
       end if
 
    end subroutine write_response_matrix_message
-
-   !============================================================================
-   !                 Write timings for dealing with response matrix
-   !============================================================================
-   ! *_response_matrix -> computational timing associated with computing the 
-   !                      response matrix
-   ! *_lu              -> computational timing associated with LU-decomposing
-   !                      the respoinse matrix
-   !============================================================================
-   subroutine setup_response_matrix_timings
-
-      implicit none
-
-      message_response_matrix = '     calculate response matrix: '
-      message_lu = '     calculate LU:     '
-      time_response_matrix = 0.0
-      time_lu = 0.0
-
-   end subroutine setup_response_matrix_timings
 
    !============================================================================
    !                     Set up .io file for response matrix                    
@@ -215,7 +205,6 @@ contains
 #ifdef ISO_C_BINDING
    subroutine setup_shared_memory_window
 
-      use, intrinsic :: iso_c_binding, only: c_intptr_t
       use mp, only: sgproc0, real_size
       use mp, only: create_shared_memory_window
       use arrays, only: response_window
@@ -264,45 +253,47 @@ contains
    !============================================================================
    !               Main routine for constructing response martrix
    !============================================================================
+   ! 
    ! Background:
    ! -----------
    ! Different ky modes are independent, so this creates sets of connected kx values:
-   !
-   ! After one full 2π orbit in zed, the eddy becomes sheared, shifting the mode 
-   ! to a higher kx value. To represent this effect, we apply the 
-   ! twist-and-shift boundary conditions, which connect these shifted kx values 
-   ! along an extended z-grid. For a given ky, the connected kx modes are spaced 
-   ! by
+   ! 
+   ! After one full 2π orbit in zed, the eddy becomes sheared, shifting the mode
+   ! to a higher kx value. To represent this effect, we apply the twist-and-shift
+   ! boundary conditions, which connect these shifted kx values along an extended
+   ! z-grid. For a given ky, the connected kx modes are spaced by,
    !                 δkx = 2π p ∂ι/∂r * (∂y/∂α) * (∂ψ/∂x) * ky
-   ! where ∂ι/∂r is the radial derivative of the rotational transform. 
-   !
-   ! This construction implies that not all kx modes are mutually connected. 
-   ! Instead, for each ky we form distinct chains of connected modes, with the 
-   ! number of such chains determined by the spacing δkx. 
-   !
-   ! <neigen> gives the number of distinct chains for a given ky. If we use periodic 
-   ! boundary conditions then all modes are connected and <neigen> = nakx
-   !
+   ! where ∂ι/∂r is the radial derivative of the rotational transform.
+   ! 
+   ! This construction implies that not all kx modes are mutually connected. It
+   ! is clear that for larger ky-values, the step size δkx becomes larger.
+   ! Therefore, for each ky, we form distinct chains of connected modes, with the
+   ! number of such chains determined by the spacing δkx.
+   ! 
+   ! The variable <neigen> gives the number of distinct chains of "eigenmodes"
+   ! for a given ky, if the twist-and-shift boundary conditions are employed.
+   ! If, instead, we use periodic boundary conditions, then all modes are 
+   ! unconnected, and we have <neigen> = nakx for each ky-value.
+   ! 
    ! What is done:
    ! ------------- 
    ! In this subroutine we construct the response matrix. This is split into two 
    ! main contributions: 
-   !     1) Getting the velocity-space-integrated response. To do this we supply    
+   !     1) Getting the velocity-space-integrated response. To do this we supply
    !        a unit impulse at every point in the extended zed domain for a given ky,
-   !        and set of connected kx values. With this, we then solve the parallel
-   !        streaming equations to find the response of the distribution function
-   !        to this unit impulse. This is done for each field that is included 
-   !        (phi, apar, bpar). Once this distribution function is obtained
+   !        and for a given set of connected kx values. With this, we then solve the
+   !        parallel streaming equations to find the response of the distribution
+   !        function to this unit impulse. This is done for each field that is
+   !        included (phi, apar, bpar). Once this distribution function is obtained
    !        we integrate it with appropriate weights over (vpa, mu) and sum over
-   !        species -> This gives the quasineutrality component that acts on g.
+   !        species. This gives the quasineutrality component that acts on g.
    !        Then, we apply the field solve to find the matrix that we need to invert.
-   !        This is essentially dividing by the correct factor from the field equations. 
+   !        This is essentially dividing by the correct factor from the field equations.
    !     2) LU decompose the matrix.
    !============================================================================
    subroutine construct_response_matrix
 
       use mp, only: proc0
-      use job_manage, only: time_message
       use parallelisation_layouts, only: mat_gen
       use arrays, only: response_matrix
       use grids_kxky, only: naky
@@ -321,52 +312,43 @@ contains
 #endif
 
       ! ------------------------------------------------------------------------
-      ! Loop over all ky modes, as these are all independent of one another. 
+      
+      ! Loop over all ky modes, as these are all independent of one another.
       do iky = 1, naky
 
+         ! Write the ky-value to the output file
          if (proc0 .and. mat_gen) then
             write (unit=unit_response_matrix) iky, neigen(iky)
          end if
 
          ! ---------------------------------------------------------------------
-         !            STEP 1) Find the response matrix to invert      
+         !              STEP 1) Find the response matrix to invert              
          ! ---------------------------------------------------------------------
-         ! For a given ky, we need to associate an %eigen to it - to denote the connected
-         ! modes. The response matrix for each ky has neigen(ky).
-         if (.not. associated(response_matrix(iky)%eigen)) &
-            allocate (response_matrix(iky)%eigen(neigen(iky)))
+         
+         ! For a given ky, we need to associate an %eigen to it - to denote the
+         ! connected modes. The response matrix for each ky has neigen(ky).
+         if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
 
-         ! Write time message
-         if (debug) call time_message(.false., time_response_matrix, message_response_matrix)
+         !> TO VALENTIN: This part could be parallelised over iky and ie as these 
+         !> are all computed independently. It's not until the LU decomposition
+         !> that they are needed together
 
-         ! TO VALENTIN: This part could be parallelised over iky and ie as 
-         ! these are all computed independently. It's not until the LU decomposition
-         ! that they are needed together
-         !
-         ! Loop over the independent chains for a given ky value  <neigen> is an
-         ! integer that depends on ky, as different ky modes will have a different
-         ! number of eigen chains.
+         ! Loop over the independent chains of modes for a given ky value. Note
+         ! that <neigen> is an integer that depends on ky, as different ky modes
+         ! will have a different number of eigenmode chains. For twist-and-shift,
+         ! the larger ky is, the larger δkx is, and the more independent chains
+         ! there are, while all kx-modes are typically connected for the smallest ky.
+         ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
          do ie = 1, neigen(iky)
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
-
-         ! ---------------------------------------------------------------------
-         !                   Parallelisation + debug messages
-         ! ---------------------------------------------------------------------
-         ! This ends parallelisation over velocity space. At this point every
-         ! processor has the response matrix for a given ky and so the LU
-         ! decomposition can be parallelised locally if need be.
-         ! 
+         
+         ! (DSO) -- Here, the parallelisation over velocity space ends. At this
+         ! point every processor has the response matrix for a given ky, and the
+         ! LU decomposition could be parallelised locally if need be.
          ! This is preferable to parallelisation over ky as the LU
          ! decomposition (and perhaps QN) will be dominated by the
-         ! ky with the most connections -- (DSO)
-
-         ! Debug time messages
-         if (debug) then
-            call time_message(.true., time_response_matrix, message_response_matrix)
-            call time_message(.false., time_lu, message_lu)
-         end if
-
+         ! ky with the most connections if twist-and-shift is used.
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, response_window, ierr)
 #endif
@@ -375,19 +357,14 @@ contains
          !                   STEP 2) LU decompose the matrix 
          ! ---------------------------------------------------------------------
 
+         ! LU decompose the matrix
          call lu_decompose_response_matrix(iky)
 
          ! ---------------------------------------------------------------------
-         !             Finish with correct debug messages and write to files
+         !                  Write the response matrix to a file                 
          ! ---------------------------------------------------------------------
-         if (proc0 .and. debug) then
-            call time_message(.true., time_lu, message_lu)
-         end if
 
-         time_response_matrix = 0
-         time_lu = 0
-
-         ! Write response matrix to file 
+         ! Write response matrix to file
          do ie = 1, neigen(iky)
             if (proc0 .and. mat_gen) then
                write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
@@ -400,19 +377,17 @@ contains
    end subroutine construct_response_matrix
 
    !============================================================================
-   !============================================================================
-   !                Step 1) Find distribution function response                      
-   !============================================================================
+   !                Step 1) Find distribution function response                 
    !============================================================================
    ! This subroutine computes the matrix we need to invert. The exact routines 
    ! called will depend on which fields are included in the simulation
    ! (phi, apar, bpar).
    !============================================================================
-   !============================================================================
-
    subroutine calculate_response_matrix_to_invert(iky, ie)
 
       use mp, only: proc0
+      use job_manage, only: time_message
+      use timers, only: time_response_matrix
       use parallelisation_layouts, only: mat_gen
       use parameters_physics, only: include_apar, include_bpar
       use grids_extended_zgrid, only: neigen, ikxmod
@@ -426,7 +401,7 @@ contains
       implicit none
 
       ! Arguments
-      integer, intent(in) :: iky, ie 
+      integer, intent(in) :: iky, ie
 
       ! Local variables
       integer :: idx, ikx, iseg
@@ -434,23 +409,30 @@ contains
       integer :: nz_ext, nresponse, nresponse_per_field
       complex, dimension(:, :), allocatable :: gext
       complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
+      
+      !-------------------------------------------------------------------------
+      
+      ! Start the timer
+      call time_message(.false., time_response_matrix, 'calculate response matrix')
 
-      ! ---------------------------------------------------------------------
-      !              Set up system to compute response of the pdf
-      ! ---------------------------------------------------------------------
-      ! <nz_ext> is the dimension of the extended zed domain, i.e.,
-      ! <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
-      ! <nzed_segment> = (number of zeds)
-      !                -> This is the number of unique zed values in all segments 
-      !                   except the first. The first segment has one extra unique 
-      !                   zed value (all others have one grid common with the
-      !                   previous segment due to periodicity)
-      ! <nsegments>    = (number of segments on extended zed domain)
-      !                = (Nkx -1)/neigen 
-      !                -> <nsegments> is how many 2π segments in z are linked together
+      ! ------------------------------------------------------------------------
+      !              Set up system to compute response of the pdf               
+      ! ------------------------------------------------------------------------
+      ! <nz_ext> is the dimension of the extended zed domain, <nzed_segment> is
+      ! the number of of unique zed values in all segments except the first. The 
+      ! first segment has one extra unique zed value (all others have one grid 
+      ! point in common with the previous segment due to periodicity). Finally,
+      ! <nsegments> is the number of segments on the extended zed domain, in 
+      ! other words, it is the number of 2π segments in z that are linked together.
+      !     <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
+      !     <nzed_segment> = (number of zeds)
+      !     <nsegments> = (Nkx -1)/neigen = (number of segments on extended zed domain)
+      ! ------------------------------------------------------------------------
+      
+      ! Calculate the number of z-points on the extended z-domain
       nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
-      ! We need to treat zonal mode specially to avoid double counting the end
+      ! We need to treat the zonal mode specially to avoid double counting the end
       ! points in zed, as it is periodic so these end points are the same.
       ! This is also needed if 'periodic' is chosen for the boundary conditions.
       ! At this point <nresponse> is the number of independednt zed values for
@@ -462,33 +444,33 @@ contains
          nresponse_per_field = nz_ext
       end if
 
-      ! If electromagnetic, we need to consider the response of phi, apar, and bpar. 
-      ! If we have more fields we need to apply more unit impulses -> for each of
-      ! phi, apar, and bpar.
+      ! If electromagnetic, we need to consider the response of phi, apar, and bpar.
+      ! If we have more fields we need to apply more unit impulses -> one for each 
+      ! of the fields phi, apar, and bpar.
       nresponse = nresponse_per_field * nfields
 
-      ! Write <ie>, <nresponse> to file
+      ! Write <ie> and <nresponse> to the output file
       if (proc0 .and. mat_gen) then
          write (unit=unit_response_matrix) ie, nresponse
       end if
 
-      ! Allocate response_matrix%eigen%zloc - size of response matrix to invert
-      !          response_matrix%idx        - pivot index needed for LU decomposition
+      ! Allocate response_matrix%eigen%zloc = size of response matrix to invert
+      ! Allocate response_matrix%idx = pivot index needed for LU decomposition
       call setup_response_matrix_zloc_idx(iky, ie, nresponse)
 
       ! Allocate arrays on the extended zed domain
-      ! Fields only have 1 index, as we are looping over ky modes, and kx and zed are connected
-      ! on via the extended zed domain
-      ! The distribution function, gext, has 2 dimensions - the extended zed dimension, and
-      ! velocity.
-      allocate (phi_ext(nz_ext)); phi_ext = 0.0 
+      ! Fields only have 1 index, as we are looping over ky modes, and kx and 
+      ! zed are connected via the extended zed domain, while the distribution 
+      ! function, gext, has 2 dimensions: the extended zed dimension, and velocity.
+      allocate (phi_ext(nz_ext)); phi_ext = 0.0
       allocate (apar_ext(nz_ext)); apar_ext = 0.0
       allocate (bpar_ext(nz_ext)); bpar_ext = 0.0
       allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gext = 0.0
 
-      ! ---------------------------------------------------------------------
-      !   Get the matrix we need to invert depending on the fields included
-      ! ---------------------------------------------------------------------
+      ! ------------------------------------------------------------------------
+      !    Get the matrix we need to invert depending on the fields included    
+      ! ------------------------------------------------------------------------
+      
       ! <idx> here is the index in the extended zed domain that we are giving
       ! a unit impulse to.
       idx = 0
@@ -505,6 +487,7 @@ contains
       ! Note - No need to obtain response to impulses at negative kx values
       ! Loop over all segments
       do iseg = 1, nsegments(ie, iky)
+      
          ! Compute the index of kx that is connected in the given eigen chain in this segment.
          ! <ikxmod> gives the kx corresponding to (iseg,ie,iky)
          ! i.e. given a ky (iky), which chain are we in (ie), and within that chain
@@ -522,6 +505,7 @@ contains
          else
             izup = iz_up(iseg)
          end if
+         
          ! Now apply a unit impulse at each zed location. To do this loop over the zed index, but
          ! recall that there is one less zed grid point in these connected segments as they share
          ! a grid point with the previous segment. 
@@ -537,10 +521,14 @@ contains
          ! Set the offset to 1 - all other connected segments need to start one point
          ! displaced as they share a point with the previous segment. 
          if (izl_offset == 0) izl_offset = 1
+         
       end do
 
+      ! Deallocate temporary arrays
       deallocate (gext, phi_ext, apar_ext, bpar_ext)
-      ! ---------------------------------------------------------------------
+
+      ! Stop the timer
+      call time_message(.false., time_response_matrix, 'calculate response matrix') 
 
    end subroutine calculate_response_matrix_to_invert
 
@@ -577,10 +565,9 @@ contains
    ! 1.C) Then integrate over velocities to get the appropriate field operator that acts
    !      on the distibution function:
    !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
-   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   !      Then we need to divide by the appropriate prefactor from the fields 
-   !      equations
+   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g
+   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g 
+   !      Then we need to divide by the appropriate prefactor from the fields equations
    ! 1.D) Take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
    !============================================================================
@@ -621,6 +608,9 @@ contains
       ! with f = f1 + f2; then phi = df1/dphir * phir + df2/dphii * phii.
       ! however, we see that if phir = phii = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
+      ! ------------------------------------------------------------------------
+      
+      ! Initialise
       phi_ext = 0.0
       apar_ext = 0.0
       bpar_ext = 0.0
@@ -632,8 +622,8 @@ contains
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
       ! a phase factor. In practice this only matters if the unit impulse is at the 
       ! boundary (i.e. <idx ==1 ) otherwise phi = 0.0 at both boundary points anyway. 
-      ! TOGO-GA: check division rather than multiplication -- kept division for now to be consistent with 
-      ! parallel_streaming phase shift 
+      ! TOGO-GA: check division rather than multiplication -- kept division for now to 
+      ! be consistent with parallel_streaming phase shift 
       if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1) / phase_shift(iky)
 
       ! <dum> is a scratch array that takes the place of the pdf and phi
@@ -653,14 +643,16 @@ contains
 
       ! Solve for the response of the distribution function given this unit impulse in <phi>
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! Calculate the RHS of the GK equation (using dum=0 as the pdf at the 
-         ! previous time level, and phi_ext as the input potential) and store 
-         ! it in pdf_ext
+      
+         ! Calculate the RHS of the GK equation (using dum=0 as the pdf at the previous 
+         ! time level, and phi_ext as the input potential) and store it in pdf_ext
          call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, dum, dum, dum, pdf_ext(:, ivmu))
+         
          ! Given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain; the RHS is
          ! input as 'pdf_ext' and over-written with the updated solution for the pdf
          call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+         
       end do
 
       deallocate (dum)
@@ -671,23 +663,25 @@ contains
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in phi at this 
       ! location now integrate over velocities to get a square response matrix.
-      !
+      ! 
       ! solve_field_equations_using_pdf_response is the operator that acts on the pdf in 
       ! quasineutrality. e.g. if using g for the pdf: 
-      !
+      ! 
       !        sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]
-      !
+      ! 
       ! and divide by the appropriate factors to get the field. 
-      ! (this ends the parallelisation over velocity space, so every core should have a
-      ! copy of phi_ext)
+      ! 
+      ! This ends the parallelisation over velocity space, so every core 
+      ! should have a copy of phi_ext.
+      ! ------------------------------------------------------------------------
       call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
       !                      1.D) Compute the matrix to invert                
       ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
-      ! We then just need to compute the matrix that is to be inverted in 
-      ! parallel streaming. 
+      ! We then just need to compute the matrix that is to be inverted in parallel streaming. 
+      ! ------------------------------------------------------------------------
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
@@ -702,9 +696,9 @@ contains
          !                       (identity matrix - response matrix)
          ! For all other locations the matrix to invert is:
          !                             (- response_matrix)
-         ! So add in contribution from identity matrix for the <idx> location for the field we
-         ! are solving for:
+         ! So add in contribution from identity matrix for the <idx> location for the field we are solving for:
          phi_ext(idx) = phi_ext(idx) - 1.0
+         
          ! But everywhere else, simply add a negative sign:
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
          if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
@@ -750,10 +744,9 @@ contains
    ! 1.C) Then integrate over velocities to get the appropriate field operator that acts
    !      on the distibution function:
    !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
-   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g
-   !      Then we need to divide by the appropriate prefactor from the fields 
-   !      equations
+   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g
+   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g
+   !      Then we need to divide by the appropriate prefactor from the fields equations
    ! 1.D) Take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
    !============================================================================
@@ -793,6 +786,9 @@ contains
       ! with f = f1 + f2; then apar = df1/daparr * aparr + df2/dapari * apari.
       ! however, we see that if aparr = apari = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives apar = df1/daparr * (aparr + i * apari) = df1/daparr * apar
+      ! ------------------------------------------------------------------------
+      
+      ! Initialise
       phi_ext = 0.0
       apar_ext = 0.0
       bpar_ext = 0.0
@@ -820,14 +816,16 @@ contains
 
       ! Solve for the response of the distribution function given this unit impulse in <apar>
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      
          ! Calculate the RHS of the GK equation (using dum=0 as the pdf at the 
-         ! previous time level, and phi_ext as the input potential) and store 
-         ! it in pdf_ext
+         ! previous time level, and phi_ext as the input potential) and store it in pdf_ext
          call get_gke_rhs(ivmu, iky, ie, dum, dum, apar_ext * time_upwind_plus, apar_ext, dum, dum, pdf_ext(:, ivmu))
+         
          ! Given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain; the RHS is
          ! input as 'pdf_ext' and over-written with the updated solution for the pdf
          call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+         
       end do
 
       deallocate (dum)
@@ -838,23 +836,25 @@ contains
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in apar at this 
       ! location now integrate over velocities to get a square response matrix.
-      !
+      ! 
       ! solve_field_equations_using_pdf_response is the operator that acts on the pdf in 
       ! Parallel Ampere Law. e.g. if using g for the pdf: 
-      !
+      ! 
       !          β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
       ! 
       ! and divide by the appropriate factors to get the field. 
-      ! (this ends the parallelisation over velocity space, so every core should have a
-      ! copy of phi_ext)
+      ! 
+      ! This ends the parallelisation over velocity space, so every core 
+      ! should have a copy of phi_ext.
+      ! ------------------------------------------------------------------------
       call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
       !                    1.D) Compute the matrix to invert                
       ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
-      ! We then just need to compute the matrix that is to be inverted in 
-      ! parallel streaming. 
+      ! We then just need to compute the matrix that is to be inverted in parallel streaming. 
+      ! ------------------------------------------------------------------------
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
@@ -869,9 +869,9 @@ contains
          !                       (identity matrix - response matrix)
          ! For all other locations the matrix to invert is:
          !                             (- response_matrix)
-         ! So add in contribution from identity matrix for the <idx> location for the field we
-         ! are solving for:
+         ! So add in contribution from identity matrix for the <idx> location for the field we are solving for:
          apar_ext(idx) = apar_ext(idx) - 1.0
+         
          ! But everywhere else simply add a negative sign:
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_apar + idx) = -phi_ext(:nresponse)
          response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_apar + idx) = -apar_ext(:nresponse)
@@ -916,10 +916,9 @@ contains
    ! 1.C) Then integrate over velocities to get the appropriate field operator that acts
    !      on the distibution function:
    !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
-   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   !      Then we need to divide by the appropriate prefactor from the fields 
-   !      equations
+   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g
+   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g 
+   !      Then we need to divide by the appropriate prefactor from the fields equations
    ! 1.D) Take into account identity matricies that appear in the 
    !      response equation. (see stella manual - to come!)
    !============================================================================
@@ -948,6 +947,7 @@ contains
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
       character(5) :: dist
+      
       ! ------------------------------------------------------------------------
       !                  1.A) Initialise a unit impulse in bpar
       ! ------------------------------------------------------------------------
@@ -959,9 +959,13 @@ contains
       ! with f = f1 + f2; then bpar = df1/dbparr * bparr + df2/dbpari * bpari.
       ! however, we see that if bparr = bpari = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives bpar = df1/dbparr * (bparr + i * bpari) = df1/dbparr * bpar
+      ! ------------------------------------------------------------------------
+      
+      ! Initialise
       phi_ext = 0.0
       apar_ext = 0.0
       bpar_ext = 0.0
+      
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       bpar_ext(idx) = time_upwind_plus
@@ -988,14 +992,16 @@ contains
 
       ! Solve for the response of the distribution function given this unit impulse in <bpar>
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      
          ! Calculate the RHS of the GK equation (using dum=0 as the pdf at the 
-         ! previous time level, and phi_ext as the input potential) and store 
-         ! it in pdf_ext
+         ! previous time level, and phi_ext as the input potential) and store it in pdf_ext
          call get_gke_rhs(ivmu, iky, ie, dum, dum, dum, dum, dum, bpar_ext, pdf_ext(:, ivmu))
+         
          ! Given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain; the RHS is
          ! input as 'pdf_ext' and over-written with the updated solution for the pdf
          call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+         
       end do
 
       deallocate (dum)
@@ -1006,25 +1012,26 @@ contains
       ! We now have the pdf on the extended zed domain at this ky and set of 
       ! connected kx values corresponding to a unit impulse in apar at this 
       ! location now integrate over velocities to get a square response matrix.
-      !
+      ! 
       ! solve_field_equations_using_pdf_response is the operator that acts on the pdf in 
       ! quasineutrality and perpendicular Ampere Law. e.g. if using g for the pdf: 
-      !
+      ! 
       !           sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]
       ! and
       !          - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
       ! 
       ! and divide by the appropriate factors to get the field. 
-      ! (this ends the parallelisation over velocity space, so every core should have a
-      ! copy of phi_ext)
+      ! 
+      ! This ends the parallelisation over velocity space, so every core 
+      ! should have a copy of phi_ext.
+      ! ------------------------------------------------------------------------
       call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
       !                     1.D) Compute the matrix to invert                
       ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
-      ! We then just need to compute the matrix that is to be inverted in 
-      ! parallel streaming. 
+      ! We then just need to compute the matrix that is to be inverted in parallel streaming. 
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
@@ -1040,9 +1047,9 @@ contains
          !                       (identity matrix - response matrix)
          ! For all other locations the matrix to invert is:
          !                             (- response_matrix)
-         ! So add in contribution from identity matrix for the <idx> location for the field we
-         ! are solving for:
+         ! So add in contribution from identity matrix for the <idx> location for the field we are solving for:
          bpar_ext(idx) = bpar_ext(idx) - 1.0
+         
          ! But everywhere else simply add a negative sign:
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_bpar + idx) = -phi_ext(:nresponse)
          if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_bpar + idx) = -apar_ext(:nresponse)
@@ -1092,13 +1099,13 @@ contains
       ! ------------------------------------------------------------------------
       !                  1.C.II) Divide by the appropriate prefactor
       ! ------------------------------------------------------------------------
-      ! Call the appropriate subroutines depending on which fields are being simulated. 
+      ! Call the appropriate subroutines depending on which fields are being simulated.
       ! 
       ! In these routine we divide by the appropriate pre-factors that appear in the 
       ! field equations in front of the fields. The exact factor will depend on 
       ! which fields are being simulated (as phi and bpar are coupled), and also 
       ! on the species options (e.g. adiabatic, modified Boltzmann etc.)
-      !
+      ! 
       ! These routines cannot just be called from the field_equations modules
       ! as we need to get the correct factor given the location on the extended 
       ! zed grid, so much of these routines are about mapping the prefactors onto 
@@ -1114,9 +1121,9 @@ contains
 
    contains
 
-      !=========================================================================
-      !                      1.C.I) Velocity integrals
-      !=========================================================================
+!===============================================================================
+!                              1.C.I) Velocity integrals
+!===============================================================================
 
       !*************************************************************************
       !                       Velocity integral for phi
@@ -1150,6 +1157,7 @@ contains
          integer :: ivmu, imu, iv, is
 
          ! ---------------------------------------------------------------------
+         
          allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          phi = 0.
          wgt = spec%z * spec%dens_psi0
@@ -1183,52 +1191,57 @@ contains
             ! iz is only cycling through the zed location within a given segment. 
             do iz = iz_low(iseg) + izl_offset, izup
                idx = idx + 1
+               
+               ! ---------------------------------------------------------------
+               !                            Flux tube
+               ! ---------------------------------------------------------------
                if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
-                  ! ------------------------------------------------------------
-                  !                          Flux tube
-                  ! ------------------------------------------------------------
+               
                   ! First get J0 * g
                   call gyro_average(g(idx, :), iky, ikx, iz, g0)
+                  
                   ! Now integrate over vpa, mu and sum over species.
                   ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
                   call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+                  
+               ! ---------------------------------------------------------------
+               !                       Full Flux Surface
+               ! ---------------------------------------------------------------
                else
-                  ! ------------------------------------------------------------
-                  !                     Full Flux Surface
-                  ! ------------------------------------------------------------
+               
                   ! First multiply by B and gyroaverage, but use the piece that
                   ! is constant in alpha. This is because for FFS the response
                   ! matrix only treats the part that is constant in alpha,
-                  ! and the remainder is treated using an iterative approach. 
+                  ! and the remainder is treated using an iterative approach.
                   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                      iv = iv_idx(vmu_lo, ivmu)
                      imu = imu_idx(vmu_lo, ivmu)
                      is = is_idx(vmu_lo, ivmu)
                      g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
                   end do
+                  
                   ! Integrate over species, using the correct weights in order
                   ! to return the constant-in-alpha component of 
                   !              2B/sqrt(π) int dvpa int dmu J_0 * g
                   call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
                end if
-               ! ---------------------------------------------------------------
             end do
+            
             ! Set the offset to 1 - all other connected segments need to start one point
             ! displaced as they share a point with the previous segment. 
             if (izl_offset == 0) izl_offset = 1
+            
          end do
 
-         ! ---------------------------------------------------------------------
-         ! Collect the parts of <phi> spread out across processors. 
+         ! Collect the parts of <phi> spread out across processors.
          call sum_allreduce(phi)
-         ! ---------------------------------------------------------------------
 
       end subroutine integrate_over_velocity_phi
 
       !*************************************************************************
       !                            Velocity integral for apar
       !*************************************************************************
-      !             β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g          
+      !            β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g        
       !*************************************************************************
       subroutine integrate_over_velocity_apar
 
@@ -1282,39 +1295,43 @@ contains
 
             ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
             ! <ikx> value on the local domain given our position on the extended domain.
-            ikx = ikxmod(iseg, ie, iky)            
+            ikx = ikxmod(iseg, ie, iky)
 
             ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
             ! iz is only cycling through the zed location within a given segment. 
             do iz = iz_low(iseg) + izl_offset, izup
                idx = idx + 1
+               
                ! First get J0 * g
                call gyro_average(g(idx, :), iky, ikx, iz, g0)
+               
                ! Multiply by vpa to give: J0 * g * vpa
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                   iv = iv_idx(vmu_lo, ivmu)
                   g0(ivmu) = g0(ivmu) * vpa(iv)
                end do
+               
                ! Now integrate over vpa, mu and sum over species.
-               ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+               ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g
                call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
+               
             end do
+            
             ! Set the offset to 1 - all other connected segments need to start one point
             ! displaced as they share a point with the previous segment. 
             if (izl_offset == 0) izl_offset = 1
+            
          end do
 
-         ! ---------------------------------------------------------------------
          ! Collect the parts of <apar> spread out across processors. 
          call sum_allreduce(apar)
-         ! ---------------------------------------------------------------------
 
       end subroutine integrate_over_velocity_apar
 
       !*************************************************************************
       !                         Velocity integral for bpar                      
       !*************************************************************************
-      !        - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g          
+      !        - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g          
       !*************************************************************************
       subroutine integrate_over_velocity_bpar
 
@@ -1339,6 +1356,7 @@ contains
          complex, dimension(:), allocatable :: g0
 
          ! ---------------------------------------------------------------------
+         
          allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          bpar = 0.
          wgt = -2.0 * beta * spec%temp_psi0 * spec%dens_psi0
@@ -1346,11 +1364,13 @@ contains
          ia = 1
          idx = 0
          izl_offset = 0
+         
          ! ---------------------------------------------------------------------
          !                          Integrals
          ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
          do iseg = 1, nsegments(ie, iky)
+         
             ! Make sure the boundary points are being treated correctly depending
             ! on whether the mode is periodic or not. Here, define <izup> as the 
             ! upper zed value within a segment. If the mode is periodic, then 
@@ -1370,34 +1390,38 @@ contains
             ! iz is only cycling through the zed location within a given segment. 
             do iz = iz_low(iseg) + izl_offset, izup
                idx = idx + 1
+               
                ! First get J1/a_s * g , where a_s is the argument of the Bessel
                ! function. Note that 'J1' in the code is actually J1/a_s
                call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
+               
                ! Multiply by mu to get: J1/a_s * g * mu
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                   imu = imu_idx(vmu_lo, ivmu)
                   g0(ivmu) = g0(ivmu) * mu(imu)
-               end do               
+               end do
+               
                ! Now integrate over vpa, mu and sum over species.
-               ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+               ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g 
                call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
+               
             end do
+            
             ! Set the offset to 1 - all other connected segments need to start one point
             ! displaced as they share a point with the previous segment. 
             if (izl_offset == 0) izl_offset = 1
+            
          end do
 
-         ! ---------------------------------------------------------------------
          ! Collect the parts of <bpar> spread out across processors. 
          call sum_allreduce(bpar)
-         ! ---------------------------------------------------------------------
 
       end subroutine integrate_over_velocity_bpar
 
 
-      !=========================================================================
-      !                1.C.II) Divide by the appropriate prefactor
-      !=========================================================================
+!===============================================================================
+!                    1.C.II) Divide by the appropriate prefactor
+!===============================================================================
 
       !*************************************************************************
       !              Divide by the appropriate denominator for phi
@@ -1442,6 +1466,7 @@ contains
          ! ---------------------------------------------------------------------
          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this
          ! mode and make sure it is set to zero.
+         ! ---------------------------------------------------------------------
 
          ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
          ! <ikx> value on the local domain given our position on the extended domain.
@@ -1457,6 +1482,7 @@ contains
          ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain. 
          do iseg = 1, nsegments(ie, iky)
+         
             ! Make sure the boundary points are being treated correctly depending
             ! on whether the mode is periodic or not. Here, define <izup> as the 
             ! upper zed value within a segment. If the mode is periodic, then 
@@ -1495,15 +1521,18 @@ contains
          ! ---------------------------------------------------------------------
          !                           Adiabatic electrons
          ! ---------------------------------------------------------------------
+         
          ! If using adiabatic electrons, or the modified Boltzmann response
          ! then we need to modify the denominator appropriately. 
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+         
             ! No connections for ky = 0
             if (zonal_mode(iky)) then
                iseg = 1
                tmp = sum(dl_over_b(ia, :) * phi)
                phi = phi + tmp * denominator_fields_MBR(ikxmod(1, ie, iky), :)
             end if
+            
          end if
 
          deallocate (denominator_seg)
@@ -1519,7 +1548,6 @@ contains
       subroutine calculate_phi_and_bpar_for_response_matrix
 
          use mp, only: mp_abort
-
          use grids_z, only: nzgrid
          use grids_kxky, only: zonal_mode, akx
          use grids_species, only: has_electron_species
@@ -1530,8 +1558,10 @@ contains
          use grids_species, only: spec
          use grids_species, only: adiabatic_option_switch
          use grids_species, only: adiabatic_option_fieldlineavg
-         
-         use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
+         use arrays, only: denominator_fields_inv11
+         use arrays, only: denominator_fields_inv13
+         use arrays, only: denominator_fields_inv31
+         use arrays, only: denominator_fields_inv33
          
          implicit none
 
@@ -1558,6 +1588,7 @@ contains
          ! ---------------------------------------------------------------------
          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this
          ! mode and make sure it is set to zero.
+         ! ---------------------------------------------------------------------
 
          ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
          ! <ikx> value on the local domain given our position on the extended domain.
@@ -1572,8 +1603,9 @@ contains
          ! ---------------------------------------------------------------------
          !                      Divide by correct field factor
          ! ---------------------------------------------------------------------
-         ! Loop over all connected segments in a chain. 
+         ! Loop over all connected segments in a chain.
          do iseg = 1, nsegments(ie, iky)
+         
             ! Make sure the boundary points are being treated correctly depending
             ! on whether the mode is periodic or not. Here, define <izup> as the 
             ! upper zed value within a segment. If the mode is periodic, then 
@@ -1614,6 +1646,7 @@ contains
             ! Set the offset to 1 - all other connected segments need to start one point
             ! displaced as they share a point with the previous segment. 
             if (izl_offset == 0) izl_offset = 1
+            
          end do
 
          ! ---------------------------------------------------------------------
@@ -1661,11 +1694,13 @@ contains
          izl_offset = 0
 
          allocate (denominator(-nzgrid:nzgrid))
+         
          ! ---------------------------------------------------------------------
          !                             iky = ikx = 0 mode
          ! ---------------------------------------------------------------------
          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this
          ! mode and make sure it is set to zero.
+         ! ---------------------------------------------------------------------
 
          ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
          ! <ikx> value on the local domain given our position on the extended domain.
@@ -1681,6 +1716,7 @@ contains
          ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain. 
          do iseg = 1, nsegments(ie, iky)
+         
             ! Make sure the boundary points are being treated correctly depending
             ! on whether the mode is periodic or not. Here, define <izup> as the 
             ! upper zed value within a segment. If the mode is periodic, then 
@@ -1713,6 +1749,7 @@ contains
             ! Set the offset to 1 - all other connected segments need to start one point
             ! displaced as they share a point with the previous segment. 
             if (izl_offset == 0) izl_offset = 1
+            
          end do
 
          deallocate (denominator)
@@ -1725,7 +1762,7 @@ contains
    !                            Allocate zloc and idx 
    !============================================================================
    ! Sets up the response matrix storage for a given (iky, ie) eigenmode.  
-   !
+   ! 
    ! Allocate the following: 
    ! ----------------------
    ! - response_matrix%eigen%zloc is the dimension of the response matrix for a 
@@ -1733,7 +1770,7 @@ contains
    ! - response_matrix%idx is needed to keep track of permutations to the response
    !   matrix made during LU decomposition it will be input to LU back substitution
    !   during linear solve
-   !
+   ! 
    ! Memory:
    ! -------
    ! - When ISO_C_BINDING is available, it uses MPI’s shared memory buffer
@@ -1807,16 +1844,14 @@ contains
 #endif
 
    end subroutine setup_response_matrix_zloc_idx
-
-   !============================================================================
-   !============================================================================
-   !                    Step 2) LU decompose the response matrix
-   !============================================================================
-   !============================================================================
-   ! This section LU decomposes the response matrix for each eigen chain.
-   ! It prepares the matrix for efficient inversion during the implicit solve.
-   ! The decomposition is performed according to the parallelisation option.
-   !============================================================================
+ 
+!===============================================================================
+!                    Step 2) LU decompose the response matrix
+!===============================================================================
+! This section LU decomposes the response matrix for each eigen chain.
+! It prepares the matrix for efficient inversion during the implicit solve.
+! The decomposition is performed according to the parallelisation option.
+!===============================================================================
 
    !============================================================================
    !                       Main LU decomposition routine 
@@ -1827,6 +1862,8 @@ contains
       use mp, only: sgproc0
 #endif
       use mp, only: mp_abort
+      use job_manage, only: time_message
+      use timers, only: time_lu_decomposition
       use arrays, only: response_matrix
       use parallelisation_layouts, only: lu_option_switch
       use parallelisation_layouts, only: lu_option_none, lu_option_local, lu_option_global
@@ -1843,6 +1880,9 @@ contains
       real :: dum
 
       ! ------------------------------------------------------------------------
+      
+      ! Start the timer
+      call time_message(.false., time_lu_decomposition, 'LU decomposition')
 
       ! Now we have the full response matrix. Finally, perform its LU decomposition
       select case (lu_option_switch)
@@ -1861,14 +1901,16 @@ contains
 #endif
                ! Now that we have the reponse matrix for this ky and set of connected kx values
                ! get the LU decomposition so we are ready to solve the linear system
-               call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
-                                     response_matrix(iky)%eigen(ie)%idx, dum)
+               call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, response_matrix(iky)%eigen(ie)%idx, dum)
 
 #ifdef ISO_C_BINDING
             end if
 #endif
          end do
       end select
+      
+      ! Stop the timer
+      call time_message(.false., time_lu_decomposition, 'LU decomposition')
 
    end subroutine lu_decompose_response_matrix
 
@@ -2319,7 +2361,7 @@ contains
 !###############################################################################
 
    !============================================================================
-   !                         Read the response matrix                        
+   !                           Read the response matrix                         
    !============================================================================
    subroutine read_response_matrix
 

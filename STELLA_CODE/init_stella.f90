@@ -19,10 +19,6 @@ module init_stella
    
    private
    
-   ! Time the routines (need to be available to init_stella and finish_stella)
-   real, dimension(2) :: time_init = 0.
-   real, dimension(2) :: time_total = 0.
-   
    ! Make sure we only initialise mpi once
    logical :: mpi_initialised = .false.
 
@@ -42,6 +38,7 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
+      use timers, only: time_init
       
       ! Time trace
       use grids_time, only: init_tstart
@@ -66,7 +63,6 @@ contains
       use grids_velocity, only: nvgrid, nmu
       use grids_species, only: nspec
       use grids_z, only: nzgrid, ntubes
-      
       
       implicit none
 
@@ -154,8 +150,8 @@ contains
       if (debug) write (6, *) 'stella::init_stella::print_header'
       call print_header
       
-      ! Stop the timing of the initialization
-      if (proc0) call time_message(.false., time_init, ' Initialization')
+      ! Stop the timing of the Initialisation
+      if (proc0) call time_message(.false., time_init, ' Initialisation')
 
    end subroutine initialise_stella
    
@@ -186,6 +182,8 @@ contains
       
       ! Start more timers
       use job_manage, only: time_message
+      use timers, only: time_total
+      use timers, only: time_init
       
       ! Assign the <run_name> to each job
       use file_utils, only: run_name
@@ -234,7 +232,7 @@ contains
       ! Start internal timers, this is part of job_manage and needs to be called after job_fork
       if (proc0) then
          call time_message(.false., time_total, ' Total')
-         call time_message(.false., time_init, ' Initialization')
+         call time_message(.false., time_init, ' Initialisation')
       end if
 
       ! Assign a <run_name> to each job, generally this is the name of the input file
@@ -820,6 +818,8 @@ contains
       
       ! Time routines
       use job_manage, only: time_message
+      use timers, only: time_total
+      use timers, only: time_init
       use timers, only: time_gke
       use timers, only: time_mirror
       use timers, only: time_sources
@@ -831,6 +831,8 @@ contains
       use timers, only: time_all_diagnostics
       use timers, only: time_parallel_streaming
       use timers, only: time_individual_diagnostics
+      use timers, only: time_response_matrix
+      use timers, only: time_lu_decomposition
       
       ! Flags
       use file_utils, only: runtype_option_switch
@@ -874,7 +876,9 @@ contains
       integer, intent(in) :: istep
       
       ! Local variables
-      real :: sum_timings
+      real :: sum_timings, sum_redistribute, sum_response_matrix
+      logical :: seconds = .true.
+      logical :: hours = .false.
       
       !----------------------------------------------------------------------
 
@@ -921,106 +925,156 @@ contains
       
       ! Print timings
       if (proc0 .and. print_extra_info_to_terminal) then
+         
+         ! Finish the files
          call finish_file_utils
+         
+         ! Finish the total timer
          call time_message(.false., time_total, ' Total')
+         
+         ! If the total time is more than 5 minutes, print the timers in minutes
+         ! If the total time is more than 5 hours, print the timers in hours
+         if (time_total(1)/60 > 5) seconds = .false.
+         if (time_total(1)/60/60 > 5) hours = .true.
+         
+         ! Write the time message
          write (*, *)
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                        ELAPSED TIME"
          write (*, '(A)') "############################################################"
-
-         sum_timings = time_mirror(1, 1) + time_mirror(1, 2) 
-         sum_timings = sum_timings + time_implicit_advance(1, 1) + time_parallel_streaming(1, 1)  
-         sum_timings = sum_timings + time_gke(1, 4) + time_gke(1, 5) + time_gke(1, 6) + time_gke(1, 7) + time_gke(1, 10)
-         sum_timings = sum_timings + time_parallel_nl(1, 1) + time_parallel_nl(1, 2)
+         
+         ! Redstribute
          write (*, fmt='(A)') ' '
-         write (*, fmt='(A)') '                    GYROKINETIC EQUATION'
-         write (*, fmt='(A)') '                    ---------------------' 
-         write (*, fmt=101) 'mirror:', time_mirror(1, 1) / 60., 'min', time_mirror(1, 1)/sum_timings*100., '%'
-         write (*, fmt=101) '(redistribute):', time_mirror(1, 2) / 60., 'min', time_mirror(1, 2)/sum_timings*100., '%'
-         write (*, fmt=101) 'ExB nonlin:', time_gke(1, 7) / 60., 'min', time_gke(1, 7)/sum_timings*100., '%'
-         if (stream_implicit) then
-            write (*, fmt=101) 'implicit advance:', time_implicit_advance(1, 1) / 60., 'min', & 
-               time_implicit_advance(1, 1)/sum_timings*100., '%' 
-         else
-            write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min', & 
-               time_parallel_streaming(1, 1)/sum_timings*100., '%'
-         end if
-         if (.not. drifts_implicit) then
-            write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min', time_gke(1, 5)/sum_timings*100., '%'
-            write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min', time_gke(1, 4)/sum_timings*100., '%'
-            write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min', time_gke(1, 6)/sum_timings*100., '%'
-         end if
-         if (include_parallel_nonlinearity) then  
-            write (*, fmt=101) 'parallel nonlin:', time_parallel_nl(1, 1) / 60., 'min'
-            write (*, fmt=101) '(redistribute):', time_parallel_nl(1, 2) / 60., 'min'
-         end if
-         if (radial_variation) then 
-            write (*, fmt=101) 'radial var:', time_gke(1, 10) / 60., 'min'
-         end if 
-         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
-
-         sum_timings = time_field_solve(1, 1) + time_field_solve(1, 2) + time_field_solve(1, 3) & 
-                        + time_field_solve(1, 4) + time_field_solve(1, 5)
-         write (*, fmt='(A)') ' '
-         write (*, fmt='(A)') '                           FIELDS'
-         write (*, fmt='(A)') '                           ------' 
-         write (*, fmt=101) 'fields:', time_field_solve(1, 1) / 60., 'min', time_field_solve(1, 1)/sum_timings*100., '%'
-         write (*, fmt=101) '(int_dv_g):', time_field_solve(1, 3) / 60., 'min', time_field_solve(1, 3)/sum_timings*100., '%'
-         write (*, fmt=101) '(calculate_phi):', time_field_solve(1, 4) / 60., 'min', time_field_solve(1, 4)/sum_timings*100., '%'
-         write (*, fmt=101) '(phi_adia_elec):', time_field_solve(1, 5) / 60., 'min', time_field_solve(1, 5)/sum_timings*100., '%'
+         write (*, fmt='(A)') '                          REDISTRIBUTE'
+         write (*, fmt='(A)') '                          -----------'
+         sum_timings = time_mirror(1, 2) + time_field_solve(1, 2) + time_parallel_nl(1, 2)
+         sum_timings = sum_timings + time_collisions(1, 2) + time_sources(1, 2)
+         call write_time_message('mirror:', time_mirror(1, 2), sum_timings)
          if (fields_kxkyz) then
-            write (*, fmt=101) '(redistribute):', time_field_solve(1, 2) / 60., 'min', sum_timings/time_total(1)*100., '%'
+            call write_time_message('fields:', time_field_solve(1, 2), sum_timings)
          end if
-         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
-
-         sum_timings = time_individual_diagnostics(1, 1) + time_individual_diagnostics(1, 2) + time_individual_diagnostics(1, 3)  
-         sum_timings = sum_timings + time_individual_diagnostics(1, 4) + time_individual_diagnostics(1, 5) + time_individual_diagnostics(1, 6)  
-         write (*, fmt='(A)') ' '
-         write (*, fmt='(A)') '                        DIAGNOSTICS'
-         write (*, fmt='(A)') '                        -----------' 
-         write (*, fmt=101) 'calculate omega:', time_individual_diagnostics(1, 1) / 60., 'min', time_individual_diagnostics(1, 1)/sum_timings*100., '%'
-         write (*, fmt=101) 'write phi:', time_individual_diagnostics(1, 2) / 60., 'min', time_individual_diagnostics(1, 3)/sum_timings*100., '%'
-         write (*, fmt=101) 'write omega:', time_individual_diagnostics(1, 3) / 60., 'min', time_individual_diagnostics(1, 2)/sum_timings*100., '%'
-         write (*, fmt=101) 'write fluxes:', time_individual_diagnostics(1, 4) / 60., 'min', time_individual_diagnostics(1, 4)/sum_timings*100., '%'
-         write (*, fmt=101) 'write moments:', time_individual_diagnostics(1, 5) / 60., 'min', time_individual_diagnostics(1, 5)/sum_timings*100., '%'
-         write (*, fmt=101) 'write distribution:', time_individual_diagnostics(1, 6) / 60., 'min', time_individual_diagnostics(1, 6)/sum_timings*100., '%'
-         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
-
-         sum_timings = time_collisions(1, 1) +time_collisions(1, 2)
-         sum_timings = sum_timings + time_sources(1, 1) + time_sources(1, 2)
-         sum_timings = sum_timings + time_sources(1, 1) + time_sources(1, 2)
-         sum_timings = sum_timings + time_multibox(1, 1) + time_multibox(1, 2)
-         write (*, fmt='(A)') ' '
-         write (*, fmt='(A)') '                           OTHER'
-         write (*, fmt='(A)') '                           -----' 
+         if (include_parallel_nonlinearity) then
+            call write_time_message('parallel nonlin:', time_parallel_nl(1, 2), sum_timings)
+         end if
          if (include_collisions) then
-            write (*, fmt=101) 'collisions:', time_collisions(1, 1) / 60., 'min'
-            write (*, fmt=101) '(redistribute):', time_collisions(1, 2) / 60., 'min'
+            call write_time_message('collisions:', time_collisions(1, 2), sum_timings)
          end if
          if (source_option_switch /= source_option_none) then
-            write (*, fmt=101) 'sources:', time_sources(1, 1) / 60., 'min'
-            write (*, fmt=101) '(redistribute):', time_sources(1, 2) / 60., 'min'
+            call write_time_message('sources:', time_sources(1, 2), sum_timings)
          end if
-         if (runtype_option_switch == runtype_multibox) then    
-            write (*, fmt=101) 'multibox comm:', time_multibox(1, 1) / 60., 'min'
-            write (*, fmt=101) 'multibox krook:', time_multibox(1, 2) / 60., 'min'
-         end if
-         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
- 
-         sum_timings = time_init(1) + time_all_diagnostics(1) + time_gke(1, 9) + time_gke(1, 8) 
+         write (*, *)
+         
+         ! Response matrix
          write (*, fmt='(A)') ' '
-         write (*, fmt='(A)') '                          TOTALS'
-         write (*, fmt='(A)') '                          ------'
-         write (*, fmt=101) 'initialization:', time_init(1) / 60., 'min', time_init(1)/time_total(1)*100., '%'
-         write (*, fmt=101) 'diagnostics:', time_all_diagnostics(1) / 60., 'min', time_all_diagnostics(1)/time_total(1)*100., '%' 
-         write (*, fmt=101) 'total implicit:', time_gke(1, 9) / 60., 'min', time_gke(1, 9)/time_total(1)*100., '%'
-         write (*, fmt=101) 'total explicit:', time_gke(1, 8) / 60., 'min', time_gke(1, 8)/time_total(1)*100., '%'
-         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
-         write (*, fmt=101) 'total:', time_total(1) / 60., 'min', time_total(1)/time_total(1)*100., '%'
+         write (*, fmt='(A)') '                         RESPONSE MATRIX'
+         write (*, fmt='(A)') '                         ---------------'
+         sum_timings = time_response_matrix(1) + time_lu_decomposition(1)
+         call write_time_message('response matrix:', time_response_matrix(1), sum_timings)
+         call write_time_message('LU decomposition:', time_lu_decomposition(1), sum_timings)
+         call write_time_message('total:', sum_timings, time_total(1))
+         write (*, *)
+         
+         ! Collisions, sources and radial variation
+         if (include_collisions .or. (source_option_switch/=source_option_none) .or. (runtype_option_switch==runtype_multibox)) then
+            write (*, fmt='(A)') ' '
+            write (*, fmt='(A)') '                             OTHER'
+            write (*, fmt='(A)') '                             -----'
+            sum_timings = time_collisions(1, 1) + time_sources(1, 1)
+            sum_timings = sum_timings + time_multibox(1, 1) + time_multibox(1, 2)
+            if (include_collisions) then
+               call write_time_message('collisions:', time_collisions(1, 1), time_total(1))
+            end if
+            if (source_option_switch /= source_option_none) then
+               call write_time_message('sources:', time_sources(1, 1), time_total(1))
+            end if
+            if (runtype_option_switch == runtype_multibox) then
+               call write_time_message('multibox comm:', time_multibox(1, 1), time_total(1))
+               call write_time_message('multibox krook:', time_multibox(1, 2), time_total(1))
+            end if
+            write (*, *)
+         end if
+            
+         ! Field equations
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                             FIELDS'
+         write (*, fmt='(A)') '                             ------' 
+         sum_timings = time_field_solve(1, 3) + time_field_solve(1, 4) + time_field_solve(1, 5)
+         call write_time_message('int_dv_g:', time_field_solve(1, 3), sum_timings)
+         call write_time_message('calculate_phi:', time_field_solve(1, 4), sum_timings)
+         call write_time_message('phi_adia_elec:', time_field_solve(1, 5), sum_timings)
+         call write_time_message('total:', time_field_solve(1, 1), time_total(1))
+         write (*, *)
+         
+         ! Gyrokinetic equation
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                      GYROKINETIC EQUATION'
+         write (*, fmt='(A)') '                      ---------------------' 
+         sum_timings = time_mirror(1, 1) + time_implicit_advance(1, 1) + time_parallel_streaming(1, 1)
+         sum_timings = sum_timings + time_gke(1, 4) + time_gke(1, 5) + time_gke(1, 6) + time_gke(1, 7) + time_gke(1, 10)
+         sum_timings = sum_timings + time_parallel_nl(1, 1)
+         call write_time_message('mirror:', time_mirror(1, 1), sum_timings)
+         call write_time_message('ExB nonlin:', time_gke(1, 7), sum_timings)
+         if (stream_implicit) then
+            call write_time_message('stream implicit:', time_implicit_advance(1, 1), sum_timings)
+         else
+            call write_time_message('stream explicit:', time_parallel_streaming(1, 1), sum_timings)
+         end if
+         if (.not. drifts_implicit) then
+            call write_time_message('magnetic drift x:', time_gke(1, 5), sum_timings)
+            call write_time_message('magnetic drift y:', time_gke(1, 4), sum_timings)
+            call write_time_message('diamagnetic drift:', time_gke(1, 6), sum_timings)
+         end if
+         if (include_parallel_nonlinearity) then
+            call write_time_message('parallel nonlin:', time_parallel_nl(1, 1), sum_timings)
+         end if
+         if (radial_variation) then 
+            call write_time_message('radial var:', time_gke(1, 10), sum_timings)
+         end if 
+         call write_time_message('total:', sum_timings, time_total(1))
+         write (*, *)
+         
+         ! Diagnostics
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                          DIAGNOSTICS'
+         write (*, fmt='(A)') '                          -----------'
+         sum_timings = time_individual_diagnostics(1, 1) + time_individual_diagnostics(1, 2) + time_individual_diagnostics(1, 3)
+         sum_timings = sum_timings + time_individual_diagnostics(1, 4) + time_individual_diagnostics(1, 5) + time_individual_diagnostics(1, 6)
+         call write_time_message('omega:', time_individual_diagnostics(1, 1), sum_timings)
+         call write_time_message('phi:', time_individual_diagnostics(1, 2), sum_timings)
+         call write_time_message('omega:', time_individual_diagnostics(1, 3), sum_timings)
+         call write_time_message('fluxes:', time_individual_diagnostics(1, 4), sum_timings)
+         call write_time_message('moments:', time_individual_diagnostics(1, 5), sum_timings)
+         call write_time_message('distribution:', time_individual_diagnostics(1, 6), sum_timings)
+         call write_time_message('total:', time_all_diagnostics(1), time_total(1))
+         write (*, *)
+        
+         ! Gyrokinetic equations
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '          GYROKINETIC EQUATION AND FIELD EQUATIONS'
+         write (*, fmt='(A)') '          ----------------------------------------'
+         sum_timings = time_gke(1, 9) + time_gke(1, 8) + time_field_solve(1, 1)
+         call write_time_message('implicit GKE:', time_gke(1, 9), sum_timings)
+         call write_time_message('explicit GKE:', time_gke(1, 8), sum_timings)
+         call write_time_message('fields:', time_field_solve(1, 1), sum_timings)
+         call write_time_message('total:', sum_timings, time_total(1))
          write (*, *)
 
+         ! The entire stella code
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                        THE STELLA CODE'
+         write (*, fmt='(A)') '                        ---------------'
+         sum_timings = time_init(1) + time_all_diagnostics(1) + time_gke(1, 1)
+         sum_redistribute = time_mirror(1, 2) + time_field_solve(1, 2) + time_parallel_nl(1, 2)
+         sum_redistribute = sum_redistribute + time_collisions(1, 2) + time_sources(1, 2)
+         sum_response_matrix = time_response_matrix(1) + time_lu_decomposition(1)
+         call write_time_message('initialisation:', time_init(1), time_total(1))
+         call write_time_message('diagnostics:', time_all_diagnostics(1), time_total(1))
+         call write_time_message('gyrokinetic equations:', time_gke(1, 1), time_total(1))
+         call write_time_message('redistribute:', sum_redistribute, time_total(1))
+         call write_time_message('sum:', sum_timings, time_total(1))
+         write (*, *)
+        
       end if
-101   format(a20, f9.2, a4, f9.2, a1)
 
       ! Finish (clean up) mpi message passing
       if (debug) write (*, *) 'stella::finish_stella::finish_mp'
@@ -1028,6 +1082,33 @@ contains
          call finish_mp
          mpi_initialised = .false.
       end if
+      
+   contains
+   
+      !-------------------------------------------------------------------------
+      subroutine write_time_message(routine, timer, timer_total)
+      
+         implicit none
+         
+         real, intent(in) :: timer
+         real, intent(in) :: timer_total
+         character(*), intent(in) :: routine
+         character(len=25) :: fmt_min = "(a24, f9.2, a4, f9.2, a1)"
+         character(len=25) :: fmt_sec = "(a24, f9.2, a4 f9.2, a1)"
+         character(len=25) :: fmt_hours = "(a24, f9.2, a6, f9.2, a1)"
+         
+         !----------------------------------------------------------------------
+         
+         ! Write timers in hours, seconds or minutes
+         if (hours) then
+            write (*, fmt=fmt_hours) trim(routine), timer / 60 / 60., 'hours', timer/timer_total*100., '%'
+         else if (seconds) then
+            write (*, fmt=fmt_sec) trim(routine), timer, 'sec', timer/timer_total*100., '%'
+         else
+            write (*, fmt=fmt_min) trim(routine), timer / 60., 'min', timer/timer_total*100., '%'
+         end if
+      
+      end subroutine write_time_message
 
    end subroutine finish_stella
 

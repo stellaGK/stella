@@ -222,9 +222,6 @@ contains
       implicit none
       
       !-------------------------------------------------------------------------
-
-      ! Time routines
-      time_field_solve = 0.
       
       ! Allocate electrostatic arrays on each processor
       if (.not. allocated(phi)) then; allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes)); phi = 0.; end if

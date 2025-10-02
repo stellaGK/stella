@@ -171,6 +171,8 @@ contains
       ! Parallelisation
       use mp, only: proc0, broadcast
       use debug_flags, only: debug => time_advance_debug
+      use job_manage, only: time_message
+      use timers, only: time_gke
       
       ! Distribution function
       use arrays_distribution_function, only: gold
@@ -209,6 +211,9 @@ contains
       integer :: count_restarts
 
       !-------------------------------------------------------------------------
+      
+      ! Start timer
+      call time_message(.false., time_gke(:,1), 'gyrokinetic equations')
 
       ! Advance the distribution function and fields for radial variation runs
       call advance_distribution_function_and_fields_radial_variation_init()
@@ -294,6 +299,9 @@ contains
       
       ! Advance the distribution function and fields for radial variation runs
       call advance_distribution_function_and_fields_radial_variation()
+      
+      ! Stop timer
+      call time_message(.false., time_gke(:,1), 'gyrokinetic equations')
 
    end subroutine advance_distribution_function_and_fields
    
