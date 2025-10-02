@@ -215,7 +215,6 @@ contains
 #ifdef ISO_C_BINDING
    subroutine setup_shared_memory_window
 
-      use mpi
       use, intrinsic :: iso_c_binding, only: c_intptr_t
       use mp, only: sgproc0, real_size
       use mp, only: create_shared_memory_window
@@ -1886,7 +1885,6 @@ contains
    !============================================================================
    subroutine parallel_LU_decomposition_local(iky)
 
-      use mpi
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use arrays, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
@@ -2060,7 +2058,6 @@ contains
       use mp, only: job, iproc, proc0, nproc, mpicmplx
       use job_manage, only: njobs
       use grids_extended_zgrid, only: neigen
-      use mpi
       use linear_solve, only: imaxloc
 
       implicit none
@@ -2442,7 +2439,6 @@ contains
 
 #else
       use arrays, only: response_window
-      use mpi
 
       implicit none
 
