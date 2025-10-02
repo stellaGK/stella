@@ -5,6 +5,31 @@
 ! This module computes the response matrix for inverting the parallel streaming
 ! operator when parallel_streaming is treated implicitly.
 ! 
+! Method:
+! -------
+! (Note: to see a certain part of the code search the step it is listed under,
+! for example to see where the homogeneous parallel streaming equation is solved,
+! search 1.B) 
+! 
+! Step 1) Getting matrix that we need to invert in implicit parallel streaming. 
+!         To do this we take the following steps:
+!         1.A) First initialise unit impulse for each field at each grid point in  
+!              the extended zed domain for a given ky and set of connected kx modes.
+!         1.B) Then solve the homogeneous parallel streaming equation for the 
+!              distribution function given a field with a unit impulse. This is done 
+!              for each field that is included (phi, apar, bpar).
+!         1.C) Then solve the field equations given the distribution function response. 
+!              To do this:
+!              1.C.I)  Integrate over velocities to get the appropriate field operator 
+!                      that acts on the distibution function:
+!                      For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
+!                      For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+!                      For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+!              1.C.II) Divide by the appropriate pre-factor in the field equations
+!         1.D) Construct the matrix we need to invert by including the identity matrix
+!              where appropriate
+!
+! Step 2) LU decompose the matrix.
 ! 
 !###############################################################################
 module response_matrix
@@ -305,7 +330,7 @@ contains
          end if
 
          ! ---------------------------------------------------------------------
-         !                STEP 1) Find distribution function response      
+         !            STEP 1) Find the response matrix to invert      
          ! ---------------------------------------------------------------------
          ! For a given ky, we need to associate an %eigen to it - to denote the connected
          ! modes. The response matrix for each ky has neigen(ky).
@@ -315,7 +340,7 @@ contains
          ! Write time message
          if (debug) call time_message(.false., time_response_matrix, message_response_matrix)
 
-         call calculate_vspace_integrated_response(iky)
+         call calculate_response_matrix_to_invert(iky)
 
          ! ---------------------------------------------------------------------
          !                   Parallelisation + debug messages
@@ -371,27 +396,13 @@ contains
    !                Step 1) Find distribution function response                      
    !============================================================================
    !============================================================================
-   ! The next routines are all dedicated to step 1).
-   !
-   !
-   ! Within the routines get_dpdf_d * _matrix_column (where * can be phi, apar, 
-   ! or bpar) the following steps take place:
-   !
-   ! 1.A) First initialise unit impulse for each field at each grid point in the 
-   !      extended zed domain for a given connected chain.
-   ! 1.B) Then solve the inhomogeneous parallel streaming equation for the distribution
-   !      function given a field with a unit impulse.
-   ! 1.C) Then integrate over velocities to get the appropriate field operator that acts
-   !      on the distibution function:
-   !           For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
-   !           For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-   !           For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   ! 1.D) Then we need to divide by the appropriate prefactor from the fields 
-   !      equations.
-   ! 
-   ! These above steps are take for each field that is being evolved.
+   ! This subroutine computes the matrix we need to invert. The exact routines 
+   ! called will depend on which fields are included in the simulation
+   ! (phi, apar, bpar).
    !============================================================================
-   subroutine calculate_vspace_integrated_response(iky)
+   !============================================================================
+
+   subroutine calculate_response_matrix_to_invert(iky)
 
       use mp, only: proc0
       use parallelisation_layouts, only: mat_gen
@@ -474,11 +485,8 @@ contains
          allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gext = 0.0
 
          ! ---------------------------------------------------------------------
-         !              Get Response of the pdf to unit impulses
+         !   Get the matrix we need to invert depending on the fields included
          ! ---------------------------------------------------------------------
-         ! Steps 1.A), 1.B), 1.C) and 1.D) occur below
-         ! ---------------------------------------------------------------------
-
          ! <idx> here is the index in the extended zed domain that we are giving
          ! a unit impulse to.
          idx = 0
@@ -533,7 +541,7 @@ contains
          ! ---------------------------------------------------------------------
       end do
 
-   end subroutine calculate_vspace_integrated_response
+   end subroutine calculate_response_matrix_to_invert
 
    !============================================================================
    !                      Get response matrix column for phi
@@ -674,7 +682,7 @@ contains
       call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
-      !               1.D) Compute the response matrix to invert                
+      !                      1.D) Compute the matrix to invert                
       ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
       ! We then just need to compute the matrix that is to be inverted in 
@@ -1011,7 +1019,7 @@ contains
       call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
-      !               1.D) Compute the matrix to invert                
+      !                     1.D) Compute the matrix to invert                
       ! ------------------------------------------------------------------------
       ! The response matrix is the output from <get_fields_for_response_matrix>.
       ! We then just need to compute the matrix that is to be inverted in 
@@ -1051,11 +1059,11 @@ contains
    ! We have the response of the distribution function from a unit impulse in the 
    ! fields. This is incoming as <g>. We now use this and solve the field equations.
    ! This is done in two steps:
-   ! I)  Perform the appropriate velocity integral for the fields: 
-   !     For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
-   !     For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
-   !     For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
-   ! II) Divide by the appropriate pre-factor in the field equations
+   ! 1.C.I)  Perform the appropriate velocity integral for the fields: 
+   !         For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
+   !         For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
+   !         For bpar:    - 2β sum_s n_s T_s 2*B0/sqrt{π} \int d^2v mu J_1/a_s g 
+   ! 1.C.II) Divide by the appropriate pre-factor in the field equations
    !============================================================================
    subroutine solve_field_equations_using_pdf_response(g, phi, apar, bpar, iky, ie, nz_ext)
 
@@ -1070,7 +1078,7 @@ contains
       integer, intent(in) :: iky, ie, nz_ext
 
       ! ------------------------------------------------------------------------
-      !                         I) Velocity integrals
+      !                        1.C.I) Velocity integrals
       ! ------------------------------------------------------------------------
       ! For phi:     2B/sqrt(π) int dvpa int dmu J_0 * g
       ! For apar:    β sum_s Z_s n_s vth 2*B0/sqrt{π} \int d^2v vpar J_0 g
@@ -1081,7 +1089,7 @@ contains
       if (include_bpar) call integrate_over_velocity_bpar
 
       ! ------------------------------------------------------------------------
-      !                  II) Divide by the appropriate prefactor
+      !                  1.C.II) Divide by the appropriate prefactor
       ! ------------------------------------------------------------------------
       ! Call the appropriate subroutines depending on which fields are being simulated. 
       ! 
@@ -1106,7 +1114,7 @@ contains
    contains
 
       !=========================================================================
-      !                          I) Velocity integrals
+      !                      1.C.I) Velocity integrals
       !=========================================================================
 
       !*************************************************************************
@@ -1387,7 +1395,7 @@ contains
 
 
       !=========================================================================
-      !                II) Divide by the appropriate prefactor
+      !                1.C.II) Divide by the appropriate prefactor
       !=========================================================================
 
       !*************************************************************************
