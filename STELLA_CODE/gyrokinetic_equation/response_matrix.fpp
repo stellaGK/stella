@@ -1485,26 +1485,26 @@ contains
          end if
 
          ! Divide by the correct factor for this first segment
-         do iz = iz_low(iseg), iz_up(iseg)
-            idx = idx + 1
-            phi(idx) = phi(idx) / gamma_fac(iz)
-         end do
+         !do iz = iz_low(iseg), iz_up(iseg)
+         !   idx = idx + 1
+         !   phi(idx) = phi(idx) / gamma_fac(iz)
+         !end do
 
          ! Now do exactly the same for all remaining segments. 
-         izl_offset = 1
-         if (nsegments(ie, iky) > 1) then
-            do iseg = 2, nsegments(ie, iky)
-               ikx = ikxmod(iseg, ie, iky)
+         !izl_offset = 1
+         !if (nsegments(ie, iky) > 1) then
+         do iseg = 1, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
 
-               gamma_fac = denominator_fields(iky, ikx, :)
+            gamma_fac = denominator_fields(iky, ikx, :)
 
-               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                  idx = idx + 1
-                  phi(idx) = phi(idx) / gamma_fac(iz)
-               end do
-               if (izl_offset == 0) izl_offset = 1
+            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+               idx = idx + 1
+               phi(idx) = phi(idx) / gamma_fac(iz)
             end do
-         end if
+            if (izl_offset == 0) izl_offset = 1
+         end do
+         !end if
 
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             ! No connections for ky = 0
