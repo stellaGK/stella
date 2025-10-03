@@ -1,0 +1,202 @@
+
+!================================================================================
+!=================================== Geometry ===================================
+!================================================================================
+
+&geometry_options
+  geometry_option = 'vmec'
+/
+
+&geometry_vmec
+  alpha0 = 0
+  nfield_periods = 21.98
+  surface_option = 0
+  torflux = 0.64
+  verbose = .true.
+  vmec_filename = 'wout_kjm30.nc'
+  zeta_center = 0
+/
+
+
+!================================================================================
+!=================================== Physics ====================================
+!================================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+  simulation_domain = 'fluxtube'
+/
+
+&scale_gyrokinetic_terms
+  fphi = 1.0
+/
+
+&physics_inputs
+  rhostar = 0.0
+/
+
+&electromagnetic
+  beta = 0.0
+  include_apar = .false.
+  include_bpar = .false.
+/
+
+
+!================================================================================
+!================================= Diagnostics ==================================
+!================================================================================
+
+&diagnostics
+  nsave = 250
+  nwrite = 10
+  save_for_restart = .false.
+/
+
+&diagnostics_omega
+  write_omega_avg_vs_kxky = .true.
+  write_omega_vs_kxky = .true.
+/
+
+&diagnostics_distribution
+  write_g2_vs_vpamus = .true.
+  write_g2_vs_zvpas = .true.
+/
+
+&diagnostics_fluxes
+  write_fluxes_kxky = .true.
+  write_fluxes_kxkyz = .true.
+/
+
+&diagnostics_potential
+  write_apar2_vs_kxky = .true.
+  write_bpar2_vs_kxky = .true.
+  write_phi2_vs_kxky = .true.
+  write_phi_vs_kxkyz = .true.
+/
+
+
+!================================================================================
+!=========================== Initialise Distribution ============================
+!================================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 1.0
+/
+
+&initialise_distribution_maxwellian
+  chop_side = .false.
+  width0 = 1.0
+/
+
+&initialise_distribution_noise
+  chop_side = .false.
+/
+
+&initialise_distribution_kpar
+  chop_side = .false.
+  width0 = 1.0
+/
+
+&restart_options
+  restart_dir = 'restart'
+  restart_file = 'nc/ae_kyscan.nc'
+/
+
+
+!================================================================================
+!====================== Ion, electron and impurity species ======================
+!================================================================================
+
+&species_options
+  nspec = 1
+  species_option = 'stella'
+/
+
+&adiabatic_electron_response
+  adiabatic_option = 'iphi00=2'
+  nine = 1.0
+  tite = 1.0
+/
+
+&species_parameters_1
+  dens = 1.0
+  fprim = 0.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 0.0
+  type = 'ion'
+  z = 1.0
+/
+
+
+!================================================================================
+!====================== Discretized (kx,ky,z,mu,vpa) grid =======================
+!================================================================================
+! Note that the original resolution is:
+!  nzed = 512
+!  nmu = 32
+!  nvgrid = 256
+!================================================================================
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+
+&kxky_grid_range
+  akx_max = 0.07
+  akx_min = 0.07
+  aky_max = 0.0
+  aky_min = 0.0
+  nakx = 1
+  naky = 1
+/
+
+&z_grid
+  nperiod = 1
+  nzed = 512
+/
+
+&z_boundary_condition
+  boundary_option = 'default'
+/
+
+&velocity_grids
+  equally_spaced_mu_grid = .true.
+  nmu = 32
+  nvgrid = 256
+  vpa_max = 3.0
+  vperp_max = 3.0
+/
+
+
+!================================================================================
+!=================================== Numerics ===================================
+!================================================================================
+
+&time_trace_options
+  tend = 3500
+  autostop = .false.
+/
+
+&time_step
+  delt = 0.1
+  delt_max = 0.1
+/
+
+&numerical_algorithms
+  drifts_implicit = .false.
+  explicit_algorithm = 'rk2'
+/
+
+!================================================================================
+!=============================== Parallelisation ================================
+!================================================================================
+
+&parallelisation
+  lu_option = 'local'
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
+/
+
+
