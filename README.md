@@ -13,14 +13,21 @@ A detailed $\texttt{stella}$ manual will be released in the coming months, which
 <br><br>
 
 ## Table of contents
-   * [Dependencies](#dependencies)
-   * [Installation and Compilation](#installation-and-compilation)
-      + [CMake](#cmake)
-      + [Make](#make)
-   * [Verification of stella output](#verification-of-stella-output)
-      + [Set-up the automatic tests](#set-up-the-automatic-tests)
-      + [Run numerical tests](#run-numerical-tests)
-   * [Acknowledgments](#acknowledgments)
+- [Dependencies](#dependencies)
+- [Installation and Compilation](#installation-and-compilation)
+   * [CMake](#cmake)
+   * [Make](#make)
+- [New input variables](#new-input-variables)
+- [Verification of stella output](#verification-of-stella-output)
+   * [Set-up the automatic tests](#set-up-the-automatic-tests)
+   * [Run numerical tests](#run-numerical-tests)
+- [Acknowledgments](#acknowledgments)
+   * [Gyrokinetic model & physics extensions](#gyrokinetic-model-and-physics-extensions)
+   * [Magnetic geometries](#magnetic-geometries)
+   * [Code infrastructure](#code-infrastructure)
+   * [Diagnostics](#diagnostics)
+   * [Small features](#small-features)
+   * [Bug fixes](#bug-fixes)
 
 
 <br><br>
@@ -155,6 +162,26 @@ make distclean          # Clean + Remove stelle executable + Invoke clean on pFU
 
 
 
+
+<br><br>
+
+## New input variables
+
+Many of the namelists and variable names have been changed throughout the years to make them more intuitive. An up-to-date default $\texttt{stella}$ input file can be found at:
+
+```
+STELLA_CODE/read_namelists_from_input_file/default_input_file.in
+```
+
+To convert old $\texttt{stella}$ input files to the new format, run the following command in the folder containing the input file:
+
+```
+python3 $STELLA/AUTOMATIC_TESTS/convert_input_files/convert_inputFile.py
+```
+
+
+
+
 <br><br>
 
 ## Verification of stella output
@@ -212,7 +239,7 @@ make numerical-tests-8
 Disclaimer: This section is incomplete.
 It is the responsibility of the respective authors to list their contributions to the $\texttt{stella}$ code.
 
-### Gyrokinetic model & physics extensions
+### Gyrokinetic model and physics extensions
 
 - The electrostatic flux-tube version of the $\texttt{stella}$ gyrokinetic code has been developed by M. Barnes in 2018. The details of the code can be found in [[2019 - Barnes - Journal of Computational Physics](https://doi.org/10.1016/j.jcp.2019.01.025)].
 - The "parallel nonlinearity" term has been added to the gyrokinetic equation by M. Barnes in 2018, as detailed in [[2018 - Barnes - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aaeb69)].
