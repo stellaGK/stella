@@ -229,7 +229,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       
       ! Flags
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       ! Collision models
       use collisions_dougherty, only: advance_collisions_dougherty_explicit
@@ -244,9 +244,9 @@ contains
       
       !-------------------------------------------------------------------------
 
-      ! Abort if collisions are on in full_flux_surface simulations
-      if (full_flux_surface) then
-         call mp_abort("Collisions are not currently supported for full_flux_surface = True. Aborting.")
+      ! Abort if collisions are on in full_flux_annulus simulations
+      if (full_flux_annulus) then
+         call mp_abort("Collisions are not currently supported for full_flux_annulus = True. Aborting.")
       end if
 
       ! Advance the explicit collisions

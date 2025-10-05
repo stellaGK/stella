@@ -100,7 +100,7 @@ contains
    !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_kxky_local(field, iz, ivmu, gyro_field)
 
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       implicit none
 
@@ -112,7 +112,7 @@ contains
 
       ! If simulating a full flux surface, the alpha dependence present
       ! in kperp makes gyro-averaging non-local in k-space
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call gyro_average(field, gyro_field, j0_ffs(:, :, iz, ivmu))
         
       ! If simulating a flux tube, a gyro-average is local in k-space
@@ -126,7 +126,7 @@ contains
    !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_kxkyz_local(field, ivmu, gyro_field)
 
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use grids_z, only: nzgrid, ntubes
 
       implicit none
@@ -139,7 +139,7 @@ contains
 
       ! If simulating a full flux surface, the alpha dependence present
       ! in kperp makes gyro-averaging non-local in k-space
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call gyro_average(field, gyro_field, j0_ffs(:, :, :, ivmu))
          
       ! If simulating a flux tube, a gyro-average is local in k-space
@@ -153,7 +153,7 @@ contains
    !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_kxkyzv_local(field, gyro_field)
 
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use grids_z, only: nzgrid
       use parallelisation_layouts, only: vmu_lo
 
@@ -167,7 +167,7 @@ contains
 
       ! If simulating a full flux surface, the alpha dependence present
       ! in kperp makes gyro-averaging non-local in k-space
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call gyro_average(field, gyro_field, j0_ffs)
          
       ! If simulating a flux tube, a gyro-average is local in k-space
@@ -474,7 +474,7 @@ contains
       use mp, only: proc0, mp_abort
       use grids_z, only: nzgrid
       use parallelisation_layouts, only: vmu_lo
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       implicit none
 
@@ -484,9 +484,9 @@ contains
       
       !-------------------------------------------------------------------------
 
-      if (full_flux_surface) then
-         if (proc0) write (*, *) 'gyro_average_j1_kxkyzv_local does not support full_flux_surface'
-         call mp_abort('gyro_average_j1_kxkyzv_local does not support full_flux_surface. aborting')
+      if (full_flux_annulus) then
+         if (proc0) write (*, *) 'gyro_average_j1_kxkyzv_local does not support full_flux_annulus'
+         call mp_abort('gyro_average_j1_kxkyzv_local does not support full_flux_annulus. aborting')
          return
          ! if simulating a full flux surface, the alpha dependence present
          ! in kperp makes gyro-averaging non-local in k-space
@@ -717,7 +717,7 @@ contains
     !         ! get the mu index
     !         imu = imu_idx(vmu_lo,ivmu)
     ! !         if (debug) write (*,*) 'gyro_averages::init_bessel::test_gyro_averages::gyro_average'
-    !         if (full_flux_surface) then
+    !         if (full_flux_annulus) then
     !             call gyro_average (fld_kykx, gyro_fld, j0_ffs(:,:,iz,ivmu))
     !         else
     !             call gyro_average (fld_kykx, iz, ivmu, gyro_fld)

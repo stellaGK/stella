@@ -57,6 +57,7 @@ module parameters_numerical
 
    ! Flux annulus options
    public :: nitt
+   public :: fields_tol, itt_tol
    
    ! Public subroutines that are read by the main stella routine.
    public :: read_parameters_numerical, finish_read_parameters_numerical
@@ -95,6 +96,7 @@ module parameters_numerical
 
    ! Extra - need to move
    integer :: nitt
+   real :: fields_tol, itt_tol
 
    ! Internal
    logical :: initialised = .false.
@@ -141,7 +143,7 @@ contains
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
-      if (proc0) call read_namelist_flux_annulus(nitt)
+      if (proc0) call read_namelist_flux_annulus(nitt, fields_tol, itt_tol)
 
       if (proc0) call check_numerical_inputs 
 
@@ -157,7 +159,7 @@ contains
       !**********************************************************************
       subroutine check_numerical_inputs
 
-         use parameters_physics, only: full_flux_surface
+         use parameters_physics, only: full_flux_annulus
          use parameters_physics, only: include_apar
          use parameters_physics, only: include_parallel_streaming
          use parameters_physics, only: include_mirror
@@ -229,16 +231,18 @@ contains
             end if
          end if
 
-         if (.not. full_flux_surface) then  
+         if (.not. full_flux_annulus) then  
             nitt = 1
+            fields_tol = 1.e-8
+            itt_tol = 1.e-6
          end if
 
-         ! Print warning messages and override inconsistent or unsupported options for full_flux_surface = T
-         if (full_flux_surface) then
+         ! Print warning messages and override inconsistent or unsupported options for full_flux_annulus = T
+         if (full_flux_annulus) then
             if (fields_kxkyz) then
                write (*, *)
                write (*, *) '!!!WARNING!!!'
-               write (*, *) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
+               write (*, *) 'The option fields_kxkyz=T is not currently supported for full_flux_annulus=T.'
                write (*, *) 'Forcing fields_kxkyz=F.'
                write (*, *) '!!!WARNING!!!'
                write (*, *)
@@ -247,7 +251,7 @@ contains
             if (mirror_semi_lagrange) then
                write (*, *)
                write (*, *) '!!!WARNING!!!'
-               write (*, *) 'The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.'
+               write (*, *) 'The option mirror_semi_lagrange=T is not consistent with full_flux_annulus=T.'
                write (*, *) 'Forcing mirror_semi_lagrange=F.'
                write (*, *) '!!!WARNING!!!'
                mirror_semi_lagrange = .false.
@@ -349,6 +353,8 @@ contains
 
          ! Extra - need to move
          call broadcast(nitt)
+         call broadcast(fields_tol)
+         call broadcast(itt_tol)
          
       end subroutine broadcast_parameters
     

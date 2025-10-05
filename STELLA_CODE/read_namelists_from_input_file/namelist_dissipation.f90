@@ -416,7 +416,7 @@ contains
          
       !-------------------------------------------------------------------------
       
-      ! The <use_physical_ksqr> flag is turned off for full_flux_surface and radial_variation
+      ! The <use_physical_ksqr> flag is turned off for full_flux_annulus and radial_variation
       ! Therefore, we need to read the physics parameters first
       if (.not. initialised_parameters_physics) then
          call mp_abort('Initialise physics parameters before reading dissipation namelists. Aborting.')
@@ -433,11 +433,11 @@ contains
       !------------------------ Default input parameters -----------------------
       subroutine set_default_parameters_hyper_dissipation
 
-         use parameters_physics, only: full_flux_surface, radial_variation
+         use parameters_physics, only: full_flux_annulus, radial_variation
 
          implicit none
 
-         use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
+         use_physical_ksqr = .not. (full_flux_annulus .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
          scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
          D_hyper = 0.05
          D_zed = 0.05

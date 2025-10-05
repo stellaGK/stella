@@ -77,7 +77,7 @@ contains
 
       ! Flags
       use parameters_physics, only: radial_variation
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       ! Write to netcdf file 
       use write_diagnostics_to_netcdf, only: write_radial_moments_nc
@@ -126,8 +126,8 @@ contains
          call get_moments_radial_variation(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
       end if
 
-      ! Calculate the moments if <full_flux_surface> = True
-      if (full_flux_surface .and. write_moments) then
+      ! Calculate the moments if <full_flux_annulus> = True
+      if (full_flux_annulus .and. write_moments) then
          
          ! TODO-GA The moments for FFS are calculated in the fluxes routine
          ! Since the fluxes rely on the moments
@@ -206,7 +206,7 @@ contains
 
       !-------------------------------------------------------------------------
       
-      ! We only have one field line because <full_flux_surface> = .false.
+      ! We only have one field line because <full_flux_annulus> = .false.
       ia = 1
  
       !=========================================================================

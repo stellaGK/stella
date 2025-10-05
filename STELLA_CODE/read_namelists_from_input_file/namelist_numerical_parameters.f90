@@ -459,7 +459,7 @@ contains
    !****************************************************************************
    !                              FULL FLUX ANNULUS                            !
    !****************************************************************************
-   subroutine read_namelist_flux_annulus(nitt) !, field_tol, itt_tol)
+   subroutine read_namelist_flux_annulus(nitt, fields_tol, itt_tol)
 
       use mp, only: proc0
 
@@ -467,6 +467,7 @@ contains
 
       ! Variables that are read from the input file
       integer, intent (out) :: nitt
+      real, intent (out) :: fields_tol, itt_tol
       
       !-------------------------------------------------------------------------
 
@@ -483,6 +484,8 @@ contains
          implicit none
 
          nitt = 1
+         fields_tol = 1.e-8
+         itt_tol = 1.e-6
 
       end subroutine set_default_parameters_flux_annulus
 
@@ -493,7 +496,7 @@ contains
 
          implicit none
 
-         namelist /flux_annulus/ nitt
+         namelist /flux_annulus/ nitt, fields_tol, itt_tol
          in_file = input_unit_exist('flux_annulus', dexist)
          if (dexist) read (unit=in_file, nml=flux_annulus)
 

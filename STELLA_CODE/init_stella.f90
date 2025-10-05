@@ -623,7 +623,7 @@ contains
 
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_physics, only: include_nonlinear, include_parallel_nonlinearity
-      use parameters_physics, only: radial_variation, full_flux_surface
+      use parameters_physics, only: radial_variation, full_flux_annulus
       use gk_flow_shear, only: hammett_flow_shear
       use gk_flow_shear, only: g_exb, g_exbfac
       use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
@@ -641,7 +641,7 @@ contains
       if (include_nonlinear .or. include_parallel_nonlinearity) fourier_transformations_are_needed = .true.
       
       ! If 'global' in radial or bi-normal directions, need FFTs
-      if (radial_variation .or. full_flux_surface) fourier_transformations_are_needed = .true.
+      if (radial_variation .or. full_flux_annulus) fourier_transformations_are_needed = .true.
       
       ! If running in multibox mode, need FFTs
       if (runtype_option_switch == runtype_multibox) fourier_transformations_are_needed = .true.

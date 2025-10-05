@@ -504,7 +504,7 @@ contains
    !****************************************************************************
    subroutine init_maxwellian_factors
       
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use grids_species, only: spec, nspec
       use grids_species, only: species_option_switch
       use grids_species, only: species_option_multibox
@@ -530,7 +530,7 @@ contains
       ! Calculate the mu part of the v-space Maxwellian
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
          * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
-      if (full_flux_surface) maxwell_mu_avg = spread(sum(maxwell_mu, dim = 1), 1, nalpha) / nalpha
+      if (full_flux_annulus) maxwell_mu_avg = spread(sum(maxwell_mu, dim = 1), 1, nalpha) / nalpha
 
       ! Calculate <maxwell_fac>. Note that <maxwell_fac> = 1 unless radially global
       if (.not. allocated(maxwell_fac)) allocate (maxwell_fac(nspec)); maxwell_fac = 1.0

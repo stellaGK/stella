@@ -184,7 +184,7 @@ contains
       use parallelisation_layouts, only: iz_idx, is_idx, imu_idx, iv_idx, iy_idx
       
       ! Parameters
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parameters_numerical, only: vpa_upwind, time_upwind
 
       ! Grids
@@ -245,7 +245,7 @@ contains
       if (.not. allocated(mirror_tri_a)) then
          ! If running in full-flux-surface mode, solve mirror advance
          ! in y-space rather than ky-space due to alpha-dependence of coefficients
-         if (full_flux_surface) then
+         if (full_flux_annulus) then
             llim = kxyz_lo%llim_proc
             ulim = kxyz_lo%ulim_alloc
          else
@@ -282,7 +282,7 @@ contains
       a = a * tupwndfac
       c = c * tupwndfac
 
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             iy = iy_idx(kxyz_lo, ikxyz)
             iz = iz_idx(kxyz_lo, ikxyz)
@@ -395,7 +395,7 @@ contains
       use parallelisation_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
       
       ! Parameters
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       ! Grids + Arrays
       use grids_z, only: nzgrid, ntubes
@@ -424,7 +424,7 @@ contains
       ! Start the timer for this subroutine
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          ! Assume we are simulating a single flux train
          it = 1
 
@@ -447,7 +447,7 @@ contains
          ! Remap g so velocities are local
          call scatter(kxyz2vmu, g0x, g0v)
          ! Next, calculate dg/dvpa;
-         ! We enforce a boundary condition on <f>, but with full_flux_surface = T,
+         ! We enforce a boundary condition on <f>, but with full_flux_annulus = T,
          ! g = <f> / F, so we use the chain rule to get two terms:
          ! One with exp(vpa^2)*d<f>/dvpa and another that is proportional to exp(vpa^2) * <f>/F * d ln F /dvpa
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -660,7 +660,7 @@ contains
       use arrays_distribution_function, only: gvmu
 
       ! Parameters
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parameters_physics, only: include_apar
       use parameters_numerical, only: time_upwind
       use parameters_numerical, only: vpa_upwind, time_upwind
@@ -715,7 +715,7 @@ contains
       ! ------------------------------------------------------------------------
       !                                Flux Tube
       ! ------------------------------------------------------------------------
-      if (.not. full_flux_surface) then 
+      if (.not. full_flux_annulus) then 
          ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
          if (.not. collisions_implicit) then
             ! get g^{*} with v-space on processor
@@ -792,7 +792,7 @@ contains
          call gather(kxkyz2vmu, g0v, g)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
 
-      elseif (full_flux_surface) then
+      elseif (full_flux_annulus) then
          ! ---------------------------------------------------------------------
          !                              Full Flux Surface
          ! ---------------------------------------------------------------------
@@ -999,7 +999,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use arrays_distribution_function, only: gvmu
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       implicit none
 
@@ -1017,7 +1017,7 @@ contains
 
       ia = 1
 
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          ! FLAG DSO - Someday one should be able to do full global
       else
          if (.not. fields_kxkyz) then

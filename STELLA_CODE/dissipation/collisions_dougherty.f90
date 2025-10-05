@@ -1043,7 +1043,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: spec
       use parameters_physics, only: fphi
-      use parameters_physics, only: radial_variation, full_flux_surface
+      use parameters_physics, only: radial_variation, full_flux_annulus
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
       use calculations_kxky, only: multiply_by_rho
@@ -1080,8 +1080,8 @@ contains
 
       ia = 1
 
-      if (full_flux_surface) then
-         call mp_abort("collisions not currently supported for full_flux_surface=T.  Aborting.")
+      if (full_flux_annulus) then
+         call mp_abort("collisions not currently supported for full_flux_annulus=T.  Aborting.")
       end if
 
       if (proc0) call time_message(.false., time_collisions(:, 1), ' collisions')

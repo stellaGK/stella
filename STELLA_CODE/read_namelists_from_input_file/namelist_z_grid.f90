@@ -77,7 +77,7 @@ contains
       ! Only read parameters on the first processor
       if (.not. proc0) return
       
-      ! Some z-grid flags are based on <full_flux_surface>
+      ! Some z-grid flags are based on <full_flux_annulus>
       ! Therefore, we need to read the physics parameters first
       if (.not. initialised_parameters_physics) then
          call mp_abort('Initialise physics parameters before reading z-grid namelists. Aborting.')
@@ -140,7 +140,7 @@ contains
       !------------------------- Check input parameters ------------------------
       subroutine check_inputs_z_grid
 
-         use parameters_physics, only: full_flux_surface
+         use parameters_physics, only: full_flux_annulus
 
          implicit none
 
@@ -150,7 +150,7 @@ contains
          ! In full-flux-surface simulations, force the use of z = arc_length to
          ! ensure that b · ∇z is alpha-independent, which is necessary to obtain
          ! efficient numerical solution of parallel streaming
-         if (full_flux_surface) zed_equal_arc = .true.
+         if (full_flux_annulus) zed_equal_arc = .true.
       
       end subroutine check_inputs_z_grid
       

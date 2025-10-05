@@ -153,7 +153,7 @@ contains
          
       ! Avoid spatially dependent kperp (through the geometric coefficients).
       ! Nonetheless, kperp is still allowed to vary along zed with global magnetic shear.
-      ! This is useful for full_flux_surface and radial_variation runs.
+      ! This is useful for full_flux_annulus and radial_variation runs.
       ! TODO-GA: Is the s-alpha model correct for FFS? Or is scale_to_outboard set to True always?
       else
       

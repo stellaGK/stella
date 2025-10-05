@@ -30,7 +30,7 @@ module gk_parallel_streaming
    public :: stream_correction
    public :: stream_correction_sign
    public :: stream_store_full, stream_full_sign
-   public :: get_dgdz_centered
+   public :: get_dgdz_centered, get_dgdz
 
    private
 
@@ -75,7 +75,7 @@ contains
       use geometry, only: b_dot_gradz_avg, d_bdotgradz_drho, dBdrho, gfac, b_dot_gradz
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       implicit none
 
@@ -97,7 +97,7 @@ contains
       !-------------------------------------------------------------------------
       !                        Full Flux Surface simulation
       !-------------------------------------------------------------------------
-      if(full_flux_surface) then 
+      if(full_flux_annulus) then 
          if (.not. allocated(stream_store_full)) allocate (stream_store_full(nalpha,-nzgrid:nzgrid, nvpa, nspec)); stream_store_full = 0.
          if (.not. allocated(stream_full_sign)) allocate(stream_full_sign(nalpha, nvpa)); stream_full_sign = 0.0
          if (driftkinetic_implicit) then
@@ -136,7 +136,7 @@ contains
       !-------------------------------------------------------------------------
       !                        Full Flux Surface simulation
       !-------------------------------------------------------------------------
-      if(full_flux_surface) then 
+      if(full_flux_annulus) then 
          stream_store_full = stream
          if (driftkinetic_implicit) then
             stream_correction = stream - spread(stream_store, 1, nalpha)
@@ -187,7 +187,7 @@ contains
          !----------------------------------------------------------------------
          !                      Full Flux Surface simulation
          !----------------------------------------------------------------------
-         if(full_flux_surface) then 
+         if(full_flux_annulus) then 
             do ia = 1, nalpha
                stream_full_sign(ia,:) = int(sign(1.0, stream_store_full(ia, 0, iv, 1)))
                if (driftkinetic_implicit) then         
@@ -287,7 +287,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
-      use parameters_physics, only: full_flux_surface, include_bpar
+      use parameters_physics, only: full_flux_annulus, include_bpar
 	
       use grids_velocity, only: mu
       use grids_species, only: spec
@@ -327,7 +327,7 @@ contains
       ! ------------------------------------------------------------------------
       ! If simulating a full flux surface, will also need version of the above arrays
       ! that is Fourier transformed to y-space
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          allocate (g0_swap(naky_all, ikx_max))
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
@@ -342,7 +342,7 @@ contains
 
          ! =====================================================================
          ! Obtain <phi> 
-         if (full_flux_surface) then
+         if (full_flux_annulus) then
             ! ------------------------------------------------------------------
             !                           Full Flux Surface
             ! ------------------------------------------------------------------
@@ -381,7 +381,7 @@ contains
          ! ---------------------------------------------------------------------
          ! If simulating a full flux surface, need to obtain the contribution 
          ! from parallel streaming in y-space, so FFT d(g/F)/dz from ky to y.
-         if (full_flux_surface) then
+         if (full_flux_annulus) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   ! Get dg/dz in real space
@@ -419,7 +419,7 @@ contains
       ! ========================================================================
       ! Deallocate intermediate arrays used in this subroutine
       deallocate (g0, dgphi_dz, dgbpar_dz)
-      if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
+      if (full_flux_annulus) deallocate (g0y, g1y, g0_swap)
       ! ========================================================================
       ! Finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
@@ -913,7 +913,7 @@ contains
    subroutine finish_parallel_streaming
 
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       implicit none
 
@@ -927,7 +927,7 @@ contains
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
-      if(full_flux_surface) then 
+      if(full_flux_annulus) then 
          if(allocated(stream_store_full)) deallocate(stream_store_full)
          if(allocated(stream_full_sign)) deallocate(stream_full_sign)
          if (driftkinetic_implicit) then 

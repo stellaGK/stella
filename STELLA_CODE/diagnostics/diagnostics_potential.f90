@@ -231,7 +231,7 @@ contains
       end if
       
       ! TODO - GA - Fix this TODO-GA
-      ! if (full_flux_surface) then
+      ! if (full_flux_annulus) then
       !    it = 1
 	      
       !    allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))

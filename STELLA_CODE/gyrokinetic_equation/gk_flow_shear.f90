@@ -275,7 +275,7 @@ contains
       use arrays_fields, only: phi, apar, bpar
       
       ! Physics flags
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       ! Calculations
       use calculations_kxky_derivatives, only: get_dchidy
@@ -302,9 +302,9 @@ contains
       allocate (g0k(naky, nakx))
 
       ! Abort for full-flux-surface simulations
-      if (full_flux_surface) then
-         if (proc0) write (*, *) '!!!WARNING: flow shear not currently supported for full_flux_surface=T!!!'
-         call mp_abort("flow shear not currently supported for full_flux_surface=T.")
+      if (full_flux_annulus) then
+         if (proc0) write (*, *) '!!!WARNING: flow shear not currently supported for full_flux_annulus=T!!!'
+         call mp_abort("flow shear not currently supported for full_flux_annulus=T.")
       end if
       
       ! Iterate over the (z,mu,vpa,tube,s) grid

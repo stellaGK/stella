@@ -124,7 +124,7 @@ contains
       use splines, only: geo_spline
       
       ! Flags
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use debug_flags, only: const_alpha_geo 
       use debug_flags, only: print_extra_info_to_terminal
       
@@ -345,7 +345,7 @@ contains
          ! with functions of g and phi, we must take care to avoid aliasing. This is 
          ! accomplished by filtering out the highest third of the wavenumber spectra.
          if (debug) write (*, *) 'get_vmec_geometry::filter_geo_coef'
-         if (full_flux_surface .and. .not. const_alpha_geo) then
+         if (full_flux_annulus .and. .not. const_alpha_geo) then
             do iz = -nzgrid, nzgrid
                call filter_geo_coef(naky, bmag(:, iz))
                call filter_geo_coef(naky, grad_alpha_grad_alpha(:, iz))

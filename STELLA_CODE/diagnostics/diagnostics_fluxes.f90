@@ -106,7 +106,7 @@ contains
 
       ! Flags 
       use parameters_physics, only: radial_variation
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parameters_diagnostics, only: write_fluxes_vs_time
       use parameters_diagnostics, only: write_fluxes_kxkyz
       use parameters_diagnostics, only: write_fluxes_kxky
@@ -165,14 +165,14 @@ contains
          call write_fluxes_for_fluxtube_radialvariation(nout, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, write_to_netcdf_file)
       end if
 
-      ! Calculate the fluxes if <full_flux_surface> = True
-      if (full_flux_surface) then 
+      ! Calculate the fluxes if <full_flux_annulus> = True
+      if (full_flux_annulus) then 
          if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_for_fullfluxsurface'
          call write_fluxes_for_fullfluxsurface(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)
       end if
 
       ! Calculate the fluxes for a flux tube simulation
-      if (.not. full_flux_surface) then 
+      if (.not. full_flux_annulus) then 
          if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_for_fluxtube' 
          call write_fluxes_for_fluxtube(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
       end if

@@ -48,7 +48,6 @@ module arrays_gyro_averages
    public :: j0_B_ffs, j0_ffs 
    public :: j1_ffs
    public :: j0_const, j0_B_const
-   public :: j0max_const
 
    private
 
@@ -61,7 +60,7 @@ module arrays_gyro_averages
    ! Variables for the full flux surface simulations
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j0_ffs, j0_B_ffs
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j1_ffs
-   real, dimension(:, :, :, :), allocatable :: j0_const, j0_B_const, j0max_const
+   real, dimension(:, :, :, :), allocatable :: j0_const, j0_B_const
 
    ! Only initialize the Bessel functions once
    logical :: initialised_bessels = .false.
@@ -197,7 +196,7 @@ contains
       use grids_species, only: spec
       
       ! Flags
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       implicit none
       
@@ -209,7 +208,7 @@ contains
       !-------------------------------------------------------------------------
  
       ! Calculate the Bessel functions for full-flux-surface simulations
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call init_bessel_ffs 
          
       ! Calculate the Bessel functions for flux-tube simulations
@@ -297,13 +296,10 @@ contains
       complex, dimension(:, :), allocatable :: j0_const_in_kalpha, j0_B_const_in_kalpha
       complex, dimension(:, :), allocatable :: j0_const_c, j0_B_const_c
 
-      real, dimension(:), allocatable :: j0max
-      complex, dimension(:, :), allocatable :: j0max_const_in_kalpha, j0max_const_c
-      
       !-------------------------------------------------------------------------
       
       
-      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface'
+      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_annulus'
 
       ! if (debug_test_gyro_average) call open_output_file (j0_ffs_unit, '.j0_ffs')
       ! if (debug_test_gyro_average) call open_output_file (j0_B_ffs_unit, '.j0_over_B_ffs')
@@ -312,7 +308,7 @@ contains
       allocate (wgts(nspec))
       wgts = spec%dens * spec%z**2 / spec%temp
 
-      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::allocate_arrays'
+      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_annulus::allocate_arrays'
       ! aj0_alpha will contain J_0 as a function of k_alpha and alpha
       allocate (aj0_alpha(nalpha))
       allocate (aj0_kalpha(naky))
@@ -340,22 +336,17 @@ contains
       allocate (j0_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0_const = 0.0
       allocate (j0_B_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0_B_const = 0.0
 
-      allocate (j0max(nalpha))
-      allocate (j0max_const_in_kalpha(naky_all, ikx_max)); j0max_const_in_kalpha = 0.0
-      allocate (j0max_const_c(naky, nakx)); j0max_const_c = 0.0
-      allocate (j0max_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0max_const = 0.0
-
       ia_max_j0_count = 0; ia_max_j0_B_count = 0
       do iz = -nzgrid, nzgrid
    !         if (proc0) write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
          ! for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
          ! and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
          ! this makes later convolutions involving sums over all ky more straightforward
-         if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::swap_kxky'
+         if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_annulus::swap_kxky'
          do ia = 1, nalpha
                call swap_kxky_ordered(kperp2(:, :, ia, iz), kperp2_swap(:, :, ia))
          end do
-         if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::j0_loop'
+         if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_annulus::j0_loop'
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                is = is_idx(vmu_lo, ivmu)
                iv = iv_idx(vmu_lo, ivmu)
@@ -370,7 +361,6 @@ contains
                      ! compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
                      ! due to B in v-space Jacobian
                      j0_B(ia) = aj0_alpha(ia) * bmag(ia, iz)
-                     j0max = aj0_alpha(ia) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                      aj1_alpha(ia) = j1(arg)
                   end do
 
@@ -383,11 +373,10 @@ contains
 
                   j0_const_in_kalpha(iky, ikx) = aj0_kalpha(1)
                   j0_B_const_in_kalpha(iky, ikx) = j0_B_kalpha(1)
-                  j0max_const_in_kalpha(iky, ikx) = j0max(1)
                      
                   ! given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                   ! called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                  !if (debug) write (*,*) 'arrays_gyro_averages:init_bessel::full_flux_surface::find_max_required_kalpha_index'
+                  !if (debug) write (*,*) 'arrays_gyro_averages:init_bessel::full_flux_annulus::find_max_required_kalpha_index'
                   !                ! TMP FOR TESTING
                   !                j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                   call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
@@ -421,8 +410,6 @@ contains
                j0_const(:, :, iz, ivmu) = real(j0_const_c)
                call swap_kxky_back_ordered(j0_B_const_in_kalpha, j0_B_const_c)
                j0_B_const(:, :, iz, ivmu) = real(j0_B_const_c)
-               call swap_kxky_back_ordered(j0max_const_in_kalpha, j0max_const_c)
-               j0max_const(:, :, iz, ivmu) = real(j0max_const_c)
          end do
       end do
 
@@ -430,7 +417,6 @@ contains
       deallocate (aj0_alpha)
       deallocate (j0_const_in_kalpha, j0_const_c)
       deallocate (j0_B_const_in_kalpha, j0_B_const_c)
-      deallocate (j0max_const_in_kalpha, j0max_const_c, j0max)
 
       ! calculate the reduction factor of Fourier modes
       ! used to represent J0
@@ -540,7 +526,6 @@ contains
       if (allocated(j0_B_ffs)) deallocate (j0_B_ffs)
       if (allocated(j0_B_const)) deallocate (j0_B_const)
       if (allocated(j0_const)) deallocate (j0_const)
-      if (allocated(j0max_const)) deallocate (j0max_const)
 
       initialised_bessels = .false.
 

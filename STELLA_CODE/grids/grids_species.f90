@@ -233,7 +233,7 @@ contains
 
       use mp, only: broadcast, mp_abort
       use parameters_multibox, only: include_pressure_variation
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       implicit none
 
@@ -270,9 +270,9 @@ contains
       ! and field-line-avg chosen as the adiabatic option
       modified_adiabatic_electrons = adiabatic_electrons .and. (adiabatic_option_switch == adiabatic_option_fieldlineavg)
 
-      if(has_electron_species(spec) .and. full_flux_surface) then
-         write (*,*) 'full_flux_surface is not set up for kinetic electrons yet'
-         call mp_abort('full_flux_surface is not set up for kinetic electrons yet')
+      if(has_electron_species(spec) .and. full_flux_annulus) then
+         write (*,*) 'full_flux_annulus is not set up for kinetic electrons yet'
+         call mp_abort('full_flux_annulus is not set up for kinetic electrons yet')
       end if
       
    contains

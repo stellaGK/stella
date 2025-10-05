@@ -46,7 +46,7 @@
 !               yfnp_fft   ky --C2R--> y       transform_ky2y_unpadded (gky, gy)
 !               ybnp_fft   y  --RC2--> ky      transform_y2ky_unpadded (gy, gky)
 ! 
-!  (4) FFT along nalpha = ny if full_flux_surface==True
+!  (4) FFT along nalpha = ny if full_flux_annulus==True
 !          alpha_f_fft   kalpha --C2R--> alpha    transform_kalpha2alpha (gkalph, galph)
 !          alpha_b_fft   alpha  --RC2--> kalpha   transform_alpha2kalpha (galph, gkalph)
 ! 
@@ -133,7 +133,7 @@ contains
   !=============================================================================
    subroutine init_transforms
 
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parallelisation_layouts, only: read_parameters_parallelisation_layouts
 
       implicit none
@@ -148,7 +148,7 @@ contains
       call init_y_xfirst_fft
       call init_unpadded_x_fft
       call init_unpadded_y_fft
-      if (full_flux_surface) call init_alpha_fft
+      if (full_flux_annulus) call init_alpha_fft
 
    end subroutine init_transforms
 
@@ -340,7 +340,7 @@ contains
    !****************************************************************************
    !                 CREATE PLAN FOR A C2R FFT ALONG NALPHA  
    !****************************************************************************
-   ! Recall that if (full_flux_surface) then nalpha = ny
+   ! Recall that if (full_flux_annulus) then nalpha = ny
    ! Create the FFT plans for a c2r fourier transform along nalpha:
    !    <alpha_f_fft>: "forward" Fourier Transforms for kalpha(complex) --> alpha(real)
    !    <alpha_b_fft>: "backward" Fourier Transforms for alpha(real) --> kalpha(complex)
@@ -934,7 +934,7 @@ contains
    ! Destroy the FFT plans and deallocate the arrays
    subroutine finish_transforms
 
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       implicit none
 
@@ -950,7 +950,7 @@ contains
       call dfftw_destroy_plan(ybnp_fft%plan)
       call dfftw_destroy_plan(xfnp_fft%plan)
       call dfftw_destroy_plan(xbnp_fft%plan)
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call dfftw_destroy_plan(alpha_f_fft%plan)
          call dfftw_destroy_plan(alpha_b_fft%plan)
       end if

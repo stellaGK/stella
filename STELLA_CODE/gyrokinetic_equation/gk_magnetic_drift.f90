@@ -404,7 +404,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, ny
       use calculations_kxky, only: swap_kxky
-      use parameters_physics, only: full_flux_surface, include_bpar
+      use parameters_physics, only: full_flux_annulus, include_bpar
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
       use arrays_distribution_function, only: g_scratch
@@ -438,7 +438,7 @@ contains
       ! calculate dbpar/dy in (ky,kx) space
       if (include_bpar) call get_dgdy(bpar, dbpardy)
 
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          ! assume only a single flux surface simulated
          it = 1
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -520,7 +520,7 @@ contains
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, ny
       use grids_kxky, only: akx
       use calculations_kxky, only: swap_kxky
-      use parameters_physics, only: full_flux_surface, include_bpar
+      use parameters_physics, only: full_flux_annulus, include_bpar
       use calculations_gyro_averages, only: gyro_average
       use arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use arrays_distribution_function, only: g_scratch
@@ -561,7 +561,7 @@ contains
       ! calculate dbpar/dx in (ky,kx) space
       if (include_bpar) call get_dgdx(bpar, dbpardx)
 
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          ! assume a single flux surface is simulated
          it = 1
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))

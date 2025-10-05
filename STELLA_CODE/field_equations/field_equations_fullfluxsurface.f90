@@ -40,7 +40,7 @@ contains
    !                                      Title
    !****************************************************************************
    ! advance_fields_using_field_equations_fullfluxsurface accepts as input the guiding centre distribution function g
-   ! and calculates/returns the electronstatic potential phi for full_flux_surface simulations
+   ! and calculates/returns the electronstatic potential phi for full_flux_annulus simulations
    !****************************************************************************
    subroutine advance_fields_using_field_equations_fullfluxsurface(g, phi, apar, implicit_solve)
 
@@ -213,7 +213,7 @@ contains
       
       if (include_apar) then
          apar = 0.
-         call mp_abort('apar not yet supported for full_flux_surface = T. Aborting.')
+         call mp_abort('apar not yet supported for full_flux_annulus = T. Aborting.')
       end if
 
    contains

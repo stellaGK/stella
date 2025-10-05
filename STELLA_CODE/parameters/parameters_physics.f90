@@ -39,7 +39,7 @@ module parameters_physics
    public :: include_parallel_nonlinearity
    public :: include_electromagnetic
    public :: include_flow_shear
-   public :: full_flux_surface
+   public :: full_flux_annulus
    public :: radial_variation
 
    ! Scaling options
@@ -70,7 +70,7 @@ module parameters_physics
    logical :: include_parallel_nonlinearity
    logical :: include_electromagnetic
    logical :: include_flow_shear
-   logical :: full_flux_surface
+   logical :: full_flux_annulus
    logical :: radial_variation
 
    ! Scaling options
@@ -114,7 +114,7 @@ contains
          include_parallel_streaming, include_mirror, &
          include_xdrift, include_ydrift, include_drive, include_nonlinear, &
          include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
-         full_flux_surface, radial_variation)
+         full_flux_annulus, radial_variation)
       call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
          xdriftknob, ydriftknob, wstarknob, fphi, suppress_zonal_interaction)
       call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
@@ -125,16 +125,16 @@ contains
 
       ! Set the simulation domain
       if (simulation_domain_switch == simulation_domain_fluxtube) then
-         full_flux_surface = .false.
+         full_flux_annulus = .false.
          radial_variation = .false.
       else if (simulation_domain_switch == simulation_domain_multibox) then
-         full_flux_surface = .false.
+         full_flux_annulus = .false.
          radial_variation = .true. ! Full flux is not compatible with multibox
       else if (simulation_domain_switch == simulation_domain_flux_annulus) then
-         full_flux_surface = .true.
+         full_flux_annulus = .true.
          radial_variation = .false.
       else
-         write(*,*) "Error: simulation_domain must be 'fluxtube', 'multibox', or 'full_flux_surface'."
+         write(*,*) "Error: simulation_domain must be 'fluxtube', 'multibox', or 'full_flux_annulus'."
          stop
       end if
 
@@ -165,7 +165,7 @@ contains
          call broadcast(include_parallel_nonlinearity)
          call broadcast(include_electromagnetic)
          call broadcast(include_flow_shear)
-         call broadcast(full_flux_surface)
+         call broadcast(full_flux_annulus)
          call broadcast(radial_variation)
 
          ! Scaling options

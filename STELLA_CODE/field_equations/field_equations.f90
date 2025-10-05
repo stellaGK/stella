@@ -72,7 +72,7 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use parallelisation_layouts, only: vmu_lo
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use grids_z, only: nzgrid
       use timers, only: time_field_solve
       
@@ -104,7 +104,7 @@ contains
       ! This will include electrostatic and electromagnetic effects, as well as
       ! any radial variation effects if included.
       !-------------------------------------------------------------------------
-      if (.not. full_flux_surface) then 
+      if (.not. full_flux_annulus) then 
          if (debug) write (*, *) 'field_equations::advance_fields_fluxtube'
          call advance_fields_fluxtube(g, phi, apar, bpar, dist)
 
@@ -148,7 +148,7 @@ contains
    subroutine init_field_equations
 
       use linear_solve, only: lu_decomposition
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_annulus, radial_variation
 
       ! Routines needed to initialise the different field arrays depending on the physics being simulated
       use field_equations_radialvariation, only: init_field_equations_radialvariation
@@ -171,7 +171,7 @@ contains
       !-------------------------------------------------------------------------
       !                        Full Flux Surface simulation
       !-------------------------------------------------------------------------
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
       
          if (debug) write (*, *) 'field_equations::init::ffs'
          nfields = 1
@@ -244,7 +244,7 @@ contains
    !============================================================================
    subroutine finish_field_equations
 
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_annulus, radial_variation
       use arrays_fields, only: phi, phi_old
       use arrays, only: denominator_fields, denominator_fields_MBR
       
@@ -265,7 +265,7 @@ contains
 
       ! Deallocate arrays from other field routines
       call finish_field_equations_electromagnetic
-      if (full_flux_surface) call finish_field_equations_fullfluxsurface
+      if (full_flux_annulus) call finish_field_equations_fullfluxsurface
       if (radial_variation) call finish_field_equations_radialvariation
 
       ! The fields are no longer initialised

@@ -1144,7 +1144,7 @@ contains
          use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
          use parameters_numerical, only: driftkinetic_implicit
          use calculations_velocity_integrals, only: integrate_species_ffs_rm
-         use parameters_physics, only: full_flux_surface
+         use parameters_physics, only: full_flux_annulus
          use arrays_gyro_averages, only: j0_B_const
 
          implicit none
@@ -1195,7 +1195,7 @@ contains
                ! ---------------------------------------------------------------
                !                            Flux tube
                ! ---------------------------------------------------------------
-               if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
+               if (.not. full_flux_annulus .and. (.not. driftkinetic_implicit)) then
                
                   ! First get J0 * g
                   call gyro_average(g(idx, :), iky, ikx, iz, g0)

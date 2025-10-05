@@ -47,7 +47,7 @@ contains
    !****************************************************************************
    subroutine init_redistribute
 
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parameters_physics, only: include_parallel_nonlinearity
       use parameters_numerical, only: split_parallel_dynamics
 
@@ -61,7 +61,7 @@ contains
 
       ! Initialise the redistribute schemes
       call init_kxkyz_to_vmu_redistribute
-      if (full_flux_surface) call init_kxyz_to_vmu_redistribute
+      if (full_flux_annulus) call init_kxyz_to_vmu_redistribute
       if (include_parallel_nonlinearity) call init_xyz_to_vmu_redistribute
       if (.not.split_parallel_dynamics) call init_kymus_to_vmus_redistribute
 

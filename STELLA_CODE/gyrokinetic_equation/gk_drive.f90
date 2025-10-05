@@ -154,7 +154,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       
       ! Physics
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
    
       implicit none
    
@@ -163,7 +163,7 @@ contains
 
       !-------------------------------------------------------------------------
    
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call advance_wstar_explicit_ffs(gout)
       else 
          call advance_wstar_explicit_flux_tube(phi, gout)

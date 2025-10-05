@@ -668,7 +668,7 @@ contains
       
       ! Flags
       use parameters_physics, only: radial_variation
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       ! Geometry
       use geometry, only: bmag, dBdrho
@@ -711,7 +711,7 @@ contains
             do iz = -nzgrid, nzgrid
             
                ! Full-flux-surface
-               if (full_flux_surface) then
+               if (full_flux_annulus) then
                
                   !!FLAG!! Need to gyro_averaged_field ia = 1 for ffs
                   field = spec(is)%zt * facphi * phi(:, :, iz, it) * &

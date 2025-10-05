@@ -164,7 +164,7 @@ contains
       use parameters_physics, only: include_mirror
       use parameters_physics, only: include_apar
       use parameters_physics, only: include_nonlinear
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parameters_physics, only: radial_variation
       use parameters_physics, only: xdriftknob, ydriftknob
       use dissipation_and_collisions, only: include_collisions
@@ -221,11 +221,11 @@ contains
       ! Initialise the right-hand-side of the gyrokinetic equation to zero
       rhs_ky = 0.
 
-      ! If full_flux_surface = .true., then initially obtain the RHS of the GKE in alpha-space;
+      ! If full_flux_annulus = .true., then initially obtain the RHS of the GKE in alpha-space;
       ! We will later inverse Fourier transform to get RHS in k_alpha-space
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          ! rhs_ky will always be needed as the array returned by the subroutine,
-         ! but intermediate array rhs_y (RHS of gke in alpha-space) only needed for full_flux_surface = .true.
+         ! but intermediate array rhs_y (RHS of gke in alpha-space) only needed for full_flux_annulus = .true.
          allocate (rhs_y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          rhs_y = 0.
          ! rhs is array referred to for both flux tube and full-flux-surface simulations;
@@ -259,7 +259,7 @@ contains
       ! due to the coupling of different k-alphas inherent in the gyro-average;
       ! calculate once here to avoid repeated calculation later
       ! TODO-GA : can this be spec up??
-      if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
+      if (full_flux_annulus) call gyro_average(phi, g_scratch, j0_ffs)
 
       !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
       !! IF SO, PRE-COMPUTE ONCE HERE
@@ -324,7 +324,7 @@ contains
          ! If simulating a full flux surface (flux annulus), all terms to this point have been calculated
          ! in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
          ! NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes
-         if (full_flux_surface) then
+         if (full_flux_annulus) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::transform_y2ky'
             allocate (rhs_ky_swap(naky_all, ikx_max))
             it = 1

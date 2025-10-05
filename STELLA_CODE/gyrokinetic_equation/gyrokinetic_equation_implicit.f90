@@ -46,7 +46,7 @@ contains
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: include_mirror
       use parameters_physics, only: radial_variation
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use gk_flow_shear, only: prp_shear_enabled
       
       ! Numerical flags
@@ -124,7 +124,7 @@ contains
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar, bpar)
-            if (radial_variation .or. full_flux_surface) fields_updated = .false.
+            if (radial_variation .or. full_flux_annulus) fields_updated = .false.
          end if
 
          ! Update the fields if not already updated
@@ -143,7 +143,7 @@ contains
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar, bpar)
-            if (radial_variation .or. full_flux_surface) fields_updated = .false.
+            if (radial_variation .or. full_flux_annulus) fields_updated = .false.
          end if
 
          if (mirror_implicit .and. include_mirror) then

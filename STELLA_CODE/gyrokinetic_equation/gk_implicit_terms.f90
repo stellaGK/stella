@@ -70,14 +70,19 @@ contains
       use parameters_numerical, only: use_deltaphi_for_response_matrix
       use parameters_numerical, only: tupwnd_m => time_upwind_minus
       use parameters_numerical, only: tupwnd_p => time_upwind_plus
-      use parameters_numerical, only: driftkinetic_implicit
-      use parameters_numerical, only: nitt
       use calculations_gyro_averages, only: gyro_average
       use field_equations, only: advance_fields
+
+      ! Full flux annulus 
       use field_equations_fullfluxsurface, only: get_fields_source
       use field_equations, only: fields_updated
-      use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
-      
+      use gk_full_flux_annulus_solve, only: get_source_ffs_itteration
+      use parameters_numerical, only: driftkinetic_implicit
+      use parameters_numerical, only: nitt
+      use parameters_numerical, only: itt_tol, drifts_implicit
+      !use extended_zgrid, only: enforce_reality
+      use gk_parallel_streaming, only: stream_sign
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -87,6 +92,7 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi_source, apar_source, bpar_source
 
       ! Arrays only used for FFS - will split off 
+      complex, dimension(:, :, :, :), allocatable :: phi_store
       complex, dimension(:, :, :, :, :), allocatable :: phi_source_ffs
       complex, dimension(:, :, :, :), allocatable :: fields_source_ffs
       complex, dimension(:, :, :, :, :), allocatable :: drifts_source_ffs
@@ -95,6 +101,8 @@ contains
       integer :: nz_ext
       integer :: itt
       logical :: modify
+      logical :: implicit_solve = .false.
+      real :: error, tol
       
       !-------------------------------------------------------------------------
 
@@ -112,6 +120,7 @@ contains
       !                        Full Flux Surface simulation
       !-------------------------------------------------------------------------
       if(driftkinetic_implicit) then 
+         if (.not. allocated(phi_store)) allocate(phi_store(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_store = 0.0
          if (.not. allocated(phi_source_ffs)) allocate (phi_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          phi_source_ffs = 0.0
          if (.not. allocated(fields_source_ffs)) allocate (fields_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -125,24 +134,21 @@ contains
       if (include_apar) allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       if (include_bpar) allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      ! =====================================================================
-      ! Save the incoming pdf and fields, as they will be needed later
-      phi_old = phi
-      if (include_apar) apar_old = apar
-      if (include_bpar) bpar_old = bpar
-
       ! dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       ! in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       dist_choice = 'g'
-      
+
+      ! =====================================================================
       ! Store g_n from pervious time step 
       g1 = g
       g2 = g
-
-      ! =====================================================================
       ! Advance fields and save phi as phi_old
+      ! Save the incoming pdf and fields, as they will be needed later
+      fields_updated = .false.
       call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
       phi_old = phi
+      if (include_apar) apar_old = apar
+      if (include_bpar) bpar_old = bpar
 
       ! ========================================================================
       ! If using delphi formulation for response matrix, then phi = phi^n replaces
@@ -160,7 +166,7 @@ contains
       ! ========================================================================
       itt = 1
       do while (itt <= nitt)
-         ! save the incoming pdf and phi, as they will be needed later
+         ! Save the incoming pdf and phi, as they will be needed later
          ! this will become g^{n+1, i} -- the g from the previous iteration  
          !----------------------------------------------------------------------
          !                      Full Flux Surface simulation
@@ -173,16 +179,16 @@ contains
          !                             Electromagnetic
          !----------------------------------------------------------------------
          if (include_apar) then
-            ! when solving for the 'inhomogeneous' piece of the pdf,
+            ! When solving for the 'inhomogeneous' piece of the pdf,
             ! use part of apar weighted towards previous time level
             apar_source = tupwnd_m * apar
-            ! set apar=0, as in update_pdf it is used as the contribution from
+            ! Set apar=0, as in update_pdf it is used as the contribution from
             ! apar^{n+1}, which should not be part of the 'inhomogeneous' GKE eqn
             apar = 0.0
          end if
 
          ! =====================================================================
-         ! if using delphi formulation for response matrix, then phi = phi^n replaces
+         ! If using delphi formulation for response matrix, then phi = phi^n replaces
          ! phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
          ! solve for the 'inhomogeneous' piece of the pdf
          !----------------------------------------------------------------------
@@ -190,12 +196,13 @@ contains
          !----------------------------------------------------------------------
          if (driftkinetic_implicit) then
             ! Full flux routine:
-            call get_source_ffs_itteration (phi_old, g2, phi_source_ffs)
-            ! call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
-            ! phi_source_ffs = phi_source_ffs + drifts_source_ffs
-            phi_source = 0.0
-            ! set the g on the RHS to be g from the previous time step  
-            ! FFS will have a RHS source term
+            if(itt == 1) then
+               phi_store = phi_old
+            end if
+            call get_source_ffs_itteration (phi_store, phi_old,  g2, phi_source_ffs)
+            phi_source = tupwnd_m * phi
+            ! Set the g on the RHS to be g from the previous time step  
+            ! FFA will have a RHS source term
             ! modify being passes in will make sure that this source is included
             modify = .true.
             call update_pdf(modify)
@@ -216,10 +223,12 @@ contains
          if (driftkinetic_implicit) then
             ! For FFS we want to re-solve for bar{phi}
             ! NB the 'g' here is g_inh^{n+1, i+1}
-            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
+            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.) 
             ! g2 = g^{n+1, i}
             ! phi_old = phi^{n+1, i} 
-            call get_fields_source(g2, phi_old, fields_source_ffs) 
+            fields_updated = .false.
+            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
+            !call get_fields_source(g2, phi_store, phi_old, fields_source_ffs)
             phi = phi + fields_source_ffs
          !----------------------------------------------------------------------
          !                         Flux Tube simulation
@@ -250,7 +259,8 @@ contains
             !-------------------------------------------------------------------
             !                      Full Flux Surface simulation
             !-------------------------------------------------------------------
-            phi_source = phi
+            phi_store = phi
+            phi_source = tupwnd_m * phi_old + tupwnd_p * phi
          else
             !-------------------------------------------------------------------
             !                      Flux Tube simulation
@@ -274,16 +284,30 @@ contains
             ! solving for full g = g_{inh} + g_{hom} 
             modify = .true.
             call update_pdf(modify)
-            g2 = g 
+            ! Save the incoming pdf and phi, as they will be needed later
+            ! this will become g^{n+1, i} -- the g from the previous iteration         
+            fields_updated = .false.
+            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice))
+            fields_updated = .false.
+            
+            error = sum(real(phi - phi_old)**2 + aimag(phi - phi_old)**2)**0.5
+!!            if(proc0) write(164,*) itt, error
+            if ( error < itt_tol) then
+               exit
+            else
+               itt = itt + 1
+            end if
+            g2 = g
+            phi_old = phi
+
          else
             !-------------------------------------------------------------------
             !                      Flux Tube simulation
             !-------------------------------------------------------------------
             ! Flux tube routine:
             call update_pdf
+            itt = itt + 1
          end if
-         
-         itt = itt + 1
       end do
 
       ! ========================================================================
@@ -291,7 +315,7 @@ contains
       if (include_apar) deallocate (apar_old, apar_source)
       if (include_bpar) deallocate (bpar_old, bpar_source)
       if(driftkinetic_implicit) deallocate (fields_source_ffs)
-      if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs)
+      if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs, phi_store)
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
 

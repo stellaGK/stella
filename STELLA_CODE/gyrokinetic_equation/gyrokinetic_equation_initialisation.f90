@@ -124,7 +124,7 @@ contains
    subroutine finish_gyrokinetic_equation
 
       use calculations_transforms, only: finish_transforms
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use grids_extended_zgrid, only: finish_extended_zgrid
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
@@ -140,7 +140,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      if (full_flux_surface) call finish_transforms
+      if (full_flux_annulus) call finish_transforms
       call finish_dissipation
       call finish_parallel_nonlinearity
       call finish_wstar

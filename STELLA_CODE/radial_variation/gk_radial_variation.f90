@@ -262,7 +262,7 @@ contains
       use grids_z, only: nzgrid, ntubes
 
       use grids_kxky, only: nakx, naky
-      use parameters_physics, only: full_flux_surface, fphi
+      use parameters_physics, only: full_flux_annulus, fphi
       use parameters_physics, only: include_parallel_streaming, include_mirror
 
       use arrays, only: wdriftx_phi, wdrifty_phi
@@ -310,9 +310,9 @@ contains
          call add_parallel_streaming_radial_variation(g, g_corr, gout)
       end if
 
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          ! FLAG -- ADD SOMETHING HERE
-         call mp_abort('wstarp term not yet setup for full_flux_surface = .true. aborting.')
+         call mp_abort('wstarp term not yet setup for full_flux_annulus = .true. aborting.')
       end if
 
       ia = 1

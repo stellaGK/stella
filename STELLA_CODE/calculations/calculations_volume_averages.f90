@@ -48,7 +48,7 @@ contains
       use grids_kxky, only: rho_d_clamped, aky
       use geometry, only: geo_surf, drhodpsip
       use geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_annulus, radial_variation
 
       implicit none
 
@@ -65,7 +65,7 @@ contains
       end if
       
       ! Initialise full flux surface volume averages
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call init_flux_surface_average_ffs
       end if
 
@@ -138,7 +138,7 @@ contains
    subroutine finish_volume_averages
 
       use geometry, only: dVolume
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       implicit none
 
@@ -146,7 +146,7 @@ contains
 
       if (allocated(mode_fac)) deallocate (mode_fac)
       if (allocated(dVolume)) deallocate (dVolume)
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          if (allocated(jacobian_ky)) deallocate (jacobian_ky)
       end if
 

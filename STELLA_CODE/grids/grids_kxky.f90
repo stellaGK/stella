@@ -448,7 +448,7 @@ contains
          use ran, only: ranf
          
          ! Flags
-         use parameters_physics, only: full_flux_surface
+         use parameters_physics, only: full_flux_annulus
          
          ! Parallel boundary condition
          use grids_z, only: nperiod
@@ -497,7 +497,7 @@ contains
          
             ! When simulating a flux annulus, y0 is determined by the physical 
             ! extent of the device, i.e., y0 = geo_surf%rhotor/rhostar
-            if (full_flux_surface) then
+            if (full_flux_annulus) then
                if (rhostar > 0.) then
                   y0 = geo_surf%rhotor / rhostar
                else

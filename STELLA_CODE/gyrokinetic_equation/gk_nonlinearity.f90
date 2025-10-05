@@ -124,7 +124,7 @@ contains
       use parameters_physics, only: fphi
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: suppress_zonal_interaction
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_annulus, radial_variation
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       
       use timers, only: time_gke
@@ -213,7 +213,7 @@ contains
                ! Take the FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
                ! Compute i*kx*<chi>
-               if (full_flux_surface) then
+               if (full_flux_annulus) then
                   call get_dgdx(g_scratch(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
@@ -265,7 +265,7 @@ contains
                ! Take the FFT to get dg/dx in (y,x) space
                call forward_transform(g0k, g0xy)
                ! Compute d<chi>/dy in k-space
-               if (full_flux_surface) then
+               if (full_flux_annulus) then
                   call get_dgdy(g_scratch(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
@@ -295,7 +295,7 @@ contains
 
                if (yfirst) then
                   call transform_x2kx(bracket, g0kxy)
-                  if (full_flux_surface) then
+                  if (full_flux_annulus) then
                      gout(:, :, iz, it, ivmu) = g0kxy
                   else
                      call transform_y2ky(g0kxy, g0k_swap)
@@ -425,7 +425,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       
       ! Parameters
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_annulus, radial_variation
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       
       ! Grids + Arrays
@@ -656,7 +656,7 @@ contains
          do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                call transform_x2kx(g0xy(:, :, iz, it, ivmu), g0kxy)
-               if (full_flux_surface) then
+               if (full_flux_annulus) then
                   gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * g0kxy
                else
                   call transform_y2ky(g0kxy, g0k_swap)

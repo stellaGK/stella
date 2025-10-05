@@ -187,7 +187,7 @@ contains
 
       !-------------------------------------------------------------------------
       
-      ! Some (kx,ky) grid flags are based on <full_flux_surface>
+      ! Some (kx,ky) grid flags are based on <full_flux_annulus>
       ! Therefore, we need to read the physics parameters first
       if (.not. initialised_parameters_physics) then
          call mp_abort('Initialise physics parameters before reading (kx,ky) grid namelists. Aborting.')
@@ -262,7 +262,7 @@ contains
       !-------------------------- Calculate parameters -------------------------
       subroutine calculate_kxky_grid_box_parameters
       
-         use parameters_physics, only: full_flux_surface
+         use parameters_physics, only: full_flux_annulus
 
          implicit none
 
@@ -274,7 +274,7 @@ contains
 
          ! For a flux tube simulations, we only consider one field line: nalpha = 1
          ! For a full flux surface simulation, we consider ny field lines: nalpha = ny
-         if (full_flux_surface) nalpha = ny
+         if (full_flux_annulus) nalpha = ny
 
          ! Get the ikx index corresponding to kx_max
          ikx_max = nakx / 2 + 1
@@ -331,7 +331,7 @@ contains
 
       use mp, only: proc0, mp_abort
       use parameters_physics, only: initialised_parameters_physics
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
 
       implicit none
 
@@ -348,15 +348,15 @@ contains
       
       !-------------------------------------------------------------------------
       
-      ! Some (kx,ky) grid flags are based on <full_flux_surface>
+      ! Some (kx,ky) grid flags are based on <full_flux_annulus>
       ! Therefore, we need to read the physics parameters first
       if (.not. initialised_parameters_physics) then
          call mp_abort('Initialise physics parameters before reading (kx,ky) grid namelists. Aborting.')
       end if
          
       ! For full flux surface simulations, we should not be reading the 'range' option for the (kx,ky) grids
-      if (full_flux_surface) then
-          call mp_abort('The "range" option for the (kx,ky) grids is not supported for full_flux_surface = True. Aborting')
+      if (full_flux_annulus) then
+          call mp_abort('The "range" option for the (kx,ky) grids is not supported for full_flux_annulus = True. Aborting')
       end if
       
       ! Set the default input parameters and read the input file

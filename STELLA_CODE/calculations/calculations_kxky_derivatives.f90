@@ -42,6 +42,11 @@ module calculations_kxky_derivatives
       module procedure get_dchidy_2d
    end interface get_dchidy
 
+   interface get_dchidx
+      module procedure get_dchidx_4d
+      module procedure get_dchidx_2d
+   end interface get_dchidx
+
 contains
 
 !###############################################################################
@@ -231,7 +236,7 @@ contains
       
       ! Flags
       use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parameters_physics, only: fphi
       
       ! Grids
@@ -275,7 +280,7 @@ contains
          end do
          
          ! Take the gyro-average, i.e., add the factor J_0
-         if (full_flux_surface) then
+         if (full_flux_annulus) then
             call gyro_average(field, dchidy(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
          else
             call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
@@ -318,7 +323,7 @@ contains
       
       ! Flags
       use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       use parameters_physics, only: fphi
       
       ! Grids
@@ -354,7 +359,7 @@ contains
       field = zi * spread(aky, 2, nakx) * field
 
       ! Take the gyro-average, i.e., add the factor J_0
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call gyro_average(field, dchidy, j0_ffs(:, :, iz, ivmu))
       else
          call gyro_average(field, iz, ivmu, dchidy)
@@ -379,10 +384,7 @@ contains
 !############## DERIVATIVES OF FIELDS (PHI, APAR, BPAR) W.R.T. X ###############
 !###############################################################################
 
-   !****************************************************************************
-   !                Fourier [ d<phi>_theta/dx] = i kx J0 phi(ky,kx)            
-   !****************************************************************************
-   subroutine get_dchidx(iz, ivmu, phi, apar, bpar, dchidx)
+   subroutine get_dchidx_4d(phi, apar, bpar, dchidx)
 
       ! Constants
       use constants, only: zi
@@ -398,7 +400,79 @@ contains
       
       ! Flags
       use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
+      use parameters_physics, only: fphi
+      
+      ! Grids
+      use grids_species, only: spec
+      use grids_velocity, only: vpa, mu
+      use grids_kxky, only: naky, nakx, akx
+      use grids_z, only: nzgrid, ntubes
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidx
+
+      integer :: ivmu, iv, is, iky, ikx, imu, iz, it
+      complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
+
+      allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo, ivmu)
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         ! intermediate calculation to get factor involving phi contribution
+         field = fphi * phi
+         ! add apar contribution if including it
+         if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+         ! take spectral y-derivative
+         do iky = 1, naky
+            field(iky, :, :, :) = zi * akx(ikx) * field(iky, :, :, :)
+         end do
+         if (full_flux_annulus) then
+            call gyro_average(field, dchidx(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+         else
+            call gyro_average(field, ivmu, dchidx(:, :, :, :, ivmu))
+         end if
+         if (include_bpar) then
+            field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
+            do iky = 1, naky
+               field(iky, :, :, :) = zi * akx(ikx) * field(iky, :, :, :)
+            end do
+            call gyro_average_j1(field, ivmu, gyro_tmp)
+            !> include bpar contribution
+            dchidx(:, :, :, :, ivmu) = dchidx(:, :, :, :, ivmu) + gyro_tmp
+         end if
+      end do
+
+      deallocate (field)
+      deallocate (gyro_tmp)
+
+    end subroutine get_dchidx_4d
+    
+   !****************************************************************************
+   !                Fourier [ d<phi>_theta/dx] = i kx J0 phi(ky,kx)            
+   !****************************************************************************
+   subroutine get_dchidx_2d(iz, ivmu, phi, apar, bpar, dchidx)
+
+      ! Constants
+      use constants, only: zi
+      
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
+      
+      ! Calculations
+      use calculations_gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average_j1
+      use arrays_gyro_averages, only: j0_ffs
+      
+      ! Flags
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: full_flux_annulus
       use parameters_physics, only: fphi
       
       ! Grids
@@ -434,7 +508,7 @@ contains
       field = zi * spread(akx, 1, naky) * field
 
       ! Take the gyro-average, i.e., add the factor J_0
-      if (full_flux_surface) then
+      if (full_flux_annulus) then
          call gyro_average(field, dchidx, j0_ffs(:, :, iz, ivmu))
       else
          call gyro_average(field, iz, ivmu, dchidx)
@@ -452,6 +526,6 @@ contains
       deallocate (field)
       deallocate (gyro_tmp)
 
-   end subroutine get_dchidx
+   end subroutine get_dchidx_2d
 
 end module calculations_kxky_derivatives
