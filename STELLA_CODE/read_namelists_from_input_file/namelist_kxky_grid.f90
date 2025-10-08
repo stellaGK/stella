@@ -8,8 +8,8 @@
 !     grid_option = 'default'
 !   
 !   kxky_grid_range
-!     naky = 1.0
-!     nakx = 1.0
+!     naky = 1
+!     nakx = 1
 !     aky_min = 0.0
 !     aky_max = 0.0
 !     theta0_min = 0.0
@@ -19,9 +19,9 @@
 !     kyspacing_option = 'default'
 !   
 !   kxky_grid_box
-!     nx = 1.0
-!     ny = 1.0
-!     jtwist = -1.0
+!     nx = 1
+!     ny = 1
+!     jtwist = -1
 !     jtwistfac = 1.0
 !     x0 = -1.0
 !     y0 = -1.0

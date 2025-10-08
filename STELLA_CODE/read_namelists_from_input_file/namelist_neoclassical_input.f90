@@ -7,7 +7,7 @@
 !    neoclassical_input
 !       include_neoclassical_terms = .false.
 !       neo_option = 'sfincs'
-!       nradii = 5.0
+!       nradii = 5
 !       drho = 0.01
 ! 
 ! For each namelists two (or three) routines exist:

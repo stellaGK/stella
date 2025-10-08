@@ -23,7 +23,7 @@
 !     betadbprim = 0.0
 !     d2qdr2 = 0.0
 !     d2psidr2 = 0.0
-!     nzed_local = 128.0
+!     nzed_local = 128
 !     read_profile_variation = .false.
 !     write_profile_variation = .false.
 !   
@@ -34,11 +34,11 @@
 !     nfield_periods = -1.0
 !     torflux = 0.6354167
 !     z_grid_refinement_factor = 1.0
-!     surface_option = 0.0
+!     surface_option = 0
 !     radial_coordinate = 'sgn(psi_t)psi_t'
 !     verbose = .true.
 !     vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
-!     n_tolerated_test_arrays_inconsistencies = 0.0
+!     n_tolerated_test_arrays_inconsistencies = 0
 !   
 !   geometry_zpinch
 !     betaprim = 0.0

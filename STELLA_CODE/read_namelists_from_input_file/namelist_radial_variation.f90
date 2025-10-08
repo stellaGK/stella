@@ -9,7 +9,7 @@
 ! This module will read the namelists associated with radial variation:
 ! 
 !   multibox_parameters
-!     ky_solve_radial = 0.0
+!     ky_solve_radial = 0
 !     ky_solve_real = .false.
 !     include_geometric_variation = .true.
 !     include_pressure_variation = .false.
@@ -20,20 +20,20 @@
 !     krook_size = 0.0
 !     rk_step = .false.
 !     nu_krook_mb = 0.0
-!     mb_debug_step = -1.0
+!     mb_debug_step = -1
 !     krook_exponent = 0.0
 !     krook_efold = 3.0
 !     phi_bound = 0.0
 !     phi_pow = 0.0
 !     use_dirichlet_bc = .false.
-!     boundary_size = 4.0
-!     krook_size = 0.0
+!     boundary_size = 4
+!     krook_size = 0
 ! 
 !   sources
 !     source_option = 'none'
 !     nu_krook = 0.05
 !     tcorr_source = 0.02
-!     ikxmax_source = 1.0
+!     ikxmax_source = 1
 !     krook_odd = .true.
 !     exclude_boundary_regions = .false.
 !     tcorr_source_qn = 0.0
@@ -162,14 +162,14 @@ contains
          zf_option = 'default'
          rk_step = .false.
          nu_krook_mb = 0.0
-         mb_debug_step = -1.0
+         mb_debug_step = -1
          krook_exponent = 0.0
          krook_efold = 3.0
          phi_bound = 0.0
          phi_pow = 0.0
          use_dirichlet_bc = .false.
-         boundary_size = 4.0
-         krook_size = 0.0
+         boundary_size = 4
+         krook_size = 0
          
       end subroutine set_default_parameters_multibox
 
@@ -332,7 +332,7 @@ contains
          krook_odd = .true.
          
          ! For periodic variation we use kx=0 and kx=1
-         ikxmax_source = 1.0
+         ikxmax_source = 1
          if (periodic_variation) ikxmax_source = 2 
 
       end subroutine set_default_parameters_sources

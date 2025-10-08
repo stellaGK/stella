@@ -5,12 +5,12 @@
 ! This module will read the namelists associated with the velocity grid:
 ! 
 !   velocity_grids
-!     nvgrid = 24.0
-!    nmu = 12.0
-!    vpa_max = 3.0
-!    vperp_max = 3.0
-!    equally_spaced_mu_grid = .false.
-!    conservative_wgts_vpa = .false.
+!     nvgrid = 24
+!     nmu = 12
+!     vpa_max = 3.0
+!     vperp_max = 3.0
+!     equally_spaced_mu_grid = .false.
+!     conservative_wgts_vpa = .false.
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>

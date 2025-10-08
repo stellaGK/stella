@@ -5,10 +5,10 @@
 ! This module will read the namelists associated with the diagnostics:
 ! 
 !   diagnostics
-!     nwrite = 50.0
-!     navg = 50.0
-!     nsave = -1.0
-!     nc_mult = 1.0
+!     nwrite = 50
+!     navg = 50
+!     nsave = -1
+!     nc_mult = 1
 !     save_for_restart = .false.
 !     write_all = .false.
 !     write_all_time_traces = .true.

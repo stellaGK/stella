@@ -5,9 +5,9 @@
 ! This module will read the namelists associated with the z-grid:
 ! 
 !   z_grid
-!     nzed = 24.0
-!     nperiod = 1.0
-!     ntubes = 1.0
+!     nzed = 24
+!     nperiod = 1
+!     ntubes = 1
 !     zed_equal_arc = .false.
 !   
 !   z_boundary_condition
