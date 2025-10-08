@@ -301,6 +301,9 @@ contains
       use namelist_initialise_distribution_function, only: init_distribution_option_rh
       use namelist_initialise_distribution_function, only: init_distribution_option_remap
 
+      use debug_flags, only: const_alpha_geo
+      use parameters_physics, only: full_flux_surface
+      
       ! Arguments
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
