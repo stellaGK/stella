@@ -39,7 +39,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   ! advance_fields_using_field_equations_fullfluxsurface accepts as input the guiding centre distribution function g
+   ! advance_fields_using_field_equations_fullfluxsurface accepts as input the guiding center distribution function g
    ! and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    !****************************************************************************
    subroutine advance_fields_using_field_equations_fullfluxsurface(g, phi, apar, implicit_solve)
@@ -131,7 +131,7 @@ contains
             end if
 
          ! Calculate the contribution to quasineutrality coming from the velocity space
-         ! integration of the guiding centre distribution function g;
+         ! integration of the guiding center distribution function g;
          ! the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
          ! this is returned in source
          else

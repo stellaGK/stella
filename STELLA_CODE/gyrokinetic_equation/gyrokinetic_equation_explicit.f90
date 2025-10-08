@@ -27,7 +27,7 @@ contains
    !****************************************************************************
    !                       EXPLICIT TIME ADVANCE SUBROUTINES
    !****************************************************************************
-   ! Advance the guiding centre distribution equation <g> in k-space in time using 
+   ! Advance the guiding center distribution equation <g> in k-space in time using 
    ! the gyrokinetic equation. Specifically, the distribution function <g> is updated 
    ! based on all of the terms in the GKE that are advanced explicitly in time.
    !****************************************************************************
@@ -133,7 +133,7 @@ contains
    !****************************************************************************
    !                NEEDED FOR ALL EXPLICIT TIME ADVANCE SUBROUTINES
    !****************************************************************************
-   ! solve_gyrokinetic_equation_explicit accepts as argument pdf, the guiding centre distribution function in k-space,
+   ! solve_gyrokinetic_equation_explicit accepts as argument pdf, the guiding center distribution function in k-space,
    ! and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
    ! i.e., if dg/dt = r, then rhs_ky = r*dt;
    ! note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)*(vpa/c)*<Apar>*F0
