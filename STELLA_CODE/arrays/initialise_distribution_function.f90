@@ -324,8 +324,12 @@ contains
       ! one of the following options, which has been selected in the input file
       select case (init_distribution_switch)
       case (init_distribution_option_maxwellian)
+      if (full_flux_surface .and. .not. const_alpha_geo) then 
+         call initialise_distribution_maxwellian_full_flux_annulus
+      else 
          call initialise_distribution_maxwellian
       case (init_distribution_option_noise)
+      end if
          call initialise_distribution_noise
       case (init_distribution_option_kpar)
          call initialise_distribution_kpar
