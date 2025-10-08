@@ -302,7 +302,7 @@ contains
       use namelist_initialise_distribution_function, only: init_distribution_option_remap
 
       use debug_flags, only: const_alpha_geo
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       ! Arguments
       logical, intent(out) :: restarted
@@ -327,12 +327,12 @@ contains
       ! one of the following options, which has been selected in the input file
       select case (init_distribution_switch)
       case (init_distribution_option_maxwellian)
-      if (full_flux_surface .and. .not. const_alpha_geo) then 
-         call initialise_distribution_maxwellian_full_flux_annulus
-      else 
-         call initialise_distribution_maxwellian
+         if (full_flux_annulus .and. .not. const_alpha_geo) then 
+            call initialise_distribution_maxwellian_full_flux_annulus
+         else 
+            call initialise_distribution_maxwellian
+         end if
       case (init_distribution_option_noise)
-      end if
          call initialise_distribution_noise
       case (init_distribution_option_kpar)
          call initialise_distribution_kpar
@@ -602,7 +602,7 @@ contains
       use grids_extended_zgrid, only: map_from_extended_zgrid, map_to_extended_zgrid
 
       use debug_flags, only: const_alpha_geo 
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_annulus
       
       implicit none
 
