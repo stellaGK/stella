@@ -448,6 +448,7 @@ contains
          use ran, only: ranf
          
          ! Flags
+         use debug_flags, only: const_alpha_geo
          use parameters_physics, only: full_flux_annulus
          
          ! Parallel boundary condition
@@ -586,10 +587,15 @@ contains
          
          ! TODO - write comments on phase_shift_angle
          if (rhostar > 0.) then
-            if (geo_option_switch == geo_option_vmec) then
-               phase_shift_angle = -2.*pi * (2 * nperiod - 1) * dydalpha / (rhostar * geo_surf%qinp_psi0)
+            if(const_alpha_geo) then
+               !> Note this is done to set the phase_shift_angle to 0.0 so that const_alpha_geo can be compared against fluxtube
+               phase_shift_angle = phase_shift_angle / norm
             else
-               phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
+               if (geo_option_switch == geo_option_vmec) then
+                  phase_shift_angle = -2.*pi * (2 * nperiod - 1) * dydalpha / (rhostar * geo_surf%qinp_psi0)
+               else
+                  phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
+               end if
             end if
          else if (randomize_phase_shift) then
             if (proc0) phase_shift_angle = 2.*pi * ranf() / norm
