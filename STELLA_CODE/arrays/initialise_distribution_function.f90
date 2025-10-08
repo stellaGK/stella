@@ -575,6 +575,122 @@ contains
 
    end subroutine initialise_distribution_maxwellian
 
+   subroutine initialise_distribution_maxwellian_full_flux_annulus 
+   
+      use mp, only: proc0, broadcast
+      use constants, only: zi
+      use grids_species, only: spec
+      use grids_z, only: nzgrid, zed, ntubes
+      use grids_kxky, only: naky, nakx, ikx_max, ny
+      use grids_kxky, only: theta0, akx, zonal_mode, zed0
+      use grids_kxky, only: reality
+      use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: vpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use arrays_distribution_function, only: gvmu
+      use parallelisation_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx, it_idx
+      use ran, only: ranf
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_maxwellian
+      use grids_extended_zgrid, only: periodic, nzed_segment, phase_shift, nsegments, neigen
+      use grids_extended_zgrid, only: map_from_extended_zgrid, map_to_extended_zgrid
+
+      use debug_flags, only: const_alpha_geo 
+      use parameters_physics, only: full_flux_surface
+      
+      implicit none
+
+      complex, dimension (:), allocatable :: phiext
+      complex, dimension(naky, nakx, -nzgrid:nzgrid, ntubes) :: phi
+      complex, dimension(:,:,:,:), allocatable :: g0x
+      complex, dimension(:,:,:), allocatable :: phiy
+      complex, dimension (:,:), allocatable :: g_swap
+      
+      integer :: nz_ext
+      real, dimension (:), allocatable :: zed_ext
+      logical :: right
+      integer :: ie, it, j
+      integer :: imu,is, iv, ivmu
+      integer :: iz, iky, ikx, iy
+
+      integer :: iseg, ia, itmod
+      integer :: ikxkyz
+      real, dimension(:), allocatable :: alpha
+      real :: total
+      integer :: ulim
+
+      
+      ! Read the following variables from the input file
+      real :: width0, den0, upar0
+      logical :: oddparity, left, chop_side
+
+      !-------------------------------------------------------------------------
+      
+      ! Read <initialise_distribution_maxwellian> namelist
+      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
+         
+      ! Broadcast to all processors
+      call broadcast(width0)
+      call broadcast(den0)
+      call broadcast(upar0)
+      call broadcast(oddparity)
+      call broadcast(left)
+      call broadcast(chop_side)
+
+      right = .not. left
+
+      if (proc0) then   
+        do iz = -nzgrid, nzgrid
+           phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
+        end do
+        if (zonal_mode(1)) then
+        !Apply scaling factor
+           phi(1, :, :, :) = phi(1, :, :, :) 
+           
+           !Set ky=kx=0.0 mode to zero in amplitude
+           phi(1, 1, :, :) = 0.0
+        end if
+        
+        !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
+        if (reality) then
+           do ikx = nakx / 2 + 2, nakx
+              phi(1, ikx, :, :) = conjg(phi(1, nakx - ikx + 2, :, :))
+           end do
+        end if
+        
+     end if
+     
+     do iky = 1, naky
+        do it = 1, ntubes
+           do ie = 1, neigen(iky)
+              nz_ext = nsegments(ie, iky) * nzed_segment + 1
+              allocate (phiext(nz_ext))
+              
+              call map_to_extended_zgrid (it, ie, iky, phi(iky, :, :, :), phiext, ulim)
+              call map_from_extended_zgrid(it, ie, iky, phiext, phi(iky, :, :, :))
+              deallocate(phiext)
+           end do
+        end do
+     end do
+     
+          
+     call broadcast(phi)
+     
+     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+        iz = iz_idx(kxkyz_lo, ikxkyz)
+        it = it_idx(kxkyz_lo, ikxkyz)
+        ikx = ikx_idx(kxkyz_lo, ikxkyz)
+        iky = iky_idx(kxkyz_lo, ikxkyz)
+        is = is_idx(kxkyz_lo, ikxkyz)
+        gvmu(:, :, ikxkyz) = spec(is)%z * phi(iky, ikx, iz, it) * phiinit/ abs(spec(is)%z) &
+             * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
+             * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
+             * spread(maxwell_mu(1, iz, :, is), 1, nvpa)
+     end do
+
+     gvmu = gvmu /(1 - exp(-real(1.5*ny)))
+
+   end subroutine initialise_distribution_maxwellian_full_flux_annulus
+
    !****************************************************************************
    !                       INITIALISE POTENTIAL: NOISE                         !
    !****************************************************************************
