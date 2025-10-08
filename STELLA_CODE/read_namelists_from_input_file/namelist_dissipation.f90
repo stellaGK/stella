@@ -22,9 +22,9 @@
 !   collisions_fokker_planck
 !     testpart = .true.
 !     fieldpart = .false.
-!     lmax = 1.0
-!     jmax = 1.0
-!     nvel_local = 512.0
+!     lmax = 1
+!     jmax = 1
+!     nvel_local = 512
 !     interspec = .true.
 !     intraspec = .true.
 !     iiknob = 1.0
