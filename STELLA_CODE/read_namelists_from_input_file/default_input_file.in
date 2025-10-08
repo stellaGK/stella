@@ -25,7 +25,7 @@
   betadbprim = 0.0
   d2qdr2 = 0.0
   d2psidr2 = 0.0
-  nzed_local = 128.0
+  nzed_local = 128
   read_profile_variation = .false.
   write_profile_variation = .false.
 /
@@ -36,12 +36,12 @@
   rectangular_cross_section = .false.
   nfield_periods = -1.0
   torflux = 0.6354167
-  z_grid_refinement_factor = 1.0
-  surface_option = 0.0
+  z_grid_refinement_factor = 1
+  surface_option = 0
   radial_coordinate = 'sgn(psi_t)psi_t'
   verbose = .true.
   vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
-  n_tolerated_test_arrays_inconsistencies = 0.0
+  n_tolerated_test_arrays_inconsistencies = 0
 /
 
 &geometry_zpinch
@@ -72,7 +72,7 @@
   include_mirror = .true.
   include_xdrift = .true.
   include_ydrift = .true.
-  include_drive = .true. !! wstarknob = 1.0 or 0.0
+  include_drive = .true.
   include_nonlinear = .false.
   include_parallel_nonlinearity = .false.
   include_electromagnetic = .false.
@@ -103,7 +103,7 @@
 !===============================================================================
 
 &species_options
-  nspec = 2.0
+  nspec = 2
   species_option = 'stella'
   read_profile_variation = .false.
   write_profile_variation = .false.
@@ -136,7 +136,7 @@
 /
 
 &euterpe_parameters
-  nradii = 1000.0
+  nradii = 1000
   data_file = 'euterpe.dat'
 /
 
@@ -161,8 +161,8 @@
 /
 
 &kxky_grid_range
-  naky = 1.0
-  nakx = 1.0
+  naky = 1
+  nakx = 1
   aky_min = 0.0
   aky_max = 0.0
   theta0_min = 0.0
@@ -173,9 +173,9 @@
 /
 
 &kxky_grid_box
-  nx = 1.0
-  ny = 1.0
-  jtwist = -1.0
+  nx = 1
+  ny = 1
+  jtwist = -1
   jtwistfac = 1.0
   x0 = -1.0
   y0 = -1.0
@@ -186,9 +186,9 @@
 /
 
 &z_grid
-  nzed = 24.0
-  nperiod = 1.0
-  ntubes = 1.0
+  nzed = 24
+  nperiod = 1
+  ntubes = 1
   zed_equal_arc = .false.
 /
 
@@ -200,8 +200,8 @@
 /
 
 &velocity_grids
-  nvgrid = 24.0
-  nmu = 12.0
+  nvgrid = 24
+  nmu = 12
   vpa_max = 3.0
   vperp_max = 3.0
   equally_spaced_mu_grid = .false.
@@ -213,10 +213,10 @@
 !===============================================================================
 
 &diagnostics
-  nwrite = 50.0
-  navg = 50.0
-  nsave = -1.0
-  nc_mult = 1.0
+  nwrite = 50
+  navg = 50
+  nsave = -1
+  nc_mult = 1
   save_for_restart = .false.
   write_all = .false.
   write_all_time_traces = .true.
@@ -285,8 +285,8 @@
 
 &initialise_distribution_maxwellian
   width0 = -3.5
-  den0 = 1.
-  upar0 = 0.
+  den0 = 1.0
+  upar0 = 0.0
   oddparity = .false.
   chop_side = .false.
   left = .true.
@@ -301,20 +301,20 @@
 
 &initialise_distribution_kpar
   width0 = -3.5
-  refac = 1.
-  imfac = 0.
-  den0 = 1.
-  upar0 = 0.
-  tpar0 = 0.
-  tperp0 = 0.
-  den1 = 0.
-  upar1 = 0.
-  tpar1 = 0.
-  tperp1 = 0.
-  den2 = 0.
-  upar2 = 0.
-  tpar2 = 0.
-  tperp2 = 0.
+  refac = 1.0
+  imfac = 0.0
+  den0 = 1.0
+  upar0 = 0.0
+  tpar0 = 0.0
+  tperp0 = 0.0
+  den1 = 0.0
+  upar1 = 0.0
+  tpar1 = 0.0
+  tperp1 = 0.0
+  den2 = 0.0
+  upar2 = 0.0
+  tpar2 = 0.0
+  tperp2 = 0.0
   chop_side = .false.
   left = .true.
 /
@@ -339,7 +339,7 @@
 !===============================================================================
 
 &time_trace_options
-  nstep = -1.0
+  nstep = -1
   tend = -1.0
   autostop = .true.
   avail_cpu_time = 10000000000.0
@@ -411,9 +411,9 @@
 &collisions_fokker_planck
   testpart = .true.
   fieldpart = .false.
-  lmax = 1.0
-  jmax = 1.0
-  nvel_local = 512.0
+  lmax = 1
+  jmax = 1
+  nvel_local = 512
   interspec = .true.
   intraspec = .true.
   iiknob = 1.0
@@ -460,7 +460,7 @@
 &neoclassical_input
   include_neoclassical_terms = .false.
   neo_option = 'sfincs'
-  nradii = 5.0
+  nradii = 5
   drho = 0.01
 /
 
@@ -469,7 +469,7 @@
 !===============================================================================
 
 &multibox_parameters
-  ky_solve_radial = 0.0
+  ky_solve_radial = 0
   ky_solve_real = .false.
   include_geometric_variation = .true.
   include_pressure_variation = .false.
@@ -480,14 +480,14 @@
   krook_size = 0.0
   rk_step = .false.
   nu_krook_mb = 0.0
-  mb_debug_step = -1.0
+  mb_debug_step = -1
   krook_exponent = 0.0
   krook_efold = 3.0
   phi_bound = 0.0
   phi_pow = 0.0
   use_dirichlet_bc = .false.
-  boundary_size = 4.0
-  krook_size = 0.0
+  boundary_size = 4
+  krook_size = 0
 /
 
 &flow_shear
@@ -502,7 +502,7 @@
   source_option = 'none'
   nu_krook = 0.05
   tcorr_source = 0.02
-  ikxmax_source = 1.0
+  ikxmax_source = 1
   krook_odd = .true.
   exclude_boundary_regions = .false.
   tcorr_source_qn = 0.0

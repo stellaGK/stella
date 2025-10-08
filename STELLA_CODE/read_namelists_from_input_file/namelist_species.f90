@@ -7,7 +7,7 @@
 ! This module will read the namelists associated with the kinetic species:
 ! 
 !   species_options
-!     nspec = 2.0
+!     nspec = 2
 !     species_option = 'stella'
 !     read_profile_variation = .false.
 !     write_profile_variation = .false.
@@ -37,7 +37,7 @@
 !     type = 'default'
 !   
 !   euterpe_parameters
-!     nradii = 1000.0
+!     nradii = 1000
 !     data_file = 'euterpe.dat'
 ! 
 !   adiabatic_electron_response

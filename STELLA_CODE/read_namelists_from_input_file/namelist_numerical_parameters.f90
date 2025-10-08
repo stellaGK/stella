@@ -5,7 +5,7 @@
 ! This module will read the namelists associated with numerical parameters:
 ! 
 !   time_trace_options
-!     nstep = -1.0
+!     nstep = -1
 !     tend = -1.0
 !     autostop = .true.
 !     avail_cpu_time = 10000000000.0
