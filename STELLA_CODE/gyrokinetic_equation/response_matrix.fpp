@@ -616,7 +616,7 @@ contains
       bpar_ext = 0.0
       
       ! How phi^{n+1} enters the GKE depends on whether we are solving for the
-      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+      ! non-Boltzmann pdf, h, or the guiding center pdf, 'g'
       phi_ext(idx) = time_upwind_plus
       
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
@@ -967,7 +967,7 @@ contains
       bpar_ext = 0.0
       
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
-      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+      ! non-Boltzmann pdf, h, or the guiding center pdf, 'g'
       bpar_ext(idx) = time_upwind_plus
 
       ! Need to make sure that if the mode is periodic, then the boundaries match up to

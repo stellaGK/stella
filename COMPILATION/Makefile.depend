@@ -167,6 +167,7 @@ $(OBJ_DIR)/calculations_gyro_averages.o: \
 $(OBJ_DIR)/calculations_kxky.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/calculations_kxky_derivatives.o: \
@@ -748,6 +749,7 @@ $(OBJ_DIR)/gk_implicit_terms.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/field_equations.o \

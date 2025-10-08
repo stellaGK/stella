@@ -124,7 +124,7 @@ contains
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar, bpar)
-            if (radial_variation .or. full_flux_annulus) fields_updated = .false.
+            fields_updated = .false.
          end if
 
          ! Update the fields if not already updated
@@ -143,7 +143,7 @@ contains
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar, bpar)
-            if (radial_variation .or. full_flux_annulus) fields_updated = .false.
+            fields_updated = .false.            
          end if
 
          if (mirror_implicit .and. include_mirror) then

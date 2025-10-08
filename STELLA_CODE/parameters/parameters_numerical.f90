@@ -164,6 +164,7 @@ contains
          use parameters_physics, only: include_parallel_streaming
          use parameters_physics, only: include_mirror
          use parameters_physics, only: include_nonlinear
+         use parameters_physics, only: include_xdrift, include_ydrift
          use parameters_physics, only: rhostar
          use parallelisation_layouts, only: fields_kxkyz
          use file_units, only: unit_error_file
@@ -263,8 +264,6 @@ contains
          else
             driftkinetic_implicit = .false.
          end if
-
-         if (fully_explicit) flip_flop = .false.
          
          ! Calculate some useful derived quantities that are used repeatedly across modules
          time_upwind_plus = 0.5 * (1.0 + time_upwind)
@@ -277,19 +276,32 @@ contains
             stream_implicit = .false.
             driftkinetic_implicit = .false.
          end if
-         
-         if (mirror_implicit .or. stream_implicit .or. drifts_implicit) then
-            fully_explicit = .false.
-         else
+
+         if ( (.not. include_mirror .or. .not. mirror_implicit ) .and. &
+              (.not. include_parallel_streaming .or. .not. stream_implicit ) .and. &
+              (.not. (include_xdrift .and. include_ydrift) .or. .not. drifts_implicit ) ) then 
             fully_explicit = .true.
+         else
+            fully_explicit = .false.
          end if
+
+         if (fully_explicit) flip_flop = .false.
          
-         if (mirror_implicit .and. stream_implicit .and. drifts_implicit .and. .not. include_nonlinear) then
+         if ( (.not. include_mirror .or. mirror_implicit ) .and. &
+              (.not. include_parallel_streaming .or. stream_implicit ) .and. &
+              (.not. (include_xdrift .or. include_ydrift) .or. drifts_implicit ) .and. &
+               .not. include_nonlinear ) then
             fully_implicit = .true.
          else
             fully_implicit = .false.
          end if
 
+         if (fully_explicit .and. fully_implicit) then
+            write(*,*) 'WARNING: NO TERMS BEING INCLUDED - setting fully_explicit = .true.'
+            fully_implicit = .false.
+            fully_explicit = .true.
+          end if
+          
          if (include_nonlinear) autostop = .false.
 
        end subroutine check_numerical_inputs
