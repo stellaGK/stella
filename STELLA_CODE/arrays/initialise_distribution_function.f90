@@ -474,6 +474,7 @@ contains
    !****************************************************************************
    !                     INITIALISE POTENTIAL: MAXWELLIAN                      !
    !****************************************************************************
+
    subroutine initialise_distribution_maxwellian
 
       use mp, only: proc0, broadcast
@@ -481,7 +482,7 @@ contains
       use grids_species, only: spec
       use grids_z, only: nzgrid, zed
       use grids_kxky, only: naky, nakx, ikx_max
-      use grids_kxky, only: theta0, akx, zonal_mode
+      use grids_kxky, only: theta0, akx, zonal_mode, zed0
       use grids_kxky, only: reality
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
@@ -490,7 +491,8 @@ contains
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_maxwellian
-
+      use grids_extended_zgrid, only: periodic
+      
       implicit none
 
       complex, dimension(naky, nakx, -nzgrid:nzgrid) :: phi
@@ -501,7 +503,8 @@ contains
       ! Read the following variables from the input file
       real :: width0, den0, upar0
       logical :: oddparity, left, chop_side
-      
+
+      integer :: iz_periodic
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_maxwellian> namelist
@@ -518,8 +521,10 @@ contains
       right = .not. left
 
       do iz = -nzgrid, nzgrid
-         phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
+         phi(:, :, iz) = exp(-((zed(iz) - zed0(:,:) ) / width0)**2) * cmplx(1.0, 1.0)
       end do
+
+      
       ! this is a messy way of doing things
       ! could tidy it up a bit
       if (sum(cabs(phi)) < epsilon(0.)) then
@@ -556,7 +561,7 @@ contains
       end if
       ! need better way to initialise for full flux surface cases
       ia = 1
-
+      call broadcast(phi) 
       gvmu = 0.
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
