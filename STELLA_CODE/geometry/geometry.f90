@@ -783,6 +783,7 @@ contains
       ! ensure that all arrays are filled with the ialpha = 1 information
       if (debug) write (*, *) 'geometry::Miller::spread_geometry'
       bmag = spread(bmag(1, :), 1, nalpha)
+      grho = spread(grho(1, :), 1, nalpha) 
       bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
       grady_dot_grady = spread(grady_dot_grady(1, :), 1, nalpha)
       gradx_dot_grady = spread(gradx_dot_grady(1, :), 1, nalpha)
