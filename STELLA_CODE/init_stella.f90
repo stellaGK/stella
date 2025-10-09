@@ -540,6 +540,7 @@ contains
       ! in initialise_distribution(). Use the quasineutrality condition to initialise 
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
+      fields_updated = .false.
       call advance_fields(gnew, phi, apar, bpar, dist='g')
       
       ! Add the radial variation correction to the fields

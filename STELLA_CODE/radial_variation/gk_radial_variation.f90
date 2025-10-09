@@ -258,6 +258,7 @@ contains
 
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_gyro_averages, only: j0_ffs
       
       use grids_z, only: nzgrid, ntubes
 
@@ -341,12 +342,20 @@ contains
                !wdrift - phi
                call get_dgdx(phi(:, :, iz, it), g1k)
                !wdriftx variation
-               call gyro_average(g1k, iz, ivmu, g0a)
+               if(full_flux_annulus) then
+                  call gyro_average(g1k, g0a, j0_ffs(:, :, iz, ivmu))
+               else
+                  call gyro_average(g1k, iz, ivmu, g0a)
+               end if
                g0k = g0k + g0a * wdriftpx_phi(ia, iz, ivmu)
 
                call get_dgdy(phi(:, :, iz, it), g1k)
                !wdrifty variation
-               call gyro_average(g1k, iz, ivmu, g0a)
+               if(full_flux_annulus) then
+                  call gyro_average(g1k, g0a, j0_ffs(:, :, iz, ivmu))
+               else
+                  call gyro_average(g1k, iz, ivmu, g0a)
+               end if
                g0k = g0k + g0a * wdriftpy_phi(ia, iz, ivmu)
 
                !prl_shear variation
@@ -361,7 +370,11 @@ contains
                call multiply_by_rho(g0k)
 
                !quasineutrality/gyroaveraging
-               call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
+               if(full_flux_annulus) then
+                  call gyro_average(phi_corr_QN(:, :, iz, it), g0a, j0_ffs(:, :, iz, ivmu))
+               else
+                  call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
+               end if
                g0a = fphi * (g0a + phi_corr_GA(:, :, iz, it, ivmu))
 
                !wstar - gyroaverage/quasineutrality variation

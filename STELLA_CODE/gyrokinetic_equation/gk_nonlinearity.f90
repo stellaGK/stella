@@ -441,6 +441,7 @@ contains
       use grids_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
       use timers, only: time_parallel_nl
       use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
+      use arrays_gyro_averages, only: j0_ffs
       
       ! Calculations
       use calculations_timestep, only: reset_dt
@@ -523,7 +524,11 @@ contains
          ! Construct <phi>
          dphidz = phi
          if (radial_variation) dphidz = dphidz + phi_corr_QN
-         call gyro_average(dphidz, ivmu, phi_gyro)
+         if(full_flux_annulus) then
+            call gyro_average(dphidz, phi_gyro, j0_ffs(:, :, :, ivmu))
+         else
+            call gyro_average(dphidz, ivmu, phi_gyro)
+         end if
          if (radial_variation) phi_gyro = phi_gyro + phi_corr_GA(:, :, :, :, ivmu)
 
          do iky = 1, naky
