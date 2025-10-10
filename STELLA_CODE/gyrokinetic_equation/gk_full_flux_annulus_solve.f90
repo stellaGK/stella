@@ -88,7 +88,7 @@ contains
          !> dg/dz
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, dgdz)
          
-         !> get these quantities in real space 
+         !> Get these quantities in real space 
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
 
@@ -161,6 +161,7 @@ contains
          use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
          use calculations_kxky, only: swap_kxky, swap_kxky_back
          use calculations_gyro_averages, only: gyro_average
+         use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
          use arrays_gyro_averages, only: j0_ffs
          use arrays, only: wdriftx_g, wdriftx_phi
          use arrays, only: wdrifty_g, wdrifty_phi
@@ -168,7 +169,7 @@ contains
 
          implicit none 
 
-         complex, dimension(:, :), intent(in) :: gyro_phi!phi_old
+         complex, dimension(:, :), intent(in) :: gyro_phi
          complex, dimension(:, :), intent(in) :: gin
          complex, dimension(:, :), intent (out) :: sourcey 
 
@@ -233,46 +234,6 @@ contains
          deallocate(g1y, g2y, g3y, g4y)
 
       end subroutine get_drifts_ffs_itteration
- 
-      subroutine get_dgdy(gin, dgdy)
-
-         use constants, only: zi
-         use grids_z, only: nzgrid, ntubes
-         use grids_kxky, only: nakx
-         use grids_kxky, only: aky
-
-         implicit none
-
-         complex, dimension(:, :), intent(in) :: gin
-         complex, dimension(:, :), intent(out) :: dgdy
-
-         integer :: it, iz, iky, ikx
-
-         do ikx = 1, nakx
-            dgdy(:, ikx) = zi * aky(:) * gin(:, ikx)
-         end do
-      
-   end subroutine get_dgdy
-
-   subroutine get_dgdx(gin, dgdx)
-
-      use constants, only: zi
-      use grids_z, only: nzgrid, ntubes
-      use grids_kxky, only: nakx
-      use grids_kxky, only: akx
-
-      implicit none
-
-      complex, dimension(:, :), intent(in) :: gin
-      complex, dimension(:, :), intent(out) :: dgdx
-
-      integer :: ikx, iz, it
-
-      do ikx = 1, nakx
-         dgdx(:, ikx) = zi * akx(ikx) * gin(:, ikx)
-      end do
-      
-   end subroutine get_dgdx
 
    subroutine add_explicit_term_ffs_fields(g, pre_factor, src)
 
@@ -290,7 +251,6 @@ contains
 
       do ia = 1, ny
          src(ia, :) = src(ia, :) + ( pre_factor(ia) - pre_factor(1) ) * g(ia, :)
-!         src(ia, :) = src(ia, :) + pre_factor(ia) * g(ia, :)
       end do
 
    end subroutine add_explicit_term_ffs_fields

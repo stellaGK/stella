@@ -3,7 +3,7 @@
 !###############################################################################
 ! 
 ! Module for advancing and initialising the fields when Full Flux Surface effects are included
-! The commenting will be improved when FFS is correctly implemented - to come shortly.
+! The commenting will be improved when FFA is correctly implemented - to come shortly.
 ! 
 !###############################################################################
 module field_equations_fullfluxsurface
@@ -23,7 +23,7 @@ module field_equations_fullfluxsurface
    private
 
    ! Arrays allocated/used if simulating a full flux surface
-   type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs
+   type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs,  gam0_ffs_corr
    type(gam0_ffs_type), dimension(:, :), allocatable :: lu_gam0_ffs
    complex, dimension(:), allocatable :: adiabatic_response_factor
 
@@ -33,14 +33,14 @@ module field_equations_fullfluxsurface
 contains
 
 !###############################################################################
-!###################### ADVANCE FULL FLUX SURFACE FIELDS #######################
+!###################### ADVANCE FULL FLUX annulus FIELDS #######################
 !###############################################################################
-
+   
    !****************************************************************************
-   !                                      Title
+   !                    Advance Quasineutality for full flux 
    !****************************************************************************
-   ! advance_fields_using_field_equations_fullfluxsurface accepts as input the guiding center distribution function g
-   ! and calculates/returns the electronstatic potential phi for full_flux_surface simulations
+   ! advance_fields_using_field_equations_fullfluxannulus accepts as input the guiding center distribution function g
+   ! and calculates/returns the electronstatic potential phi for full_flux_annulus simulations
    !****************************************************************************
    subroutine advance_fields_using_field_equations_fullfluxsurface(g, phi, apar, implicit_solve)
 
@@ -108,11 +108,13 @@ contains
             denominator_fields_t = spread(denominator_fields, 4, ntubes)
 
             call get_g_integral_contribution(g, source, implicit_solve=.true.)
+
             where (denominator_fields_t < epsilon(0.0))
                phi = 0.0
             elsewhere
                phi = spread(source, 4, ntubes) / denominator_fields_t
             end where
+
             if (any(denominator_fields(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
             deallocate (denominator_fields_t)
 
@@ -135,12 +137,12 @@ contains
          ! the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
          ! this is returned in source
          else
-            if (debug) write (*, *) 'field_equations_quasineutrality::ffs::get_g_integral_contribution'
+            if (debug) write (*, *) 'field_equations_quasineutrality::FFA::get_g_integral_contribution'
             call get_g_integral_contribution(g, source)
             
             ! Use sum_s int d3v <g> and QN to solve for phi
-            ! NB: assuming here that ntubes = 1 for FFS sim
-            if (debug) write (*, *) 'field_equations_quasineutrality::ffs::calculate_phi_ffs'
+            ! NB: assuming here that ntubes = 1 for FFA sim
+            if (debug) write (*, *) 'field_equations_quasineutrality::FFA::calculate_phi_ffa'
             call calculate_phi_ffs(source, phi(:, :, :, 1))
             if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
@@ -152,7 +154,7 @@ contains
             
                ! First must get phi on grid that includes positive and negative ky (but only positive kx)
                allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
-               if (debug) write (*, *) 'field_equations_quasineutrality::ffs::swap_kxky_ordered'
+               if (debug) write (*, *) 'field_equations_quasineutrality::FFA::swap_kxky_ordered'
                do iz = -nzgrid, nzgrid
                   call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
                end do
@@ -162,7 +164,7 @@ contains
                allocate (phi_fsa_spread(naky_all, ikx_max)); phi_fsa_spread = 0.0
                allocate (phi_source(naky, nakx)); phi_source = 0.0
 
-               if (debug) write (*, *) 'field_equations_quasineutrality::ffs::flux_surface_average_ffs'
+               if (debug) write (*, *) 'field_equations_quasineutrality::FFA::flux_surface_average_ffa'
                do ikx = 1, ikx_max
                   call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
                end do
@@ -190,7 +192,7 @@ contains
                   end do
                end if
 
-               if (debug) write (*, *) 'field_equations_quasineutrality::ffs::calculate_phi_ffs2s'
+               if (debug) write (*, *) 'field_equations_quasineutrality::FFA::calculate_phi_ffa2'
                call calculate_phi_ffs(source, phi(:, :, :, 1))
 
                if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
@@ -199,6 +201,7 @@ contains
                deallocate (phi_swap, phi_fsa)
                deallocate (phi_fsa_spread, phi_source)
             end if
+            phi(1,1,:,:) = 0.0
          end if
          
       ! If adiabatic electrons are not employed, then
@@ -251,7 +254,7 @@ contains
          
          !-------------------------------------------------------------------------
          
-         ! Assume there is only a single flux surface being simulated
+         ! Assume there is only a single flux train being simulated
          it = 1
          
          ! TODO-GA: use g_scratch here to save memory?
@@ -339,7 +342,7 @@ contains
    !****************************************************************************
    !                     SOURCES FOR ITERATIVE IMPLICIT SCHEME
    !****************************************************************************
-   subroutine get_fields_source(gold, phiold, source) 
+   subroutine get_fields_source(gold, phibarold, phiold, source) 
 
       ! Parallelisation
       use parallelisation_layouts, only: vmu_lo 
@@ -360,17 +363,20 @@ contains
       ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent (in out) :: source
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gold
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold, phibarold
  
       ! Local variables
       real, dimension(:, :, :, :), allocatable :: denominator_fields_t
-      complex, dimension(:, :, :, :), allocatable :: source2
+      complex, dimension(:, :, :, :), allocatable :: source2, source3
+
+      integer :: ikx, iky, iz
       
       !-------------------------------------------------------------------------
       
       ! Allocate temporary arrays
-      allocate (denominator_fields_t(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)); 
+      allocate(denominator_fields_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; source2 = 0.0
+      allocate(source3(naky, nakx, -nzgrid:nzgrid, ntubes)) ; source3 = 0.0
       
       ! Initialise arrays and sum
       denominator_fields_t = spread(denominator_fields, 4, ntubes)
@@ -378,10 +384,15 @@ contains
       source = 0.0
  
       call get_g_integral_contribution_source(gold, source(:,:,:,1) )
-      call gyro_average(phiold, source2, gam0_ffs)
- 
-      source2 = source2 - denominator_fields_t * phiold
-      source = source - source2
+
+      call gyro_average(phibarold, source2, gam0_ffs_corr)
+      call gyro_average(phiold - phibarold, source3, gam0_ffs)
+      
+      source = spread(source(:,:,:,1), 4, ntubes)
+      source2 = spread(source2(:,:,:,1), 4, ntubes)
+      source3 = spread(source3(:,:,:,1), 4, ntubes)
+      
+      source = source - source2 - source3
  
       where (denominator_fields_t < epsilon(0.0))
          source= 0.0
@@ -389,13 +400,14 @@ contains
          source = source / denominator_fields_t
       end where
       
+      source(1, :, :, :) = 0.0
       if (any(denominator_fields(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
       if (akx(1) < epsilon(0.)) then
           source(1, 1, :, :) = 0.0
        end if
  
       ! Deallocate temporary arrays
-      deallocate(source2, denominator_fields_t)
+      deallocate(source2, source3, denominator_fields_t)
       
    end subroutine get_fields_source
     
@@ -435,7 +447,7 @@ contains
       allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (gyro_g2(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-      ! Assume there is only a single flux surface being simulated
+      ! Assume there is only a single flux train being simulated
       it = 1
 
       do iz = -nzgrid, nzgrid
@@ -513,26 +525,30 @@ contains
       use arrays_gyro_averages, only: find_max_required_kalpha_index
       
       ! Grids
-      use grids_species, only: spec, nspec
-      use grids_species, only: adiabatic_electrons
-      use grids_species, only: has_electron_species, ion_species
-      use grids_z, only: nzgrid, nztot
+      use grids_z, only: nzgrid, ntubes, nztot
       use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
       use grids_kxky, only: zonal_mode, akx
-      use grids_species, only: nine, tite
       use grids_kxky, only: nalpha, ikx_max, naky_all, naky, nakx
+      use grids_species, only: spec, nspec
+      use grids_species, only: nine, tite
+      use grids_species, only: adiabatic_electrons
+      use grids_species, only: has_electron_species, ion_species
       use grids_species, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
-      
+      use grids_extended_zgrid, only: phase_shift
+
       ! Calculations
+      use spfunc, only: j0
       use calculations_kxky, only: swap_kxky_ordered
       use calculations_kxky, only: swap_kxky_back_ordered
       use calculations_gyro_averages, only: band_lu_factorisation_ffs
       use calculations_velocity_integrals, only: integrate_species
       use calculations_transforms, only: transform_alpha2kalpha
-      use spfunc, only: j0
       
       ! Geometry
       use geometry, only: bmag, dl_over_b
+
+      ! Parameters
+      use parameters_numerical, only: fields_tol
 
       implicit none
 
@@ -561,6 +577,7 @@ contains
       allocate (gam0_const(naky_all, ikx_max, -nzgrid:nzgrid)); gam0_const = 0.0
       allocate (denominator_fields_con(naky, nakx, -nzgrid:nzgrid)); denominator_fields_con = 0.0
 
+      if (.not. allocated(denominator_fields)) allocate (denominator_fields(naky, nakx, -nzgrid:nzgrid)); denominator_fields = 0.
       ! The weighst are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
       wgts = spec%dens * spec%z**2 / spec%temp
@@ -569,6 +586,9 @@ contains
       ! of the Gamma0 factor that appears in quasineutrality
       if (.not. allocated(gam0_ffs)) then
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
+      end if
+      if (.not. allocated(gam0_ffs_corr)) then
+         allocate (gam0_ffs_corr(naky_all, ikx_max, -nzgrid:nzgrid))
       end if
 
       ! Needed for adiabatic response
@@ -581,13 +601,13 @@ contains
          end if
       end if
 
+      ! ------------------------------------------------------------------------
       ! In calculating the Fourier coefficients for Gamma_0, change loop orders
       ! so that inner loop is over ivmu super-index;
       ! this is done because we must integrate over v-space and sum over species,
       ! and we want to minimise memory usage where possible (so, e.g., aj0_alpha need
       ! only be a function of ivmu and can be over-written for each (ia,iky,ikx)).
       ia_max_gam0_count = 0
-      
       do iz = -nzgrid, nzgrid
       
          do ia = 1, nalpha
@@ -638,21 +658,35 @@ contains
                
                ! Fourier transform Gamma_0(alpha) from alpha to k_alpha space
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=1.e-8)
+               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=fields_tol)
                gam0_ffs(iky, ikx, iz)%max_idx = naky
                ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky, ikx, iz)%max_idx
                
                ! Allocate array to hold the Fourier coefficients
                if (.not. associated(gam0_ffs(iky, ikx, iz)%fourier)) &
                   allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
-                  
+               
                ! Fill the array with the requisite coefficients
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
                !call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
 
                !! For denominator_fields for implicit solve
-               gam0_const(iky, ikx, iz) = gam0_kalpha(1)
+               !gam0_const(iky, ikx, iz) = gam0_kalpha(1)
                
+               gam0_ffs_corr(iky, ikx, iz)%max_idx = naky
+               if (.not. associated(gam0_ffs_corr(iky, ikx, iz)%fourier)) &
+                    allocate (gam0_ffs_corr(iky, ikx, iz)%fourier(gam0_ffs_corr(iky, ikx, iz)%max_idx))
+
+               if(ikx == 1 .and. iky == naky) then
+                  gam0_const(iky, ikx, iz) = 0.0 !gam0_ffs(iky, ikx, iz)%fourier(1)
+                  !> Not needed anymore
+                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
+               else
+                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
+               end if
             end do
          end do
       end do
@@ -712,9 +746,9 @@ contains
    end subroutine init_gamma0_factor_ffs
 
    !****************************************************************************
-   !                                      Title
+   !                     Initialise Adiabatic denominators
    !****************************************************************************
-   ! solves Delta * phi_hom = -delta_{ky,0} * ne/Te for phi_hom
+   ! Solves Delta * phi_hom = -delta_{ky,0} * ne/Te for phi_hom
    ! this is the vector describing the response of phi_hom to a unit impulse in phi_fsa
    ! it is the sum over ky and integral over kx of this that is needed, and this
    ! is stored in adiabatic_response_factor
@@ -777,7 +811,7 @@ contains
    !****************************************************************************
    !************************** FINISH THE FFS FIELDS ***************************
    !****************************************************************************
-   ! arrays only allocated/used if simulating a full flux surface
+   ! arrays only allocated/used if simulating a full flux annulus
    !****************************************************************************
    subroutine finish_field_equations_fullfluxsurface
 

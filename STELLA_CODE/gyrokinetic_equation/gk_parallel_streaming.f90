@@ -122,7 +122,8 @@ contains
                !               Full Flux Surface simulation
                !----------------------------------------------------------------
                if (driftkinetic_implicit) then
-                  stream_store(iz, iv, :) = stream(1, iz, iv, :)
+                  stream_store(iz, iv, :) = sum(stream(:, iz, iv, :), dim = 1)/ nalpha
+                  !stream_store(iz, iv, :) = stream(1, iz, iv, :)
                end if
                !----------------------------------------------------------------
             end do
