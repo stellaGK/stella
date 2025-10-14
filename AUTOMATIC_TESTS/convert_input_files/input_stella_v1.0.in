@@ -52,14 +52,14 @@
   geometry_file = 'input.geometry'
   overwrite_bmag = .false.
   overwrite_b_dot_grad_zeta = .false.
-  overwrite_gds2 = .false.
-  overwrite_gds21 = .false.
-  overwrite_gds22 = .false.
+  overwrite_grady_dot_grady = .false.
+  overwrite_gradx_dot_grady = .false.
+  overwrite_gradx_dot_gradx = .false.
+  overwrite_B_times_gradB_dot_grady = .false.
+  overwrite_B_times_kappa_dot_grady = .false.
+  overwrite_B_times_gradB_dot_gradx = .false.
   overwrite_gds23 = .false.
   overwrite_gds24 = .false.
-  overwrite_gbdrift = .false.
-  overwrite_cvdrift = .false.
-  overwrite_gbdrift0 = .false.
   set_bmag_const = .false.
 /
 
@@ -110,8 +110,6 @@
 
 &physics_inputs
   rhostar = -1.0
-  zeff = 1.0
-  vnew_ref = -1.0
 /
 
 &flux_annulus
@@ -338,7 +336,7 @@
    scale = 1.0
    restart_file = '.nc'
    restart_dir = './'
-   read_many = .true.
+   save_many = .true.
 /
 
 !===============================================================================
@@ -397,6 +395,8 @@
   hyper_dissipation = .false.
   collision_model = 'dougherty'
   ecoll_zeff = .false.
+  zeff = 1.0
+  vnew_ref = -1.0
 /
 
 &collisions_dougherty

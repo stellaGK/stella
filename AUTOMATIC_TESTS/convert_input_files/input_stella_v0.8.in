@@ -2,7 +2,6 @@
 ! Stella before cleaning up the namelist
 ! Master branch from August 2024 - August 2025
 
-   
 !===============================================================================
 !                               Magnetic Geometry                               
 !===============================================================================
@@ -44,7 +43,6 @@
 &millergeo_parameters
   nzed_local = 128
   rhoc = 0.5
-  rhoc0 = DEPRECATED
   rmaj = 2.77778
   rgeo = 2.77778
   qinp = 1.4
@@ -60,10 +58,6 @@
   d2psidr2 = 0.0
   read_profile_variation = .false.
   write_profile_variation = .false.
-  load_psi0_variables = DEPRECATED
-  rhotor = DEPRECATED
-  psitor_lcfs = DEPRECATED
-  drhotordrho = DEPRECATED
 /
 
 ! Define parameters for a z-pinch
@@ -87,9 +81,6 @@
   g_exb = 0.0
   g_exbfac = 1.0
   omprimfac = 1.0
-/
-
-&parameters_physics
   full_flux_surface = .false.
   radial_variation = .false.
   include_pressure_variation = .false.
@@ -99,7 +90,6 @@
   include_mirror = .true.
   nonlinear = .false.
   adiabatic_option = 'field-line-average-term'
-  const_alpha_geo = DEPRECATED
   prp_shear_enabled = .false.
   hammett_flow_shear = .true.
   suppress_zonal_interaction = .false.
@@ -210,7 +200,6 @@
   write_phi2_vs_kxky = .false.
   write_apar2_vs_kxky = .false.
   write_bpar2_vs_kxky = .false.
-  write_phi_vs_time = DEPRECATED
   write_g2_vs_vpamus = .false.
   write_g2_vs_zvpas = .false.
   write_g2_vs_zmus = .false.
@@ -219,12 +208,8 @@
   write_distribution_g = .true.
   write_distribution_h = .false.
   write_distribution_f = .false.
-  write_gvmus = DEPRECATED
-  write_gzvs = DEPRECATED
   write_omega_vs_kxky = .false.
   write_omega_avg_vs_kxky = .false.
-  write_omega = DEPRECATED
-  write_kspectra = DEPRECATED
   write_fluxes_vs_time = .true.
   write_fluxes_kxky = .false.
   write_fluxes_kxkyz = .false.
@@ -242,25 +227,15 @@
   ginit_option = 'default'
   phiinit = 1.0
   scale_to_phiinit = .false.
-/
-
-&init_g_knobs
   width0 = -3.5
   den0 = 1.
   upar0 = 0.
   even = .true.
-  oddparity = DOESNT EXIST YET
   chop_side = .false.
   left = .true.
-/
-
-&init_g_knobs
   zf_init = 1.0
   chop_side = .false.
   left = .true.
-/
-
-&init_g_knobs
   width0 = -3.5
   refac = 1.
   imfac = 0.
@@ -278,21 +253,14 @@
   tperp2 = 0.
   chop_side = .false.
   left = .true.
-/
-
-&init_g_knobs
   kxmax = 1e+100
   kxmin = 0.0
   imfac = 0.0
   refac = 1.0
-/
-
-&init_g_knobs
   tstart = 0.0
   scale = 1.0
   restart_file = '.nc'
   restart_dir = './'
-  read_many = DOESNT EXIST YET
 /
 
 !===============================================================================
@@ -368,10 +336,8 @@
   nstep = -1
   tend = -1.0
   delt_option = 'default'
-  delt_adjust = DEPRECATED
   delt_max = -1
   delt_min = 1.e-10
-  cfl_cushion = DEPRECATED
   cfl_cushion_upper = 0.5
   cfl_cushion_middle = 0.25
   cfl_cushion_lower = 0.00001
@@ -379,13 +345,11 @@
   avail_cpu_time = 1.e10
   autostop = .true. 
   fphi = 1.0
-  fapar = DEPRECATED
-  fbpar = DEPRECATED
   fields_kxkyz = .false.
   stream_implicit = .true.
   mirror_implicit = .true.
   drifts_implicit = .false.
-  driftkinetic_implicit = DEPRECATED
+  driftkinetic_implicit = .false.
   stream_iterative_implicit = .false.
   stream_matrix_inversion = .false.
   mirror_semi_lagrange = .true.
@@ -404,13 +368,7 @@
   rng_seed = -1
   print_extra_info_to_terminal = .true.
   nitt = 1
-/
-
-&parameters_numerical
   explicit_option = 'rk3'
-  xdriftknob = CORRESPONDS TO parameters_physics:xdriftknob
-  ydriftknob = CORRESPONDS TO parameters_physics:ydriftknob
-  wstarknob = CORRESPONDS TO parameters_physics:wstarknob
   flip_flop = .false.
 /
 
@@ -505,31 +463,31 @@
 /
 
 &debug_flags
-   debug_all = .false.
-   fields_all_debug = .false.
-   diagnostics_all_debug = .false.
-   stella_debug = .false.
-   ffs_solve_debug = .false.
-   fields_debug = .false.
-   fields_fluxtube_debug = .false.
-   fields_electromagnetic_debug = .false. 
-   fields_ffs_debug = .false. 
-   implicit_solve_debug = .false.
-   mirror_terms_debug = .false.
-   neoclassical_terms_debug = .false.
-   parallel_streaming_debug = .false.
-   response_matrix_debug = .false.
-   time_advance_debug = .false.
-   extended_grid_debug = .false. 
-   geometry_debug = .false.
-   dist_fn_debug = .false.
-   gyro_averages_debug = .false.
-   diagnostics_debug = .false.
-   diagnostics_parameters = .false.
-   diagnostics_omega_debug = .false. 
-   diagnostics_fluxes_fluxtube_debug = .false. 
-   fluxes_debug = .false.
-   const_alpha_geo = .false.
+  debug_all = .false.
+  fields_all_debug = .false.
+  diagnostics_all_debug = .false.
+  stella_debug = .false.
+  fs_solve_debug = .false.
+  fields_debug = .false.
+  fields_fluxtube_debug = .false.
+  fields_electromagnetic_debug = .false. 
+  fields_ffs_debug = .false. 
+  implicit_solve_debug = .false.
+  mirror_terms_debug = .false.
+  neoclassical_terms_debug = .false.
+  parallel_streaming_debug = .false.
+  response_matrix_debug = .false.
+  time_advance_debug = .false.
+  extended_grid_debug = .false. 
+  geometry_debug = .false.
+  dist_fn_debug = .false.
+  gyro_averages_debug = .false.
+  diagnostics_debug = .false.
+  diagnostics_parameters = .false.
+  diagnostics_omega_debug = .false. 
+  diagnostics_fluxes_fluxtube_debug = .false. 
+  fluxes_debug = .false.
+  const_alpha_geo = .false.
 /
 
 
