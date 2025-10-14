@@ -27,7 +27,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     input_parameters = json.loads(json.dumps(input_parameters))  
     
     # We can upgrade the input file from stella version v0.5 to v1.0
-    # Or we can downgrade the input file from stella version v1.0 to v0.5c
+    # Or we can downgrade the input file from stella version v1.0 to v0.5
     upgrade = not downgrade
     
     # Make sure everything is in lower case
@@ -55,9 +55,9 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'geo_knobs:overwrite_gds2:False'            : 'geometry_from_txt:overwrite_grady_dot_grady:False',
         'geo_knobs:overwrite_gds21:False'           : 'geometry_from_txt:overwrite_gradx_dot_grady:False',
         'geo_knobs:overwrite_gds22:False'           : 'geometry_from_txt:overwrite_gradx_dot_gradx:False',
-        'geo_knobs:overwrite_gbdrift:False'         : 'geometry_from_txt:overwrite_B_times_gradB_dot_grady:False',
-        'geo_knobs:overwrite_cvdrift:False'         : 'geometry_from_txt:overwrite_B_times_kappa_dot_grady:False',
-        'geo_knobs:overwrite_gbdrift0:False'        : 'geometry_from_txt:overwrite_B_times_gradB_dot_gradx:False',
+        'geo_knobs:overwrite_gbdrift:False'         : 'geometry_from_txt:overwrite_b_times_gradb_dot_grady:False',
+        'geo_knobs:overwrite_cvdrift:False'         : 'geometry_from_txt:overwrite_b_times_kappa_dot_grady:False',
+        'geo_knobs:overwrite_gbdrift0:False'        : 'geometry_from_txt:overwrite_b_times_gradb_dot_gradx:False',
         'geo_knobs:overwrite_gds23:False'           : 'geometry_from_txt:overwrite_gds23:False',
         'geo_knobs:overwrite_gds24:False'           : 'geometry_from_txt:overwrite_gds24:False',
         'geo_knobs:set_bmag_const:False'            : 'geometry_from_txt:set_bmag_const:DEPRECATED',
@@ -106,6 +106,15 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     
     # Replace variables
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
+    
+    # Deal with stella v0.8
+    renamed_variables = { 
+        'geo_knobs:overwrite_b_dot_grad_zeta:False'  : 'geometry_from_txt:overwrite_b_dot_grad_zeta:False',
+        }
+        
+    # Replace variables
+    if upgrade:
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                     Physics                                  
@@ -231,6 +240,14 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
                 del input_parameters['physics_flags']['full_flux_surface']
                 if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
                 input_parameters['gyrokinetic_terms']['simulation_domain'] = value_old
+        if 'parameters_physics' in input_parameters.keys():
+            if 'full_flux_surface' in input_parameters['parameters_physics'].keys():
+                value_old = input_parameters['parameters_physics']['full_flux_surface']
+                if value_old==True: value_old = 'full_flux_annulus'
+                if value_old==False: value_old = 'fluxtube'
+                del input_parameters['parameters_physics']['full_flux_surface']
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+                input_parameters['gyrokinetic_terms']['simulation_domain'] = value_old
     if downgrade:
         if 'gyrokinetic_terms' in input_parameters.keys():
             if 'simulation_domain' in input_parameters['gyrokinetic_terms'].keys():
@@ -240,6 +257,51 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
                 del input_parameters['gyrokinetic_terms']['simulation_domain']
                 if 'physics_flags' not in input_parameters.keys(): input_parameters['physics_flags'] = {}
                 input_parameters['physics_flags']['full_flux_surface'] = value_old
+                
+                
+    # Deal with stella v0.8
+    renamed_variables = { 
+        #-------------------------- parameters_physics -------------------------
+        'parameters_physics:explicit_option:rk3'    : 'numerical_algorithms:explicit_algorithm:rk3',
+        'parameters_physics:flip_flop:False'        : 'numerical_algorithms:flip_flop:False',
+        'parameters_physics:stream_iterative_implicit:DOESNT EXIST YET' : 'numerical_algorithms:stream_iterative_implicit:False',
+        'parameters_physics:fully_implicit:DOESNT EXIST YET' : 'numerical_algorithms:fully_implicit:False',
+        'parameters_physics:fully_explicit:DOESNT EXIST YET' : 'numerical_algorithms:fully_explicit:False',
+        'parameters_physics:split_parallel_dynamics:DOESNT EXIST YET' : 'numerical_algorithms:split_parallel_dynamics:False',
+        'parameters_physics:use_deltaphi_for_response_matrix:DOESNT EXIST YET' : 'numerical_algorithms:use_deltaphi_for_response_matrix:False',
+        'parameters_physics:maxwellian_normalization:DOESNT EXIST YET' : 'numerical_algorithms:maxwellian_normalization:False',
+        'parameters_physics:xdriftknob:1.0'         : 'scale_gyrokinetic_terms:xdriftknob:1.0',
+        'parameters_physics:ydriftknob:1.0'         : 'scale_gyrokinetic_terms:ydriftknob:1.0',
+        'parameters_physics:wstarknob:1.0'          : 'scale_gyrokinetic_terms:wstarknob:1.0',
+        'parameters_physics:suppress_zonal_interaction:DOESNT EXIST YET' : 'scale_gyrokinetic_terms:suppress_zonal_interaction:False',
+        'parameters_physics:radial_variation:False'      : 'gyrokinetic_terms:include_radial_variation:False',
+        'parameters_physics:include_parallel_nonlinearity:False' : 'gyrokinetic_terms:include_parallel_nonlinearity:False',
+        'parameters_physics:include_parallel_streaming:True' : 'gyrokinetic_terms:include_parallel_streaming:True',
+        'parameters_physics:include_mirror:True'         : 'gyrokinetic_terms:include_mirror:True',
+        'parameters_physics:nonlinear:False'             : 'gyrokinetic_terms:include_nonlinear:False',
+        'parameters_physics:include_electromagnetic:DOESNT EXIST YET' : 'gyrokinetic_terms:include_electromagnetic:False',
+        'parameters_physics:const_alpha_geo:False'       : 'debug_flags:const_alpha_geo:False',
+        'parameters_physics:include_pressure_variation:True' : 'multibox_parameters:include_pressure_variation:True',
+        'parameters_physics:include_geometric_variation:True' : 'multibox_parameters:include_geometric_variation:True',
+        'parameters_physics:adiabatic_option:no-field-line-average-term' : 'adiabatic_electron_response:adiabatic_option:no-field-line-average-term',
+        'parameters_physics:tite:1.0'                       : 'adiabatic_electron_response:tite:1.0',
+        'parameters_physics:nine:1.0'                       : 'adiabatic_electron_response:nine:1.0',
+        'parameters_physics:beta:0.0'                       : 'electromagnetic:beta:0.0',
+        'parameters_physics:vnew_ref:-1.0'                  : 'dissipation_and_collisions_options:vnew_ref:-1.0',
+        'parameters_physics:zeff:1.0'                       : 'dissipation_and_collisions_options:zeff:1.0',
+        'parameters_physics:rhostar:-1.0'                   : 'physics_inputs:rhostar:-1.0',
+        'parameters_physics:g_exb:0.0'                      : 'flow_shear:g_exb:0.0',
+        'parameters_physics:g_exbfac:1.0'                   : 'flow_shear:g_exbfac:1.0',
+        'parameters_physics:omprimfac:1.0'                  : 'flow_shear:omprimfac:1.0',
+        'parameters_physics:prp_shear_enabled:DOESNT EXIST YET' : 'flow_shear:prp_shear_enabled:False',
+        'parameters_physics:hammett_flow_shear:DOESNT EXIST YET' : 'flow_shear:hammett_flow_shear:True',
+        'parameters_physics:nitt:DOESNT EXIST YET'        : 'flux_annulus:nitt:1',
+        'parameters_physics:irhostar:-1.0'                  : 'parameters:irhostar:DEPRECATED',
+        }
+        
+    # Replace variables
+    if upgrade:
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                 Kinetic species                                  
@@ -279,7 +341,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
-    #                           Discretized (kx,ky,z,mu,vpa) grid                             
+    #                       Discretized (kx,ky,z,mu,vpa) grid                       
     #===============================================================================
     
     renamed_variables = { 
@@ -330,6 +392,26 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     
     # Replace variables
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
+    
+    # Deal with stella version 0.8
+    renamed_variables = { 
+        #------------------- kt_grids_box_parameters ------------------
+        'parameters_kxky_grids_box:nx:1'              : 'kxky_grid_box:nx:1',
+        'parameters_kxky_grids_box:ny:1'              : 'kxky_grid_box:ny:1',
+        'parameters_kxky_grids_box:jtwist:-1'         : 'kxky_grid_box:jtwist:-1',
+        'parameters_kxky_grids_box:jtwistfac:1.0'     : 'kxky_grid_box:jtwistfac:1.0',
+        'parameters_kxky_grids_box:x0:-1.0'           : 'kxky_grid_box:x0:-1.0',
+        'parameters_kxky_grids_box:y0:-1.0'           : 'kxky_grid_box:y0:-1.0',
+        'parameters_kxky_grids_box:nalpha:1'          : 'kt_grids_box_parameters:nalpha:DEPRECATED',
+        'parameters_kxky_grids_box:centered_in_rho:True' : 'kxky_grid_box:centered_in_rho:True',
+        'parameters_kxky_grids_box:randomize_phase_shift:False' : 'kxky_grid_box:randomize_phase_shift:False',
+        'parameters_kxky_grids_box:periodic_variation:False' : 'kxky_grid_box:periodic_variation:False',
+        'parameters_kxky_grids_box:phase_shift_angle:0.0' : 'kxky_grid_box:phase_shift_angle:0.0',
+        }
+        
+    # Replace variables
+    if upgrade:
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                   Diagnostics                                  
@@ -634,6 +716,47 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
                 value_old = 1 if value_old==True else 0
                 if 'knobs' not in input_parameters.keys(): input_parameters['knobs'] = {}
                 input_parameters['knobs']['fbpar'] = value_old
+                
+    # Deal with stella v0.8
+    renamed_variables = { 
+        #-------------------------- parameters_numerical------------------------
+        'parameters_numerical:avail_cpu_time:10000000000.0'        : 'time_trace_options:avail_cpu_time:10000000000.0',
+        'parameters_numerical:tend:-1.0'                           : 'time_trace_options:tend:-1.0',
+        'parameters_numerical:nstep:-1'                            : 'time_trace_options:nstep:-1',
+        'parameters_numerical:autostop:True'                       : 'time_trace_options:autostop:True',
+        'parameters_numerical:delt:-1'                             : 'time_step:delt:0.03',
+        'parameters_numerical:delt_option:check_restart'           : 'time_step:delt_option:check_restart',
+        'parameters_numerical:delt_adjust:2.0'                     : 'knobs:delt_adjust:DEPRECATED',
+        'parameters_numerical:delt_max:-1'                         : 'time_step:delt_max:-1',
+        'parameters_numerical:delt_min:1.e-10'                     : 'time_step:delt_min:1e-10',
+        'parameters_numerical:cfl_cushion:0.5'                     : 'time_step:cfl_cushion_upper:0.5', 
+        'parameters_numerical:cfl_cushion_upper:0.5'               : 'time_step:cfl_cushion_upper:0.5', 
+        'parameters_numerical:cfl_cushion_middle:0.25'             : 'time_step:cfl_cushion_middle:0.25',
+        'parameters_numerical:cfl_cushion_lower:0.00001'           : 'time_step:cfl_cushion_lower:1e-05',
+        'parameters_numerical:fphi:1.0'                            : 'scale_gyrokinetic_terms:fphi:1.0',
+        'parameters_numerical:fields_kxkyz:False'                  : 'parallelisation:fields_kxkyz:False',
+        'parameters_numerical:lu_option:none'                      : 'parallelisation:lu_option:default',
+        'parameters_numerical:mat_gen:True'                        : 'parallelisation:mat_gen:True',
+        'parameters_numerical:mat_read:False'                      : 'parallelisation:mat_read:False',
+        'parameters_numerical:stream_implicit:True'                : 'numerical_algorithms:stream_implicit:True',
+        'parameters_numerical:mirror_implicit:True'                : 'numerical_algorithms:mirror_implicit:True',
+        'parameters_numerical:drifts_implicit:False'               : 'numerical_algorithms:drifts_implicit:False',
+        'parameters_numerical:driftkinetic_implicit:False'         : 'numerical_algorithms:driftkinetic_implicit:False',
+        'parameters_numerical:maxwellian_inside_zed_derivative:False' : 'numerical_algorithms:maxwellian_inside_zed_derivative:False',
+        'parameters_numerical:mirror_semi_lagrange:True'           : 'numerical_algorithms:mirror_semi_lagrange:True',
+        'parameters_numerical:mirror_linear_interp:False'          : 'numerical_algorithms:mirror_linear_interp:False',
+        'parameters_numerical:stream_matrix_inversion:False'       : 'numerical_algorithms:stream_matrix_inversion:False',
+        'parameters_numerical:zed_upwind:0.02'                     : 'numerical_upwinding_for_derivatives:zed_upwind:0.02',
+        'parameters_numerical:vpa_upwind:0.02'                     : 'numerical_upwinding_for_derivatives:vpa_upwind:0.02',
+        'parameters_numerical:time_upwind:0.02'                    : 'numerical_upwinding_for_derivatives:time_upwind:0.02',
+        'parameters_numerical:rng_seed:-1'                         : 'initialise_distribution_noise:rng_seed:-1',
+        'parameters_numerical:ky_solve_radial:0'                   : 'multibox_parameters:ky_solve_radial:0',
+        'parameters_numerical:ky_solve_real:False'                 : 'multibox_parameters:ky_solve_real:False',
+        }
+        
+    # Replace variables
+    if upgrade:
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                   Dissipation                                  
@@ -701,6 +824,63 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'dissipation:vpa_operator:True' : 'collisions_dougherty:vpa_operator:True',
         'dissipation:mu_operator:True'  : 'collisions_dougherty:mu_operator:True',}
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
+    
+    # Deal with stella v0.8
+    renamed_variables = { 
+        #------------------- dissipation --> dissipation ------------------
+        'dissipation:include_collisions:False'      : 'dissipation_and_collisions_options:include_collisions:False',
+        'dissipation:hyper_dissipation:False'       : 'dissipation_and_collisions_options:hyper_dissipation:False',
+        'dissipation:collision_model:dougherty'     : 'dissipation_and_collisions_options:collision_model:dougherty',
+        'dissipation:collisions_implicit:True'      : 'dissipation_and_collisions_options:collisions_implicit:True',
+        #------------------- dissipation --> hyper_dissipation ------------------
+        'dissipation:d_hyper:0.05'                  : 'hyper_dissipation:d_hyper:0.05',
+        'hyper_dissipation:d_zed:DOESNT EXIST YET'  : 'hyper_dissipation:d_zed:0.05',
+        'hyper_dissipation:d_vpa:DOESNT EXIST YET'  : 'hyper_dissipation:d_vpa:0.05',
+        'hyper_dissipation:hyp_zed:DOESNT EXIST YET': 'hyper_dissipation:hyp_zed:False',
+        'hyper_dissipation:hyp_vpa:DOESNT EXIST YET': 'hyper_dissipation:hyp_vpa:False',
+        'hyper_dissipation:use_physical_ksqr:DOESNT EXIST YET' : 'hyper_dissipation:use_physical_ksqr:True',
+        'hyper_dissipation:scale_to_outboard:DOESNT EXIST YET' : 'hyper_dissipation:scale_to_outboard:False', 
+        #------------------- dissipation --> collisions_dougherty ------------------
+        'collisions_dougherty:momentum_conservation:True'  : 'collisions_dougherty:momentum_conservation:True',
+        'collisions_dougherty:energy_conservation:True'    : 'collisions_dougherty:energy_conservation:True',
+        #------------------- dissipation --> collisions_fokker_planck ------------------
+        'collisions_fp:testpart:True'                 : 'collisions_fokker_planck:testpart:True',
+        'collisions_fp:fieldpart:False'               : 'collisions_fokker_planck:fieldpart:False',
+        'collisions_fp:intraspec:True'                : 'collisions_fokker_planck:intraspec:True',
+        'collisions_fp:interspec:True'                : 'collisions_fokker_planck:interspec:True',
+        'collisions_fp:iiknob:1.0'                    : 'collisions_fokker_planck:iiknob:1.0',
+        'collisions_fp:ieknob:1.0'                    : 'collisions_fokker_planck:ieknob:1.0',
+        'collisions_fp:eeknob:1.0'                    : 'collisions_fokker_planck:eeknob:1.0',
+        'collisions_fp:eiknob:1.0'                    : 'collisions_fokker_planck:eiknob:1.0',
+        'collisions_fp:eiediffknob:1.0'               : 'collisions_fokker_planck:eiediffknob:1.0',
+        'collisions_fp:deflknob:1.0'                  : 'collisions_fokker_planck:deflknob:1.0',
+        'collisions_fp:eimassr_approx:False'          : 'collisions_fokker_planck:eimassr_approx:False',
+        'collisions_fp:advfield_coll:True'            : 'collisions_fokker_planck:advfield_coll:True',
+        'collisions_fp:density_conservation:False'    : 'collisions_fokker_planck:density_conservation:False',
+        'collisions_fp:density_conservation_tp:False' : 'collisions_fokker_planck:density_conservation_tp:False',
+        'collisions_fp:exact_conservation:False'      : 'collisions_fokker_planck:exact_conservation:False',
+        'collisions_fp:spitzer_problem:False'         : 'collisions_fokker_planck:spitzer_problem:False',
+        'collisions_fp:cfac:1'                        : 'collisions_fokker_planck:cfac:1',
+        'collisions_fp:cfac2:1'                       : 'collisions_fokker_planck:cfac2:1',
+        'collisions_fp:nuxfac:1'                      : 'collisions_fokker_planck:nuxfac:1',
+        'collisions_fp:jmax:1'                        : 'collisions_fokker_planck:jmax:1',
+        'collisions_fp:lmax:1'                        : 'collisions_fokker_planck:lmax:1',
+        'collisions_fp:i1fac:1'                       : 'collisions_fokker_planck:i1fac:1',
+        'collisions_fp:i2fac:0'                       : 'collisions_fokker_planck:i2fac:0',
+        'collisions_fp:no_j1l1:True'                  : 'collisions_fokker_planck:no_j1l1:True',
+        'collisions_fp:no_j1l2:False'                 : 'collisions_fokker_planck:no_j1l2:False',
+        'collisions_fp:no_j0l2:False'                 : 'collisions_fokker_planck:no_j0l2:False',
+        'collisions_fp:nvel_local:512'                : 'collisions_fokker_planck:nvel_local:512',
+        'collisions_fp:vpa_operator:True'             : 'collisions_fokker_planck:vpa_operator:True',
+        'collisions_fp:mu_operator:True'              : 'collisions_fokker_planck:mu_operator:True',
+        'collisions_fp:density_conservation_field:False' : 'collisions_fokker_planck:density_conservation_field:False',
+        'collisions_fp:eideflknob:1.0' : 'collisions_fokker_planck:eideflknob:1.0',
+        'collisions_fp:exact_conservation_tp:False' : 'collisions_fokker_planck:exact_conservation_tp:False',
+        }
+        
+    # Replace variables
+    if upgrade:
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                     Others                                  
@@ -897,7 +1077,7 @@ def write_dictionaryToNamelist(path, dictionary, downgrade, indent="  ", sort_kn
         '&Ion, electron and impurity species', 'species_options', 'adiabatic_electron_response', 'adiabatic_ion_response', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
         '&Discretized (kx,ky,z,mu,vpa) grid', 'kxky_grid_option', 'kxky_grid_range', 'kxky_grid_box', 'z_grid', 'z_boundary_condition', 'velocity_grids',
         '&Numerics', 'time_trace_options', 'time_step', 'numerical_algorithms', 'numerical_upwinding_for_derivatives', 
-        '&Dissipation', 'dissipation', 'hyper_dissipation', 'collisions_dougherty', 'collisions_fokker_planck',
+        '&Dissipation', 'dissipation_and_collisions_options', 'hyper_dissipation', 'collisions_dougherty', 'collisions_fokker_planck',
         '&Neoclassics', 'neoclassical_input', 'sfincs_input', 
         '&Radial variation', 'multibox_parameters', 'sources', 'flow_shear', 
         '&Parallelisation', 'parallelisation', 
@@ -907,7 +1087,8 @@ def write_dictionaryToNamelist(path, dictionary, downgrade, indent="  ", sort_kn
             '&Physics', 'parameters', 'physics_flags',
             '&Diagnostics', 'stella_diagnostics_knobs',
             '&Initialise Distribution', 'init_g_knobs',
-            '&Ion, electron and impurity species', 'species_knobs', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
+            '&Ion, electron and impurity species', 'species_knobs', 'species_parameters_1', 'species_parameters_2', 
+            'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
             '&Discretized (kx,ky,z,mu,vpa) grid', 'kt_grids_knobs', 'kt_grids_range_parameters', 'kt_grids_box_parameters', 'zgrid_parameters', 'vpamu_grids_parameters',
             '&Numerics', 'knobs', 'time_advance_knobs', 
             '&Dissipation', 'dissipation',
@@ -1071,7 +1252,7 @@ def tool_to_write_this_script():
     
 
 #===============================================================================
-#                             RUN AS MAIN SCRIPT                               #
+#                                DEBUG SCRIPT                                  #
 #===============================================================================
  
 if __name__ == '__main__' and False:
@@ -1084,13 +1265,19 @@ if __name__ == '__main__' and False:
     path_input_file = path.parent / 'input_stella_v0.5.in'
     input_parameters = update_inputFile(path_input_file, add_default_variables=True)
     
+    # Upgrade input file from stella version 0.8 to stella version 1.0
+    path = pathlib.Path(os.path.realpath(__file__))
+    path_input_file = path.parent / 'input_stella_v0.8.in'
+    input_parameters = update_inputFile(path_input_file, add_default_variables=True)
+    
     # Downgrade input file from stella version 1.0 to stella version 0.5
     path = pathlib.Path(os.path.realpath(__file__))
     path_input_file = path.parent / 'input_stella_v1.0.in'
     input_parameters = update_inputFile(path_input_file, add_default_variables=True, downgrade=True)
     
-    # Check whether we can correctly upgrade a file 
+    # Check whether we can correctly upgrade a file from 0.5 to 1.0
     if False:
+        print('\n Test updating from stella v0.5 to stella v1.0\n')
         input_parameters_correct = f90nml.read(path.parent/'input_stella_v1.0.in')
         input_parameters_correct = json.loads(json.dumps(input_parameters_correct))  
         input_parameters_testscript = f90nml.read(path.parent/'input_stella_v0.5_updated.in' )
@@ -1104,8 +1291,25 @@ if __name__ == '__main__' and False:
             for variable, value in dict_difference[namelist].items():
                 print(f'{variable}: {value}') 
     
-    # Check whether we can correctly downgrade a file 
+    # Check whether we can correctly upgrade a file from 0.8 to 1.0
     if True:
+        print('\n Test updating from stella v0.8 to stella v1.0\n')
+        input_parameters_correct = f90nml.read(path.parent/'input_stella_v1.0.in')
+        input_parameters_correct = json.loads(json.dumps(input_parameters_correct))  
+        input_parameters_testscript = f90nml.read(path.parent/'input_stella_v0.8_updated.in' )
+        input_parameters_testscript = json.loads(json.dumps(input_parameters_testscript))  
+        dict_difference, numberOfDifferences = get_differenceInDictionaries(input_parameters_correct, input_parameters_testscript)
+        print('\n\n------------ Print differences ------------------', numberOfDifferences)
+        for namelist in dict_difference.keys():
+            print('\n==================================')
+            print(f'{namelist}'.center(34))
+            print('==================================')
+            for variable, value in dict_difference[namelist].items():
+                print(f'{variable}: {value}') 
+    
+    # Check whether we can correctly downgrade a file from 1.0 to 0.5
+    if False:
+        print('\n Test downgrading from stella v1.0 to stella v0.5\n')
         input_parameters_correct = f90nml.read(path.parent/'input_stella_v0.5.in')
         input_parameters_correct = json.loads(json.dumps(input_parameters_correct))  
         input_parameters_testscript = f90nml.read(path.parent/'input_stella_v1.0_downgraded.in' )
@@ -1120,10 +1324,11 @@ if __name__ == '__main__' and False:
                 print(f'{variable}: {value}') 
 
     # Some examples
-    path_input_file = path.parent / 'miller_nonlinear_CBC.in'
-    input_parameters = update_inputFile(path_input_file)
-    path_input_file = path.parent / 'W7X_old_input.in'
-    input_parameters = update_inputFile(path_input_file)
+    if False:
+        path_input_file = path.parent / 'miller_nonlinear_CBC.in'
+        input_parameters = update_inputFile(path_input_file)
+        path_input_file = path.parent / 'W7X_old_input.in'
+        input_parameters = update_inputFile(path_input_file)
     
     
 #===============================================================================
@@ -1131,13 +1336,19 @@ if __name__ == '__main__' and False:
 #===============================================================================
 
 if __name__ == '__main__' and True:
+
+    # Import modules
     import glob
-    folder = pathlib.Path(os.getcwd()) 
+    
+    # Get the input files in the current folder
+    folder = pathlib.Path(os.getcwd())
     input_files = [pathlib.Path(i) for i in glob.glob(str(folder)+'/*.in')]
     input_files = [i for i in input_files if '_updated.in' not in i.name]
     input_files = [i for i in input_files if '_downgraded.in' not in i.name]
+    
+    # Upgrade or downgrade the input file
     for input_file in input_files:
-        version_05 = False; version_10 = False
+        version_05 = False; version_10 = False; version_08 = False
         with open(input_file) as f:
             text = f.read()
             if '&geo_knobs' in text: version_05 = True
@@ -1146,6 +1357,10 @@ if __name__ == '__main__' and True:
             if '&geometry_options' in text: version_10 = True
             if '&geometry_miller' in text: version_10 = True
             if '&geometry_vmec' in text: version_10 = True
+            if version_05:
+                if '&parameters_numerical' in text: version_08 = True
+                if '&collisions_fp' in text: version_08 = True 
+                if '&parameters_physics' in text: version_08 = True
         if version_05:
             print(f'\nUpdating {input_file.name} from stella version 0.5 to stella version 1.0')
             update_inputFile(input_file)
