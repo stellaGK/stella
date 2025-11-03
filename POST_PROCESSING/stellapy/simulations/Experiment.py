@@ -234,12 +234,12 @@ def create_experimentsForAResolutionScan(simulations, creationDetails):
     
     # For each simulation, remember its resolution
     resolution = {
-        "nzed"   : { "values" : [None]*len(simulations), "knob" : "zgrid_parameters", "key" : "nzed"},\
-        "nmu"    : { "values" : [None]*len(simulations), "knob" : "vpamu_grids_parameters", "key" : "nmu"},\
-        "nvgrid" : { "values" : [None]*len(simulations), "knob" : "vpamu_grids_parameters", "key" : "nvgrid"},\
-        "y0"     : { "values" : [None]*len(simulations), "knob" : "kt_grids_box_parameters", "key" : "y0"},\
-        "kx max" : { "values" : [None]*len(simulations), "knob" : "kt_grids_box_parameters", "key" : "kx max"},\
-        "ky max" : { "values" : [None]*len(simulations), "knob" : "kt_grids_box_parameters", "key" : "ky max"}}
+        "nzed"   : { "values" : [None]*len(simulations), "knob" : "z_grid", "key" : "nzed"},\
+        "nmu"    : { "values" : [None]*len(simulations), "knob" : "velocity_grids", "key" : "nmu"},\
+        "nvgrid" : { "values" : [None]*len(simulations), "knob" : "velocity_grids", "key" : "nvgrid"},\
+        "y0"     : { "values" : [None]*len(simulations), "knob" : "kxky_grid_box", "key" : "y0"},\
+        "kx max" : { "values" : [None]*len(simulations), "knob" : "kxky_grid_box", "key" : "kx max"},\
+        "ky max" : { "values" : [None]*len(simulations), "knob" : "kxky_grid_box", "key" : "ky max"}}
      
     # Iterate over the simulations objects and collect the resolution parameters
     for i, simulation in enumerate(simulations):

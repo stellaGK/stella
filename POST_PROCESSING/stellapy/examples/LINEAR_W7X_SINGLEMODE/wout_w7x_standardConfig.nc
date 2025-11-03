@@ -1,0 +1,1 @@
+/home/cookie/Documents/GitHub/stella/POST_PROCESSING/stellapy/../../DOCUMENTATION/VMEC_equilibria/wout_w7x_standardConfig.nc
