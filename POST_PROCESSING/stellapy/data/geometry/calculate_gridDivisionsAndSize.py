@@ -21,10 +21,10 @@ wout_data = read_wout(woutfile)
 Theory
 ------
 The size of the grid and it's divisions are based on the standard parallel boundary condition.
-Their values are calculated according to the paper: "The parallel boundary condition 
-for turbulence simulations in low magnetic shear devices." by M. F. Martin [1]
-Or according to "Definitions for GS2 full-flux-surface stellarator geometry" by
-M. Landreman which can be found in "stella/geo/vmec_interface/doc" [2]
+Their values are calculated according to the paper: 'The parallel boundary condition 
+for turbulence simulations in low magnetic shear devices.' by M. F. Martin [1]
+Or according to 'Definitions for GS2 full-flux-surface stellarator geometry' by
+M. Landreman which can be found in 'stella/geo/vmec_interface/doc' [2]
 
 
 CASE GEO_OPTION_VMEC
@@ -160,64 +160,64 @@ def calculate_gridDivisionsAndSize(y0, nfield_periods, wout_data, svalue=None, r
     ''' The functions rely on {svalue, y0, nfield_periods, wout_data}. ''' 
     args  =  {
         # Variables related to the simulation
-        "rho"    : rho,\
-        "svalue" : svalue,\
-        "y0"     : y0,\
-        "nperiod" : nperiod,\
+        'rho'    : rho,\
+        'svalue' : svalue,\
+        'y0'     : y0,\
+        'nperiod' : nperiod,\
         # Variables that can be given or calculated
-        "jtwist": jtwist,\
+        'jtwist': jtwist,\
         # Variables that are calculated
-        "P"     : np.nan,\
-        "dkx"   : np.nan,\
-        "shat"  : np.nan,\
-        "iota"  : np.nan,\
-        "diotaOverds"  : np.nan,\
-        "torflux_sign" : np.nan,\
-        "twist_and_shift_geo_fac" : np.nan,\
+        'P'     : np.nan,\
+        'dkx'   : np.nan,\
+        'shat'  : np.nan,\
+        'iota'  : np.nan,\
+        'diotaOverds'  : np.nan,\
+        'torflux_sign' : np.nan,\
+        'twist_and_shift_geo_fac' : np.nan,\
         # Print information
-        "verbose" : False,\
+        'verbose' : False,\
         }
     
     # Determine the position
-    if rho==None: args["rho"] = np.sqrt(args["svalue"] )
-    if svalue==None: args["svalue"] = args["rho"]*args["rho"] 
+    if rho==None: args['rho'] = np.sqrt(args['svalue'] )
+    if svalue==None: args['svalue'] = args['rho']*args['rho'] 
     
     # Calculate the variables at the flux tube for VMEC
-    if wout_data["source"]!="Miller coordinates": 
+    if wout_data['source']!='Miller coordinates': 
         
         # Nfieldperiods
-        args["nfield_periods"] = nfield_periods
-        args["field_period_ratio"] = nfield_periods/wout_data["nfp"]
+        args['nfield_periods'] = nfield_periods
+        args['field_period_ratio'] = nfield_periods/wout_data['nfp']
         
         # Variables read from the equilibrium
-        args["b0"] = wout_data["b0"]
-        args["ns"] = wout_data["ns"]
-        args["nfp"] = wout_data["nfp"]
-        args["phi"] = wout_data["phi"]
-        args["iotas"] = wout_data["iotas"]
-        args["iotaf"] = wout_data["iotaf"]
-        args["Aminor_p"] = wout_data["aminor"]
+        args['b0'] = wout_data['b0']
+        args['ns'] = wout_data['ns']
+        args['nfp'] = wout_data['nfp']
+        args['phi'] = wout_data['phi']
+        args['iotas'] = wout_data['iotas']
+        args['iotaf'] = wout_data['iotaf']
+        args['Aminor_p'] = wout_data['aminor']
              
         # Calculations at rho=rho0
-        args["torflux_sign"] = calculate_signTorFlux(**args) 
-        args["iota"]         = calculate_iota(**args) 
-        args["diotaOverds"]  = calculate_diotaOverds(**args) 
-        args["shat"]         = calculate_shat(**args)  
+        args['torflux_sign'] = calculate_signTorFlux(**args) 
+        args['iota']         = calculate_iota(**args) 
+        args['diotaOverds']  = calculate_diotaOverds(**args) 
+        args['shat']         = calculate_shat(**args)  
         
     # For Miller, the variables are already given
-    if wout_data["source"]=="Miller coordinates":
-        args["torflux_sign"] = "Miller"
-        args["iota"] = wout_data["iota"]
-        args["shat"] = wout_data["shat"]
+    if wout_data['source']=='Miller coordinates':
+        args['torflux_sign'] = 'Miller'
+        args['iota'] = wout_data['iota']
+        args['shat'] = wout_data['shat']
         
     # Only (iota, shat) are needed for the following calculations
-    args["dky"]          = calculate_dky(args["y0"])
-    args["Ly"]           = calculate_Ly(args["y0"]) 
-    args["twist_and_shift_geo_fac"] = calculate_twistAndShiftGeoFac(**args) 
-    args["jtwist"]       = calculate_jtwist(**args)  
-    args["P"]            = calculate_zetaOverTwoPi(**args)
-    args["dkx"]          = calculate_dkx(**args)
-    args["Lx"]           = calculate_Lx(**args) 
+    args['dky']          = calculate_dky(args['y0'])
+    args['Ly']           = calculate_Ly(args['y0']) 
+    args['twist_and_shift_geo_fac'] = calculate_twistAndShiftGeoFac(**args) 
+    args['jtwist']       = calculate_jtwist(**args)  
+    args['P']            = calculate_zetaOverTwoPi(**args)
+    args['dkx']          = calculate_dkx(**args)
+    args['Lx']           = calculate_Lx(**args) 
     return args
 
 #################################################################
@@ -306,8 +306,8 @@ def calculate_zetaOverTwoPi(iota=None, shat=None, twist_and_shift_geo_fac=None, 
     # Compare with a different calculation method:
     if verbose:   
         P_method2 = -iota*field_period_ratio
-        print("Calculation 1: zeta/2*pi = ", P_method1)
-        print("Calculation 2: zeta/2*pi = ", P_method2)
+        print('Calculation 1: zeta/2*pi = ', P_method1)
+        print('Calculation 2: zeta/2*pi = ', P_method2)
         
     # Return the factor P
     return P_method1
@@ -333,8 +333,8 @@ def calculate_Lx(dkx=None, P=None, dky=None, jtwist=None, shat=None, verbose=Fal
     # Calculation through Lx/Ly = jtwist/(2*np.pi*P*shat) so Lx = L/(P*shat*dky)
     if verbose:
         Lx_method2 = jtwist/(shat*P*dky)
-        print("Calculation 1: Lx = ", Lx_method1)
-        print("Calculation 2: Lx = ", Lx_method2)
+        print('Calculation 1: Lx = ', Lx_method1)
+        print('Calculation 2: Lx = ', Lx_method2)
         
     # Return the box size along x
     return Lx_method1
@@ -349,8 +349,8 @@ def calculate_Lx_over_Ly(P=None, shat=None, jtwist=None, Lx=None, Ly=None, verbo
     # Direct calculation
     if verbose:
         LxLy_method2 = Lx/Ly
-        print("Calculation 1: LxLy = ", LxLy_method1)
-        print("Calculation 2: LxLy = ", LxLy_method2)
+        print('Calculation 1: LxLy = ', LxLy_method1)
+        print('Calculation 2: LxLy = ', LxLy_method2)
         
     # Return LxLy
     if True: return LxLy_method1
@@ -458,7 +458,7 @@ def calculate_twistAndShiftGeoFac(svalue=None, iota=None, shat=None, torflux_sig
     '''   
     
     # For miller
-    if str(torflux_sign)=="Miller":
+    if str(torflux_sign)=='Miller':
         twist_and_shift_geo_fac = 2.0*np.pi*shat
         return twist_and_shift_geo_fac
     
@@ -479,8 +479,8 @@ def calculate_twistAndShiftGeoFac(svalue=None, iota=None, shat=None, torflux_sig
     
     # Compare calculations
     if verbose: 
-        print("Calculation 1: calculate_twistAndShiftGeoFac = ", twist_and_shift_geo_fac_method1)
-        print("Calculation 2: calculate_twistAndShiftGeoFac = ", twist_and_shift_geo_fac_method2)
+        print('Calculation 1: calculate_twistAndShiftGeoFac = ', twist_and_shift_geo_fac_method1)
+        print('Calculation 2: calculate_twistAndShiftGeoFac = ', twist_and_shift_geo_fac_method2)
     if True: return twist_and_shift_geo_fac_method2
 
 #################################################################
@@ -520,9 +520,9 @@ def calculate_vmecRadialWeightHalf(ns, torflux):
         
     # Handle quantities for the full grid
     if (torflux>1):
-        print("Error# torflux cannot be >1"); return
+        print('Error# torflux cannot be >1'); return
     elif (torflux<0):
-        print("Error# torflux cannot be <0"); return 
+        print('Error# torflux cannot be <0'); return 
     elif (torflux==1):
         radial_index_full[0] = ns-1
         radial_index_full[1] = ns
@@ -542,7 +542,7 @@ def calculate_vmecRadialWeightHalf(ns, torflux):
           
         # We start at element 2 since element 1 is always 0 for quantities on the half grid.
         print("Warning: extrapolating beyond the end of VMEC's half grid.")
-        print("Extrapolating towards the magnetic axis.) Results are likely to be inaccurate.")
+        print('Extrapolating towards the magnetic axis.) Results are likely to be inaccurate.')
         radial_index_half[0] = 2
         radial_index_half[1] = 3
         radial_weight_half[0] = (normalized_toroidal_flux_half_grid[1] - torflux) / (normalized_toroidal_flux_half_grid[1] - normalized_toroidal_flux_half_grid[0])
@@ -550,7 +550,7 @@ def calculate_vmecRadialWeightHalf(ns, torflux):
     # We are past the VMECs grid
     elif (torflux > normalized_toroidal_flux_half_grid[ns-2]):
         print("Warning: extrapolating beyond the end of VMEC's half grid.")
-        print("(Extrapolating towards the last closed flux surface.) Results may be inaccurate.")
+        print('(Extrapolating towards the last closed flux surface.) Results may be inaccurate.')
         radial_index_half[0] = ns-1
         radial_index_half[1] = ns
         radial_weight_half[0] = (normalized_toroidal_flux_half_grid[ns-1] - torflux) \
@@ -599,8 +599,8 @@ def calculate_vpaWeights(input_file, nvgrid=None, vpa_max=None):
         from stellapy.data.input.read_inputFile import read_inFile
         inputs = read_inFile(input_file) 
         inputs = calculate_stellaVariables(inputs)
-        nvgrid = inputs["vpamu_grids_parameters"]["nvgrid"]
-        vpa_max = inputs["vpamu_grids_parameters"]["vpa_max"]  
+        nvgrid = inputs['velocity_grids']['nvgrid']
+        vpa_max = inputs['velocity_grids']['vpa_max']
     
     # Define the public variable nvpa
     nvpa = 2*nvgrid 
@@ -653,23 +653,23 @@ def calculate_vpaWeights(input_file, nvgrid=None, vpa_max=None):
 
 #------------------------------------
 def calculate_muWeights(input_file, nalpha=1, bmag_psi0=[[None]], equally_spaced_mu_grid=None):
-    """ Bmag_psi has dimension (nz, nalpha=naky). """
+    ''' Bmag_psi has dimension (nz, nalpha=naky). '''
         
     # Read the input file 
     from stellapy.data.input.read_inputFile import read_inFile
     inputs = read_inFile(input_file) 
     inputs = calculate_stellaVariables(inputs)
-    equally_spaced_mu_grid = inputs["vpamu_grids_parameters"]["equally_spaced_mu_grid"] if equally_spaced_mu_grid==None else equally_spaced_mu_grid
-    nspec = inputs["species_knobs"]["nspec"]
-    nmu = inputs["vpamu_grids_parameters"]["nmu"] 
-    vperp_max = inputs["vpamu_grids_parameters"]["vperp_max"]
-    nzgrid = int(inputs["zgrid_parameters"]["nzgrid"]) 
+    equally_spaced_mu_grid = inputs['velocity_grids']['equally_spaced_mu_grid'] if equally_spaced_mu_grid==None else equally_spaced_mu_grid
+    nspec = inputs['species_options']['nspec']
+    nmu = inputs['velocity_grids']['nmu']
+    vperp_max = inputs['velocity_grids']['vperp_max']
+    nzgrid = int(inputs['z_grid']['nzgrid'])
 
-    # For the vmec option we have bmag_psi0 = bmag(zed,alpha)  
+    # For the vmec option we have bmag_psi0 = bmag(zed,alpha)
     if bmag_psi0[0,0]==None: 
         from stellapy.data.output.read_outputFile import read_outputFile
-        netcdf_file = read_outputFile(input_file.with_suffix(".out.nc")) 
-        bmag_psi0 = read_netcdfVariables('bmag', netcdf_file)   
+        netcdf_file = read_outputFile(input_file.with_suffix('.out.nc'))
+        bmag_psi0 = read_netcdfVariables('bmag', netcdf_file)
         netcdf_file.close()  
         
     # Initialize the vectors
@@ -723,7 +723,7 @@ def calculate_muWeights(input_file, nalpha=1, bmag_psi0=[[None]], equally_spaced
         wgts_mu_tmp[:] = wgts_mu_tmp*np.exp(mu[:])/(2.*np.min(bmag_psi0)*mu[nmu-1]/vperp_max**2)
         
         # The Laguerre method returns mu_hat = mu*B_0/T so transform this to mu
-        # Recall that the normalized mu still has units of mass so ignore the "m"
+        # Recall that the normalized mu still has units of mass so ignore the 'm'
         #       mu = mu_hat*T/B_0 = mu_hat*T*(v_perpmaxN**2/(B_min*mu_hatmax))
         #     mu_N = mu*B_r/v_thr**2 = mu*B_r*m/(2T)
         #          = mu_hat*T*v_perpmaxN**2/(B_min*mu_hatmax) * B*m/(2T)
@@ -940,7 +940,7 @@ def check_laguerre_weights (wgt, eps):
 #==================================================
  
 def calculate_velocityWeights(self):
-    """ Add the potential squared averaged over (kx,ky) as an attribute of the simulation object. """
+    ''' Add the potential squared averaged over (kx,ky) as an attribute of the simulation object. '''
     
     # Initiate the attributes 
     self.wgts_vpa = np.empty((self.nvgrid)); self.wgts_vpa[:] = np.NaN

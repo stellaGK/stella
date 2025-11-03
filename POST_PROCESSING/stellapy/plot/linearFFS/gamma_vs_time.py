@@ -93,7 +93,7 @@ def subplot_gamma_vs_time(ax, research, y_quantity="gamma", modes_id="unstable",
         simulation.plotted_modes = simulation.plotted_modes[::int(np.ceil(len(simulation.plotted_modes)/number_of_plotted_modes))] 
                  
         # Color map for modes 
-        colors_modes = plt.cm.get_cmap('jet')(np.linspace(0,1,len(simulation.plotted_modes))); plot_i=0
+        colors_modes = plt.colormaps.get_cmap('jet')(np.linspace(0,1,len(simulation.plotted_modes))); plot_i=0
         
         # Iterate over the modes
         for i, mode in enumerate(simulation.plotted_modes): 
@@ -113,7 +113,7 @@ def subplot_gamma_vs_time(ax, research, y_quantity="gamma", modes_id="unstable",
         
         # Color map for modes 
         dim_kx = simulation.dim.kx; dim_ky = simulation.dim.ky
-        colors = plt.cm.get_cmap('jet')(np.linspace(0,1,dim_kx*dim_ky)); plot_i=0
+        colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,dim_kx*dim_ky)); plot_i=0
         
         # Iterate over the modes
         for ikx in range(dim_kx):

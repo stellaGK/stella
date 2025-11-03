@@ -3,7 +3,7 @@
 import os 
 import numpy as np
 from datetime import datetime, timedelta
-from stellapy.utils.files.get_filesInFolder import get_filesInFolder  
+from stellapy.utils.files.get_filesInFolder import get_filesInFolder
 from stellapy.data.input.read_inputFile import read_vmecFileNameFromInputFile
 from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile 
 from stellapy.data.geometry.read_output import read_outputFile as read_outputFileForGeometry
@@ -14,15 +14,15 @@ from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVar
 #                       DISTRIBUTION OF THE GUIDING CENTERS
 #===============================================================================
 
-def write_txtFileForDistributionVsMuOrVpaOrZ(folder, verbose=False):   
+def write_txtFileForDistributionVsMuOrVpaOrZ(folder, verbose=False):
     
     # Get the input files
     input_files = get_filesInFolder(folder, end=".in")
     input_files = [i for i in input_files if os.path.isfile(i.with_suffix('.out.nc'))]
     if input_files==[]: return 
 
-    # Iterate through the input files 
-    for input_file in input_files: 
+    # Iterate through the input files
+    for input_file in input_files:
         
         # Only write the distribution at the final time step for linear simulations  
         nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
@@ -32,16 +32,19 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder, verbose=False):
         status = "    ("+str(input_files.index(input_file)+1)+"/"+str(len(input_files))+")  " if len(input_files)>1 else "   "
         
         # Path of the new file  
-        file_pathz = input_file.with_suffix(".g2_vs_z")  
+        file_pathz = input_file.with_suffix(".g2_vs_z")
         file_pathmu = input_file.with_suffix(".g2_vs_mu")
         file_pathvpa = input_file.with_suffix(".g2_vs_vpa")
-        netcdf_file = input_file.with_suffix(".out.nc")        
+        netcdf_file = input_file.with_suffix(".out.nc")
         output_file = input_file.with_suffix(".out") if os.path.isfile(input_file.with_suffix(".out")) else input_file.with_suffix(".out.nc")
         
         # If the file doesn't exist, check whether gvmus and gzvs were written
         if not os.path.isfile(file_pathz): 
-            netcdf_data  = read_outputFile(netcdf_file)  
-            if "gvmus" not in netcdf_data.variables.keys() or "gzvs" not in netcdf_data.variables.keys():
+            netcdf_data  = read_outputFile(netcdf_file)
+            if "g2_vs_vpamus" not in netcdf_data.variables.keys() \
+            or "g2_vs_zvpas" not in netcdf_data.variables.keys() \
+            or "g2_vs_zmus" not in netcdf_data.variables.keys():
+                print("   The distribution data was not written to the output file.")
                 continue
             
         # Check whether the txt file is older than the simulation
@@ -50,10 +53,10 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder, verbose=False):
             time_txtFile = datetime.fromtimestamp(file_pathz.stat().st_mtime)
             time_simulation = datetime.fromtimestamp(output_file.stat().st_mtime) 
             if time_simulation>time_txtFile+timedelta(minutes=5):
-                simulationWasntFinished = True 
+                simulationWasntFinished = True
         
-        # Create text files for g(mu) and g(vpa) 
-        if not os.path.isfile(file_pathz) or simulationWasntFinished:   
+        # Create text files for g(mu) and g(vpa)
+        if not os.path.isfile(file_pathz) or simulationWasntFinished:
             
             # Read the geometry data in the output file
             vmec_filename = read_vmecFileNameFromInputFile(input_file)
@@ -75,7 +78,7 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder, verbose=False):
             
             # If the value is NaN, take the last time step without nans
             if np.any(~np.isfinite(g2_vs_svpaz)):
-                print(status+"    ---> g(tlast) = NaN, finding the last non-NaN time step.")   
+                print(status+"    ---> g(tlast) = NaN, finding the last non-NaN time step.")
                 netcdf_data = read_outputFile(netcdf_file)  
                 g2_vs_tsvpaz = read_netcdfVariables('g2_vs_tsvpaz', netcdf_data)
                 g2_vs_tsmuvpa = read_netcdfVariables('g2_vs_tsmuvpa', netcdf_data)
@@ -90,11 +93,11 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder, verbose=False):
             
             # Sum over (vpa,mu,z) in g2_vs_smuvpa(s,mu,vpa) 
             g2_vs_sz = np.sum(g2_vs_svpaz[:,:,:]*vpa_weights[np.newaxis,:,np.newaxis], axis=(1))
-            g2_vs_smu = np.sum(g2_vs_smuvpa[:,:,:]*vpa_weights[np.newaxis,np.newaxis,:], axis=(2)) 
-            g2_vs_svpa = np.sum(g2_vs_svpaz[:,:,:]*dl_over_B[np.newaxis,np.newaxis,:], axis=(2))     
+            g2_vs_smu = np.sum(g2_vs_smuvpa[:,:,:]*vpa_weights[np.newaxis,np.newaxis,:], axis=(2))
+            g2_vs_svpa = np.sum(g2_vs_svpaz[:,:,:]*dl_over_B[np.newaxis,np.newaxis,:], axis=(2))
                 
             # Header for the files 
-            for s in range(dim_species): header += "s="+str(s)+"                "  
+            for s in range(dim_species): header += "s="+str(s)+"                "
         
             # Write the g(z) data to a text file 
             gz_file = open(file_pathz,'w') 
@@ -120,7 +123,7 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder, verbose=False):
             # Notify that we finished creating the file
             print(status+"    ---> The g(z), g(mu) and g(vpa) files are saved as " + file_pathz.parent.name+"/"+file_pathz.name)    
          
-        # Notify that the file already existed   
+        # Notify that the file already existed
         else:
             if verbose: print(status+"The g(z), g(mu) and g(vpa) files already exist:", file_pathz.parent.name+"/"+file_pathz.name)
             

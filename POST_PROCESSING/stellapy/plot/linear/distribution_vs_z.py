@@ -25,23 +25,23 @@ Hanne Thienpondt
   
 """
   
-#!/usr/bin/python3   
+#!/usr/bin/python3
 import sys, os
 import pathlib
 import numpy as np
-import matplotlib as mpl  
-import matplotlib.pyplot as plt 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
   
 # Stellapy package
-sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)     
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
 from stellapy.data.lineardata.get_filterForSelectedModes import get_filterForSelectedModes
 from stellapy.plot.utils.species.recognize_species import recognize_species
 from stellapy.plot.geometry.geometry_vs_z import subplot_geometry_vs_z
-from stellapy.plot.utils.labels.standardLabels import standardLabels  
+from stellapy.plot.utils.labels.standardLabels import standardLabels
 from stellapy.plot.utils.data.get_rangesKxKy import get_rangesKxKy
-from stellapy.plot.utils.style.create_figure import create_figure  
-from stellapy.simulations.Research import create_research 
+from stellapy.plot.utils.style.create_figure import create_figure
+from stellapy.simulations.Research import create_research
 from stellapy.utils.commandprompt.bash import Bash
 from stellapy.plot.utils.style import Axis, Plot
   
@@ -52,39 +52,39 @@ from stellapy.plot.utils.style import Axis, Plot
 def plot_distribution_vs_z(
         folder, 
         # Quantity to be plotted
-        x_quantity="z", 
-        y_quantity="g2", 
-        specie=0, 
+        x_quantity="z",
+        y_quantity="g2",
+        specie=0,
         # Overlay a geometric quantity in gray
-        geometry="bmag", \
+        geometry="bmag",
         # Selected modes
-        modes_id="unstable", 
-        kx_range=[-9999,9999], 
-        ky_range=[-9999,9999], 
+        modes_id="unstable",
+        kx_range=[-9999,9999],
+        ky_range=[-9999,9999],
         # Research
-        ignore_resolution=True, 
-        folderIsExperiment=False, 
+        ignore_resolution=True,
+        folderIsExperiment=False,
         # Plotting
-        interpolate=20, 
-        number_of_decimal_places=2):        
+        interpolate=20,
+        number_of_decimal_places=2):
        
     # Create <research> based on the given <folder>
-    research = create_research(folders=folder, folderIsExperiment=folderIsExperiment, ignore_resolution=ignore_resolution)   
-    simulations = [s for experiment in research.experiments for s in experiment.simulations]   
+    research = create_research(folders=folder, folderIsExperiment=folderIsExperiment, ignore_resolution=ignore_resolution)
+    simulations = [s for experiment in research.experiments for s in experiment.simulations]
      
     # Create a figure for each simulation
-    for simulation in simulations: 
+    for simulation in simulations:
        
         # Create a figure 
         if y_quantity=="g2": title = "Parallel mode structure of the distribution squared"
         if y_quantity=="g":  title = "Parallel mode structure of the distribution"
         if len(simulations)>1: title += ": "+simulation.line_label
         if "k_y" in title: title = title.split("$k_y")[0]+";".join(title.split("$k_y")[-1].split(";")[1:])
-        ax = create_figure(title=title)  
+        ax = create_figure(title=title)
           
         # Plot distribution2(z)
-        subplot_potential_vs_z(ax, simulation, x_quantity=x_quantity, y_quantity=y_quantity, 
-            specie=specie, geometry=geometry, number_of_decimal_places=number_of_decimal_places, 
+        subplot_potential_vs_z(ax, simulation, x_quantity=x_quantity, y_quantity=y_quantity,
+            specie=specie, geometry=geometry, number_of_decimal_places=number_of_decimal_places,
             modes_id=modes_id, kx_range=kx_range, ky_range=ky_range, interpolate=interpolate, fontsize=18)
           
         # Appearance 
@@ -92,7 +92,7 @@ def plot_distribution_vs_z(
       
     # Show the figure 
     mpl.rcParams["savefig.directory"] = folder
-    if len(ax.get_lines())!=0: plt.show() 
+    if len(ax.get_lines())!=0: plt.show()
     return
   
 #-----------------------------
@@ -122,7 +122,7 @@ def subplot_potential_vs_z(
     # Color map for modes    
     selected_modes = get_filterForSelectedModes(simulation, modes_id, kx_range, ky_range) 
     number_of_modes = np.sum(selected_modes.astype(int), axis=(0,1)) 
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0 
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0 
       
     # Get the coordinate along the field line
     x = get_field_line_coordinate(x_quantity, simulation)
@@ -173,7 +173,8 @@ def subplot_potential_vs_z(
             extra_legend=True, interpolate=interpolate, color="gray", loc="upper right") 
           
         # Legend
-        ax.legend(labelspacing=0.1, handlelength=1, prop={'size':fontsize}, ncol=int(number_of_modes/10), loc="upper left")
+        ncol = np.max([1,int(number_of_modes/10),])
+        ax.legend(labelspacing=0.1, handlelength=1, prop={'size':fontsize}, ncol=ncol, loc="upper left")
     
     return
  

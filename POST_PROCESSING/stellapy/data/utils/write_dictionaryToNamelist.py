@@ -13,23 +13,23 @@ def write_dictionaryToNamelist(path, dictionary, indent="  ", sort_knobs=False):
     # Remove the large indents
     with open(str(path)+"_temp", 'r') as file :
         filedata = file.read() 
-    filedata = filedata.replace("    ", indent) 
+    filedata = filedata.replace("    ", indent)
     
-    # Add the inline comments again  
+    # Add the inline comments again
     for knob_key, comment in inline_comments.items():
         knob = knob_key.split(": ")[0]
         key = knob_key.split(": ")[-1]
         before = filedata.split("&"+knob)[0]+"&"+knob
         after = "/"+"/".join(filedata.split("&"+knob)[-1].split("/")[1:])
-        section = filedata.split("&"+knob)[-1].split("/")[0]  
-        line = [line for line in section.split("\n") if (key+" = ") in line][0] 
+        section = filedata.split("&"+knob)[-1].split("/")[0]
+        line = [line for line in section.split("\n") if (key+" = ") in line][0]
         section = section.replace(line, line+comment)
         filedata = before+section+after 
         
     # Write the text file 
     with open(str(path), 'w') as file:
         file.write(filedata) 
-    os.system("rm "+str(path)+"_temp")  
+    os.system("rm "+str(path)+"_temp")
     
     # Sort the knobs in the input file
     if sort_knobs: sort_knobsInInputFile(path)
@@ -82,14 +82,14 @@ def sort_knobsInInputFile(path):
     input_file_knobs = [section.split('&')[-1].split('\n')[0].replace(' ','') for section in input_file_sections]
     
     # Remove unused knobs
-    remove_knobs = ['reinit_knobs']
+    remove_knobs = []
     for i, knob in enumerate(input_file_knobs):
-        if knob=='kt_grids_knobs':
+        if knob=='kxky_grid_option':
             for line in input_file_sections[i].split('\n'):
                 if 'grid_option' in line and 'range' in line:
-                    remove_knobs.append('kt_grids_box_parameters')
+                    remove_knobs.append('kxky_grid_box')
                 if 'grid_option' in line and 'box' in line:
-                    remove_knobs.append('kt_grids_range_parameters')
+                    remove_knobs.append('kxky_grid_range')
         elif knob=='neoclassical_input':
             for line in input_file_sections[i].split('\n'):
                 if 'include_neoclassical_terms' in line and 'false' in line:
@@ -99,10 +99,16 @@ def sort_knobsInInputFile(path):
     input_file_knobs = [input_file_knobs[i] for i in range(len(input_file_knobs)) if input_file_knobs[i] not in remove_knobs]
         
     # Order the knobs
-    ordered_knobs = ['physics_flags', 'species_knobs', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', \
-    'parameters', 'vmec_parameters', 'kt_grids_box_parameters', 'kt_grids_range_parameters', 'zgrid_parameters', 'vpamu_grids_parameters', \
-    'knobs', 'stella_diagnostics_knobs', 'init_g_knobs', 'dissipation', 'hyper', 'geo_knobs', 'kt_grids_knobs', \
-    'dist_fn_knobs', 'time_advance_knobs', 'layouts_knobs', 'reinit_knobs', 'neoclassical_input', 'sfincs_input']
+    ordered_knobs = ['geometry_options', 'geometry_miller', 'geometry_vmec', 'geometry_zpinch', 'geometry_from_txt',
+        'gyrokinetic_terms', 'scale_gyrokinetic_terms', 'physics_inputs', 'flux_annulus', 'electromagnetic',
+        'diagnostics', 'diagnostics_moments', 'diagnostics_omega', 'diagnostics_distribution', 'diagnostics_fluxes', 'diagnostics_potential',
+        'initialise_distribution', 'initialise_distribution_maxwellian', 'initialise_distribution_noise', 'initialise_distribution_kpar',
+        'initialise_distribution_rh', 'restart_options', 'species_options', 'adiabatic_electron_response', 'adiabatic_ion_response',
+        'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
+        'kxky_grid_option', 'kxky_grid_range', 'kxky_grid_box', 'z_grid', 'z_boundary_condition', 'velocity_grids',
+        'time_trace_options', 'time_step', 'numerical_algorithms', 'numerical_upwinding_for_derivatives', 
+        'dissipation_and_collisions_options', 'hyper_dissipation', 'collisions_dougherty', 'collisions_fokker_planck',
+        'neoclassical_input', 'sfincs_input', 'multibox_parameters', 'sources', 'flow_shear', 'parallelisation', 'debug_flags']
     input_file_sections_temp = []
     for ordered_knob in ordered_knobs:
         for i, knob in enumerate(input_file_knobs):

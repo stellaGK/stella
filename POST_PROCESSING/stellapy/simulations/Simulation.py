@@ -43,12 +43,12 @@ def create_simulations(folders=None, input_files=None,
     # Get the input files defined by <folders> or <input_files>
     input_files = get_inputFiles(folders, input_files, ignore_oldFiles) 
     
-    # With <restartModes> a file "_ky1.0.in" gets restarted as "_ky1.0_kx0.0.in"
-    input_files = [i for i in input_files if pathlib.Path(str(i).replace(".in", "_kx0.0.in")) not in input_files]
+    # With <restartModes> a file '_ky1.0.in' gets restarted as '_ky1.0_kx0.0.in'
+    input_files = [i for i in input_files if pathlib.Path(str(i).replace('.in', '_kx0.0.in')) not in input_files]
     
     # For linear flux tube simulations, read the dummy input file instead 
     # Remove the input files in the dummy inputs from the list of input files  
-    dummy_input_files = get_filesInFolder(folders, end="_dummy.in") if folders!=None else [i for i in input_files if "_dummy.in" in str(i)]
+    dummy_input_files = get_filesInFolder(folders, end='_dummy.in') if folders!=None else [i for i in input_files if '_dummy.in' in str(i)]
     input_files_in_dummy_files = read_inputFilesInDummyInputFiles(dummy_input_files)
     input_files = [i for i in input_files if i not in input_files_in_dummy_files] 
     input_files += dummy_input_files 
@@ -76,37 +76,40 @@ class Simulation:
     def __init__(self, input_file, input_parameters, similar_input_files):
          
         # Give a unique ID to the simulation
-        self.id = get_simulationsIdentifier(input_file)   
+        self.id = get_simulationsIdentifier(input_file)
         
         # Save some relevant info 
         self.input_file = input_file 
         self.input_parameters = self.inputParameters = input_parameters 
-        self.linear = not self.input_parameters["physics_flags"]["nonlinear"] 
-        self.nonlinear = self.input_parameters["physics_flags"]["nonlinear"]
-        self.full_flux_surface = self.input_parameters["physics_flags"]["full_flux_surface"]
-        self.nakxnaky = self.input_parameters["kt_grids_range_parameters"]["nakx"]*self.input_parameters["kt_grids_range_parameters"]["naky"] if self.input_parameters["kt_grids_knobs"]["grid_option"]=="range" else self.input_parameters["kt_grids_box_parameters"]["nx"]*self.input_parameters["kt_grids_box_parameters"]["ny"]
+        self.linear = not self.input_parameters['gyrokinetic_terms']['include_nonlinear']
+        self.nonlinear = self.input_parameters['gyrokinetic_terms']['include_nonlinear']
+        self.full_flux_surface = self.input_parameters['gyrokinetic_terms']['include_full_flux_annulus']
+        self.nakxnaky = self.input_parameters['kxky_grid_range']['nakx']*self.input_parameters['kxky_grid_range']['naky'] if self.input_parameters['kxky_grid_option']['grid_option']=='range' else self.input_parameters['kxky_grid_box']['nx']*self.input_parameters['kxky_grid_box']['ny']
         
         # Remove some input parameters that may vary between simulations without affecting the simulation (much)
-        del self.input_parameters['knobs']['mat_gen']
-        del self.input_parameters['knobs']['nstep']
-        del self.input_parameters['knobs']['tend'] 
-        del self.input_parameters['knobs']['delt_option']
-        del self.input_parameters['knobs']['delt_max']
-        del self.input_parameters['knobs']['delt_min']
-        del self.input_parameters['knobs']['avail_cpu_time']
-        del self.input_parameters['init_g_knobs']['phiinit']
-        del self.input_parameters['init_g_knobs']['restart_file']
-        del self.input_parameters['init_g_knobs']['restart_dir']
-        del self.input_parameters['init_g_knobs']['ginit_option'] 
-        del self.input_parameters['stella_diagnostics_knobs']
-        del self.input_parameters['kt_grids_range_parameters']
-        if self.input_parameters['physics_flags']['nonlinear']==True: del self.input_parameters['knobs']['delt'] 
-        try: del self.input_parameters['knobs']['t_end']
-        except: pass
+        del self.input_parameters['time_step']['delt_option']
+        del self.input_parameters['time_step']['delt_max']
+        del self.input_parameters['time_step']['delt_min']
+        del self.input_parameters['parallelisation']['mat_gen']
+        del self.input_parameters['time_trace_options']['nstep']
+        del self.input_parameters['time_trace_options']['tend']
+        del self.input_parameters['time_trace_options']['avail_cpu_time']
+        del self.input_parameters['restart_options']['restart_file']
+        del self.input_parameters['restart_options']['restart_dir']
+        del self.input_parameters['initialise_distribution']['phiinit']
+        del self.input_parameters['initialise_distribution']['initialise_distribution_option']
+        del self.input_parameters['diagnostics']
+        del self.input_parameters['diagnostics_potential']
+        del self.input_parameters['diagnostics_omega']
+        del self.input_parameters['diagnostics_distribution']
+        del self.input_parameters['diagnostics_fluxes']
+        del self.input_parameters['diagnostics_moments']
+        del self.input_parameters['kxky_grid_range']
+        if self.input_parameters['gyrokinetic_terms']['include_nonlinear']==True: del self.input_parameters['time_step']['delt'] 
         
         # For linear flux tube simulations, add the input files in the dummy input or merge similar simulations
         self.multiple_input_files = False
-        if "_dummy.in" in str(self.input_file):
+        if '_dummy.in' in str(self.input_file):
             self.input_files = read_inputFilesInDummyInputFile(self.input_file)
             self.input_files += [self.input_file]
             self.multiple_input_files = True  
@@ -115,14 +118,14 @@ class Simulation:
                 self.input_files = similar_input_files 
                 self.multiple_input_files = True 
                 for input_file in self.input_files: 
-                    if "_dummy.in" in str(input_file):
+                    if '_dummy.in' in str(input_file):
                         self.input_files += read_inputFilesInDummyInputFile(input_file) 
                 
         # If we have multiple input files, count the number of modes
         if self.multiple_input_files:
             self.nakxnaky = 0
             for input_file in self.input_files: 
-                if "_dummy.in" not in str(input_file):
+                if '_dummy.in' not in str(input_file):
                     nakx, naky = read_numberOfModesFromInputFile(input_file) 
                     self.nakxnaky += nakx*naky 
            
@@ -140,15 +143,15 @@ class Simulation:
 #=============================================================================== 
  
     @calculate_attributeWhenReadFirstTime
-    def dim(self):          load_dimensionsObject(self);    return self.dim  
+    def dim(self):          load_dimensionsObject(self);    return self.dim
     @calculate_attributeWhenReadFirstTime
-    def vec(self):          load_vectorsObject(self);       return self.vec  
+    def vec(self):          load_vectorsObject(self);       return self.vec
     @calculate_attributeWhenReadFirstTime
     def path(self):         load_pathObject(self);          return self.path
     @calculate_attributeWhenReadFirstTime
     def time(self):         load_timeObject(self);          return self.time
     @calculate_attributeWhenReadFirstTime
-    def input(self):        load_inputObject(self);         return self.input  
+    def input(self):        load_inputObject(self);         return self.input
     @calculate_attributeWhenReadFirstTime
     def omega(self):        load_omegaObject(self);         return self.omega
     @calculate_attributeWhenReadFirstTime
@@ -156,17 +159,17 @@ class Simulation:
     @calculate_attributeWhenReadFirstTime
     def moments(self):      load_momentsObject(self);        return self.moments
     @calculate_attributeWhenReadFirstTime 
-    def geometry(self):     load_geometryObject(self);      return self.geometry  
+    def geometry(self):     load_geometryObject(self);      return self.geometry
     @calculate_attributeWhenReadFirstTime 
-    def saturated(self):    load_saturatedObject(self);     return self.saturated  
+    def saturated(self):    load_saturatedObject(self);     return self.saturated
     @calculate_attributeWhenReadFirstTime 
-    def potential(self):    load_potentialObject(self);     return self.potential  
+    def potential(self):    load_potentialObject(self);     return self.potential
     @calculate_attributeWhenReadFirstTime 
-    def lineardata(self):   load_linearDataObject(self);    return self.lineardata  
+    def lineardata(self):   load_linearDataObject(self);    return self.lineardata
     @calculate_attributeWhenReadFirstTime 
-    def distribution(self): load_distributionObject(self);  return self.distribution   
+    def distribution(self): load_distributionObject(self);  return self.distribution
     @calculate_attributeWhenReadFirstTime 
-    def referenceunits(self):load_referenceObject(self);    return self.referenceunits   
+    def referenceunits(self):load_referenceObject(self);    return self.referenceunits
  
 #===============================================================================
 #                   LINES/MARKERS STYLE FOR EACH SIMULATION                    #
@@ -184,7 +187,7 @@ class Simulation:
             self.line_style = line_style
             self.line_color = line_color
             self.marker_style = marker_style
-            self.marker_color = marker_color 
+            self.marker_color = marker_color
          
         # Otherise load some basic styles
         else: 
@@ -193,12 +196,12 @@ class Simulation:
             self.line_style,\
             self.line_color,\
             self.marker_style,\
-            self.marker_color = load_labelsLinesMarkers([self.id], [self.id])   
+            self.marker_color = load_labelsLinesMarkers([self.id], [self.id])
             
           
 #===============================================================================
 #                              GET THE INPUT FILES                             #
-#===============================================================================   
+#===============================================================================
         
 def get_inputFiles(folders, input_files, ignore_oldFiles):
 
@@ -214,24 +217,24 @@ def get_inputFiles(folders, input_files, ignore_oldFiles):
            
     # If <input_files>=None read all input_files in <folders>
     if input_files==None:   
-        input_files = get_filesInFolder(folders, end=".in") 
+        input_files = get_filesInFolder(folders, end='.in')
              
     # If <folders> and <input_files> are given they match
     elif folders!=None and input_files!=None:
         input_files = [folders[i] / input_files[i] for i in range(len(folders))]
     
     # Only look at input files that have a output files
-    input_files = keep_simulationsWithOutputFiles(input_files)  
+    input_files = keep_simulationsWithOutputFiles(input_files)
     if input_files == []: 
-        exit_reason = "No netcdf files were found inside the following folders:\n"
+        exit_reason = 'No netcdf files were found inside the following folders:\n'
         for folder in folders: exit_reason += str(folder)
         exit_program(exit_reason, create_simulations, sys._getframe().f_lineno)
     
-    # Ignore simulations in and "OLD" folder
-    if ignore_oldFiles: input_files = [i for i in input_files if "OLD" not in str(i)]
+    # Ignore simulations in and 'OLD' folder
+    if ignore_oldFiles: input_files = [i for i in input_files if 'OLD' not in str(i)]
     
-    # With <restartModes> a file "_ky1.0.in" gets mistakingly restarted as "_ky1.0_kx0.0.in"
-    input_files = [i for i in input_files if pathlib.Path(str(i).replace(".in", "_kx0.0.in")) not in input_files]   
+    # With <restartModes> a file '_ky1.0.in' gets mistakingly restarted as '_ky1.0_kx0.0.in'
+    input_files = [i for i in input_files if pathlib.Path(str(i).replace('.in', '_kx0.0.in')) not in input_files]
     
     # Sort the input files
     input_files = sorted(input_files)

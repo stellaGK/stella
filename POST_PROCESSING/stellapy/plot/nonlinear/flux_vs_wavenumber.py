@@ -30,26 +30,26 @@ Hanne Thienpondt
 
 """
 
-#!/usr/bin/python3  
+#!/usr/bin/python3
 import sys, os
 import pathlib
 import numpy as np
-import matplotlib as mpl 
-import matplotlib.pyplot as plt 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 # Personal modules
-sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)   
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
 from stellapy.plot.utils.style.get_styleForLinesAndMarkers import get_styleForLinesAndMarkers
 from stellapy.data.input.read_inputFile import read_nonlinearFullFluxSurfaceFromInputFile
 from stellapy.plot.utils.labels.get_timeFrameString import get_timeFrameString
 from stellapy.plot.utils.species.recognize_species import recognize_species
 from stellapy.plot.utils.style.create_figure import update_figure_style
-from stellapy.utils.files.get_firstInputFile import get_firstInputFile 
-from stellapy.plot.utils.labels.standardLabels import standardLabels  
+from stellapy.utils.files.get_firstInputFile import get_firstInputFile
+from stellapy.plot.utils.labels.standardLabels import standardLabels
 from stellapy.utils.decorators.exit_program import exit_program
-from stellapy.simulations.Research import create_research   
-from stellapy.plot.utils.style import Axis, Legend, Plot 
+from stellapy.simulations.Research import create_research
+from stellapy.plot.utils.style import Axis, Legend, Plot
 from stellapy.utils.commandprompt.bash import Bash 
 
 #===============================================================================
@@ -57,15 +57,15 @@ from stellapy.utils.commandprompt.bash import Bash
 #===============================================================================
 
 def plot_flux_vs_wavenumber(
-        folder, 
+        folder,
         # Quantities to be plotted
         x_quantity="both",
-        y_quantity="qflux", 
+        y_quantity="qflux",
         specie=None, 
         # Plotting options
-        log=False, 
-        folderIsExperiment=False, 
-        normalize_to_one=False, ): 
+        log=False,
+        folderIsExperiment=False,
+        normalize_to_one=False):
     
     # Create a <research> based on the given <folder>
     try: research = create_research(folders=folder, folderIsExperiment=folderIsExperiment)
@@ -88,7 +88,7 @@ def plot_flux_vs_wavenumber(
     if nspec==2: grid_specifications.update(top=0.93, left=0.08, right=0.97, bottom=0.1, wspace=0.2, hspace=0.3)
     if nspec==3: grid_specifications.update(top=0.92, left=0.08, right=0.97, bottom=0.1, wspace=0.3, hspace=0.3)
     for i in range(nspec*nk): axes.append(plt.subplot(grid_specifications[i]))
-    update_figure_style(fig, axes)  
+    update_figure_style(fig, axes)
     fig.suptitle(title)
     
     # Add the data to the plot
@@ -146,7 +146,7 @@ def subplot_flux_vs_wavenumber(
             if np.any(y<0): log = False
             
             # Plot qflux(kx) or qflux(ky) or pflux(kx) or vflux(kx) or ...
-            ax.plot(x, y, marker="o", **style)  
+            ax.plot(x, y, marker="o", **style)
         
             # Keep track of the axis limits
             axis.update_axisLimits(x, y)
@@ -173,10 +173,10 @@ def subplot_flux_vs_wavenumber(
 def get_quantity_data(simulation, x_quantity, y_quantity, specie, tstart, tend):
     
     # Data for the x-axis
-    if x_quantity=="kx": x = simulation.vec.kx 
-    if x_quantity=="ky": x = simulation.vec.ky 
+    if x_quantity=="kx": x = simulation.vec.kx
+    if x_quantity=="ky": x = simulation.vec.ky
     
-    # Get the data for the y-axis  
+    # Get the data for the y-axis
     try:
         try: y, t0, t1 = get_quantity_data_from3DFiles(simulation, x_quantity, y_quantity, specie)
         except: y, t0, t1 = get_quantity_data_fromSaturatedFiles(simulation, x_quantity, y_quantity, specie)
@@ -185,10 +185,10 @@ def get_quantity_data(simulation, x_quantity, y_quantity, specie, tstart, tend):
         return np.array([np.nan]), np.array([np.nan]), 500, 1000
     
     # Keep track of the time frames
-    tstart[0] = np.nanmin([tstart[0], t0]) 
-    tstart[1] = np.nanmax([tstart[1], t0]) 
-    tend[0] = np.nanmin([tend[0], t1]) 
-    tend[1] = np.nanmax([tend[1], t1]) 
+    tstart[0] = np.nanmin([tstart[0], t0])
+    tstart[1] = np.nanmax([tstart[1], t0])
+    tend[0] = np.nanmin([tend[0], t1])
+    tend[1] = np.nanmax([tend[1], t1])
     return x, y, tstart, tend 
 
 #-------------------------------
@@ -201,7 +201,7 @@ def get_quantity_data_from3DFiles(simulation, x_quantity, y_quantity, specie):
         if y_quantity=="qflux": y = simulation.fluxes.qflux_vs_tsky.qflux[:,specie,:]; t = simulation.fluxes.qflux_vs_tsky.t
         if y_quantity=="pflux": y = simulation.fluxes.pflux_vs_tsky.pflux[:,specie,:]; t = simulation.fluxes.pflux_vs_tsky.t
         if y_quantity=="vflux": y = simulation.fluxes.vflux_vs_tsky.vflux[:,specie,:]; t = simulation.fluxes.vflux_vs_tsky.t
-    y = np.nanmean(y[t>simulation.time.tstart,:],axis=0) 
+    y = np.nanmean(y[t>simulation.time.tstart,:],axis=0)
     return y, simulation.time.tstart, t[-1]
         
 #-------------------------------

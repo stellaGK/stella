@@ -57,8 +57,8 @@ def list_commands(print_only=None, width=90):
         This way one can freely manipulate the general scripts, overwrite commands, and 
         save the used variables. 
         
-        Developed by Hanne Thienpondt. 
-        09/03/2022
+        Developed by Hanne Thienpondt.
+        03/10/2025
         """)
     
     # Start 
@@ -67,7 +67,7 @@ def list_commands(print_only=None, width=90):
     print("".center(width,"="), "\n") 
     print("  Overview of the stellapy commands which work like Bash commands. ")
     print("  Developed by Hanne Thienpondt. ")
-    print("  09/03/2022")
+    print("  03/10/2025")
     print()
     print()
     

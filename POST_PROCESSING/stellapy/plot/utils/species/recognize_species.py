@@ -11,7 +11,7 @@ def recognize_species(simulation, specie_id):
         simulation = simulation.simulations[0] 
             
     # Get the number of species
-    nspec = simulation.inputParameters['species_knobs']['nspec']
+    nspec = simulation.inputParameters['species_options']['nspec']
     if nspec==1: specie = "ions"
     if nspec!=1:
     
@@ -66,14 +66,14 @@ def identify_specie(z,m,z1,m1,z2,m2,specie_id,verbose=False):
                 if z2==-1:
                     if 0.00026 < m2 < 0.00028: 
                         specie = 'ions'; 
-                        if verbose: print("We're simulating Deuterium and kinetic electrons")  
+                        if verbose: print("We're simulating Deuterium and kinetic electrons")
                     if 0.00053 < m2 < 0.00055: 
                         specie = 'ions'; 
-                        if verbose: print("We're simulating Hydrogen and kinetic electrons")   
+                        if verbose: print("We're simulating Hydrogen and kinetic electrons")
             if z2==None:
-                specie = 'ions'; print("We're simulating ions with adiabatic electrons")  
+                specie = 'ions'; print("We're simulating ions with adiabatic electrons")
     
-    # Identify the electrons      
+    # Identify the electrons
     elif z==-1:
         if int(specie_id)==0:
             if 0.00026 < m < 0.00028: 
@@ -81,11 +81,11 @@ def identify_specie(z,m,z1,m1,z2,m2,specie_id,verbose=False):
                 if verbose: print("We're simulating electrons with adiabatic Deuterium")
             if 0.00053 < m < 0.00055: 
                 specie = 'electrons'; 
-                if verbose: print("We're simulating electrons with adiabatic Hydrogen")   
+                if verbose: print("We're simulating electrons with adiabatic Hydrogen")
         if int(specie_id)==1:
             if 0.00026 < m < 0.00028: 
                 specie = 'electrons'; 
-                if verbose: print("We're simulating Deuterium and kinetic electrons")   
+                if verbose: print("We're simulating Deuterium and kinetic electrons")
             if 0.00053 < m < 0.00055: 
                 specie = 'electrons'; 
                 if verbose: print("We're simulating Hydrogen and kinetic electrons")

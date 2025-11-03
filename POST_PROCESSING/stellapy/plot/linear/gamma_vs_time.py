@@ -94,7 +94,7 @@ def subplot_gamma_vs_time(ax, simulation, y_quantity="gamma", modes_id="unstable
     # Color map for modes    
     selected_modes = get_filterForSelectedModes(simulation, modes_id, kx_range, ky_range) 
     number_of_modes = np.sum(selected_modes.astype(int), axis=(0,1)); plot_i=0
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,number_of_modes))
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,number_of_modes))
 
     # Iterate over the modes  
     for ikx in range(simulation.dim.kx):

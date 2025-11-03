@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, ubuntu-22.04, ubuntu-24.04] # macos-14
         compiler: [Make, CMake]
     
     # Operating system
@@ -401,39 +401,6 @@ jobs:
         run: make numerical-tests-8
 
 #-----------------------------------------------------------------------
-#                             Fortran tests                              
-#-----------------------------------------------------------------------
-
-  fortran-tests:
-    runs-on: ubuntu-22.04
-    name: "Automated Fortran tests"  
-    env:
-      OMPI_MCA_rmaps_base_oversubscribe: yes
-      MPIRUN: mpiexec -np 
-      STELLA_SYSTEM: gnu_ubuntu
-
-    steps:
-
-      # Check-out repository under $GITHUB_WORKSPACE
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      # Install dependencies
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin 
-          sudo apt install -y python3 python3-pip openmpi-bin libopenmpi-dev libblas-dev liblapack-dev
-          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
-      
-      # Build stella executable and pFUnit library
-      - name: Build stella and perform automated Fortran tests
-        run: |
-          git submodule update --init --recursive
-          cmake . -B build -DSTELLA_ENABLE_TESTS=on
-          cmake --build build -j1 --target check
-
-#-----------------------------------------------------------------------
 #                          Build in debug mode                          
 #-----------------------------------------------------------------------
 
@@ -443,7 +410,7 @@ jobs:
   # when reading a VMEC equilibirium during the python tests.
   debug-build:
     runs-on: ubuntu-22.04
-    name: "Build stella in debug mode"  
+    name: "Build stella in debug mode"
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np 

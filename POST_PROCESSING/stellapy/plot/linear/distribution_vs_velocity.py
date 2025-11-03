@@ -146,7 +146,7 @@ def subplot_distribution_vs_velocity(
     # Color map for modes   
     selected_modes = get_filterForSelectedModes(simulation, modes_id, kx_range, ky_range) 
     number_of_modes = np.sum(selected_modes.astype(int), axis=(0,1)) 
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0 
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0 
              
     # Get the distribution versus mu or vpa
     x, y_vs_xkxky = get_distribution_data(simulation, x_quantity, specie) 

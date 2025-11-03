@@ -14,35 +14,35 @@ Hanne Thienpondt
 """
 
 #!/usr/bin/python3
-import copy 
-import os, sys 
-import pathlib 
+import copy
+import os, sys
+import pathlib
 
 # Stellapy package
-sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)  
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
 from stellapy.utils.files.keep_linearFluxTubeSimulations import keep_linearFluxTubeSimulations
 from stellapy.utils.files.sort_listByNumbers import sort_listByNumbers
-from stellapy.utils.files.get_filesInFolder import get_filesInFolder  
-from stellapy.data.input.read_inputFile import read_inFile  
+from stellapy.utils.files.get_filesInFolder import get_filesInFolder
+from stellapy.data.input.read_inputFile import read_inFile
 
 #===============================================================================
 #                    WRITE LIST OF MATCHING INPUT FILES
 #===============================================================================
  
-def write_listOfMatchingInputFiles(folder):  
+def write_listOfMatchingInputFiles(folder):
     
     # Get the input_files inside <folder>
     # Only keep linear flux tube simulations that have output files
-    input_files = get_filesInFolder(folder, end=".in") 
+    input_files = get_filesInFolder(folder, end=".in")
     input_files = [i for i in input_files if os.path.isfile(i.with_suffix(".out"))]
-    input_files = keep_linearFluxTubeSimulations(input_files) 
+    input_files = keep_linearFluxTubeSimulations(input_files)
     
     # Collect the parent directories since we will write a list for each directory
     # For linear restarts, the old files are put in an "OLD" folder, include these in the list of OLD.parent
     parent_directories = list(set([i.parent if "OLD" not in i.parent.name else i.parent.parent for i in input_files]))
     
     # Only look at the input files in each parent folder
-    for directory in parent_directories:    
+    for directory in parent_directories:
 
         # Initialize a dictionary simulation{ID}{list,input_parameters}
         simulations = {}; input_files_in_dummy_files = []
@@ -61,7 +61,7 @@ def write_listOfMatchingInputFiles(folder):
                 # Create the simulation
                 simulations[str(dummy_input_file)] = {}
                 simulations[str(dummy_input_file)]["input_parameters"] = input_parameters
-                simulations[str(dummy_input_file)]["input_files"] = input_files_in_dummy_file 
+                simulations[str(dummy_input_file)]["input_files"] = input_files_in_dummy_file
         
         # Get the input files in <directory>
         input_files_directory = [i for i in input_files if (i.parent==directory) or (i.parent.parent==directory and "OLD" in i.parent.name)]
@@ -71,7 +71,7 @@ def write_listOfMatchingInputFiles(folder):
             input_files_in_dummy_files += simulations[simulation_id]["input_files"]
         
         # Iterate through the input files 
-        for i, input_file in enumerate(input_files_directory):   
+        for i, input_file in enumerate(input_files_directory):
             
             # Read the input parameters
             input_parameters, kt_grids_range_parameters = read_relevantInputParameters(input_file)
@@ -129,28 +129,33 @@ def read_relevantInputParameters(input_file):
             
     # Read the input parameters 
     input_parameters = read_inFile(input_file)
-    kt_grids_range_parameters = copy.deepcopy(input_parameters['kt_grids_range_parameters'])
+    kxky_grid_range_parameters = copy.deepcopy(input_parameters['kxky_grid_range'])
     
     # The (kx,ky) values are allowed to be different in the "same" simulation
-    del input_parameters['kt_grids_range_parameters']
+    del input_parameters['kxky_grid_range']
     
     # Remove other parameters that are allowed to differ
-    del input_parameters['knobs']['mat_gen']
-    del input_parameters['knobs']['nstep']
-    del input_parameters['knobs']['tend']
-    del input_parameters['knobs']['delt_option']
-    del input_parameters['knobs']['delt_max']
-    del input_parameters['knobs']['delt_min']
-    del input_parameters['knobs']['avail_cpu_time']
-    del input_parameters['init_g_knobs']['phiinit']
-    del input_parameters['init_g_knobs']['restart_file']
-    del input_parameters['init_g_knobs']['restart_dir']
-    del input_parameters['init_g_knobs']['ginit_option'] 
-    del input_parameters['stella_diagnostics_knobs'] 
-    return input_parameters, kt_grids_range_parameters
+    del input_parameters['time_step']['delt_option']
+    del input_parameters['time_step']['delt_max']
+    del input_parameters['time_step']['delt_min']
+    del input_parameters['parallelisation']['mat_gen']
+    del input_parameters['time_trace_options']['nstep']
+    del input_parameters['time_trace_options']['tend']
+    del input_parameters['time_trace_options']['avail_cpu_time']
+    del input_parameters['restart_options']['restart_file']
+    del input_parameters['restart_options']['restart_dir']
+    del input_parameters['initialise_distribution']['phiinit']
+    del input_parameters['initialise_distribution']['initialise_distribution_option']
+    del input_parameters['diagnostics']
+    del input_parameters['diagnostics_potential']
+    del input_parameters['diagnostics_omega']
+    del input_parameters['diagnostics_distribution']
+    del input_parameters['diagnostics_fluxes']
+    del input_parameters['diagnostics_moments']
+    return input_parameters, kxky_grid_range_parameters
 
 #--------------------------------------
-def read_inputFilesInDummyInputFile(dummy_input_file):  
+def read_inputFilesInDummyInputFile(dummy_input_file):
     """ Returns the list of input files in 'input_dummy.in' or 'input_v1_dummy.in'. """
            
     # Read the input files

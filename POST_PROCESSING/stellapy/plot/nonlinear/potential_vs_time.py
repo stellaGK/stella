@@ -163,7 +163,7 @@ def subplot_potential_vs_time(ax, research, y_quantity="phi2", zonal=None, log=F
     axis = Axis(ax, Plot(),  xbot_pos=0, ytop_neg=0, ybot_pos=0, overshoot_y=1.1, logy=log, percentage=0.5)
     
     # Colors based on the number of simulations
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)); count=0
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)); count=0
     
     # Plot phi2(t)
     for experiment in research.experiments:

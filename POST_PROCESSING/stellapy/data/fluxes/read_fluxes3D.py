@@ -14,13 +14,13 @@ def read_fluxes3D(path):
     ''' Read the fluxes from *.fluxes3D or *.out.nc ''' 
                
     # Make sure that the *.dt10.write_h5FileForfluxes3D file exists
-    if not os.path.isfile(path.fluxes3D) and os.path.isfile(path.output_stella): 
+    if not os.path.isfile(path.fluxes3D) and os.path.isfile(path.output_stella):
         write_h5FileForFluxes3D(path.folder)
-        get_fluxes3DPath(path)  
+        get_fluxes3DPath(path)
 
     # Read from the *.dt10.fluxes3D file 
     if os.path.isfile(path.fluxes3D):
-        return read_fromfluxesFile(path.fluxes3D)    
+        return read_fromfluxesFile(path.fluxes3D)
     
     # This file doesn't exist for old simulations
     elif os.path.isfile(path.output): 
@@ -30,23 +30,23 @@ def read_fluxes3D(path):
     exit_reason = "The 3D fluxes data could not be found. \n"
     exit_reason += "Execute the following command in the folder of the *.out.nc file:\n"
     exit_reason += "      >> write_dataFiles -s flux3D"
-    exit_program(exit_reason, read_fluxes3D, sys._getframe().f_lineno)   
+    exit_program(exit_reason, read_fluxes3D, sys._getframe().f_lineno)
     return
 
 #-------------------------------------
 def read_fromfluxesFile(path, fluxes={}):
     with h5py.File(path, 'r') as f:  
         for key in ["vec_time", "qflux_vs_ts", "pflux_vs_ts", "vflux_vs_ts"]:
-            for extra in ["", "kx", "ky","z"]:  
+            for extra in ["", "kx", "ky","z"]:
                 if key+extra in f.keys(): 
-                    fluxes[key+extra] = f[key+extra][()]   
+                    fluxes[key+extra] = f[key+extra][()]
     return fluxes 
 
 #===============================================================================
 #                            READ FROM OLD H5 FILE                             #
 #===============================================================================
 
-def read_fromH5File(path, fluxes={}):   
+def read_fromH5File(path, fluxes={}):
     with h5py.File(path.output, 'r') as f: 
         fluxes["vec_time"] = f["vec_time"][()]
         qflux_vs_tskxky = f["qflux_vs_tskxky"][()] if ("qflux_vs_tskxky" in f.keys()) else f["qflx_kxky"][()]   

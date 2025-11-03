@@ -1,22 +1,23 @@
  
-#!/usr/bin/python3   
+#!/usr/bin/python3
 import sys, os
-import numpy as np 
+import numpy as np
 import pathlib, h5py
-from scipy.io import netcdf as scnetcdf   
+from scipy.io import netcdf as scnetcdf
 from stellapy.data.input.write_listOfMatchingInputFiles import read_inputFilesInDummyInputFile
 
 # Stellapy package
-sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)    
-from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime   
-from stellapy.data.input.read_inputFile import read_svalueFromInputFile,\
-    read_numberOfModesFromInputFile, read_modeFromInputFile
-from stellapy.utils.files.get_filesInFolder import get_filesInFolder   
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
+from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime
+from stellapy.data.input.read_inputFile import read_svalueFromInputFile
+from stellapy.data.input.read_inputFile import read_numberOfModesFromInputFile
+from stellapy.data.input.read_inputFile import read_modeFromInputFile
+from stellapy.utils.files.get_filesInFolder import get_filesInFolder
 from stellapy.utils.config import CONFIG
 
 #===============================================================================
 #                           CREATE THE PATHS OBJECT                            #
-#===============================================================================  
+#===============================================================================
 #
 # We want to read from the following files for nonlinear sims (<simulation>):
 #
@@ -34,7 +35,7 @@ from stellapy.utils.config import CONFIG
 #    *.dt10.fluxes_vs_t        fluxes              txt   (pflux_vs_ts, ...) 
 #    *.dt10.phi_vs_t           phi_vs_t            txt   (phi_vs_t, phi2_vs_t)
 #
-# We want to read from the following files for linear sims (<mode>):  
+# We want to read from the following files for linear sims (<mode>):
 #
 #    *.list.inputs.ini        
 #    *.list.inputs.geometries        
@@ -163,33 +164,31 @@ class Paths:
     
     # Data as a funtion of time
     @calculate_attributeWhenReadFirstTime 
-    def g2_vs_t(self):              get_g2vstPath(self);            return self.g2_vs_t 
-    @calculate_attributeWhenReadFirstTime # Old name
-    def g_vs_t(self):               get_gvstPath(self);             return self.g_vs_t 
+    def g2_vs_t(self):              get_g2vstPath(self);            return self.g2_vs_t
     @calculate_attributeWhenReadFirstTime 
-    def phi_vs_t(self):             get_phivstPath(self);           return self.phi_vs_t 
+    def phi_vs_t(self):             get_phivstPath(self);           return self.phi_vs_t
     
     # Data at the last time step (linear)
     @calculate_attributeWhenReadFirstTime 
     def phi_vs_z(self):             get_phivszPath(self);           return self.phi_vs_z
-    @calculate_attributeWhenReadFirstTime 
-    def g2_vs_z(self):               get_finalgPath(self);           return self.g2_vs_z 
-    @calculate_attributeWhenReadFirstTime 
-    def g2_vs_mu(self):              get_finalgPath(self);           return self.g2_vs_mu 
-    @calculate_attributeWhenReadFirstTime 
-    def g2_vs_vpa(self):             get_finalgPath(self);           return self.g2_vs_vpa
+    @calculate_attributeWhenReadFirstTime
+    def g2_vs_z(self):              get_finalgPath(self);           return self.g2_vs_z
+    @calculate_attributeWhenReadFirstTime
+    def g2_vs_mu(self):             get_finalgPath(self);           return self.g2_vs_mu
+    @calculate_attributeWhenReadFirstTime
+    def g2_vs_vpa(self):            get_finalgPath(self);           return self.g2_vs_vpa
     
     # For linear simulations we remember the unique inputs and geometries 
     @calculate_attributeWhenReadFirstTime 
-    def loaded_inputs(self):        get_inputPath(self);            return self.loaded_inputs 
+    def loaded_inputs(self):        get_inputPath(self);            return self.loaded_inputs
     @calculate_attributeWhenReadFirstTime 
-    def loaded_geometries(self):    get_geometryPath(self);         return self.loaded_geometries 
+    def loaded_geometries(self):    get_geometryPath(self);         return self.loaded_geometries
     
     # Remember the data in the output file
     @calculate_attributeWhenReadFirstTime 
-    def output_keys(self):          get_outputKeys(self);           return self.output_keys 
+    def output_keys(self):          get_outputKeys(self);           return self.output_keys
     @calculate_attributeWhenReadFirstTime 
-    def output_stella_keys(self):   get_outputKeys(self);           return self.output_stella_keys 
+    def output_stella_keys(self):   get_outputKeys(self);           return self.output_stella_keys
     
     # Get the stella files
     @calculate_attributeWhenReadFirstTime 
@@ -220,24 +219,24 @@ def get_multipleInputFiles(self):
     self.input_files = None
     self.dummy_input_file = None
     
-    # If we have a multiple input files, attach the input files to the <path> object 
+    # If we have a multiple input files, attach the input files to the <path> object
     if self.multiple_input_files==True:
         
         # Get the input files corresponding to a similar simulation with different (kx,ky)
         self.input_files = self.simulation.input_files; self.paths = []
         self.input_files = [i for i in self.input_files if pathlib.Path(str(i).replace(".in", "_kx0.0.in")) not in self.input_files]
 
-        # Create dummy path objects for each input file 
-        for input_file in self.input_files:  
+        # Create dummy path objects for each input file
+        for input_file in self.input_files:
             self.paths.append(create_dummyPathObject(input_file, "/not/used"))
         
         # For each input file, remember the modes inside
-        for path in self.paths: 
+        for path in self.paths:
             path.dummy_input_file = None
             nakx, naky = read_numberOfModesFromInputFile(path.input_file)
             kx, ky = read_modeFromInputFile(path.input_file)
             path.nakxnaky = nakx*naky
-            path.kx = kx 
+            path.kx = kx
             path.ky = ky
             if path.nakxnaky==1:
                 path.dim_kx = 1
@@ -245,18 +244,23 @@ def get_multipleInputFiles(self):
                 path.vec_kx = [kx]
                 path.vec_ky = [ky]
             if path.nakxnaky>1 or "_dummy.in" in str(path.input_file):
-                with h5py.File(path.dimensions, 'r') as f:  
-                    path.dim_kx = f["dim_kx"][()] 
-                    path.dim_ky = f["dim_ky"][()] 
-                    path.vec_kx = f["vec_kx"][()] 
-                    path.vec_ky = f["vec_ky"][()]   
+                with h5py.File(path.dimensions, 'r') as f:
+                    path.dim_kx = f["dim_kx"][()]
+                    path.dim_ky = f["dim_ky"][()]
+                    path.vec_kx = f["vec_kx"][()]
+                    path.vec_ky = f["vec_ky"][()]
                     
         # For each input file, remember if it is part of a dummy input file
         for input_file in self.input_files: 
             if "_dummy.in" in str(input_file):
-                dummy_input_files = read_inputFilesInDummyInputFile(input_file)   
+                dummy_input_files = read_inputFilesInDummyInputFile(input_file)
                 for path in self.paths: 
-                    if path.input_file in dummy_input_files: path.dummy_input_file = input_file         
+                    if path.input_file in dummy_input_files: path.dummy_input_file = input_file
+    
+    # A single input file
+    if self.multiple_input_files==False:
+        self.vec_kx = self.simulation.vec.kx
+        self.vec_ky = self.simulation.vec.ky
     return 
 
 #===============================================================================
@@ -437,9 +441,9 @@ def get_phivszPath(self):
     return
 
 def get_finalgPath(self):  
-    self.path.g2_vs_z = self.input_file.with_suffix(".g_vs_z")
-    self.path.g2_vs_mu = self.input_file.with_suffix(".g_vs_mu")
-    self.path.g2_vs_vpa = self.input_file.with_suffix(".g_vs_vpa")
+    self.path.g2_vs_z = self.input_file.with_suffix(".g2_vs_z")
+    self.path.g2_vs_mu = self.input_file.with_suffix(".g2_vs_mu")
+    self.path.g2_vs_vpa = self.input_file.with_suffix(".g2_vs_vpa")
     return
     
 #------------------------
