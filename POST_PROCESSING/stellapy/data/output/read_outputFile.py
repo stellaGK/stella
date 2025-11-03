@@ -5,7 +5,7 @@ import os, sys
 import pathlib
 import numpy as np
 import netCDF4 as nc4  
-from scipy.io import netcdf as scnetcdf     
+from scipy.io import netcdf as scnetcdf
 
 # Stellapy package
 sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)  
@@ -17,11 +17,11 @@ from stellapy.utils.decorators.exit_program import exit_program
 #===============================================================================
 
 def read_outputFile(netcdf_path):
-    ''' Since a stella update around summer 2022, there are two unlimited variables  
+    ''' Since a stella update around summer 2022, there are two unlimited variables
     in the netcdf file and <scnetcdf> will no longer work.'''
     try:
-        try: netcdf_file = nc4.Dataset(netcdf_path)  
-        except: netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
+        try: netcdf_file = nc4.Dataset(netcdf_path)
+        except: netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r')
     except:
         if not os.path.isfile(netcdf_path):
             exit_reason = "The netcdf file could not be found:\n"

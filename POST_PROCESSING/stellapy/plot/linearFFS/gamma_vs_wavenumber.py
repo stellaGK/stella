@@ -86,7 +86,7 @@ def subplot_gamma_vs_wavenumber(ax, research, x_quantity="ky", y_quantity="gamma
             
             # Change the line label "ny = X" to "ky max = Y"
             if ('ny' in simulation.marker_label):
-                simulation.marker_label = "$k_{y,max} = "+str(simulation.input.inputParameters["kt_grids_box_parameters"]["ky max"])+"$" 
+                simulation.marker_label = "$k_{y,max} = "+str(simulation.input.inputParameters["kxky_grid_box"]["ky max"])+"$" 
                           
             # Get the lines and marker styles for the experiments and simulations
             style = get_styleForLinesAndMarkers(plot, legend, research, experiment, simulation)
@@ -183,30 +183,30 @@ def subplot_gamma_vs_wavenumber(ax, research, x_quantity="ky", y_quantity="gamma
 if __name__ == "__main__":
     
     # Create a bash-like interface
-    bash = Bash(plot_gamma_vs_wavenumber, __doc__)   
+    bash = Bash(plot_gamma_vs_wavenumber, __doc__)
     
     # Toggle the quantities to be plotted through --ky --kx --omega --gamma/ky^2
-    bash.add_toggle('x_quantity', 'ky', 'Plot the spectra as a function of ky.') 
-    bash.add_toggle('x_quantity', 'kx', 'Plot the spectra as a function of kx.') 
-    bash.add_toggle('y_quantity', 'omega', 'Plot the spectra for omega.')  
-    bash.add_toggle('y_quantity', 'gamma/ky^2', 'Plot the spectra for gamma/ky**2.')  
+    bash.add_toggle('x_quantity', 'ky', 'Plot the spectra as a function of ky.')
+    bash.add_toggle('x_quantity', 'kx', 'Plot the spectra as a function of kx.')
+    bash.add_toggle('y_quantity', 'omega', 'Plot the spectra for omega.')
+    bash.add_toggle('y_quantity', 'gamma/ky^2', 'Plot the spectra for gamma/ky**2.')
     
     # Choose whether we plot the stable, unstable or all modes
-    bash.add_option('modes_id', 'str', 'm', 'Choose {unstable, stable, all}.')  
+    bash.add_option('modes_id', 'str', 'm', 'Choose {unstable, stable, all}.')
     
     # Add a quick option -s to switch to the stable modes
-    bash.add_option('stable', 'True', 's', 'Plot the stable modes.')  
+    bash.add_option('stable', 'True', 's', 'Plot the stable modes.')
     
     # Adjust the range of wavenumbers
-    bash.add_option('kxmin', 'float', '-', 'Minimum kx.')   
-    bash.add_option('kxmax', 'float', '-', 'Maximum kx.')  
-    bash.add_option('kymin', 'float', '-', 'Minimum ky.')   
-    bash.add_option('kymax', 'float', 'k', 'Maximum ky.')   
+    bash.add_option('kxmin', 'float', '-', 'Minimum kx.')
+    bash.add_option('kxmax', 'float', '-', 'Maximum kx.')
+    bash.add_option('kymin', 'float', '-', 'Minimum ky.')
+    bash.add_option('kymax', 'float', 'k', 'Maximum ky.')
     
     # Get the bash arguments and execute the script
     args = bash.get_arguments()
     args = get_rangesKxKy(args)
-    plot_gamma_vs_wavenumber(**args)   
+    plot_gamma_vs_wavenumber(**args)
      
 
 

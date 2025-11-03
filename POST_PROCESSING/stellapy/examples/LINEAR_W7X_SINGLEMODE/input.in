@@ -1,0 +1,149 @@
+
+! Linear ITG instability with kinetic ions and kinetic electrons
+! Linear simulation considering +/- 3 poloidal turns
+! This is just to test scripts, so the resolution is not physically meaningful
+!
+! W7-X magnetic equilibrium (standard configuration)
+! The VMEC can be found in stella/DOCUMENTATION/VMEC_equilibria
+! 
+! Hanne Thienpondt
+
+!================================================================================
+!=================================== Geometry ===================================
+!================================================================================
+
+&geometry_options
+  geometry_option = 'vmec'
+/
+
+&geometry_vmec
+  nfield_periods = 17
+  torflux = 0.49
+  vmec_filename = 'wout_w7x_standardConfig.nc'
+/
+
+!================================================================================
+!=================================== Physics ====================================
+!================================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+/
+
+!================================================================================
+!================================= Diagnostics ==================================
+!================================================================================
+
+&diagnostics
+  nsave = 100
+  nwrite = 10
+  save_for_restart = .false.
+  write_all_time_traces = .true.
+  write_all_spectra_kxkyz = .true.
+  write_all_spectra_kxky = .true.
+  write_all_velocity_space = .true.
+  write_all_potential = .true.
+  write_all_omega = .true.
+  write_all_distribution = .true.
+  write_all_fluxes = .true.
+/
+
+!================================================================================
+!=========================== Initialise Distribution ============================
+!================================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.001
+/
+
+&initialise_distribution_maxwellian
+  width0 = 1.0
+/
+
+!================================================================================
+!====================== Ion, electron and impurity species ======================
+!================================================================================
+
+&species_options
+  nspec = 2
+/
+
+&species_parameters_1
+  z = 1.0
+  mass = 1.0
+  dens = 1.0
+  temp = 1.0
+  fprim = 1.0
+  tprim = 3.0
+  type = 'ion'
+/
+
+&species_parameters_2
+  z = -1.0
+  mass = 0.00027
+  dens = 1.0
+  temp = 1.0
+  fprim = 1.0
+  tprim = 3.0
+  type = 'electron'
+/
+
+
+!================================================================================
+!====================== Discretized (kx,ky,z,mu,vpa) grid =======================
+!================================================================================
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+
+&kxky_grid_range
+  aky_max = 0.5
+  aky_min = 0.5
+  nakx = 1
+  naky = 1
+/
+
+&z_grid
+  nperiod = 1
+  nzed = 24
+  zed_equal_arc = .true.
+/
+
+&velocity_grids
+  nmu = 6
+  nvgrid = 12
+/
+
+
+!================================================================================
+!=================================== Numerics ===================================
+!================================================================================
+
+&time_trace_options
+  tend = 100
+/
+
+&time_step
+  delt = 0.1
+/
+
+
+!================================================================================
+!================================= Dissipation ==================================
+!================================================================================
+
+&dissipation_and_collisions_options
+  hyper_dissipation = .false.
+  include_collisions = .false.
+/
+
+!================================================================================
+!=============================== Parallelisation ================================
+!================================================================================
+
+&parallelisation
+  lu_option = 'local'
+/
+

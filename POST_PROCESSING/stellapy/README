@@ -3,13 +3,30 @@
 #                                   Stellapy                                   #
 ################################################################################
 
-Stellapy is a python diagnostics package in order to process the simulations that
+Stellapy is a python diagnostics package designed to process the simulations that
 have been run with the gyrokinetic code stella: github.com/stellaGK/stella.
-The diagnostic package is developed and maintained by Hanne Thienpondt, with the 
+
+This diagnostic package has been developed by Hanne Thienpondt, with the
 help of Jose Manuel Garcia Regaña.
 
-For questions or bugs you can email Hanne.Thienpondt@outlook.com.
+To see all available commands, execute the following command:
+  >> stellapy
+  
+To see all commands for linear or nonlinear simulations execute:
+  >> stellapy --linear
+  >> stellapy --nonlinear
 
+A linear and nonlinear example are present inside:
+  stella/POST_PROCESSING/stellapy/examples
+  
+For example, to run the nonlinear example, execute:
+  >> cd stella/POST_PROCESSING/stellapy/examples/NONLINEAR_W7X
+  >> ln -s stella/DOCUMENTATION/VMEC_equilibria/wout_w7x_standardConfig.nc
+  >> ln -s LOCATION_OF_STELLA_EXECUTABLE
+  >> mpirun -np 4 stella input.in
+  >> write_stellapyDataFiles
+  >> plot_potential_vs_time
+  >> plot_qflux_vs_time
 
 #===============================================================================
 #                             System requirements                              #
@@ -24,9 +41,10 @@ For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 #===============================================================================
 #                                     Notes                                    #
 #===============================================================================
+
 - EXPORT commands are used, hence it is important to work in bash.
 - Make sure that stellapy/source.sh and stellapy/stellapy.ini are filled in.
-- Before plotting, use "write_dataFiles" to make sure all files are present. 
+- Before plotting, use "write_stellapyDataFiles" to make sure all files are present.
 
 
 #===============================================================================
@@ -125,34 +143,10 @@ Next, it is required to install a virtual python environment through:
     >>> sudo apt-get install dvipng 
 
 #===============================================================================
-#                                 Stellapy GUI                                 #
-#===============================================================================
-
-4a. The GUI can be added to the applications of your computer by creating a 
-"stellaplotter.desktop" file in "~/.local/share/applications" which reads: 
-
-    [Desktop Entry]
-    Name=Stellapy
-    Path=/home/user/STELLA/stella/stellapy
-    Exec=/home/user/STELLA/stella/stellapy/GUI/run_GUIFromDesktop.sh
-    Icon=/home/user/STELLA/stella/stellapy/GUI/images/stellarator_long.png
-    Terminal=false
-    Type=Application
-    Categories=Application
-    StartupNotify=true
-
-4b. The errors and outputs from the GUI are printed to "stellapy/GUI/stella_GUI.log".
-Alternatively, the GUI can be executed from the command prompt through:
-    >>> stellaplotter
-    >>> stellaplotter_linear           
-    >>> stellaplotter_nonlinear  
-
-
-#===============================================================================
 #                                   Eclipse                                    #
 #===============================================================================
 
-5a. The recommended python editor is Eclipse PyDev. 
+5a. The recommended python editor is Eclipse PyDev.
 
 5b. TODO: Can someone add an installation guide?
 

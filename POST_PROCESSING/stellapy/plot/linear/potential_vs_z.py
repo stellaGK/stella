@@ -113,13 +113,13 @@ def subplot_potential_vs_z(
         interpolate=20, 
         fontsize=20): 
      
-    # Automate the axis limits  
+    # Automate the axis limits
     axis = Axis(ax, Plot(), xbot_pos=0, ybot_pos=0, overshoot_y=1) 
      
-    # Color map for modes    
+    # Color map for modes
     selected_modes = get_filterForSelectedModes(simulation, modes_id, kx_range, ky_range) 
     number_of_modes = np.sum(selected_modes.astype(int), axis=(0,1)) 
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0
          
     # Get the coordinate along the field line
     x = get_field_line_coordinate(x_quantity, simulation)

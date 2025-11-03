@@ -47,16 +47,16 @@ Hanne Thienpondt
 
 """
 
-#!/usr/bin/python3   
+#!/usr/bin/python3
 import sys, os
 import pathlib
 import numpy as np
-import matplotlib as mpl 
-import matplotlib.pyplot as plt 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 # Stellapy package
-sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)   
-from stellapy.plot.utils.style.get_styleForLinesAndMarkers import get_styleForLinesAndMarkers 
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
+from stellapy.plot.utils.style.get_styleForLinesAndMarkers import get_styleForLinesAndMarkers
 from stellapy.plot.utils.data.recognize_varied_parameter import recognize_varied_parameter
 from stellapy.plot.utils.data.recognize_resolution_scan import recognize_resolution_scan
 from stellapy.plot.utils.labels.standardParameters import standardParameters
@@ -74,18 +74,18 @@ from stellapy.plot.utils.style.Plot import Plot
 #===============================================================================
 
 def plot_flux_vs_parameter(
-        folder, 
+        folder,
         # Quantities to plot
-        specie=0, 
+        specie=0,
         x_quantity=None,
-        y_quantity="qflux", 
+        y_quantity="qflux",
         # Time frame to calculate saturated quantities 
-        trange=None,  
+        trange=None,
         # Research
-        experiment_parameter1=None, 
-        experiment_parameter2=None, 
-        folderIsExperiment=False, 
-        resolutionScan=None): 
+        experiment_parameter1=None,
+        experiment_parameter2=None,
+        folderIsExperiment=False,
+        resolutionScan=None):
      
     # Find the stella knob and key of the given parameter
     knob1, key1, knob2, key2 = get_knobsAndKeys(experiment_parameter1, experiment_parameter2) 

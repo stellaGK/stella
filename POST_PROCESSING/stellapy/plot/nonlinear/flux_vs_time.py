@@ -116,7 +116,7 @@ def subplot_flux_vs_time(
         specie=0):
     
     # Colors based on the number of simulations
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)) 
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)) 
     max_time = 0; min_flux = 0; max_flux = 0; count = 0
     
     # Check whether <specie> is a valid choice 
