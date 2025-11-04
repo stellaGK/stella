@@ -216,9 +216,6 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       
-      ! Time routines
-      use timers, only: time_field_solve
-      
       implicit none
       
       !-------------------------------------------------------------------------

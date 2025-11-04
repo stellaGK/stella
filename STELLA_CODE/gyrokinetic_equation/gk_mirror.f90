@@ -400,13 +400,12 @@ contains
       ! Grids + Arrays
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: vpa, maxwell_vpa
       use grids_kxky, only: nakx, naky, naky_all, ny, ikx_max
       use arrays_distribution_function, only: gvmu
 
       ! Calculations
       use calculations_transforms, only: transform_ky2y
-      use calculations_kxky, only: swap_kxky      
+      use calculations_kxky, only: swap_kxky
 
       implicit none
 
@@ -417,7 +416,7 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0x
       complex, dimension(:, :), allocatable :: dgdv, g_swap
       integer :: ikxyz, iz, it
-      integer :: ivmu, iv, is
+      integer :: ivmu, is
 
       !-------------------------------------------------------------------------
 
@@ -654,7 +653,6 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: ny, nakx
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: maxwell_vpa
       use grids_kxky, only: naky_all, ikx_max
       use grids_velocity, only: dvpa
       use arrays_distribution_function, only: gvmu
@@ -894,7 +892,7 @@ contains
       use calculations_tofrom_ghf, only: gbar_to_g
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
-      use grids_velocity, only: dvpa, vpa, nvpa
+      use grids_velocity, only: dvpa, nvpa
 
       implicit none
 
