@@ -183,8 +183,7 @@ contains
       implicit none
 
       integer, intent(in) :: nalpha, naky
-      real :: bmag_z0
-      integer :: iy, ia, iz
+      integer :: iy
 
       !---------------------------------------------------------------------- 
 

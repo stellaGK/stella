@@ -489,16 +489,15 @@ contains
       use grids_species, only: spec
       use grids_z, only: nzgrid, zed
       use grids_kxky, only: naky, nakx, ikx_max
-      use grids_kxky, only: theta0, akx, zonal_mode, zed0
+      use grids_kxky, only: akx, zonal_mode, zed0
       use grids_kxky, only: reality
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_distribution_function, only: gvmu
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
-      use ran, only: ranf
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_maxwellian
-      use grids_extended_zgrid, only: periodic
+      use ran, only: ranf
       
       implicit none
 
