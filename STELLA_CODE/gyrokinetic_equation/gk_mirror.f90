@@ -57,6 +57,7 @@ contains
       use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
       use parameters_physics, only: include_apar
       use parameters_physics, only: include_mirror, radial_variation
+      use parameters_physics, only: mirrorknob
 
       implicit none
 
@@ -86,7 +87,7 @@ contains
          do imu = 1, nmu
             do ia = 1, nalpha
                do iz = -nzgrid, nzgrid
-                  mirror(ia, iz, imu, :) = code_dt * spec%stm_psi0 * b_dot_gradz(ia, iz) &
+                  mirror(ia, iz, imu, :) = mirrorknob * code_dt * spec%stm_psi0 * b_dot_gradz(ia, iz) &
                        * (mu(imu) * dbdzed(ia, iz) + neoclassical_term(iz, :))
                end do
             end do

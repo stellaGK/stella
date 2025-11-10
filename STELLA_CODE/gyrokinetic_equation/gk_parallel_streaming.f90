@@ -22,7 +22,7 @@ module gk_parallel_streaming
    public :: add_parallel_streaming_radial_variation
    public :: stream_tridiagonal_solve
    public :: initialised_parallel_streaming
-   public :: stream, stream_c, stream_sign, b_dot_gradz_centerdinz
+   public :: stream, stream_c, stream_sign, b_dot_gradz_centeredinz
    public :: stream_rad_var1
    public :: stream_rad_var2
    public :: center_zed, get_dzed
@@ -48,7 +48,7 @@ module gk_parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_a1, stream_tri_a2
    real, dimension(:, :), allocatable :: stream_tri_b1, stream_tri_b2
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
-   real, dimension(:, :), allocatable :: b_dot_gradz_centerdinz
+   real, dimension(:, :), allocatable :: b_dot_gradz_centeredinz
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
@@ -76,6 +76,7 @@ contains
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
       use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: streamknob
 
       implicit none
 
@@ -116,7 +117,7 @@ contains
          do iv = 1, nvpa
             do iz = -nzgrid, nzgrid
                do ia = 1, nalpha
-                  stream(ia, iz, iv, :) = -code_dt * b_dot_gradz(ia, iz) * vpa(iv) * spec%stm_psi0
+                  stream(ia, iz, iv, :) = - streamknob * code_dt * b_dot_gradz(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                !----------------------------------------------------------------
                !               Full Flux Surface simulation
@@ -209,12 +210,12 @@ contains
                call center_zed(iv, stream_c(:, iv, is), -nzgrid)
             end do
          end do
-         if (.not. allocated(b_dot_gradz_centerdinz)) allocate (b_dot_gradz_centerdinz(-nzgrid:nzgrid, -1:1))
-         b_dot_gradz_centerdinz = spread(b_dot_gradz_avg, 2, 3)
-         ! get b · ∇z centerd in zed for negative vpa (affects upwinding) 
-         call center_zed(1, b_dot_gradz_centerdinz(:, -stream_sign(1)), -nzgrid)
-         ! get b · ∇z centerd in zed for positive vpa (affects upwinding)
-         call center_zed(nvpa, b_dot_gradz_centerdinz(:, -stream_sign(nvpa)), -nzgrid)
+         if (.not. allocated(b_dot_gradz_centeredinz)) allocate (b_dot_gradz_centeredinz(-nzgrid:nzgrid, -1:1))
+         b_dot_gradz_centeredinz = spread(b_dot_gradz_avg, 2, 3)
+         ! get b · ∇z centered in zed for negative vpa (affects upwinding) 
+         call center_zed(1, b_dot_gradz_centeredinz(:, -stream_sign(1)), -nzgrid)
+         ! get b · ∇z centered in zed for positive vpa (affects upwinding)
+         call center_zed(nvpa, b_dot_gradz_centeredinz(:, -stream_sign(nvpa)), -nzgrid)
          stream = spread(stream_c, 1, nalpha)
       end if
       ! ========================================================================
@@ -922,7 +923,7 @@ contains
       if (allocated(stream)) deallocate (stream)
       if (allocated(stream_c)) deallocate (stream_c)
       if (allocated(stream_sign)) deallocate (stream_sign)
-      if (allocated(b_dot_gradz_centerdinz)) deallocate (b_dot_gradz_centerdinz)
+      if (allocated(b_dot_gradz_centeredinz)) deallocate (b_dot_gradz_centeredinz)
       if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
