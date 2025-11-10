@@ -364,8 +364,6 @@ contains
          code_dt = min(cfl_dt * cfl_cushion_middle, code_dt_max)
          call reset_dt
          restart_time_step = .true.
-      else
-         gout = code_dt * gout
       end if
 
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
