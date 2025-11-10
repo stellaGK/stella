@@ -57,6 +57,7 @@ contains
       use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
       use parameters_physics, only: include_apar
       use parameters_physics, only: include_mirror, radial_variation
+      use parameters_physics, only: mirrorknob
 
       implicit none
 

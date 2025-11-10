@@ -152,7 +152,7 @@ contains
       use timers, only: time_field_solve
       
       ! Arrays
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
@@ -205,17 +205,17 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          
          ! First gyro-average the distribution function g at each phase space location
-         ! and store this as g_scratch = <g>_R = J_0 g in k-space
-         call gyro_average(g, g_scratch)
+         ! and store this as phi_gyro = <g>_R = J_0 g in k-space
+         call gyro_average(g, phi_gyro)
          
          ! If we are allowing for radial variation then we must modify <g>.
          ! This is done in the field_equations_radialvariation module, but 
          ! is not needed for standard stella (as these are false by default).
-         if (radial_variation) call add_radial_correction_int_species(g_scratch)
+         if (radial_variation) call add_radial_correction_int_species(phi_gyro)
          
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ] = integrate_species( J_0 * g )
          if (debug) write (*, *) 'field_equations_fluxtube::vmulo::integrate_species_phi'
-         call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
+         call integrate_species(phi_gyro, spec%z * spec%dens_psi0, phi)
 
          ! Stop timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')

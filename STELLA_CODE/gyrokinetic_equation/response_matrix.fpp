@@ -330,7 +330,7 @@ contains
          if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
 
          !> TO VALENTIN: This part could be parallelised over iky and ie as these 
-         !> are all computed independently. It's not until the LU decomposition
+         !> are all computed independently. It is not until the LU decomposition
          !> that they are needed together
 
          ! Loop over the independent chains of modes for a given ky value. Note

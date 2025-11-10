@@ -44,7 +44,7 @@
 !    - cvdrift       -->   B_times_kappa_dot_grady * 2.
 !    - gradpar       -->   b_dot_gradz_avg
 !    - dgradpardrho  -->   d_bdotgradz_drho
-!    - gradpar_c     -->   b_dot_gradz_centerdinz (gk_parallel_streaming.f90)
+!    - gradpar_c     -->   b_dot_gradz_centeredinz (gk_parallel_streaming.f90)
 !    - d_gradydotgrady_drho       -->   d_gradydotgrady_drho
 !    - d_gradxdotgradx_drho      -->   d_gradxdotgradx_drho
 !    - d_gradxdotgrady_drho      -->   d_gradxdotgrady_drho

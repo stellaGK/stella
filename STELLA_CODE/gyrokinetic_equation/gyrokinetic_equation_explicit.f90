@@ -150,7 +150,7 @@ contains
       use arrays_fields, only: phi, apar, bpar
       
       ! Distribution function
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       
       ! Calculations
       use arrays_gyro_averages, only: j0_ffs
@@ -254,12 +254,12 @@ contains
 
       if (radial_variation) call get_radial_correction(pdf, phi, dist='gbar')
 
-      ! Obtain the gyro-average of the electrostatic potential phi and store in g_scratch;
+      ! Obtain the gyro-average of the electrostatic potential phi and store in phi_gyro;
       ! this can be a particularly costly operation when simulating a full flux surface
       ! due to the coupling of different k-alphas inherent in the gyro-average;
       ! calculate once here to avoid repeated calculation later
       ! TODO-GA : can this be spec up??
-      if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
+      if (full_flux_surface) call gyro_average(phi, phi_gyro, j0_ffs)
 
       !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
       !! IF SO, PRE-COMPUTE ONCE HERE

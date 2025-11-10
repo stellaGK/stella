@@ -44,6 +44,7 @@ module parameters_physics
 
    ! Scaling options
    public :: xdriftknob, ydriftknob, wstarknob
+   public :: streamknob, mirrorknob
    public :: fphi, suppress_zonal_interaction
    
    ! Electromagnetic effects
@@ -75,6 +76,7 @@ module parameters_physics
 
    ! Scaling options
    real :: xdriftknob, ydriftknob, wstarknob
+   real :: streamknob, mirrorknob
    real :: fphi
    logical :: suppress_zonal_interaction
 
@@ -116,7 +118,8 @@ contains
          include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
          full_flux_surface, radial_variation)
       call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
-         xdriftknob, ydriftknob, wstarknob, fphi, suppress_zonal_interaction)
+         include_parallel_streaming, include_mirror, xdriftknob, ydriftknob, wstarknob, streamknob, & 
+         mirrorknob, fphi, suppress_zonal_interaction)
       call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
       call read_namelist_physics_inputs(rhostar)
 
@@ -172,6 +175,8 @@ contains
          call broadcast(xdriftknob)
          call broadcast(ydriftknob)
          call broadcast(wstarknob)
+         call broadcast(streamknob) 
+         call broadcast(mirrorknob)
          call broadcast(fphi)
          call broadcast(suppress_zonal_interaction)
 

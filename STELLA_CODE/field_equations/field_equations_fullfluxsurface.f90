@@ -254,7 +254,7 @@ contains
          ! Assume there is only a single flux surface being simulated
          it = 1
          
-         ! TODO-GA: use g_scratch here to save memory?
+         ! TODO-GA: use phi_gyro here to save memory?
          allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gyro_g = 0.0
          
          ! Loop over zed location within flux tube
