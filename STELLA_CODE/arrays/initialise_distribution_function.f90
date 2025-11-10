@@ -500,12 +500,13 @@ contains
       
       ! Read the following variables from the input file
       real :: width0, den0, upar0
-      logical :: oddparity, left, chop_side
+      logical :: oddparity, left, chop_side, set_theta0_to_zero
       
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_maxwellian> namelist
-      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
+      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, & 
+         left, chop_side, set_theta0_to_zero)
          
       ! Broadcast to all processors
       call broadcast(width0)
@@ -514,12 +515,19 @@ contains
       call broadcast(oddparity)
       call broadcast(left)
       call broadcast(chop_side)
+      call broadcast(set_theta0_to_zero)
 
       right = .not. left
 
-      do iz = -nzgrid, nzgrid
-         phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
-      end do
+      if (set_theta0_to_zero) then 
+         do iz = -nzgrid, nzgrid
+            phi(:, :, iz) = exp(-(zed(iz) / width0)**2) * cmplx(1.0, 1.0)
+         end do
+      else
+         do iz = -nzgrid, nzgrid
+            phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
+         end do
+      end if
       ! this is a messy way of doing things
       ! could tidy it up a bit
       if (sum(cabs(phi)) < epsilon(0.)) then
