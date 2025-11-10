@@ -156,6 +156,7 @@ contains
       complex, dimension(:, :), allocatable :: g0k, g0a, g0k_swap
       complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
+      complex, dimension(:, :), allocatable :: tmp
       real :: zero, cfl_dt
       integer :: ivmu, iz, it, imu, is
       logical :: yfirst
@@ -184,6 +185,7 @@ contains
       allocate (g1xy(ny, nx))
       allocate (bracket(ny, nx))
       allocate (prefac(naky, nx))
+      allocate (tmp(size(gout, 1), size(gout, 2)))
 
       if (yfirst) then
          allocate (g0k_swap(naky_all, ikx_max))
@@ -296,15 +298,17 @@ contains
                if (yfirst) then
                   call transform_x2kx(bracket, g0kxy)
                   if (full_flux_surface) then
-                     gout(:, :, iz, it, ivmu) = g0kxy
+                     gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * g0kxy
                   else
                      call transform_y2ky(g0kxy, g0k_swap)
-                     call swap_kxky_back(g0k_swap, gout(:, :, iz, it, ivmu))
+                     call swap_kxky_back(g0k_swap, tmp)
+                     gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
                   end if
                else
                   call transform_y2ky_xfirst(bracket, g0xky)
                   g0xky = g0xky / prefac
-                  call transform_x2kx_xfirst(g0xky, gout(:, :, iz, it, ivmu))
+                  call transform_x2kx_xfirst(g0xky, tmp)
+                  gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
                end if
                end do
          end do
@@ -510,7 +514,7 @@ contains
       allocate (phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dphidz(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (g0k_swap(2 * naky - 1, ikx_max))
-      allocate (tmp(size(gout, 1), size(gout, 2)))
+      allocate (tmp(size(gout, 1), size(gout, 2))); tmp = 0.0
 
       ! Get d<phi>/dz in vmu_lo
       ! we will need to transform it to real-space
