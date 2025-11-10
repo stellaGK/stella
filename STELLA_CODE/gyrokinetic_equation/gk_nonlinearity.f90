@@ -131,7 +131,7 @@ contains
       use arrays, only: shift_state
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       
       use grids_kxky, only: x
       use grids_z, only: nzgrid, ntubes
@@ -214,7 +214,7 @@ contains
                call forward_transform(g0k, g0xy)
                ! Compute i*kx*<chi>
                if (full_flux_surface) then
-                  call get_dgdx(g_scratch(:, :, iz, it, ivmu), g0k)
+                  call get_dgdx(phi_gyro(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
@@ -266,7 +266,7 @@ contains
                call forward_transform(g0k, g0xy)
                ! Compute d<chi>/dy in k-space
                if (full_flux_surface) then
-                  call get_dgdy(g_scratch(:, :, iz, it, ivmu), g0k)
+                  call get_dgdy(phi_gyro(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if

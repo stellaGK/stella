@@ -125,7 +125,7 @@ contains
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx
       
       ! Arrays
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       use timers, only: time_field_solve
       
       ! Parameters
@@ -167,30 +167,30 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Gyroaverage the distribution function g at each phase space location
-         call gyro_average(g, g_scratch)
+         call gyro_average(g, phi_gyro)
          
          ! <g> requires modification if radial profile variation is included
-         if (radial_variation) call add_radial_correction_int_species(g_scratch)
+         if (radial_variation) call add_radial_correction_int_species(phi_gyro)
          
          ! Integrate <g> over velocity space and sum over species
          ! store result in phi, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_phi'
-         call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
+         call integrate_species(phi_gyro, spec%z * spec%dens_psi0, phi)
          
          ! Gyroaverage the distribution function g at each phase space location
-         call gyro_average_j1(g, g_scratch)
+         call gyro_average_j1(g, phi_gyro)
          
          ! Multiply by mu factor from vperp2
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             imu = imu_idx(vmu_lo, ivmu)
-            g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * mu(imu)
+            phi_gyro(:, :, :, :, ivmu) = phi_gyro(:, :, :, :, ivmu) * mu(imu)
          end do
          
          ! <g> requires modification if radial profile variation is included; not supported for bpar MRH
          ! Integrate <g> over velocity space and sum over species
          ! store result in bpar, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_bpar'
-         call integrate_species(g_scratch, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
+         call integrate_species(phi_gyro, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
          
          ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
@@ -210,21 +210,21 @@ contains
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::include_apar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          
-         ! If fphi > 0, then g_scratch = <g> already calculated above
-         call gyro_average(g, g_scratch)
+         ! If fphi > 0, then phi_gyro = <g> already calculated above
+         call gyro_average(g, phi_gyro)
          
          ! For parallel Amperes Law, need to calculate parallel current rather than density,
          ! so multiply <g> by vpa before integrating. 
          ! Because we are parallelising over (vpa, mu) we need to first get the vpa index, then multiply with vpa
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
-            g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * vpa(iv)
+            phi_gyro(:, :, :, :, ivmu) = phi_gyro(:, :, :, :, ivmu) * vpa(iv)
          end do
          
          ! Integrate vpa*<g> over velocity space and sum over species
          ! store result in apar, which will be further modified below to account for apar pre-factor
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_apar'
-         call integrate_species(g_scratch, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
+         call integrate_species(phi_gyro, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
          
          ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
