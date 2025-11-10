@@ -23,6 +23,8 @@ module arrays_distribution_function
 
    implicit none
 
+   ! Hello. 
+
    ! Make the distribution functions available to all modules
    public :: gnew, gold, g_symm, g_scratch
    public :: g0, g1, g2, g3
