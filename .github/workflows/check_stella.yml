@@ -168,7 +168,6 @@ jobs:
             python3 -m venv AUTOMATIC_TESTS/venv
             source AUTOMATIC_TESTS/venv/bin/activate
             pip3 install -r AUTOMATIC_TESTS/requirements.txt
-            pip3 install -U pluggy
           else
             pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
           fi
