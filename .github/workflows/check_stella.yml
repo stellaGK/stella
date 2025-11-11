@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-22.04, ubuntu-24.04] # macos-14
+        os: [macos-14, macos-15, ubuntu-22.04, ubuntu-24.04]
         compiler: [Make, CMake]
     
     # Operating system
@@ -168,6 +168,7 @@ jobs:
             python3 -m venv AUTOMATIC_TESTS/venv
             source AUTOMATIC_TESTS/venv/bin/activate
             pip3 install -r AUTOMATIC_TESTS/requirements.txt
+            pip3 install -U pluggy
           else
             pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
           fi
