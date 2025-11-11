@@ -51,7 +51,7 @@ jobs:
             echo "NETCDF_LIB_DIR=/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.2/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = /usr/local/Cellar/netcdf-fortran/4.6.2/include/"
             echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.2/include/" >> $GITHUB_ENV
-          elif [ ${{ matrix.os }} == 'macos-14' ]; then 
+          elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then 
             echo "Set STELLA_SYSTEM = macos"
             echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
             echo "Set FFTW_LIB_DIR = /opt/homebrew/Cellar/fftw/3.3.10_2/lib/"
@@ -78,7 +78,7 @@ jobs:
               sudo mkdir /usr/local/gfortran
               sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
               gfortran --version
-            elif [ ${{ matrix.os }} == 'macos-14' ]; then
+            elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then
               brew rm gcc
               brew install gcc@11
               ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
