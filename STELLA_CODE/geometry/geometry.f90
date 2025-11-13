@@ -102,7 +102,7 @@ module geometry
    public :: b_dot_gradzeta_RR
    
    ! Used in kt_grids.f90
-   public :: geo_option_switch, geo_option_vmec
+   public :: geo_option_switch
 
    private
    
@@ -1395,7 +1395,7 @@ contains
          end select
       end if
 
-   end subroutine finish_init_geometry
+    end subroutine finish_init_geometry
 
    !============================================================================ 
    !============================ FINISH THE GEOMETRY ===========================

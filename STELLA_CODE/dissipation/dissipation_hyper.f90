@@ -115,7 +115,8 @@ contains
       use arrays, only: kperp2
       
       ! Warning for VMEC and <scale_to_outboard> = True
-      use geometry, only: geo_option_switch, geo_option_vmec
+      use geometry, only: geo_option_switch
+      use namelist_geometry, only: geo_option_vmec
       use vmec_geometry, only: zeta_center, alpha0
 
       implicit none
