@@ -327,7 +327,7 @@ contains
       do iky = 1, naky
       
         if (proc0) write(*,*) ''
-        if (proc0) write(*,*) '----------- iky = ', iky, '----------'
+        if (proc0) write(*,'(A18,I2,A10)') '----------- iky = ', iky, '----------'
         if (proc0) write(*,*) 'construct_response_matrix - 1'
 
          ! Write the ky-value to the output file
@@ -341,8 +341,9 @@ contains
          
          ! For a given ky, we need to associate an %eigen to it - to denote the
          ! connected modes. The response matrix for each ky has neigen(ky).
-         if (proc0) write(*,*) 'construct_response_matrix - 2'
+         if (proc0) write(*,*) 'construct_response_matrix - allocate response_matrix(iky)%eigen)'
          if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
+         if (proc0) write(*,*) 'construct_response_matrix - allocate response_matrix(iky)%eigen) - done'
 
          !> TO VALENTIN: This part could be parallelised over iky and ie as these 
          !> are all computed independently. It is not until the LU decomposition
@@ -354,10 +355,12 @@ contains
          ! the larger ky is, the larger δkx is, and the more independent chains
          ! there are, while all kx-modes are typically connected for the smallest ky.
          ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
-         if (proc0) write(*,*) 'construct_response_matrix - 3'
+         if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert'
          do ie = 1, neigen(iky)
+            if (proc0) write(*,*) 'ie = ', ie
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
+         if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - done'
          
          ! (DSO) -- Here, the parallelisation over velocity space ends. At this
          ! point every processor has the response matrix for a given ky, and the
@@ -365,9 +368,10 @@ contains
          ! This is preferable to parallelisation over ky as the LU
          ! decomposition (and perhaps QN) will be dominated by the
          ! ky with the most connections if twist-and-shift is used.
-         if (proc0) write(*,*) 'construct_response_matrix - 4'
 #ifdef ISO_C_BINDING
+         if (proc0) write(*,*) 'construct_response_matrix - mpi_win_fence'
          call mpi_win_fence(0, response_window, ierr)
+         if (proc0) write(*,*) 'construct_response_matrix - mpi_win_fence - done'
 #endif
 
          ! ---------------------------------------------------------------------
@@ -375,21 +379,23 @@ contains
          ! ---------------------------------------------------------------------
 
          ! LU decompose the matrix
-         if (proc0) write(*,*) 'construct_response_matrix - 5'
+         if (proc0) write(*,*) 'construct_response_matrix - lu_decompose_response_matrix'
          call lu_decompose_response_matrix(iky)
+         if (proc0) write(*,*) 'construct_response_matrix - lu_decompose_response_matrix - done'
 
          ! ---------------------------------------------------------------------
          !                  Write the response matrix to a file                 
          ! ---------------------------------------------------------------------
 
          ! Write response matrix to file
-         if (proc0) write(*,*) 'construct_response_matrix - 6'
+         if (proc0) write(*,*) 'construct_response_matrix - write'
          do ie = 1, neigen(iky)
             if (proc0 .and. mat_gen) then
                write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
                write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
             end if
          end do
+         if (proc0) write(*,*) 'construct_response_matrix - write - done'
 
       end do
       if (proc0) write(*,*) ''
