@@ -660,6 +660,10 @@ contains
       ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
       ! ------------------------------------------------------------------------
       
+      if (proc0) write(*,*) ''
+      if (proc0) write(*,*) 'get_response_matrix_for_phi', iky, ie, idx, nz_ext, nresponse
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - initalise'
+      
       ! Initialise
       phi_ext = 0.0
       apar_ext = 0.0
@@ -667,6 +671,7 @@ contains
       
       ! How phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding center pdf, 'g'
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - time_upwind_plus'
       phi_ext(idx) = time_upwind_plus
       
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
@@ -674,12 +679,14 @@ contains
       ! boundary (i.e. <idx ==1 ) otherwise phi = 0.0 at both boundary points anyway. 
       ! TOGO-GA: check division rather than multiplication -- kept division for now to 
       ! be consistent with parallel_streaming phase shift 
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - phase_shift'
       if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1) / phase_shift(iky)
 
       ! <dum> is a scratch array that takes the place of the pdf and phi
       ! at the previous time level. It also replaces the other fields (apar and bpar).
       ! This is set to zero for the response matrix approach because there is no sources
       ! coming from the previous time step in the response matrix equation.
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - allocate'
       allocate (dum(nz_ext)); dum = 0.0
 
       ! ------------------------------------------------------------------------
@@ -689,9 +696,11 @@ contains
       ! Set the flux tube index to one - eed to check, but think this is okay as 
       ! the homogeneous equation solved here for the response matrix construction 
       ! is the same for all flux tubes in the flux tube train
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - it'
       it = 1
 
       ! Solve for the response of the distribution function given this unit impulse in <phi>
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - iterate over velocity space'
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       
          ! Calculate the RHS of the GK equation (using dum=0 as the pdf at the previous 
@@ -704,6 +713,7 @@ contains
          call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
          
       end do
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - iterate over velocity space - done'
 
       deallocate (dum)
 
@@ -724,6 +734,7 @@ contains
       ! This ends the parallelisation over velocity space, so every core 
       ! should have a copy of phi_ext.
       ! ------------------------------------------------------------------------
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - solve_field_equations_using_pdf_response'
       call solve_field_equations_using_pdf_response(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie, nz_ext)
 
       ! ------------------------------------------------------------------------
@@ -734,6 +745,7 @@ contains
       ! ------------------------------------------------------------------------
 
 #ifdef ISO_C_BINDING
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert'
       if (sgproc0) then
 #endif
          offset_apar = 0
@@ -756,6 +768,7 @@ contains
       
 #ifdef ISO_C_BINDING
       end if
+      if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert - done'
 #endif
       ! ------------------------------------------------------------------------
 
