@@ -102,24 +102,24 @@ contains
       ! ------------------------------------------------------------------------
       
       ! Debug message -> print to terminal
-      write(*,*) 'DEBUG - START'
+      if (proc0) write(*,*) 'DEBUG - START'
       if (debug) call write_response_matrix_message (1)
 
       ! Set up response matrix utils
-      write(*,*) 'DEBUG - 1'
+      if (proc0) write(*,*) 'DEBUG - 1'
       call setup_response_matrix_file_io
 
       ! Only initialise once
-      write(*,*) 'DEBUG - 2'
+      if (proc0) write(*,*) 'DEBUG - 2'
       if (initialised_response_matrix) return
       initialised_response_matrix = .true.
 
       ! Allocate response matrix
-      write(*,*) 'DEBUG - 3'
+      if (proc0) write(*,*) 'DEBUG - 3'
       if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
       
 #ifdef ISO_C_BINDING
-      write(*,*) 'DEBUG - 4'
+      if (proc0) write(*,*) 'DEBUG - 4'
       call setup_shared_memory_window
 #endif
       ! ------------------------------------------------------------------------
@@ -128,7 +128,7 @@ contains
       
       ! This is the main routine for computing the response matrix, where all
       ! the calculations are done.
-      write(*,*) 'DEBUG - 5'
+      if (proc0) write(*,*) 'DEBUG - 5 - construct_response_matrix'
       call construct_response_matrix
 
       ! ------------------------------------------------------------------------
@@ -137,21 +137,21 @@ contains
       
       ! Close the MPI window
 #ifdef ISO_C_BINDING
-      write(*,*) 'DEBUG - 6'
+      if (proc0) write(*,*) 'DEBUG - 6'
       call mpi_win_fence(0, response_window, ierr)
 #endif
 
       ! Write the response matrix to an output file if <mat_gen> = True
-      write(*,*) 'DEBUG - 7'
+      if (proc0) write(*,*) 'DEBUG - 7'
       if (proc0 .and. mat_gen) then
          close (unit=unit_response_matrix)
       end if
 
       ! End debug message -> print to terminal
-      write(*,*) 'DEBUG - 8'
+      if (proc0) write(*,*) 'DEBUG - 8'
       if (debug) call write_response_matrix_message (2)
       
-      write(*,*) 'DEBUG - END'
+      if (proc0) write(*,*) 'DEBUG - END'
    end subroutine init_response_matrix
 
    !============================================================================
@@ -325,6 +325,10 @@ contains
       
       ! Loop over all ky modes, as these are all independent of one another.
       do iky = 1, naky
+      
+        if (proc0) write(*,*) ''
+        if (proc0) write(*,*) '----------- iky = ', iky, '----------'
+        if (proc0) write(*,*) 'construct_response_matrix - 1'
 
          ! Write the ky-value to the output file
          if (proc0 .and. mat_gen) then
@@ -337,6 +341,7 @@ contains
          
          ! For a given ky, we need to associate an %eigen to it - to denote the
          ! connected modes. The response matrix for each ky has neigen(ky).
+         if (proc0) write(*,*) 'construct_response_matrix - 2'
          if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
 
          !> TO VALENTIN: This part could be parallelised over iky and ie as these 
@@ -349,6 +354,7 @@ contains
          ! the larger ky is, the larger δkx is, and the more independent chains
          ! there are, while all kx-modes are typically connected for the smallest ky.
          ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
+         if (proc0) write(*,*) 'construct_response_matrix - 3'
          do ie = 1, neigen(iky)
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
@@ -359,6 +365,7 @@ contains
          ! This is preferable to parallelisation over ky as the LU
          ! decomposition (and perhaps QN) will be dominated by the
          ! ky with the most connections if twist-and-shift is used.
+         if (proc0) write(*,*) 'construct_response_matrix - 4'
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, response_window, ierr)
 #endif
@@ -368,6 +375,7 @@ contains
          ! ---------------------------------------------------------------------
 
          ! LU decompose the matrix
+         if (proc0) write(*,*) 'construct_response_matrix - 5'
          call lu_decompose_response_matrix(iky)
 
          ! ---------------------------------------------------------------------
@@ -375,6 +383,7 @@ contains
          ! ---------------------------------------------------------------------
 
          ! Write response matrix to file
+         if (proc0) write(*,*) 'construct_response_matrix - 6'
          do ie = 1, neigen(iky)
             if (proc0 .and. mat_gen) then
                write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
@@ -383,6 +392,8 @@ contains
          end do
 
       end do
+      if (proc0) write(*,*) ''
+      if (proc0) write(*,*) 'construct_response_matrix - END'
 
    end subroutine construct_response_matrix
 
