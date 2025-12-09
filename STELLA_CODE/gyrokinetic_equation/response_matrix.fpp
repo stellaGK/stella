@@ -524,6 +524,7 @@ contains
       ! Note - No need to obtain response to impulses at negative kx values
       ! Loop over all segments
       do iseg = 1, nsegments(ie, iky)
+         if (proc0) write(*,*) '    iseg =', iseg
       
          ! Compute the index of kx that is connected in the given eigen chain in this segment.
          ! <ikxmod> gives the kx corresponding to (iseg,ie,iky)
@@ -531,6 +532,7 @@ contains
          !      which segment of 2π are we considering -> this is associated with a specific
          !      kx value. 
          ikx = ikxmod(iseg, ie, iky)
+         if (proc0) write(*,*) '    ikx =', ikx
 
          ! Make sure the boundary points are being treated correctly depending
          ! on whether the mode is periodic or not. Here, define <izup> as the 
@@ -542,6 +544,7 @@ contains
          else
             izup = iz_up(iseg)
          end if
+         if (proc0) write(*,*) '    izup =', izup
          
          ! Now apply a unit impulse at each zed location. To do this loop over the zed index, but
          ! recall that there is one less zed grid point in these connected segments as they share
@@ -550,14 +553,20 @@ contains
          ! iz is only cycling through the zed location within a given segment. 
          do iz = iz_low(iseg) + izl_offset, izup
             idx = idx + 1
+            if (proc0) write(*,*) '    iterate over iz for phi: iz =', iz, 'idx = ', idx
             call get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            if (proc0) write(*,*) '    iterate over iz for apar: iz =', iz, 'idx = ', idx
             if (include_apar) call get_response_matrix_for_apar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            if (proc0) write(*,*) '    iterate over iz for bpar: iz =', iz, 'idx = ', idx
             if (include_bpar) call get_response_matrix_for_bpar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            if (proc0) write(*,*) '    iterate over iz - done'
          end do
 
          ! Set the offset to 1 - all other connected segments need to start one point
          ! displaced as they share a point with the previous segment. 
+         if (proc0) write(*,*) '    izl_offset =', izl_offset
          if (izl_offset == 0) izl_offset = 1
+         if (proc0) write(*,*) '    izl_offset =', izl_offset
          
       end do
       
