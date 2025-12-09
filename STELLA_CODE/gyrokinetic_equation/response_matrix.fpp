@@ -102,19 +102,24 @@ contains
       ! ------------------------------------------------------------------------
       
       ! Debug message -> print to terminal
+      write(*,*) 'DEBUG - START'
       if (debug) call write_response_matrix_message (1)
 
       ! Set up response matrix utils
+      write(*,*) 'DEBUG - 1'
       call setup_response_matrix_file_io
 
       ! Only initialise once
+      write(*,*) 'DEBUG - 2'
       if (initialised_response_matrix) return
       initialised_response_matrix = .true.
 
       ! Allocate response matrix
+      write(*,*) 'DEBUG - 3'
       if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
       
 #ifdef ISO_C_BINDING
+      write(*,*) 'DEBUG - 4'
       call setup_shared_memory_window
 #endif
       ! ------------------------------------------------------------------------
@@ -123,6 +128,7 @@ contains
       
       ! This is the main routine for computing the response matrix, where all
       ! the calculations are done.
+      write(*,*) 'DEBUG - 5'
       call construct_response_matrix
 
       ! ------------------------------------------------------------------------
@@ -131,17 +137,21 @@ contains
       
       ! Close the MPI window
 #ifdef ISO_C_BINDING
+      write(*,*) 'DEBUG - 6'
       call mpi_win_fence(0, response_window, ierr)
 #endif
 
       ! Write the response matrix to an output file if <mat_gen> = True
+      write(*,*) 'DEBUG - 7'
       if (proc0 .and. mat_gen) then
          close (unit=unit_response_matrix)
       end if
 
       ! End debug message -> print to terminal
+      write(*,*) 'DEBUG - 8'
       if (debug) call write_response_matrix_message (2)
       
+      write(*,*) 'DEBUG - END'
    end subroutine init_response_matrix
 
    !============================================================================
