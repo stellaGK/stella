@@ -627,6 +627,7 @@ contains
       use mp, only: sgproc0
 #endif
 
+      use mp, only: proc0
       use parallelisation_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
