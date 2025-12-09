@@ -357,7 +357,7 @@ contains
          ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
          if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert'
          do ie = 1, neigen(iky)
-            if (proc0) write(*,*) 'ie = ', ie
+            if (proc0) write(*,'(A10,I2)') '     ie = ', ie
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
          if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - done'
@@ -458,6 +458,7 @@ contains
       
       ! Calculate the number of z-points on the extended z-domain
       nz_ext = nsegments(ie, iky) * nzed_segment + 1
+      if (proc0) write(*,*) '    nz_ext =', nz_ext
 
       ! We need to treat the zonal mode specially to avoid double counting the end
       ! points in zed, as it is periodic so these end points are the same.
@@ -470,11 +471,14 @@ contains
       else
          nresponse_per_field = nz_ext
       end if
+      if (proc0) write(*,*) '    nresponse_per_field =', nresponse_per_field
 
       ! If electromagnetic, we need to consider the response of phi, apar, and bpar.
       ! If we have more fields we need to apply more unit impulses -> one for each 
       ! of the fields phi, apar, and bpar.
       nresponse = nresponse_per_field * nfields
+      if (proc0) write(*,*) '    nfields =', nfields
+      if (proc0) write(*,*) '    nresponse =', nresponse
 
       ! Write <ie> and <nresponse> to the output file
       if (proc0 .and. mat_gen) then
@@ -483,20 +487,26 @@ contains
 
       ! Allocate response_matrix%eigen%zloc = size of response matrix to invert
       ! Allocate response_matrix%idx = pivot index needed for LU decomposition
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - setup_response_matrix_zloc_idx'
       call setup_response_matrix_zloc_idx(iky, ie, nresponse)
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - setup_response_matrix_zloc_idx - done'
 
       ! Allocate arrays on the extended zed domain
       ! Fields only have 1 index, as we are looping over ky modes, and kx and 
       ! zed are connected via the extended zed domain, while the distribution 
       ! function, gext, has 2 dimensions: the extended zed dimension, and velocity.
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - allocate'
       allocate (phi_ext(nz_ext)); phi_ext = 0.0
       allocate (apar_ext(nz_ext)); apar_ext = 0.0
       allocate (bpar_ext(nz_ext)); bpar_ext = 0.0
       allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gext = 0.0
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - allocate - done'
 
       ! ------------------------------------------------------------------------
       !    Get the matrix we need to invert depending on the fields included    
       ! ------------------------------------------------------------------------
+      
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - calculations'
       
       ! <idx> here is the index in the extended zed domain that we are giving
       ! a unit impulse to.
@@ -550,9 +560,13 @@ contains
          if (izl_offset == 0) izl_offset = 1
          
       end do
+      
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - calculations - done'
 
       ! Deallocate temporary arrays
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - deallocate'
       deallocate (gext, phi_ext, apar_ext, bpar_ext)
+      if (proc0) write(*,*) 'construct_response_matrix - calculate_response_matrix_to_invert - deallocate - done'
 
       ! Stop the timer
       call time_message(.false., time_response_matrix, 'calculate response matrix') 
