@@ -245,7 +245,7 @@ contains
       use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use arrays, only: wstar
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       use calculations_gyro_averages, only: gyro_average
       use calculations_add_explicit_terms, only: add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
@@ -272,8 +272,8 @@ contains
       allocate (g0_swap(naky_all, ikx_max))
 
       ! Calculate d<phi>/dy in k-space, i.e., calculate i*ky*J_0*chi, and save it as <g0>
-      ! Here g_scratch is <phi> in k-space that has been pre-calculated and stored
-      call get_dgdy(g_scratch, g0)
+      ! Here phi_gyro is <phi> in k-space that has been pre-calculated and stored
+      call get_dgdy(phi_gyro, g0)
       
       ! Transform d<phi>/dy from ky-space to y-space
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

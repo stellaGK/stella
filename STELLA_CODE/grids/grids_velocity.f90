@@ -559,7 +559,7 @@ contains
       ! grid spacing for last non-ghost cell
       dmu_ghost(:nmu - 1) = dmu; dmu_ghost(nmu) = dmu(nmu - 1)
       
-      ! This is mu at cell centres (including to left and right of mu grid boundary points)
+      ! This is mu at cell centers (including to left and right of mu grid boundary points)
       mu_cell(:nmu - 1) = 0.5 * (mu(:nmu - 1) + mu(2:))
       mu_cell(nmu) = mu(nmu) + 0.5 * dmu(nmu - 1)
       

@@ -27,7 +27,7 @@ contains
    !****************************************************************************
    !                       EXPLICIT TIME ADVANCE SUBROUTINES
    !****************************************************************************
-   ! Advance the guiding centre distribution equation <g> in k-space in time using 
+   ! Advance the guiding center distribution equation <g> in k-space in time using 
    ! the gyrokinetic equation. Specifically, the distribution function <g> is updated 
    ! based on all of the terms in the GKE that are advanced explicitly in time.
    !****************************************************************************
@@ -133,7 +133,7 @@ contains
    !****************************************************************************
    !                NEEDED FOR ALL EXPLICIT TIME ADVANCE SUBROUTINES
    !****************************************************************************
-   ! solve_gyrokinetic_equation_explicit accepts as argument pdf, the guiding centre distribution function in k-space,
+   ! solve_gyrokinetic_equation_explicit accepts as argument pdf, the guiding center distribution function in k-space,
    ! and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
    ! i.e., if dg/dt = r, then rhs_ky = r*dt;
    ! note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)*(vpa/c)*<Apar>*F0
@@ -150,7 +150,7 @@ contains
       use arrays_fields, only: phi, apar, bpar
       
       ! Distribution function
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       
       ! Calculations
       use arrays_gyro_averages, only: j0_ffs
@@ -254,12 +254,12 @@ contains
 
       if (radial_variation) call get_radial_correction(pdf, phi, dist='gbar')
 
-      ! Obtain the gyro-average of the electrostatic potential phi and store in g_scratch;
+      ! Obtain the gyro-average of the electrostatic potential phi and store in phi_gyro;
       ! this can be a particularly costly operation when simulating a full flux surface
       ! due to the coupling of different k-alphas inherent in the gyro-average;
       ! calculate once here to avoid repeated calculation later
       ! TODO-GA : can this be spec up??
-      if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
+      if (full_flux_surface) call gyro_average(phi, phi_gyro, j0_ffs)
 
       !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
       !! IF SO, PRE-COMPUTE ONCE HERE

@@ -373,7 +373,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   ! The Fourier components of the guiding centre distribution function
+   ! The Fourier components of the guiding center distribution function
    ! normalized by the equilibrium Maxwellian is passed in as g,
    ! along with the Fourier components of the electrostatic potential, phi.
    ! g_to_f calculates the Maxwellian-normalized distribution function f,

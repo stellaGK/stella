@@ -16,6 +16,7 @@
 !      oddparity = .false.
 !      chop_side = .false.
 !      left = .true.
+!      set_theta0_to_zero = .false.
 ! 
 !   initialise_distribution_noise
 !      zf_init = 1.0
@@ -202,7 +203,8 @@ contains
    !****************************************************************************
    !                      INITIALISE POTENTIAL: MAXWELLIAN                     !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
+   subroutine read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, & 
+      left, chop_side, set_theta0_to_zero)
 
       use mp, only: proc0
       
@@ -213,6 +215,7 @@ contains
       logical, intent(out) :: oddparity
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
+      logical, intent(out) :: set_theta0_to_zero
       
       !-------------------------------------------------------------------------
 
@@ -234,6 +237,7 @@ contains
          oddparity = .false.
          chop_side = .false.
          left = .true.
+         set_theta0_to_zero = .false. 
 
       end subroutine set_default_parameters_initialise_distribution_maxwellian
 
@@ -244,7 +248,8 @@ contains
          
          implicit none
 
-         namelist /initialise_distribution_maxwellian/ width0, den0, upar0, oddparity, left, chop_side
+         namelist /initialise_distribution_maxwellian/ width0, den0, upar0, oddparity, & 
+               left, chop_side, set_theta0_to_zero
          in_file = input_unit_exist('initialise_distribution_maxwellian', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_maxwellian) 
 
@@ -266,6 +271,7 @@ contains
          write (unit, '(A, L0)') '  oddparity = ', oddparity
          write (unit, '(A, L0)') '  left = ', left
          write (unit, '(A, L0)') '  chop_side = ', chop_side
+         write (unit, '(A, L0)') '  set_theta0_to_zero = ', set_theta0_to_zero
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       

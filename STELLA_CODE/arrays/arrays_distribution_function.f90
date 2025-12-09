@@ -24,7 +24,7 @@ module arrays_distribution_function
    implicit none
 
    ! Make the distribution functions available to all modules
-   public :: gnew, gold, g_symm, g_scratch
+   public :: gnew, gold, g_symm, phi_gyro
    public :: g0, g1, g2, g3
    public :: g_krook, g_proj
    public :: gvmu, g_kymus
@@ -33,7 +33,7 @@ module arrays_distribution_function
 
    ! Distribution functions parallelised over (vpa, mu, s)
    ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-   complex, dimension(:, :, :, :, :), allocatable :: gnew, gold, g_scratch
+   complex, dimension(:, :, :, :, :), allocatable :: gnew, gold, phi_gyro
    complex, dimension(:, :, :, :, :), target, allocatable :: g_symm
    complex, dimension(:, :, :, :, :), allocatable :: g0, g1, g2, g3
 

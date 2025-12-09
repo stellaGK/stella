@@ -27,7 +27,7 @@ module calculations_finite_differences
    public :: d2_3pt
    public :: fd_variable_upwinding_vpa
    public :: fd_variable_upwinding_zed
-   public :: fd_cell_centres_zed, cell_centres_zed
+   public :: fd_cell_centers_zed, cell_centers_zed
 
    interface fd3pt
       module procedure fd3pt_real
@@ -897,7 +897,7 @@ contains
    !****************************************************************************
    !                Cell centered finite difference scheme in zed
    !****************************************************************************
-   subroutine fd_cell_centres_zed(llim, f, del, sgn, fl, fr, df)
+   subroutine fd_cell_centers_zed(llim, f, del, sgn, fl, fr, df)
 
       implicit none
 
@@ -932,15 +932,15 @@ contains
          end do
       end if
 
-   end subroutine fd_cell_centres_zed
+   end subroutine fd_cell_centers_zed
 
    !****************************************************************************
    !                   Cell centered finite difference scheme in zed
    !****************************************************************************
-   ! cell_centres_zed takes f at z grid locations
-   ! and returns f at cell centres
+   ! cell_centers_zed takes f at z grid locations
+   ! and returns f at cell centers
    ! (with possible offset due to upwinding)
-   subroutine cell_centres_zed(llim, f, upwnd, sgn, fl, fr, fc)
+   subroutine cell_centers_zed(llim, f, upwnd, sgn, fl, fr, fc)
 
       implicit none
 
@@ -975,7 +975,7 @@ contains
          end do
       end if
 
-   end subroutine cell_centres_zed
+   end subroutine cell_centers_zed
 
    !****************************************************************************
    !                    Derivative with variable upwinding in zed

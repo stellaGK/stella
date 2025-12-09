@@ -464,7 +464,7 @@ contains
          use geometry, only: dydalpha
          use geometry, only: q_as_x
          use geometry, only: geo_option_switch
-         use geometry, only: geo_option_vmec
+         use namelist_geometry, only: geo_option_vmec
          
          implicit none
    

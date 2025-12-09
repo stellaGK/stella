@@ -22,7 +22,7 @@ module gk_parallel_streaming
    public :: add_parallel_streaming_radial_variation
    public :: stream_tridiagonal_solve
    public :: initialised_parallel_streaming
-   public :: stream, stream_c, stream_sign, b_dot_gradz_centredinz
+   public :: stream, stream_c, stream_sign, b_dot_gradz_centeredinz
    public :: stream_rad_var1
    public :: stream_rad_var2
    public :: center_zed, get_dzed
@@ -48,7 +48,7 @@ module gk_parallel_streaming
    real, dimension(:, :), allocatable :: stream_tri_a1, stream_tri_a2
    real, dimension(:, :), allocatable :: stream_tri_b1, stream_tri_b2
    real, dimension(:, :), allocatable :: stream_tri_c1, stream_tri_c2
-   real, dimension(:, :), allocatable :: b_dot_gradz_centredinz
+   real, dimension(:, :), allocatable :: b_dot_gradz_centeredinz
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
@@ -76,6 +76,7 @@ contains
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
       use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: streamknob
 
       implicit none
 
@@ -116,7 +117,7 @@ contains
          do iv = 1, nvpa
             do iz = -nzgrid, nzgrid
                do ia = 1, nalpha
-                  stream(ia, iz, iv, :) = -code_dt * b_dot_gradz(ia, iz) * vpa(iv) * spec%stm_psi0
+                  stream(ia, iz, iv, :) = - streamknob * code_dt * b_dot_gradz(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                !----------------------------------------------------------------
                !               Full Flux Surface simulation
@@ -209,12 +210,12 @@ contains
                call center_zed(iv, stream_c(:, iv, is), -nzgrid)
             end do
          end do
-         if (.not. allocated(b_dot_gradz_centredinz)) allocate (b_dot_gradz_centredinz(-nzgrid:nzgrid, -1:1))
-         b_dot_gradz_centredinz = spread(b_dot_gradz_avg, 2, 3)
-         ! get b · ∇z centred in zed for negative vpa (affects upwinding) 
-         call center_zed(1, b_dot_gradz_centredinz(:, -stream_sign(1)), -nzgrid)
-         ! get b · ∇z centred in zed for positive vpa (affects upwinding)
-         call center_zed(nvpa, b_dot_gradz_centredinz(:, -stream_sign(nvpa)), -nzgrid)
+         if (.not. allocated(b_dot_gradz_centeredinz)) allocate (b_dot_gradz_centeredinz(-nzgrid:nzgrid, -1:1))
+         b_dot_gradz_centeredinz = spread(b_dot_gradz_avg, 2, 3)
+         ! get b · ∇z centered in zed for negative vpa (affects upwinding) 
+         call center_zed(1, b_dot_gradz_centeredinz(:, -stream_sign(1)), -nzgrid)
+         ! get b · ∇z centered in zed for positive vpa (affects upwinding)
+         call center_zed(nvpa, b_dot_gradz_centeredinz(:, -stream_sign(nvpa)), -nzgrid)
          stream = spread(stream_c, 1, nalpha)
       end if
       ! ========================================================================
@@ -724,11 +725,11 @@ contains
    end subroutine get_dgdz_centered
 
    !****************************************************************************
-   !                            Get d./dz at cell centres
+   !                            Get d./dz at cell centers
    !****************************************************************************
    subroutine get_dzed(iv, g, dgdz)
 
-      use calculations_finite_differences, only: fd_cell_centres_zed
+      use calculations_finite_differences, only: fd_cell_centers_zed
       use grids_kxky, only: naky
       use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
@@ -753,9 +754,9 @@ contains
                do iseg = 1, nsegments(ie, iky)
                   ! First fill in ghost zones at boundaries in g(z)
                   call fill_zed_ghost_zones(it, iseg, ie, iky, g, gleft, gright)
-                  ! Get finite difference approximation for dg/dz at cell centres
+                  ! Get finite difference approximation for dg/dz at cell centers
                   ! iv > nvgrid corresponds to positive vpa, iv <= nvgrid to negative vpa
-                  call fd_cell_centres_zed(iz_low(iseg), &
+                  call fd_cell_centers_zed(iz_low(iseg), &
                      g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
                      delzed(0), stream_sign(iv), gleft(2), gright(1), &
                      dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
@@ -772,7 +773,7 @@ contains
    subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
 
       use grids_z, only: delzed
-      use calculations_finite_differences, only: fd_cell_centres_zed
+      use calculations_finite_differences, only: fd_cell_centers_zed
 
       implicit none
 
@@ -783,7 +784,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      call fd_cell_centres_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
+      call fd_cell_centers_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
 
    end subroutine get_zed_derivative_extended_domain
 
@@ -792,7 +793,7 @@ contains
    !****************************************************************************
    subroutine center_zed_extended(iv, g)
 
-      use calculations_finite_differences, only: cell_centres_zed
+      use calculations_finite_differences, only: cell_centers_zed
       use grids_kxky, only: naky, nakx
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
@@ -820,8 +821,8 @@ contains
                do iseg = 1, nsegments(ie, iky)
                   ! first fill in ghost zones at boundaries in g(z)
                   call fill_zed_ghost_zones(it, iseg, ie, iky, g, gleft, gright)
-                  ! get cell centres values
-                  call cell_centres_zed(iz_low(iseg), &
+                  ! get cell centers values
+                  call cell_centers_zed(iz_low(iseg), &
                      g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
                      zed_upwind, stream_sign(iv), gleft(2), gright(1), &
                      gc(ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
@@ -922,7 +923,7 @@ contains
       if (allocated(stream)) deallocate (stream)
       if (allocated(stream_c)) deallocate (stream_c)
       if (allocated(stream_sign)) deallocate (stream_sign)
-      if (allocated(b_dot_gradz_centredinz)) deallocate (b_dot_gradz_centredinz)
+      if (allocated(b_dot_gradz_centeredinz)) deallocate (b_dot_gradz_centeredinz)
       if (allocated(stream_rad_var1)) deallocate (stream_rad_var1)
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 

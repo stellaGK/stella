@@ -528,7 +528,7 @@ contains
       n_elements = kxkyz_lo%ulim_proc - kxkyz_lo%llim_proc + 1
       nvmulo_elements = vmu_lo%ulim_proc - vmu_lo%llim_proc + 1
 
-      ! Don't read if something went wrong with the parallelisation
+      ! Do not read if something went wrong with the parallelisation
       if (n_elements <= 0) return
 
       ! Check if we parallelised over velocity space

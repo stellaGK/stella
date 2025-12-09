@@ -84,6 +84,8 @@
   xdriftknob = 1.0
   ydriftknob = 1.0
   wstarknob = 1.0
+  mirrorknob = 1.0
+  streamknob = 1.0
   fphi = 1.0
   suppress_zonal_interaction = .false.
 /
@@ -290,6 +292,7 @@
   oddparity = .false.
   chop_side = .false.
   left = .true.
+  set_theta0_to_zero = .false.
 /
 
 &initialise_distribution_noise

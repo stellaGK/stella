@@ -131,7 +131,7 @@ contains
       use arrays, only: shift_state
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       
       use grids_kxky, only: x
       use grids_z, only: nzgrid, ntubes
@@ -156,6 +156,7 @@ contains
       complex, dimension(:, :), allocatable :: g0k, g0a, g0k_swap
       complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
+      complex, dimension(:, :), allocatable :: tmp
       real :: zero, cfl_dt
       integer :: ivmu, iz, it, imu, is
       logical :: yfirst
@@ -184,6 +185,7 @@ contains
       allocate (g1xy(ny, nx))
       allocate (bracket(ny, nx))
       allocate (prefac(naky, nx))
+      allocate (tmp(size(gout, 1), size(gout, 2)))
 
       if (yfirst) then
          allocate (g0k_swap(naky_all, ikx_max))
@@ -214,7 +216,7 @@ contains
                call forward_transform(g0k, g0xy)
                ! Compute i*kx*<chi>
                if (full_flux_surface) then
-                  call get_dgdx(g_scratch(:, :, iz, it, ivmu), g0k)
+                  call get_dgdx(phi_gyro(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
@@ -266,7 +268,7 @@ contains
                call forward_transform(g0k, g0xy)
                ! Compute d<chi>/dy in k-space
                if (full_flux_surface) then
-                  call get_dgdy(g_scratch(:, :, iz, it, ivmu), g0k)
+                  call get_dgdy(phi_gyro(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
@@ -296,15 +298,17 @@ contains
                if (yfirst) then
                   call transform_x2kx(bracket, g0kxy)
                   if (full_flux_surface) then
-                     gout(:, :, iz, it, ivmu) = g0kxy
+                     gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * g0kxy
                   else
                      call transform_y2ky(g0kxy, g0k_swap)
-                     call swap_kxky_back(g0k_swap, gout(:, :, iz, it, ivmu))
+                     call swap_kxky_back(g0k_swap, tmp)
+                     gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
                   end if
                else
                   call transform_y2ky_xfirst(bracket, g0xky)
                   g0xky = g0xky / prefac
-                  call transform_x2kx_xfirst(g0xky, gout(:, :, iz, it, ivmu))
+                  call transform_x2kx_xfirst(g0xky, tmp)
+                  gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
                end if
                end do
          end do
@@ -360,8 +364,6 @@ contains
          code_dt = min(cfl_dt * cfl_cushion_middle, code_dt_max)
          call reset_dt
          restart_time_step = .true.
-      else
-         gout = code_dt * gout
       end if
 
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
@@ -510,7 +512,7 @@ contains
       allocate (phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dphidz(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (g0k_swap(2 * naky - 1, ikx_max))
-      allocate (tmp(size(gout, 1), size(gout, 2)))
+      allocate (tmp(size(gout, 1), size(gout, 2))); tmp = 0.0
 
       ! Get d<phi>/dz in vmu_lo
       ! we will need to transform it to real-space
