@@ -14,16 +14,16 @@ from stellapy.utils.commandprompt.bash import Bash
 #                      CHECK DIFFERENCES IN STELLA INPUTS                      #
 #===============================================================================
 
-def get_differencesInStellaInputs(folder, input_files=None):   
+def get_differencesInStellaInputs(folder, input_files=None):
     
     # Get the input files
     if input_files==None:
-        input_files = get_filesInFolder(folder, end=".in")  
+        input_files = get_filesInFolder(folder, end=".in")
         input_files = [i for i in input_files if os.path.isfile(i.with_suffix(".dimensions")) or os.path.isfile(i.with_suffix(".out"))]
 
     # Remove the input files that belong to a dummy file
-    dummy_input_files = [i for i in input_files if "_dummy.in" in str(i)] 
-    input_files_in_dummy_input_file = read_inputFilesInDummyInputFiles(dummy_input_files) 
+    dummy_input_files = [i for i in input_files if "_dummy.in" in str(i)]
+    input_files_in_dummy_input_file = read_inputFilesInDummyInputFiles(dummy_input_files)
     input_files = [i for i in input_files if i not in input_files_in_dummy_input_file]
     
     # Store the differences in a dictionary
@@ -33,13 +33,13 @@ def get_differencesInStellaInputs(folder, input_files=None):
     for in_file1 in input_files:
 
         # Read the files
-        inputParameters1 = read_inFile(in_file1) 
+        inputParameters1 = read_inFile(in_file1)
         
         # Find the differences
-        for in_file2 in input_files: 
+        for in_file2 in input_files:
             
             # Read the files
-            inputParameters2 = read_inFile(in_file2) 
+            inputParameters2 = read_inFile(in_file2)
              
             # Go through the section 
             for knob in inputParameters1.keys():

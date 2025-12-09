@@ -124,7 +124,7 @@ def subplot_distribution_vs_time(ax, research, y_quantity="g2", zonal=None, log=
     axis = Axis(ax, Plot(),  xbot_pos=0, ytop_neg=0, ybot_pos=0, overshoot_y=1.1, logy=log, percentage=0.5)
     
     # Colors based on the number of simulations
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)); count=0
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)); count=0
     
     # Plot g2(t)
     for experiment in research.experiments:

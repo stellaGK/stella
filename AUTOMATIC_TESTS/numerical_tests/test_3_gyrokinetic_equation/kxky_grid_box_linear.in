@@ -1,10 +1,44 @@
 
 ! Simple linear example based on JET shot 92174
 
-&physics_flags
-  nonlinear = .false.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
 /
-&species_knobs
+&geometry_miller
+  betadbprim = 0.0
+  betaprim = 0.058
+  d2psidr2 = 0.0
+  d2qdr2 = 0.0
+  kappa = 1.5504
+  kapprim = 0.94963
+  nzed_local = 128
+  qinp = 5.0848
+  rgeo = 3.1191
+  rhoc = 0.97427 
+  rmaj = 3.134
+  shat = 3.3594
+  shift = -0.34508
+  tri = 0.26253
+  triprim = 0.7368
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
   nspec = 2 
 /
 &species_parameters_1
@@ -25,60 +59,76 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
   nx = 6
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
+&z_grid
   nzed = 24
 /
-&vpamu_grids_parameters
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
   nmu = 2 
-  nvgrid = 3  
+  nvgrid = 3
 /
-&knobs
-  delt = 0.01  
-  nstep = 10
-  print_extra_info_to_terminal = .false.  
-/
-&stella_diagnostics_knobs
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
   nsave = 10
-  nwrite = 1  
+  nwrite = 1
 /
-&init_g_knobs 
-  ginit_option = 'default'
-  phiinit = 0.01  
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.01
+/
+
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
-&dissipation
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 10
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&debug_flags 
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+ 
+&dissipation_and_collisions_options
   hyper_dissipation = .true.
 /
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/
-&millergeo_parameters
-  betadbprim = 0.0
-  betaprim = 0.058
-  d2psidr2 = 0.0
-  d2qdr2 = 0.0
-  kappa = 1.5504
-  kapprim = 0.94963
-  nzed_local = 128
-  qinp = 5.0848
-  rgeo = 3.1191
-  rhoc = 0.97427 
-  rmaj = 3.134
-  shat = 3.3594
-  shift = -0.34508
-  tri = 0.26253
-  triprim = 0.7368
-/ 

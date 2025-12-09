@@ -97,7 +97,7 @@ def subplot_potential_vs_time(ax, simulation,
     # Color map for modes    
     selected_modes = get_filterForSelectedModes(simulation, modes_id, kx_range, ky_range) 
     number_of_modes = np.sum(selected_modes.astype(int), axis=(0,1)) 
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,number_of_modes)); plot_i=0
     
     # Iterate over the modes  
     for ikx in range(simulation.dim.kx):

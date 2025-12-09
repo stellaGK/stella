@@ -3,10 +3,41 @@
 ! Use this to test which flags are useless. Toggle certain flags or
 ! change certain variables to see if it changes the output at all.
 
-&physics_flags
-  nonlinear = .true.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'vmec'
 /
-&species_knobs
+&geometry_vmec
+  nfield_periods = 6.073867
+  surface_option = 0
+  torflux = 0.49
+  verbose = .true.
+  vmec_filename = 'wout_w7x_kjm.nc'
+  zeta_center = 0.0
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+&electromagnetic
+  beta = 999
+/
+&physics_inputs
+  rhostar = 999
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
   nspec = 2 
 /
 &species_parameters_1
@@ -27,57 +58,81 @@
   type = 'electron'
   z = -1.0
 /
-&parameters
-  beta = 999		! Useless for electrostatic simulations (set to 0.01 in the expected output run)
-  rhostar = 999		! Useless for electrostatic simulations (set to 0.01 in the expected output run)
-  vnew_ref = 999	! Useless for electrostatic simulations (set to 0.01 in the expected output run)	
-  zeff = 999		! Useless for electrostatic simulations (set to 0.01 in the expected output run)
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
 /
-&vmec_parameters
-  nfield_periods = 6.073867
-  surface_option = 0
-  torflux = 0.49
-  verbose = .true.
-  vmec_filename = 'wout_w7x_kjm.nc'
-  zeta_center = 0.0
-/
-&kt_grids_box_parameters 
+&kxky_grid_box
   nx = 6
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'stellarator'
-  nperiod = 1
+&z_grid
   nzed = 12
 /
-&vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3  
+&z_boundary_condition
+  boundary_option = 'stellarator'
 /
-&knobs
-  delt = 0.01  
-  nstep = 10
-  print_extra_info_to_terminal = .false.  
+&velocity_grids
+  nmu = 2 
+  nvgrid = 3
+/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
+  nsave = 10
+  nwrite = 1
+/
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'noise'
+  phiinit = 0.01
+/
+
+&initialise_distribution_noise
   rng_seed = 1
 /
-&stella_diagnostics_knobs
-  nsave = 10
-  nwrite = 1  
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 10
 /
-&init_g_knobs 
-  ginit_option = 'noise'
-  phiinit = 0.01   
+
+&time_step
+  delt = 0.01
 /
-&dissipation
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation_and_collisions_options
   hyper_dissipation = .true.
+  zeff = 999
+  vnew_ref = 999
 /
-&geo_knobs
-  geo_option = 'vmec'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/ 
+
+
+

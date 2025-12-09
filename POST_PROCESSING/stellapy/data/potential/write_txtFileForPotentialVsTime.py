@@ -1,5 +1,5 @@
 
-"""
+'''
 
 #===============================================================================
 #                  Write the time evolution of the potential                   #
@@ -15,7 +15,7 @@ the file is an h5 file instead, since a txt file would be too long.
 Hanne Thienpondt
 20/10/2022
 
-"""
+'''
 
 #!/usr/bin/python3
 import h5py
@@ -38,24 +38,24 @@ from stellapy.data.geometry.read_output import read_outputFile as read_outputFil
 #                        TIME EVOLUTION OF THE POTENTIAL
 #===============================================================================
 
-def write_txtFileForPotentialVsTime(folder, dt=1, verbose=False):   
+def write_txtFileForPotentialVsTime(folder, dt=1, verbose=False):
     
     # Segmentation fault (core dumped) on xula
-    if "/mnt/lustre" in os.path.abspath(__file__): return 
+    if '/mnt/lustre' in os.path.abspath(__file__): return
     
     # Time step
-    dt = int(dt) if int(dt)==dt else dt    
+    dt = int(dt) if int(dt)==dt else dt
     
     # Get the input files
-    input_files = get_filesInFolder(folder, end=".in")
+    input_files = get_filesInFolder(folder, end='.in')
     input_files = [i for i in input_files if os.path.isfile(i.with_suffix('.out.nc'))]
-    if input_files==[]: return 
+    if input_files==[]: return
     
-    # Iterate through the input files 
-    for input_file in input_files: 
+    # Iterate through the input files
+    for input_file in input_files:
         
         # Check progress
-        status = "    ("+str(input_files.index(input_file)+1)+"/"+str(len(input_files))+")  " if len(input_files)>1 else "   "
+        status = '    ('+str(input_files.index(input_file)+1)+'/'+str(len(input_files))+')  ' if len(input_files)>1 else '   '
     
         # Check whether we have a linear or nonlinear simulation   
         nonlinear = read_linearNonlinearFromInputFile(input_files[0])[1]
@@ -65,7 +65,7 @@ def write_txtFileForPotentialVsTime(folder, dt=1, verbose=False):
             if not nonlinear: write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status, verbose)
             if nonlinear: write_txtFileForPotentialVsTimeNonlinearSimulations(input_file, dt, status)
         except:
-            print(status+"   ---> Something went wrong writing phi(t) for " +  input_file.parent.parent.name+"/"+input_file.parent.name+"/"+input_file.name)   
+            print(status+'   ---> Something went wrong writing phi(t) for ' + input_file.parent.parent.name+'/'+input_file.parent.name+'/'+input_file.name)
             sys.exit()
         
     return 
@@ -77,8 +77,8 @@ def write_txtFileForPotentialVsTime(folder, dt=1, verbose=False):
 def write_txtFileForPotentialVsTimeNonlinearSimulations(input_file, dt, status):    
     
     # Path of the new file  
-    potential_path = input_file.with_suffix(".dt"+str(dt)+".phi_vs_t") 
-    netcdf_path = input_file.with_suffix(".out.nc") 
+    potential_path = input_file.with_suffix('.dt'+str(dt)+'.phi_vs_t') 
+    netcdf_path = input_file.with_suffix('.out.nc') 
     
     # Check whether the txt file is older than the simulation
     outputFileHasChanged = False
@@ -88,7 +88,7 @@ def write_txtFileForPotentialVsTimeNonlinearSimulations(input_file, dt, status):
     
     # Notify that the file already existed   
     if os.path.isfile(potential_path) and not outputFileHasChanged:
-        print(status+"The phi(t) file already exists:", potential_path.parent.name+"/"+potential_path.name)
+        print(status+'The phi(t) file already exists:', potential_path.parent.name+'/'+potential_path.name)
         return
     
     # If the output file changed, then append to the txt file
@@ -127,8 +127,8 @@ def write_txtFileForPotentialVsTimeNonlinearSimulations(input_file, dt, status):
             
         # If the output file has the same time steps, touch the text file
         elif tlast_outputfile <= tlast_txtfile:
-            print(status+"The phi(t) file is up to date:", potential_path.parent.name+"/"+potential_path.name)  
-            os.system("touch "+str(potential_path))
+            print(status+'The phi(t) file is up to date:', potential_path.parent.name+'/'+potential_path.name)  
+            os.system('touch '+str(potential_path))
             return
         
     # Create the text file for dphiz(t)
@@ -139,15 +139,15 @@ def write_txtFileForPotentialVsTimeNonlinearSimulations(input_file, dt, status):
              
     # Write the potential data to a text file  
     potential_file = open(potential_path,'w') 
-    potential_file.write(" "*7+"time"+" "*13+"|phi|^2"+" "*10+"zonal|phi|^2"+" "*6+"nozonal|phi|^2"+" "*8+"Re(phi)"+" "*12+"Im(phi)"+"\n")
+    potential_file.write(' '*7+'time'+' '*13+'|phi|^2'+' '*10+'zonal|phi|^2'+' '*6+'nozonal|phi|^2'+' '*8+'Re(phi)'+' '*12+'Im(phi)'+'\n')
     for i in range(len(phi_vs_t)): 
         row = [[vec_time[i], phi2_vs_t[i], phi2_vs_t_zonal[i], phi2_vs_t_nozonal[i], phi_vs_t[i].real, phi_vs_t[i].imag]]   
-        np.savetxt(potential_file, row, fmt='%16.8e', delimiter="   ") 
+        np.savetxt(potential_file, row, fmt='%16.8e', delimiter='   ') 
     potential_file.close() 
         
     # Notify that we finished creating the file
-    if outputFileHasChanged: print(status+"   ---> The phi(t) file is updated as " +  potential_path.parent.name+"/"+potential_path.name)   
-    if not outputFileHasChanged:  print(status+"   ---> The phi(t) file is saved as " +  potential_path.parent.name+"/"+potential_path.name)  
+    if outputFileHasChanged: print(status+'   ---> The phi(t) file is updated as ' +  potential_path.parent.name+'/'+potential_path.name)   
+    if not outputFileHasChanged:  print(status+'   ---> The phi(t) file is saved as ' +  potential_path.parent.name+'/'+potential_path.name)  
     return  
 
 #---------------------------------------------
@@ -157,7 +157,7 @@ def read_potentialVsTimeNonlinearSimulations(dt, input_file, netcdf_path):
     vmec_filename = read_vmecFileNameFromInputFile(input_file) 
     path = create_dummyPathObject(input_file, vmec_filename)
     geometry = read_outputFileForGeometry(path) 
-    dl_over_B = geometry["dl_over_B"]  
+    dl_over_B = geometry['dl_over_B']  
     
     # Read the potential from the output file
     netcdf_data = read_outputFile(netcdf_path)  
@@ -193,18 +193,18 @@ def read_potentialVsTimeNonlinearSimulations(dt, input_file, netcdf_path):
 def write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status, verbose):   
     
     # Path of the new file  
-    potential_path = input_file.with_suffix(".dt"+str(dt)+".phi_vs_t") 
-    netcdf_path = input_file.with_suffix(".out.nc") 
+    potential_path = input_file.with_suffix('.dt'+str(dt)+'.phi_vs_t')
+    netcdf_path = input_file.with_suffix('.out.nc')
     
     # Check whether the txt file is older than the simulation
     outputFileHasChanged = False
-    if os.path.isfile(potential_path):  
+    if os.path.isfile(potential_path):
         if netcdf_path.stat().st_mtime > potential_path.stat().st_mtime:
-            outputFileHasChanged = True 
+            outputFileHasChanged = True
     
-    # Notify that the file already existed   
+    # Notify that the file already existed
     if os.path.isfile(potential_path) and not outputFileHasChanged:
-        if verbose: print(status+"The phi(t) file already exists:", potential_path.parent.name+"/"+potential_path.name)
+        if verbose: print(status+'The phi(t) file already exists:', potential_path.parent.name+'/'+potential_path.name)
         return
     
     # Read the number of modes simulated in the input file
@@ -214,52 +214,52 @@ def write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status, ver
     vec_time, phi_vs_tkxky, phi2_vs_tkxky = read_potentialVsTimeLinearSimulations(dt, input_file, netcdf_path) 
     
     # h5 file for multiple modes per simulation
-    if nakxnaky>1:  
+    if nakxnaky>1:
         
         # Print omega to an h5 file
-        with h5py.File(potential_path, 'w') as h5_file:  
-            h5_file.create_dataset("vec_time", data=vec_time) 
-            h5_file.create_dataset("phi_vs_tkxky", data=phi_vs_tkxky) 
-            h5_file.create_dataset("phi2_vs_tkxky", data=phi2_vs_tkxky)  
+        with h5py.File(potential_path, 'w') as h5_file:
+            h5_file.create_dataset('vec_time', data=vec_time)
+            h5_file.create_dataset('phi_vs_tkxky', data=phi_vs_tkxky)
+            h5_file.create_dataset('phi2_vs_tkxky', data=phi2_vs_tkxky)
             
     # txt file for 1 mode per simulation
     elif nakxnaky==1:
         
         # Data to be written
-        header = " "*7+"time"+" "*13+"|phi|^2"+" "*10+"Re(phi)"+" "*12+"Im(phi)"+"\n"
+        header = ' '*7+'time'+' '*13+'|phi|^2'+' '*10+'Re(phi)'+' '*12+'Im(phi)'+'\n'
         potential_data = np.concatenate((vec_time[:,np.newaxis], phi2_vs_tkxky[:,0,0,np.newaxis], phi_vs_tkxky[:,0,0,np.newaxis].real, phi_vs_tkxky[:,0,0,np.newaxis].imag), axis=1)
              
-        # Write the potential data to a text file   
-        potential_file = open(potential_path,'w')  
+        # Write the potential data to a text file
+        potential_file = open(potential_path,'w')
         potential_file.write(header)
-        np.savetxt(potential_file, potential_data, fmt='%16.8e', delimiter="   ")  
-        potential_file.close() 
+        np.savetxt(potential_file, potential_data, fmt='%16.8e', delimiter='   ')
+        potential_file.close()
         
     # Notify that we finished creating the file
-    print(status+"   ---> The phi(t) file is saved as " +  potential_path.parent.name+"/"+potential_path.name)  
+    print(status+'   ---> The phi(t) file is saved as ' +  potential_path.parent.name+'/'+potential_path.name)  
     return  
 
 #---------------------------------------------
 def read_potentialVsTimeLinearSimulations(dt, input_file, netcdf_path):
 
     # Read the geometry data in the output file
-    vmec_filename = read_vmecFileNameFromInputFile(input_file) 
+    vmec_filename = read_vmecFileNameFromInputFile(input_file)
     path = create_dummyPathObject(input_file, vmec_filename)
-    geometry = read_outputFileForGeometry(path) 
-    dl_over_B = geometry["dl_over_B"]  
+    geometry = read_outputFileForGeometry(path)
+    dl_over_B = geometry['dl_over_B']
     
     # Read the potential from the output file
-    netcdf_data = read_outputFile(netcdf_path)  
-    vec_time = read_netcdfVariables('vec_time', netcdf_data) 
-    time_indices = get_indicesAtFixedStep(vec_time, dt) 
-    phi_vs_tzkxkyri = read_netcdfVariables('phi_vs_tzkxkyri', netcdf_data, time_indices)  
+    netcdf_data = read_outputFile(netcdf_path)
+    vec_time = read_netcdfVariables('vec_time', netcdf_data)
+    time_indices = get_indicesAtFixedStep(vec_time, dt)
+    phi_vs_tzkxkyri = read_netcdfVariables('phi_vs_tzkxkyri', netcdf_data, time_indices)
     vec_time = vec_time[time_indices]
     netcdf_data.close()
     
     # Construct the potential from its real and imaginary part
-    phi_vs_tzkxky = phi_vs_tzkxkyri[:,:,:,:,0] + 1j*phi_vs_tzkxkyri[:,:,:,:,1]  
+    phi_vs_tzkxky = phi_vs_tzkxkyri[:,:,:,:,0] + 1j*phi_vs_tzkxkyri[:,:,:,:,1]
     
-    # Sum away the (kx,ky) modes and the (z) dimension   
+    # Sum away the (kx,ky) modes and the (z) dimension
     phi_vs_tkxky = np.sum(phi_vs_tzkxky[:,:,:,:]*dl_over_B[np.newaxis,:,np.newaxis,np.newaxis], axis=1) 
     
     # Carefull: for phi2 we need to first take abs(phi)**2 and then sum away the dimensions (kx,ky,z)!
