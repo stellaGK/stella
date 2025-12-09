@@ -407,7 +407,7 @@ contains
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy
       use timers, only: time_gke
@@ -455,8 +455,8 @@ contains
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
 
          ! > calculate dphi/dy in (ky,kx) space
-         ! Here g_scratch is <phi> in k-space that has been pre-calculated and stored
-         call get_dgdy(g_scratch, g0k)
+         ! Here phi_gyro is <phi> in k-space that has been pre-calculated and stored
+         call get_dgdy(phi_gyro, g0k)
 
          ! transform d<phi>/dy from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -523,7 +523,7 @@ contains
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average
       use arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
-      use arrays_distribution_function, only: g_scratch
+      use arrays_distribution_function, only: phi_gyro
       use calculations_kxky_derivatives, only: get_dgdx
       use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use timers, only: time_gke
@@ -576,9 +576,9 @@ contains
          ! add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
 
-         ! Here g_scratch is <phi> in k-space that has been pre-calculated and stored
+         ! Here phi_gyro is <phi> in k-space that has been pre-calculated and stored
          ! get <dphi/dx> in k-space
-         call get_dgdx(g_scratch, g0k)
+         call get_dgdx(phi_gyro, g0k)
 
          ! transform d<phi>/dx from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

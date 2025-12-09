@@ -44,7 +44,7 @@
 !    - cvdrift       -->   B_times_kappa_dot_grady * 2.
 !    - gradpar       -->   b_dot_gradz_avg
 !    - dgradpardrho  -->   d_bdotgradz_drho
-!    - gradpar_c     -->   b_dot_gradz_centredinz (gk_parallel_streaming.f90)
+!    - gradpar_c     -->   b_dot_gradz_centeredinz (gk_parallel_streaming.f90)
 !    - d_gradydotgrady_drho       -->   d_gradydotgrady_drho
 !    - d_gradxdotgradx_drho      -->   d_gradxdotgradx_drho
 !    - d_gradxdotgrady_drho      -->   d_gradxdotgrady_drho
@@ -102,7 +102,7 @@ module geometry
    public :: b_dot_gradzeta_RR
    
    ! Used in kt_grids.f90
-   public :: geo_option_switch, geo_option_vmec
+   public :: geo_option_switch
 
    private
    
@@ -1395,7 +1395,7 @@ contains
          end select
       end if
 
-   end subroutine finish_init_geometry
+    end subroutine finish_init_geometry
 
    !============================================================================ 
    !============================ FINISH THE GEOMETRY ===========================

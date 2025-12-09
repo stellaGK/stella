@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-14, macos-15, ubuntu-22.04, ubuntu-24.04]
         compiler: [Make, CMake]
     
     # Operating system
@@ -51,7 +51,7 @@ jobs:
             echo "NETCDF_LIB_DIR=/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.2/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = /usr/local/Cellar/netcdf-fortran/4.6.2/include/"
             echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.2/include/" >> $GITHUB_ENV
-          elif [ ${{ matrix.os }} == 'macos-14' ]; then 
+          elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then 
             echo "Set STELLA_SYSTEM = macos"
             echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
             echo "Set FFTW_LIB_DIR = /opt/homebrew/Cellar/fftw/3.3.10_2/lib/"
@@ -78,7 +78,7 @@ jobs:
               sudo mkdir /usr/local/gfortran
               sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
               gfortran --version
-            elif [ ${{ matrix.os }} == 'macos-14' ]; then
+            elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then
               brew rm gcc
               brew install gcc@11
               ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
@@ -164,7 +164,7 @@ jobs:
       - name: Install python virtual environment
         if: success() || failure()
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then 
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then 
             python3 -m venv AUTOMATIC_TESTS/venv
             source AUTOMATIC_TESTS/venv/bin/activate
             pip3 install -r AUTOMATIC_TESTS/requirements.txt
@@ -178,49 +178,49 @@ jobs:
       # Perform python tests  
       - name: Python tests 1 - Does stella run
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-1
           
       - name: Python tests 2 - Geometry
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-2
           
       - name: Python tests 3 - Gyrokinetic equation
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-3
           
       - name: Python tests 4 - Flux tube
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-4
           
       - name: Python tests 5 - Diagnostics
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-5
           
       - name: Python tests 6 - Full Flux Surface
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-6
           
       - name: Python tests 7 - Electromagnetic effects
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-7
           
       - name: Python tests 8 - Restart simulations
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-8
 
 #-----------------------------------------------------------------------

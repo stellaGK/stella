@@ -132,7 +132,7 @@ contains
       if (include_bpar) bpar_old = bpar
 
       ! dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
-      ! in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
+      ! in parallel streaming or if the guiding center distribution (g = <f>) is evolved
       dist_choice = 'g'
       
       ! Store g_n from pervious time step 
@@ -334,7 +334,7 @@ contains
                      ! pdf1 and pdf2 will be scratch arrays needed to compute the pdf itself,
                      ! as well as contributions to the GK equation
                      allocate (pdf1(nz_ext), pdf2(nz_ext))
-                     ! phiext should contain the appropriate contribution to the time-centred phi;
+                     ! phiext should contain the appropriate contribution to the time-centered phi;
                      ! for the 'inhomogeneous' GKE, it should have time_upwind_minus * phi^{n};
                      ! for the 'homogeneous' GKE, it should have time_upwind_plus * phi^{n+1};
                      ! and for the full GKE, it should be the sum of these two
@@ -342,7 +342,7 @@ contains
                      ! bpar is treated like phi above MRH
                      allocate (bparext(nz_ext))
                      ! If advancing apar, aparext should contain the appropriate contribution
-                     ! to the time-centred apar;
+                     ! to the time-centered apar;
                      ! for the 'inhomogeneous' GKE, it should have time_upwind_minus * apar^{n};
                      ! for the 'homogeneous' GKE, it should have time_upwind_plus * apar^{n+1};
                      ! and for the full GKE, it should be the sum of these two
@@ -575,7 +575,7 @@ contains
          use grids_extended_zgrid, only: fill_zext_ghost_zones
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
-         use gk_parallel_streaming, only: b_dot_gradz_centredinz, stream_sign
+         use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
          use parameters_numerical, only: driftkinetic_implicit
 
          integer :: izext
@@ -617,13 +617,13 @@ contains
             call center_zed(iv, z_scratch, -nzgrid)
          end if
 
-         ! Make sure to use the correctly centred (b . grad z) pre-factor 
+         ! Make sure to use the correctly centered (b . grad z) pre-factor 
          ! This will depend on the sign of vpa
          ! Note that stream_sign = -1 corresponds to positive advection velocity
          if (stream_sign(iv) > 0) then
-            z_scratch = z_scratch * b_dot_gradz_centredinz(:, -1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centeredinz(:, -1) * code_dt * spec(is)%stm_psi0
          else
-            z_scratch = z_scratch * b_dot_gradz_centredinz(:, 1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centeredinz(:, 1) * code_dt * spec(is)%stm_psi0
          end if
 
          ! Add -(b . grad z)*F_0*J_0*phi term to the RHS of the GK equaiton
@@ -753,7 +753,7 @@ contains
          use grids_extended_zgrid, only: fill_zext_ghost_zones
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
-         use gk_parallel_streaming, only: b_dot_gradz_centredinz, stream_sign
+         use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
 
          integer :: izext
          complex :: scratch_left, scratch_right
@@ -791,9 +791,9 @@ contains
          end if
 
          if (stream_sign(iv) > 0) then
-            z_scratch = z_scratch * b_dot_gradz_centredinz(:, -1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centeredinz(:, -1) * code_dt * spec(is)%stm_psi0
          else
-            z_scratch = z_scratch * b_dot_gradz_centredinz(:, 1) * code_dt * spec(is)%stm_psi0
+            z_scratch = z_scratch * b_dot_gradz_centeredinz(:, 1) * code_dt * spec(is)%stm_psi0
          end if
 
          do izext = 1, nz_ext
@@ -1112,7 +1112,7 @@ contains
    !                            GET CONTRIBUTIONS FROM G
    !****************************************************************************
    ! get_contributions_from_pdf takes as an argument the evolved distribution
-   ! function (either guiding centre distribution g=<f> or maxwellian-normlized, 
+   ! function (either guiding center distribution g=<f> or maxwellian-normlized, 
    ! non-Boltzmann distribution h/F0=f/F0+(Ze*phi/T))
    ! and the scratch array RHS, and returns the source terms that depend on 
    ! the distribtion function on the RHS of the GK equation
@@ -1130,7 +1130,7 @@ contains
       use parameters_numerical, only: time_upwind_minus
       use parameters_numerical, only: drifts_implicit
       use gk_parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
-      use gk_parallel_streaming, only: b_dot_gradz_centredinz, stream_sign
+      use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
       use arrays, only: wdriftx_g, wdrifty_g
       use grids_extended_zgrid, only: fill_zext_ghost_zones
       use grids_extended_zgrid, only: map_to_iz_ikx_from_izext
@@ -1179,12 +1179,12 @@ contains
 
       ! Compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
       constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
-      ! Use the correctly centred (b . grad z) pre-factor for this sign of vpa
+      ! Use the correctly centered (b . grad z) pre-factor for this sign of vpa
       allocate (b_dot_gradz_fac(-nzgrid:nzgrid))
       if (stream_sign(iv) > 0) then
-         b_dot_gradz_fac = b_dot_gradz_centredinz(:, -1) * constant_factor
+         b_dot_gradz_fac = b_dot_gradz_centeredinz(:, -1) * constant_factor
       else
-         b_dot_gradz_fac = b_dot_gradz_centredinz(:, 1) * constant_factor
+         b_dot_gradz_fac = b_dot_gradz_centeredinz(:, 1) * constant_factor
       end if
 
       rhs = pdf

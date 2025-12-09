@@ -6,7 +6,7 @@
 ! arrays, and initialise their values to zero:
 !     - gnew(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 !     - gold(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-!     - g_scratch(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
+!     - phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 !     - gvmu(nvpa, nmu, -kxkyz-layout-)
 ! 
 ! If <split_parallel_dynamics> = True the following array will be initialised:
@@ -214,7 +214,7 @@ contains
       use parallelisation_layouts, only: kymus_lo
       
       ! Distribution functions that are allocated here
-      use arrays_distribution_function, only: gnew, gold, g_scratch
+      use arrays_distribution_function, only: gnew, gold, phi_gyro
       use arrays_distribution_function, only: gvmu, g_kymus
       use arrays_distribution_function, only: g0, g1, g2, g3
       
@@ -240,13 +240,13 @@ contains
       if (debug) write (*, *) 'dist_fn::init_arrays_distribution_function::allocate_arrays'
       if (.not. allocated(gnew)) allocate (gnew(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(gold)) allocate (gold(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      if (.not. allocated(g_scratch)) allocate (g_scratch(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(phi_gyro)) allocate (phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(gvmu)) allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          
       ! Initialise arrays to zero
       gnew = 0.
       gold = 0.
-      g_scratch = 0.
+      phi_gyro = 0.
       gvmu = 0.
       
       !-------------------------------------------------------------------------
@@ -500,12 +500,13 @@ contains
       
       ! Read the following variables from the input file
       real :: width0, den0, upar0
-      logical :: oddparity, left, chop_side
+      logical :: oddparity, left, chop_side, set_theta0_to_zero
       
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_maxwellian> namelist
-      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
+      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, & 
+         left, chop_side, set_theta0_to_zero)
          
       ! Broadcast to all processors
       call broadcast(width0)
@@ -514,12 +515,19 @@ contains
       call broadcast(oddparity)
       call broadcast(left)
       call broadcast(chop_side)
+      call broadcast(set_theta0_to_zero)
 
       right = .not. left
 
-      do iz = -nzgrid, nzgrid
-         phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
-      end do
+      if (set_theta0_to_zero) then 
+         do iz = -nzgrid, nzgrid
+            phi(:, :, iz) = exp(-(zed(iz) / width0)**2) * cmplx(1.0, 1.0)
+         end do
+      else
+         do iz = -nzgrid, nzgrid
+            phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
+         end do
+      end if
       ! this is a messy way of doing things
       ! could tidy it up a bit
       if (sum(cabs(phi)) < epsilon(0.)) then
@@ -1020,7 +1028,7 @@ contains
    subroutine finish_distribution_function
 
       use arrays_distribution_function, only: gnew, gold, gvmu
-      use arrays_distribution_function, only: g_scratch, g_kymus
+      use arrays_distribution_function, only: phi_gyro, g_kymus
       use arrays_distribution_function, only: g0, g1, g2, g3
 
       implicit none
@@ -1028,7 +1036,7 @@ contains
       ! Deallocate arrays
       if (allocated(gnew)) deallocate (gnew)
       if (allocated(gold)) deallocate (gold)
-      if (allocated(g_scratch)) deallocate (g_scratch)
+      if (allocated(phi_gyro)) deallocate (phi_gyro)
       if (allocated(gvmu)) deallocate (gvmu)
       if (allocated(g_kymus)) deallocate (g_kymus)
       if (allocated(g0)) deallocate (g0)

@@ -330,7 +330,7 @@ contains
          if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
 
          !> TO VALENTIN: This part could be parallelised over iky and ie as these 
-         !> are all computed independently. It's not until the LU decomposition
+         !> are all computed independently. It is not until the LU decomposition
          !> that they are needed together
 
          ! Loop over the independent chains of modes for a given ky value. Note
@@ -616,7 +616,7 @@ contains
       bpar_ext = 0.0
       
       ! How phi^{n+1} enters the GKE depends on whether we are solving for the
-      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+      ! non-Boltzmann pdf, h, or the guiding center pdf, 'g'
       phi_ext(idx) = time_upwind_plus
       
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
@@ -967,7 +967,7 @@ contains
       bpar_ext = 0.0
       
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
-      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+      ! non-Boltzmann pdf, h, or the guiding center pdf, 'g'
       bpar_ext(idx) = time_upwind_plus
 
       ! Need to make sure that if the mode is periodic, then the boundaries match up to
