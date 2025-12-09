@@ -769,6 +769,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'dissipation:collision_model:dougherty'     : 'dissipation_and_collisions_options:collision_model:dougherty',
         'dissipation:collisions_implicit:True'      : 'dissipation_and_collisions_options:collisions_implicit:True',
         #------------------- dissipation --> hyper_dissipation ------------------
+        'hyper:d_hyper:0.05'                        : 'hyper_dissipation:d_hyper:0.05',
         'dissipation:d_hyper:0.05'                  : 'hyper_dissipation:d_hyper:0.05',
         'hyper_dissipation:d_zed:DOESNT EXIST YET'  : 'hyper_dissipation:d_zed:0.05',
         'hyper_dissipation:d_vpa:DOESNT EXIST YET'  : 'hyper_dissipation:d_vpa:0.05',
