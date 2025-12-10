@@ -120,6 +120,44 @@ contains
     end function file_exists
 
 
+! ===================================================================================================== !
+! ---------------------------------- Return string from one line. ------------------------------------- !
+! ===================================================================================================== !
+
+    function read_line(unit) result(line)
+        implicit none
+        integer, intent(in) :: unit
+        character(len=:), allocatable :: line
+        integer, parameter :: chunk_size = 2
+        character(len=chunk_size) :: chars
+        integer :: err, size_read
+
+        line = ''
+
+        do while (.true.)
+            ! Read the next chunk.
+            read(unit, '(a)', iostat = err, advance='no', size = size_read) chars
+
+            ! Append read chars to line.
+            line = line // chars(:size_read)
+
+            ! Now check if we've reached the end of the record or the end of the file. If so then exit the loop.
+            if (is_iostat_eor(err) .or. is_iostat_end(err)) exit
+        end do
+    end function read_line
+
+
+! ===================================================================================================== !
+! -------------------------------------- Reading in NEO Data. ----------------------------------------- !
+! ===================================================================================================== !
+
+
+
+
+
+! ===================================================================================================== !
+! -------------------------------------- End of NEO interface. ---------------------------------------- !
+! ===================================================================================================== !
 
 end module NEO_interface
 
