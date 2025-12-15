@@ -52,6 +52,7 @@ contains
       
       ! Init modules
       use parallelisation_layouts, only: init_dist_fn_layouts
+      use initialise_redistribute, only: init_redistribute
       use diagnostics, only: init_diagnostics
       
       ! Calculations
@@ -101,6 +102,11 @@ contains
       ! are distributed among the various processors according to different layouts.
       if (debug) write (6, *) "stella::init_stella::init_dist_fn_layouts"
       call init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
+      
+      ! Sets up the mappings between different layouts, needed
+      ! to redistribute data when going from one layout to another
+      if (debug) write (6, *) "stella::init_stella::init_redistribute"
+      call init_redistribute
       
       ! Check whether Fourier transformations are needed (e.g., the nonlinear term
       ! requires it, radial variation requires it, ...) and if so, set up the FFTW plans
@@ -388,7 +394,6 @@ contains
       ! Initialise other modules
       use initialise_distribution_function, only: init_distribution_function
       use calculations_volume_averages, only: init_volume_averages
-      use initialise_redistribute, only: init_redistribute
       use dissipation_and_collisions, only: init_dissipation
       use gk_sources, only: init_sources
       use field_equations, only: init_field_equations
@@ -413,11 +418,6 @@ contains
       if (debug) write (6, *) "stella::init_stella::init_arrays"
       call init_arrays_vperp_kperp
       call init_arrays_bessel_functions
-      
-      ! Sets up the mappings between different layouts, needed
-      ! to redistribute data when going from one layout to another
-      if (debug) write (6, *) "stella::init_stella::init_redistribute"
-      call init_redistribute
       
       ! Read dissipation namelist from the input file and print information
       ! about chosen options to stdout
@@ -664,18 +664,15 @@ contains
       use git_version, only: get_git_version, get_git_date
 
       implicit none
-      
-      !----------------------------------------------------------------------
 
       ! Stella version number and release date
       character(len=40) :: git_commit
       character(len=10) :: git_date
-
-      ! Strings to format data
-      character(len=23) :: str
+      
+      !----------------------------------------------------------------------
       
       ! Only print the header on the first processor
-      if (.not. proc0) return 
+      if (.not. proc0) return
       
       ! Get git data
       git_commit = get_git_version()
@@ -703,19 +700,6 @@ contains
          write (*, *) '                 University of Oxford'
          write (*, *) ' '
          write (*, *) ' '
-         write (*, '(A)') "############################################################"
-         write (*, '(A)') "                     PARALLEL COMPUTING"
-         write (*, '(A)') "############################################################"
-      end if
-      if (print_extra_info_to_terminal) then
-         if (nproc == 1) then
-            write (str, '(I10, A)') nproc, " processor."
-            write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
-         else
-            write (str, '(I10, A)') nproc, " processors."
-            write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
-         end if
-         write (*, *)
       end if
 
    end subroutine write_start_message

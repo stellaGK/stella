@@ -36,8 +36,8 @@
 ! 
 ! The "idx_kxkyz"; "idx_kxyz"; "idx_xyz" or "idx_vmu" routine returns the id of the point.
 !       idx_kxkyz    -->    point (iky,ikx,iz,it,is)
-!       idx_kxyz     -->    point (iy, ikx,iz,it,is)
-!       idx_xyz      -->    point (iy, ix, iz,it,is)
+!       idx_kxyz     -->    point (iy,ikx,iz,it,is)
+!       idx_xyz      -->    point (iy,ix,iz,it,is)
 !       idx_vmu      -->    point (iv,imu,is)
 ! 
 ! The "idx_local" routine returns true if the point <idx> lies on the current
@@ -72,6 +72,9 @@
 ! 
 !###############################################################################
 module parallelisation_layouts
+
+   ! Debug flags
+   use debug_flags, only: debug => parallelisation_debug
 
    ! Each parallelisation layout contains the following variables:
    ! - The dimensions (nzgrid, nzed, ntubes, nalpha, ny, naky, nx, nakx, nvgrid, nvpa, nmu, nspec)
@@ -281,14 +284,24 @@ contains
    subroutine read_parameters_parallelisation_layouts
 
       use mp, only: proc0
+      !use mp, only: broadcast
+      
       implicit none
+      
       logical, save :: initialised = .false.
+      
+      !-------------------------------------------------------------------------
 
+      ! Only initialise once
       if (initialised) return
       initialised = .true.
 
+      ! Read input parameters and broadcast to all processors
       if (proc0) call read_parameters
       call broadcast_parameters
+      
+      ! In this module we want to debug on each processor
+      !if (debug) call broadcast(debug)
 
    end subroutine read_parameters_parallelisation_layouts
 
@@ -336,10 +349,28 @@ contains
    !**************************************************************************** 
    subroutine init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 
+      use mp, only: proc0, nproc
+      use debug_flags, only: print_extra_info_to_terminal
+
       implicit none
 
-      integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha
+      integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha 
 
+      !-------------------------------------------------------------------------
+      
+      ! Print some basic info to the output file
+      if (proc0 .and. print_extra_info_to_terminal) then
+         write (*, '(A)') '############################################################'
+         write (*, '(A)') '                       PARALLELISATION                      '
+         write (*, '(A)') '############################################################'
+         if (nproc == 1) then
+            write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processor.'
+         else
+            write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processors.'
+         end if 
+      end if
+
+      ! Initialise the parallelisation layouts
       call init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
       call init_kxyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
       call init_xyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
@@ -378,11 +409,12 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                         INITITIALIZE KXKYZ LAYOUT                          
+   !                          INITIALISE KXKYZ LAYOUT                           
    !****************************************************************************
    subroutine init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
 
-      use mp, only: iproc, nproc
+      use mp, only: iproc, nproc, proc0, barrier 
+      use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -424,6 +456,23 @@ contains
       kxkyz_lo%llim_proc = kxkyz_lo%blocksize * iproc
       kxkyz_lo%ulim_proc = min(kxkyz_lo%ulim_world, kxkyz_lo%llim_proc + kxkyz_lo%blocksize - 1)
       kxkyz_lo%ulim_alloc = max(kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc)
+      
+      ! Print some basic info to the output file
+      if (proc0 .and. print_extra_info_to_terminal) then
+         write (*, *) ''; write (*, '(A)') ' Number of kxkyz-layout points: '
+         write (*, '(A,I0,A,I0,A,I0,A,I0,A,I0,A,I0)') '    nky*nkx*nz*ntubes*nspec = ', &
+            naky,'*',nakx,'*',kxkyz_lo%nzed,'*',ntubes,'*',nspec,' = ', kxkyz_lo%ulim_world+1
+      end if
+      
+      ! Debug
+      if (debug) then
+         call barrier
+         if (proc0) write (*, *) ''
+         if (proc0) write (*, *) 'Initialise kxkyz_layout:'
+         call barrier
+         write(*,'(A,I0,A,I0)') '    number of kxkyz-layout points on proc ', iproc, ': ', kxkyz_lo%blocksize
+         call barrier
+      end if
 
    end subroutine init_kxkyz_layout
 
