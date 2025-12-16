@@ -749,9 +749,11 @@ contains
       if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert'
       if (sgproc0) then
 #endif
+         if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert - a'
          offset_apar = 0
          if (include_apar) offset_apar = nresponse
          if (include_bpar) offset_bpar = offset_apar + nresponse
+         if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert - b'
 
          ! Next need to create column in response matrix from phi_ext, apar_ext and bpar_ext
          ! The negative sign occurs because the matrix acts on the RHS of the streaming equation.
@@ -761,11 +763,15 @@ contains
          !                             (- response_matrix)
          ! So add in contribution from identity matrix for the <idx> location for the field we are solving for:
          phi_ext(idx) = phi_ext(idx) - 1.0
+         if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert - c'
          
          ! But everywhere else, simply add a negative sign:
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
+         if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert - d'
          if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
+         if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert - e'
          if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
+         if (proc0) write(*,*) 'get_response_matrix_for_phi - Compute the matrix to invert - f'
       
 #ifdef ISO_C_BINDING
       end if
