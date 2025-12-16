@@ -65,6 +65,10 @@ module gk_drive
    public :: finish_wstar
    public :: advance_wstar_explicit
 
+   integer :: neo_option_switch
+   integer, parameter :: neo_option_sfincs = 1
+   integer, parameter :: neo_option_NEO = 2
+
    private
 
 contains
@@ -127,10 +131,10 @@ contains
          
          ! Calculate wstar = - code_dt*omega_{*,k,s}/ky = - code_dt * 0.5/C <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho 
          !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²)
-         if (include_neoclassical_terms) then
-            wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
+         if (include_neoclassical_terms .and. neo_option_switch == neo_option_sfincs) then
+            ! wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+                ! * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
+                ! * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
          else
              wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                   * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))

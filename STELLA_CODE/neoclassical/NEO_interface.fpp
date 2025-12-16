@@ -72,7 +72,7 @@ module NEO_interface
 
 
 ! ===================================================================================================== !
-! ---------------- Represents the contents of out.neo.equil - NEO equilibrium ------------------------- !
+! ---------------- Represents the contents of out.neo.equil - NEO equilibrium data. ------------------- !
 ! ===================================================================================================== !
 
     type neo_equil_data
@@ -109,8 +109,6 @@ contains
 ! ===================================================================================================== !
 ! ------------------------------- Utility functions for reading files. -------------------------------- !
 ! ===================================================================================================== !
-
-! Add these functions to utils? Already exist there? 
 
 ! ===================================================================================================== !
 ! ---------------------------------------- Check file exists. ----------------------------------------- !
@@ -158,10 +156,10 @@ contains
 ! ===================================================================================================== !
 
     subroutine read_basic_neo_files(grid, version, equil, species, basename)
-        implicit none
-
         use optionals, only: get_option_with_default           ! Optionals logic imported from gs2 utils. 
-        
+     
+        implicit none
+   
         type(neo_grid_data), intent(out) :: grid
         character(len=*), intent(in), optional :: basename
         character(len=:), allocatable :: basename_internal
@@ -399,10 +397,10 @@ contains
 ! ===================================================================================================== !
 
     subroutine read_neo_f_and_phi(neo_f, neo_phi, grid, basename, suffix)
-        implicit none
-
         use iso_fortran_env, only: output_unit
         use optionals, only: get_option_with_default
+
+        implicit none
 
         real, dimension(:, :, :, :, :), intent(out) :: neo_f
         real, dimension(:, :), intent(out) :: neo_phi
@@ -416,6 +414,7 @@ contains
         neo_f = get_neo_f_data(basename_internal, grid, ".f"//suffix)
         neo_phi = get_neo_phi_data(basename_internal, grid, ".phi"//suffix)
     end subroutine read_neo_f_and_phi
+
 
 ! ===================================================================================================== !
 ! -------------------------------------- End of NEO interface. ---------------------------------------- !

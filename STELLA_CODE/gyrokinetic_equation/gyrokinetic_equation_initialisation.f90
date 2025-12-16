@@ -30,6 +30,8 @@ contains
    subroutine init_gyrokinetic_equation
 
       ! Physics flags
+      use iso_fortran_env, only: output_unit
+      use mp, only: proc0
       use dissipation_and_collisions, only: include_collisions
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
@@ -48,8 +50,9 @@ contains
       use gk_sources, only: init_quasineutrality_source
       use gk_sources, only: init_source_timeaverage
       use gk_nonlinearity, only: init_parallel_nonlinearity
-      use neoclassical_terms, only: init_neoclassical_terms
-
+      ! use neoclassical_terms, only: init_neoclassical_terms
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo      ! <========= Initialise neoclassical terms coming from NEO, only if NEO is selected. 
+                                                                                   
       implicit none
 
       !-------------------------------------------------------------------------
@@ -59,10 +62,26 @@ contains
       initialised_gyrokinetic_equation = .true.
       
       ! Set up neoclassical corrections to the equilibrium Maxwellian. This is only
-      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
+      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation.
+      ! This should only be computed if sfincs or NEO is selected as the neoclassical option.
+      ! if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
+      !     call init_neoclassical_terms
+      ! end if      
+
+      ! Set up neoclassical corrections to the equilibrium Maxwellian. This is only
+      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation or steep gradient regimes.                          
+      ! This option should only be computed if NEO is selected as the neoclassical option (neo_option_switch = 2).
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
-      call init_neoclassical_terms
-      
+      if (neoclassical_is_enabled()) then
+          call init_neoclassical_terms_neo                                               ! <=============== Call NEO neoclassical terms initilisation here.
+          if (proc0) then
+              write(output_unit, '(A)') '!==================================!'
+              write(output_unit, '(A)') '  NEOs Neoclassical terms enabled.  '           ! <=============== Print message to confirm this.
+              write(output_unit, '(A)') '!==================================!' 
+          end if
+      end if 
+ 
+     
       ! Calculate the term multiplying dg/dvpa in the mirror term and set up either the
       ! semi-Lagrange machinery or the tridiagonal matrix to be inverted if solving implicitly
       if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
@@ -133,7 +152,8 @@ contains
       use gk_magnetic_drift, only: finish_wdrift
       use gk_nonlinearity, only: finish_parallel_nonlinearity
       use gk_radial_variation, only: finish_radial_variation
-      use neoclassical_terms, only: finish_neoclassical_terms
+      ! use neoclassical_terms, only: finish_neoclassical_terms
+      use neoclassical_terms_neo, only: finish_neoclassical_terms_neo, neoclassical_is_enabled
       use dissipation_and_collisions, only: finish_dissipation
       
       implicit none
@@ -149,7 +169,13 @@ contains
       call finish_parallel_streaming
       call finish_flow_shear
       call finish_mirror
-      call finish_neoclassical_terms
+      ! call finish_neoclassical_terms
+      
+      ! if (neoclassical_is_enabled()) then
+      !     call finish_neoclassical_terms_neo     ! < ================ Finish NEO's neoclassical terms. 
+      ! end if
+
+
       initialised_gyrokinetic_equation = .false.
 
    end subroutine finish_gyrokinetic_equation
