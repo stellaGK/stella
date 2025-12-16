@@ -312,6 +312,7 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/initialise_distribution_function.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
@@ -969,6 +970,7 @@ $(OBJ_DIR)/grids_velocity.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_velocity_grids.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/grids_z.o: \
@@ -1256,7 +1258,9 @@ $(OBJ_DIR)/parallelisation_layouts.o: \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/namelist_parallelisation.o 
+	 $(OBJ_DIR)/namelist_parallelisation.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
+	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/parameters_diagnostics.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/mp.o \
@@ -1266,11 +1270,9 @@ $(OBJ_DIR)/parameters_multibox.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_radial_variation.o 
 $(OBJ_DIR)/parameters_numerical.o: \
-	 $(OBJ_DIR)/file_units.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_numerical_parameters.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/text_options.o 
 $(OBJ_DIR)/parameters_physics.o: \

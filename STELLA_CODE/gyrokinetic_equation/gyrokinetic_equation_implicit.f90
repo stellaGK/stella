@@ -45,8 +45,6 @@ contains
       ! Physics flags
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: include_mirror
-      use parameters_physics, only: radial_variation
-      use parameters_physics, only: full_flux_surface
       use gk_flow_shear, only: prp_shear_enabled
       
       ! Numerical flags

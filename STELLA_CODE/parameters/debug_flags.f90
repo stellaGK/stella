@@ -153,6 +153,7 @@ contains
          gyro_averages_debug = .false.
          fluxes_debug = .false. 
          geometry_debug = .false.
+         parallelisation_debug = .false.
          print_extra_info_to_terminal = .false.
       end if
    

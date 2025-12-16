@@ -49,7 +49,7 @@ contains
    !                              PARALLELISATION                              !
    !****************************************************************************
    subroutine read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-      mat_gen, mat_read, lu_option_switch, fields_kxkyz)
+      mat_gen, mat_read, lu_option_switch, fields_kxkyz, verbose)
 
       use mp, only: proc0
 
@@ -59,7 +59,7 @@ contains
       character(len=4), intent (out) :: xyzs_layout
       character(len=3), intent (out) :: vms_layout
       character(len=5), intent (out) :: kymus_layout
-      logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read
+      logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read, verbose
       integer, intent (out)  :: lu_option_switch
 
       ! Local variable to set <lu_option_switch>
@@ -87,6 +87,7 @@ contains
          lu_option = 'default'
          mat_gen = .false.
          mat_read = .false.
+         verbose = .true.
 
       end subroutine set_default_parameters_parallelisation
 
@@ -107,7 +108,7 @@ contains
 
          ! Variables in the <parallelisation> namelist
          namelist /parallelisation/ xyzs_layout, vms_layout, kymus_layout, &
-             mat_gen, mat_read, lu_option, fields_kxkyz
+             mat_gen, mat_read, lu_option, fields_kxkyz, verbose
          
          !----------------------------------------------------------------------
 

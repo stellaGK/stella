@@ -273,6 +273,7 @@ contains
       use dissipation_and_collisions, only: ecoll_zeff
       use dissipation_and_collisions, only: vnew_ref
       use dissipation_and_collisions, only: zeff
+      use parallelisation_layouts, only: fields_kxkyz
       
       ! Netcdf output file
       use git_version, only: get_git_version, get_git_date
@@ -305,7 +306,7 @@ contains
       ! Should have been taken care off in the <init_stella> subroutine in the <stella> module.
       ! Nonetheless, make sure that the other routines are intialised.
       call read_parameters_physics
-      call read_parameters_numerical
+      call read_parameters_numerical(fields_kxkyz)
       call read_parameters_z_grid
       call read_parameters_species(vnew_ref)
       call read_parameters_kxky_grids

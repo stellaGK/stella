@@ -86,7 +86,7 @@ contains
    !****************************************************************************
    subroutine init_kxkyz_to_vmu_redistribute
 
-      use mp, only: nproc, proc0
+      use mp, only: nproc
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use parallelisation_layouts, only: kxkyzidx2vmuidx
       use parallelisation_layouts, only: idx_local, proc_id
@@ -101,9 +101,8 @@ contains
       integer, dimension(0:nproc - 1) :: nn_to, nn_from
       integer, dimension(3) :: from_low, from_high
       integer, dimension(5) :: to_high, to_low
-      integer :: ikxkyz, ivmu
+      integer :: ikxkyz, ivmu, ip
       integer :: iv, imu, iky, ikx, iz, it
-      integer :: ip, n
 
       !----------------------------------------------------------------------
 
@@ -124,7 +123,7 @@ contains
       end do
       
       ! Debug message
-      if (debug .and. proc0) then
+      if (debug) then
          write(*,*) ''; write(*,*) 'Initialise kxkyz_to_vmu_redistribute:'
          do ip = 0, nproc - 1
             write(*,'(A,I0,A,I0,A,I0)') '    kxkyz_to_vmu on proc ', ip, ': nn_from = ', nn_from(ip), ', nn_to = ', nn_to(ip)

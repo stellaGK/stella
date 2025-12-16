@@ -279,6 +279,9 @@ contains
       ! Parse collision variables to read_parameters_species to avoid circular dependencies
       use dissipation_and_collisions, only: vnew_ref
       
+      ! Parse parallelisation variables to read_parameters_numerical to avoid circular dependencies
+      use parallelisation_layouts, only: fields_kxkyz
+      
       implicit none
       
       !----------------------------------------------------------------------
@@ -288,7 +291,7 @@ contains
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
       call read_parameters_physics
       if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
-      call read_parameters_numerical
+      call read_parameters_numerical(fields_kxkyz)
       
       ! Read the dissipation and collision variables, since <vnew_ref> is needed
       ! for the species parameters read from the EUTERPE code
@@ -659,7 +662,7 @@ contains
    !****************************************************************************
    subroutine write_start_message()
    
-      use mp, only: proc0, nproc
+      use mp, only: proc0
       use debug_flags, only: print_extra_info_to_terminal
       use git_version, only: get_git_version, get_git_date
 

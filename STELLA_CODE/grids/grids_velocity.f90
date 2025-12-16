@@ -175,6 +175,7 @@ contains
 
       use grids_species, only: read_parameters_species
       use parameters_numerical, only: read_parameters_numerical
+      use parallelisation_layouts, only: fields_kxkyz
 
       implicit none
       
@@ -188,7 +189,7 @@ contains
       initialised_velocity_grids = .true.
       
       ! Make sure the dependencies of the velocity grids are initialised
-      call read_parameters_numerical
+      call read_parameters_numerical(fields_kxkyz)
       call read_parameters_species(vnew_ref)
 
       ! Set up the vpa and mu grid points and integration weights

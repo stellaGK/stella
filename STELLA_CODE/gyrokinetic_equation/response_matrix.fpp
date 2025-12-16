@@ -390,7 +390,7 @@ contains
       use timers, only: time_response_matrix
       use parallelisation_layouts, only: mat_gen
       use parameters_physics, only: include_apar, include_bpar
-      use grids_extended_zgrid, only: neigen, ikxmod
+      use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -595,7 +595,6 @@ contains
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
-      character(5) :: dist
 
       ! ------------------------------------------------------------------------
       !                    1.A) Initialise a unit impulse in phi
@@ -773,7 +772,6 @@ contains
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
-      character(5) :: dist
       
       ! ------------------------------------------------------------------------
       !                   1.A) Initialise a unit impulse in apar
@@ -946,7 +944,6 @@ contains
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
-      character(5) :: dist
       
       ! ------------------------------------------------------------------------
       !                  1.A) Initialise a unit impulse in bpar
@@ -1441,7 +1438,6 @@ contains
          use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: denominator_fields, denominator_fields_MBR
-         use arrays, only: denominator_fields_h, denominator_fields_MBR_h
          use grids_species, only: adiabatic_option_switch
          use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -1677,7 +1673,6 @@ contains
          use grids_extended_zgrid, only: nsegments
          use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
-         use arrays, only: apar_denom
          use arrays, only: kperp2
 
          implicit none

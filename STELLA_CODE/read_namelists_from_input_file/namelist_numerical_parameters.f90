@@ -32,7 +32,7 @@
 !     drifts_implicit = .false.
 !     fully_implicit = .false.
 !     fully_explicit = .false.
-!     split_parallel_dynamics = .false.
+!     split_parallel_dynamics = .true.
 !     maxwellian_inside_zed_derivative = .false.
 !     use_deltaphi_for_response_matrix = .false.
 !   
@@ -318,7 +318,7 @@ contains
          fully_explicit = .false.
          maxwellian_inside_zed_derivative = .false.
          use_deltaphi_for_response_matrix = .false.
-         split_parallel_dynamics = .false.
+         split_parallel_dynamics = .true.
 
      end subroutine set_default_parameters_numerical_algorithms
 

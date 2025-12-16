@@ -131,11 +131,11 @@ module parallelisation_layouts
    
    ! The (mu, vpa) dimensions are local and the (x, y, z, tube, s) dimensions are parallelised.
    ! Therefore, (ny*nx*nzed*ntubes*nspec - 1) grid points are divided over the processors.
-   public :: xyz_lo
+   public :: xyz_lo          ! Only used if include_parallel_nonlinearity = True
    
    ! This layout has the kx, z and vpa dimensions local on each processor,
    ! with ky, mu and species available to spread over processors
-   public :: kymus_lo
+   public :: kymus_lo        ! Only used if split_parallel_dynamics = True
 
    ! Find the equivalent points between different parallelisation layouts
    public :: kxkyzidx2vmuidx
@@ -262,6 +262,10 @@ module parallelisation_layouts
    logical :: mat_gen
    logical :: mat_read
    
+   ! Print extra info to command prompt
+   ! This variable is not broadcasted so it can only be true on proc0
+   logical :: verbose = .false.
+   
    ! Construct the response matrix on 1 processor (none),
    ! on all processors of 1 node (local) or across all nodes (global)
    integer :: lu_option_switch
@@ -299,9 +303,6 @@ contains
       ! Read input parameters and broadcast to all processors
       if (proc0) call read_parameters
       call broadcast_parameters
-      
-      ! In this module we want to debug on each processor
-      !if (debug) call broadcast(debug)
 
    end subroutine read_parameters_parallelisation_layouts
 
@@ -318,14 +319,14 @@ contains
       implicit none
 
       call read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-          mat_gen, mat_read, lu_option_switch, fields_kxkyz)
+          mat_gen, mat_read, lu_option_switch, fields_kxkyz, verbose)
 
    end subroutine read_parameters
 
    !****************************************************************************
    !                            BROADCAST PARAMETERS                            
    !****************************************************************************
-   ! Broadcast the <xyzs_layout> and <vms_layout> to all processors.
+   ! Broadcast to all processors. Do not broadcast <verbose>.
    !****************************************************************************
    subroutine broadcast_parameters
       use mp, only: broadcast
@@ -349,17 +350,21 @@ contains
    !**************************************************************************** 
    subroutine init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 
-      use mp, only: proc0, nproc
+      use mp, only: nproc
       use debug_flags, only: print_extra_info_to_terminal
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_parallel_nonlinearity
+      use parameters_numerical, only: split_parallel_dynamics
 
       implicit none
 
-      integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha 
+      integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha
+      integer :: nz, nvpa
 
       !-------------------------------------------------------------------------
       
       ! Print some basic info to the output file
-      if (proc0 .and. print_extra_info_to_terminal) then
+      if (print_extra_info_to_terminal) then
          write (*, '(A)') '############################################################'
          write (*, '(A)') '                       PARALLELISATION                      '
          write (*, '(A)') '############################################################'
@@ -367,15 +372,49 @@ contains
             write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processor.'
          else
             write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processors.'
-         end if 
+         end if
+      end if
+      if (verbose .and. print_extra_info_to_terminal) then
+         nz = 2*nzgrid + 1
+         nvpa = 2*nvgrid
+         write (*, *) ''
+         write (*, *) 'Grids:'
+         write (*, '(A,I0)') '    nx = ', nx
+         write (*, '(A,I0)') '    ny = ', ny
+         write (*, '(A,I0)') '    nz = ', nz
+         write (*, '(A,I0)') '    nkx = ', nakx
+         write (*, '(A,I0)') '    nky = ', naky
+         write (*, '(A,I0)') '    nmu = ', nmu
+         write (*, '(A,I0)') '    nvpa = ', nvpa
+         write (*, '(A,I0)') '    nspec = ', nspec
+         write (*, '(A,I0)') '    ntubes = ', ntubes
+         write (*, '(A,I0)') '    nalpha = ', nalpha
+         write (*, *) ''
+         write (*, *) 'Total number of grid points:'
+         write (*, '(A,I0)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec
+         write (*, '(A,I0)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec
+         write (*, *) ''
+         write (*, *) 'Number of points to be parallelised:'
+         write (*, '(A,I7,A)') '    vmu-layout:  ', nmu*nvpa*nspec, '    (nmu*nvpa*nspec)'
+         write (*, '(A,I7,A)') '    kxkyz-layout:', nakx*naky*nz*ntubes*nspec, '    (nkx*nky*nz*ntubes*nspec)'
+         if (full_flux_surface) write (*, '(A,I7,A)') '    kxyz-layout: ', (nakx/2+1)*ny*nz*ntubes*nspec, '    ((nakx/2+1)*ny*nz*ntubes*nspec)'
+         if (include_parallel_nonlinearity) write (*, '(A,I7,A)') '    xyz-layout:  ', nx*ny*nz*nspec, '    (nx*ny*nz*nspec)'
+         if (.not. split_parallel_dynamics) write (*, '(A,I7,A)') '    kymus-layout:', naky*nmu*nspec, '    (nky*nmu*nspec)'
+         write (*, *) ''
+         write (*, *) 'Number of points per processor:'
+         write (*, '(A,I7)') '    vmu-layout:  ', (nmu*nvpa*nspec-1)/nproc+1
+         write (*, '(A,I7)') '    kxkyz-layout:', (nakx*naky*nz*ntubes*nspec-1)/nproc+1
+         if (full_flux_surface) write (*, '(A,I7)') '    kxyz-layout: ', ((nakx/2+1)*ny*nz*ntubes*nspec-1)/nproc+1
+         if (include_parallel_nonlinearity) write (*, '(A,I7)') '    xyz-layout:  ', (nx*ny*nz*nspec-1)/nproc+1
+         if (.not. split_parallel_dynamics) write (*, '(A,I7)') '    kymus-layout:', (naky*nmu*nspec-1)/nproc+1
       end if
 
       ! Initialise the parallelisation layouts
-      call init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
-      call init_kxyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
-      call init_xyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
       call init_vmu_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-      call init_kymus_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
+      call init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec) 
+      if (full_flux_surface) call init_kxyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
+      if (include_parallel_nonlinearity) call init_xyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
+      if (.not. split_parallel_dynamics) call init_kymus_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
       
    end subroutine init_dist_fn_layouts
    
@@ -413,8 +452,7 @@ contains
    !****************************************************************************
    subroutine init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
 
-      use mp, only: iproc, nproc, proc0, barrier 
-      use debug_flags, only: print_extra_info_to_terminal
+      use mp, only: iproc, nproc
 
       implicit none
 
@@ -456,23 +494,6 @@ contains
       kxkyz_lo%llim_proc = kxkyz_lo%blocksize * iproc
       kxkyz_lo%ulim_proc = min(kxkyz_lo%ulim_world, kxkyz_lo%llim_proc + kxkyz_lo%blocksize - 1)
       kxkyz_lo%ulim_alloc = max(kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc)
-      
-      ! Print some basic info to the output file
-      if (proc0 .and. print_extra_info_to_terminal) then
-         write (*, *) ''; write (*, '(A)') ' Number of kxkyz-layout points: '
-         write (*, '(A,I0,A,I0,A,I0,A,I0,A,I0,A,I0)') '    nky*nkx*nz*ntubes*nspec = ', &
-            naky,'*',nakx,'*',kxkyz_lo%nzed,'*',ntubes,'*',nspec,' = ', kxkyz_lo%ulim_world+1
-      end if
-      
-      ! Debug
-      if (debug) then
-         call barrier
-         if (proc0) write (*, *) ''
-         if (proc0) write (*, *) 'Initialise kxkyz_layout:'
-         call barrier
-         write(*,'(A,I0,A,I0)') '    number of kxkyz-layout points on proc ', iproc, ': ', kxkyz_lo%blocksize
-         call barrier
-      end if
 
    end subroutine init_kxkyz_layout
 
@@ -1544,6 +1565,7 @@ contains
       if (kymus_initialised) return
       kymus_initialised = .true.
 
+      ! Parallelisation
       kymus_lo%iproc = iproc
       kymus_lo%nzgrid = nzgrid
       kymus_lo%nzed = 2 * nzgrid + 1
