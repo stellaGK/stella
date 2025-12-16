@@ -79,7 +79,7 @@ contains
    !============================================================================
    subroutine init_response_matrix
 
-      use mp, only: proc0
+      use mp, only: proc0, iproc
       use linear_solve, only: lu_decomposition
       use parallelisation_layouts, only: iv_idx, is_idx
       use parallelisation_layouts, only: mat_gen
@@ -113,6 +113,7 @@ contains
 
       ! Allocate response matrix
       if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
+      write(*,'(A,I0,A,I0)') 'Allocate response_matrix(naky) with naky = ', naky, ' on processor ', iproc
       
 #ifdef ISO_C_BINDING
       call setup_shared_memory_window
@@ -293,7 +294,7 @@ contains
    !============================================================================
    subroutine construct_response_matrix
 
-      use mp, only: proc0
+      use mp, only: proc0, iproc
       use parallelisation_layouts, only: mat_gen
       use arrays, only: response_matrix
       use grids_kxky, only: naky
@@ -328,6 +329,7 @@ contains
          ! For a given ky, we need to associate an %eigen to it - to denote the
          ! connected modes. The response matrix for each ky has neigen(ky).
          if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
+         write(*,'(A,I0,A,I0,A,I0)') 'Allocate response_matrix(iky)%eigen with neigen(iky) = ', neigen(iky), ' for iky = ', iky, ' on processor ', iproc
 
          !> TO VALENTIN: This part could be parallelised over iky and ie as these 
          !> are all computed independently. It is not until the LU decomposition
@@ -574,7 +576,7 @@ contains
    subroutine get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
    
 #ifdef ISO_C_BINDING
-      use mp, only: sgproc0
+      use mp, only: sgproc0, proc0
 #endif
 
       use parallelisation_layouts, only: vmu_lo
@@ -699,7 +701,9 @@ contains
          phi_ext(idx) = phi_ext(idx) - 1.0
          
          ! But everywhere else, simply add a negative sign:
-         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
+         if (proc0) write(*,*) 'DEBUG: next line hits the memory limit - response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx)'
+         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse) ! COOKIE DEBUG: THIS WHERE WE HIT A MEMORY LIMIT
+         if (proc0) write(*,*) 'DEBUG: next line hits the memory limit - passed it'
          if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
          if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
       
@@ -1779,7 +1783,7 @@ contains
 
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-      use mp, only: nbytes_real
+      use mp, only: nbytes_real, proc0
 #endif
       use arrays, only: response_matrix
 
@@ -1796,7 +1800,8 @@ contains
       ! of the response matrices by mapping existing memory blocks instead 
       ! of allocating separately on each process.
       ! ------------------------------------------------------------------------
-
+      if (proc0) write(*,*) 'Use ISO_C_BINDING'
+       
       ! Associate zloc (a 2D response matrix) if not already connected
       if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
          ! Convert current memory cursor (cur_pos) into a C pointer
@@ -1828,14 +1833,17 @@ contains
       ! For each ky and set of connected kx values, so we must have a response
       ! matrix that is N x N , with N = number of zeds per 2pi segment x number 
       ! of 2pi segments
+      if (proc0) write(*,*) 'Do not use ISO_C_BINDING'
 
       ! Allocate zloc as an (nresponse x nresponse) matrix if not already allocated
       if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
          allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+      write(*,*) 'Allocate response_matrix(iky)%eigen(ie)%zloc)'
 
       ! Allocate idx as a length-nresponse vector for LU decomposition pivots
       if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
          allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
+      write(*,*) 'Allocate response_matrix(iky)%eigen(ie)%idx)'
 #endif
 
    end subroutine setup_response_matrix_zloc_idx
