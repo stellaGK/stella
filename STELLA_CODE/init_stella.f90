@@ -272,6 +272,10 @@ contains
       
       ! Parse collision variables to read_parameters_species to avoid circular dependencies
       use dissipation_and_collisions, only: vnew_ref
+
+      ! Read in neoclassical inputs.
+      
+      use neoclassical_terms_neo, only: read_parameters_neoclassical                ! <============ Addition for reading neoclassical input.
       
       implicit none
       
@@ -310,6 +314,9 @@ contains
       call read_parameters_distribution_function
       if (debug) write (6, *) 'stella::init_stella::read_parameters_parallelisation_layouts'
       call read_parameters_parallelisation_layouts
+      
+      if (debug) write (6, *) 'stella::init_stella::read_parameters_neoclassical'
+      call read_parameters_neoclassical                                              ! <================= Read in neoclassical parameters.
       
    end subroutine read_parameters_from_input_file
    
