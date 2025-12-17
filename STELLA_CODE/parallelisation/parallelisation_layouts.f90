@@ -353,8 +353,6 @@ contains
    !**************************************************************************** 
    subroutine init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 
-      use mp, only: nproc
-      use debug_flags, only: print_extra_info_to_terminal
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: include_parallel_nonlinearity
       use parameters_numerical, only: split_parallel_dynamics
@@ -366,55 +364,15 @@ contains
 
       !-------------------------------------------------------------------------
       
-      ! Print some basic info to the output file (Gigabyte = 10**9 and Gigibyte = 2**20 = 1024**3)
-      if (print_extra_info_to_terminal) then
-         write (*, '(A)') '############################################################'
-         write (*, '(A)') '                       PARALLELISATION                      '
-         write (*, '(A)') '############################################################'
-         if (nproc == 1) then
-            write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processor.'
-         else
-            write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processors.'
-         end if
-      end if
-      if (verbose .and. print_extra_info_to_terminal) then
-         nz = 2*nzgrid + 1
-         nvpa = 2*nvgrid
-         write (*, *) ''
-         write (*, *) 'Grids:'
-         write (*, '(A,I0)') '    nx = ', nx
-         write (*, '(A,I0)') '    ny = ', ny
-         write (*, '(A,I0)') '    nz = ', nz
-         write (*, '(A,I0)') '    nkx = ', nakx
-         write (*, '(A,I0)') '    nky = ', naky
-         write (*, '(A,I0)') '    nmu = ', nmu
-         write (*, '(A,I0)') '    nvpa = ', nvpa
-         write (*, '(A,I0)') '    nspec = ', nspec
-         write (*, '(A,I0)') '    ntubes = ', ntubes
-         write (*, '(A,I0)') '    nalpha = ', nalpha
-         write (*, *) ''
-         write (*, *) 'Total number of grid points:'
-         write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec, &
-            ' = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
-         write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec, &
-            ' = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
-         write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz = ', nakx*naky*nz, &
-            ' = ', nakx*naky*nz/1024./1024., ' MiB = ', nakx*naky*nz/1024./1024./1024., ' GiB.'
-         write (*, *) ''
-         write (*, *) 'Number of points to be parallelised:'
-         write (*, '(A,I10,A)') '    vmu-layout:  ', nmu*nvpa*nspec, '    (nmu*nvpa*nspec)'
-         write (*, '(A,I10,A)') '    kxkyz-layout:', nakx*naky*nz*ntubes*nspec, '    (nkx*nky*nz*ntubes*nspec)'
-         if (full_flux_surface) write (*, '(A,I7,A)') '    kxyz-layout: ', (nakx/2+1)*ny*nz*ntubes*nspec, '    ((nakx/2+1)*ny*nz*ntubes*nspec)'
-         if (include_parallel_nonlinearity) write (*, '(A,I7,A)') '    xyz-layout:  ', nx*ny*nz*nspec, '    (nx*ny*nz*nspec)'
-         if (.not. split_parallel_dynamics) write (*, '(A,I7,A)') '    kymus-layout:', naky*nmu*nspec, '    (nky*nmu*nspec)'
-         write (*, *) ''
-         write (*, *) 'Number of points per processor:'
-         write (*, '(A,I10)') '    vmu-layout:  ', (nmu*nvpa*nspec-1)/nproc+1
-         write (*, '(A,I10)') '    kxkyz-layout:', (nakx*naky*nz*ntubes*nspec-1)/nproc+1
-         if (full_flux_surface) write (*, '(A,I7)') '    kxyz-layout: ', ((nakx/2+1)*ny*nz*ntubes*nspec-1)/nproc+1
-         if (include_parallel_nonlinearity) write (*, '(A,I7)') '    xyz-layout:  ', (nx*ny*nz*nspec-1)/nproc+1
-         if (.not. split_parallel_dynamics) write (*, '(A,I7)') '    kymus-layout:', (naky*nmu*nspec-1)/nproc+1
-      end if
+      ! Derived grid variables 
+      nz = 2*nzgrid + 1
+      nvpa = 2*nvgrid
+      
+      ! Print some basic info to the output file
+      call print_info_to_command_prompt
+      
+      ! Perform sanity checks for the integers
+      call sanity_checks
 
       ! Initialise the parallelisation layouts
       call init_vmu_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
@@ -422,6 +380,106 @@ contains
       if (full_flux_surface) call init_kxyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
       if (include_parallel_nonlinearity) call init_xyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
       if (.not. split_parallel_dynamics) call init_kymus_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
+   
+   contains
+   
+      !=========================================================================
+      ! Sanity checks: on a 32-bit system (4 bytes) the largest signed integer 
+      ! is 2,147,483,647, integers which are bigger run into overflow errors.
+      ! In this case, we would need to define these integers using 64 bits instead.
+      !=========================================================================
+      subroutine sanity_checks
+      
+         use mp, only: mp_abort
+         use iso_fortran_env, only: int64, int32
+
+         implicit none
+         
+         integer(int64) :: prod_ivmu, prod_ikxkyz
+         integer(int64), parameter :: int32_warn = 1500000000_int64
+         integer(int64), parameter :: int32_max = huge(0_int32)
+
+         !----------------------------------------------------------------------
+         
+         ! Check the ivmu and ikxkyz indices using 64 bit integers
+         prod_ivmu = int(nmu, int64) * int(nvpa, int64) * int(nspec, int64)
+         prod_ikxkyz = int(nakx, int64) * int(naky, int64) * int(nz, int64) * int(ntubes, int64) * int(nspec, int64)
+      
+         ! Write warnings if we're getting close to the integer threshold
+         if (prod_ivmu > int32_warn) write (*,*) 'WARNING: The index "ivmu" is getting close to 32-bit integer overflow.'
+         if (prod_ikxkyz > int32_warn) write (*,*) 'WARNING: The index "ikxkyz" is getting close to 32-bit integer overflow.'
+
+         ! Hard failure if truly exceeding 32-bit range
+         if (prod_ivmu > int32_max) call mp_abort('Index "ivmu" exceeds 32-bit integer range; use 64-bit integers instead. Aborting.')
+         if (prod_ikxkyz > int32_max) call mp_abort('Index "ikxkyz" exceeds 32-bit integer range; use 64-bit integers. Aborting.')
+
+      end subroutine sanity_checks
+      
+      !=========================================================================
+      ! Print some basic info to the output file 
+      ! Note that Gigabyte = 10**9 and Gigibyte = 2**20 = 1024**3
+      !=========================================================================
+      subroutine print_info_to_command_prompt
+
+         use mp, only: nproc
+         use debug_flags, only: print_extra_info_to_terminal
+
+         implicit none
+
+         !----------------------------------------------------------------------
+         
+         ! Only print the number of processors
+         if (print_extra_info_to_terminal) then
+            write (*, '(A)') '############################################################'
+            write (*, '(A)') '                       PARALLELISATION                      '
+            write (*, '(A)') '############################################################'
+            if (nproc == 1) then
+               write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processor.'
+            else
+               write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processors.'
+            end if
+         end if
+         
+         ! Also print the grids and the number of points for 
+         ! the distribution function and the electrostatic potential
+         if (verbose .and. print_extra_info_to_terminal) then
+            write (*, *) ''
+            write (*, *) 'Grids:'
+            write (*, '(A,I0)') '    nx = ', nx
+            write (*, '(A,I0)') '    ny = ', ny
+            write (*, '(A,I0)') '    nz = ', nz
+            write (*, '(A,I0)') '    nkx = ', nakx
+            write (*, '(A,I0)') '    nky = ', naky
+            write (*, '(A,I0)') '    nmu = ', nmu
+            write (*, '(A,I0)') '    nvpa = ', nvpa
+            write (*, '(A,I0)') '    nspec = ', nspec
+            write (*, '(A,I0)') '    ntubes = ', ntubes
+            write (*, '(A,I0)') '    nalpha = ', nalpha
+            write (*, *) ''
+            write (*, *) 'Total number of grid points:'
+            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec, &
+               ' = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
+            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec, &
+               ' = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
+            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz = ', nakx*naky*nz, &
+               ' = ', nakx*naky*nz/1024./1024., ' MiB = ', nakx*naky*nz/1024./1024./1024., ' GiB.'
+            write (*, *) ''
+            write (*, *) 'Number of points to be parallelised:'
+            write (*, '(A,I10,A)') '    vmu-layout:  ', nmu*nvpa*nspec, '    (nmu*nvpa*nspec)'
+            write (*, '(A,I10,A)') '    kxkyz-layout:', nakx*naky*nz*ntubes*nspec, '    (nkx*nky*nz*ntubes*nspec)'
+            if (full_flux_surface) write (*, '(A,I7,A)') '    kxyz-layout: ', (nakx/2+1)*ny*nz*ntubes*nspec, '    ((nakx/2+1)*ny*nz*ntubes*nspec)'
+            if (include_parallel_nonlinearity) write (*, '(A,I7,A)') '    xyz-layout:  ', nx*ny*nz*nspec, '    (nx*ny*nz*nspec)'
+            if (.not. split_parallel_dynamics) write (*, '(A,I7,A)') '    kymus-layout:', naky*nmu*nspec, '    (nky*nmu*nspec)'
+            write (*, *) ''
+            write (*, *) 'Number of points per processor:'
+            write (*, '(A,I10)') '    vmu-layout:  ', (nmu*nvpa*nspec-1)/nproc+1
+            write (*, '(A,I10)') '    kxkyz-layout:', (nakx*naky*nz*ntubes*nspec-1)/nproc+1
+            if (full_flux_surface) write (*, '(A,I7)') '    kxyz-layout: ', ((nakx/2+1)*ny*nz*ntubes*nspec-1)/nproc+1
+            if (include_parallel_nonlinearity) write (*, '(A,I7)') '    xyz-layout:  ', (nx*ny*nz*nspec-1)/nproc+1
+            if (.not. split_parallel_dynamics) write (*, '(A,I7)') '    kymus-layout:', (naky*nmu*nspec-1)/nproc+1
+         end if
+      
+      end subroutine print_info_to_command_prompt
       
    end subroutine init_dist_fn_layouts
    
