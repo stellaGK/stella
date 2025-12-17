@@ -256,6 +256,7 @@ contains
                       
                end do
             end do
+            win_size = win_size * 2
          end if
 
          ! Print info to command prompt
@@ -368,7 +369,7 @@ contains
          ! there are, while all kx-modes are typically connected for the smallest ky.
          ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
          do ie = 1, neigen(iky)
-            write(*,'(A, I0, A, I0)') 'calculate_response_matrix_to_invert for iky = ', iky, ' and ie =', ie
+            if (proc0) write(*,'(A, I0, A, I0)') 'calculate_response_matrix_to_invert for iky = ', iky, ' and ie = ', ie
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
          
