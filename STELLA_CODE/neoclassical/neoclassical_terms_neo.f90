@@ -2,10 +2,10 @@
 ! ------------------------ Routines for remapping NEO data on to stella grids and calculating all quantites needed for higher order GK calculations. ------------------------------ !
 ! ================================================================================================================================================================================= !
 ! 
-! NEO uses pitch angle cosine, ξ = v∥​/v, and normalised velocity for velocity coordinates. stella uses v∥​ and μ. A remapping of the NEO data on to the stella grids is required. 
+! NEO uses pitch angle cosine, ξ = v∥​/v, and normalised energy, E, for velocity coordinates. stella uses v∥​ and μ. A remapping of the NEO data on to the stella grids is required. 
 ! 
 ! We must also reconstruct the NEO H_1 from the amplitudes provided by out.neo.f: see https://gacode.io/neo/outputs.html#neo-out-neo-f for details on the Legendre/Laguerre
-! representation of H_1 in terms of the h_hat amplitudes. 
+! representation of H_1 in terms of the amplitudes. 
 !
 ! This representation can also be used to calculate the derivatives of H_1 in v∥​ and μ. The spatial gradient of H_1 (and F_1) may be calculated by a finite differences method. 
 !
@@ -91,8 +91,7 @@ contains
         use mp, only: proc0, broadcast
         use iso_fortran_env, only: output_unit
         use grids_z, only: nzgrid
-        use grids_kxky, only: nalpha
-        use grids_velocity, only: nvgrid, nmu 
+        use grids_velocity, only: nvpa, nmu 
         use grids_species, only: nspec
         use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi, neo_grid_data, neo_version_data        
 
@@ -181,13 +180,15 @@ contains
 
         ! Now, we need to construct H_1 from the interpolated neo_h_hat data. Allocate the sizes of the datasets on the stella grids. 
 
-        ! allocate(neo_h(-nzgrid:nzgrid, -nvgrid:nvgrid, 0:nmu, neo_grid%n_species, neo_grid%n_radial))
-        ! allocate(neo_h_right())
-        ! allocate(neo_h_left())
+        allocate(neo_h(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        allocate(neo_h_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        allocate(neo_h_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
+
+        call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h)                         ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_right, 'right')    ! Repeat for the right surface.                                         
+        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_left, 'left')       ! Repeat for the left surface.
         
-        ! call construct_neo_h_on_stellas_grids                                                      ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
-        ! call construct_neo_h_on_stellas_grids                                                      ! Repeat for the right surface.                                         
-        ! call construct_neo_h_on_stellas_grids                                                      ! Repeat for the left surface.
+        ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed. 
 
     end subroutine init_neoclassical_terms_neo
 
@@ -309,11 +310,11 @@ contains
         implicit none
 
         real, intent(in)  :: neo_phi_in(:, :)    
-        real, intent(out) :: neo_phi_z_grid(-nzgrid:, :)
-
         type(neo_grid_data), intent(in) :: neo_grid
+        character(len=*), intent(in), optional :: suffix               ! For saving interpolated data on surfaces.
         integer, intent(in) :: surface_index
-        character(len=*), intent(in), optional :: suffix               ! For saving interpolated data on surfaces. 
+        real, intent(out) :: neo_phi_z_grid(-nzgrid:, :)        
+         
         integer :: unit
         character(len=256) :: filename
 
@@ -358,7 +359,7 @@ contains
 !
 ! neo_h(r, θ, x_a, ξ)  = F_MB(r, θ, x_a) * [Sum_ie Sum_ix{L_ie^(k(ix)+1/2)(x_a^2) P_ix(ξ) neo_h_hat}].
 !
-! Here x_a = v/(sqrt(2)*v_th,a) = sqrt(energy), ξ = v∥​/v, k(ix) = 0, ix = 0 and k(ix) = 1, ix > 0. L are the associated Laguerre polynomials and P are the Legendre 
+! Here E = v/(sqrt(2)*v_th,a), ξ = v∥​/v, k(ix) = 0, ix = 0 and k(ix) = 1, ix > 0. L are the associated Laguerre polynomials and P are the Legendre 
 ! polynomials. See: https://gacode.io/neo/outputs.html#neo-out-neo-f for more details.
 !
 ! We need to evaluate this on stellas v-space grids for v∥​ and μ. For each point on these grids, we can evaluate x_a and ξ, then evaluate the polynomials.  
@@ -366,15 +367,84 @@ contains
 !
 ! ================================================================================================================================================================================= !
 
-    ! subroutine construct_neo_h_on_stellas_grids(neo_h_hat_z_grid, neo_grid, surface_index, neo_h)
-        ! use polynomials, only: get_legendre_array, get_laguerre_array
-	! use grids_velocity, only: vpa, nvpa, nvgrid,  mu, nmu
-        ! use geometry, only: bmag 
-        ! use NEO_interface, only: neo_grid_data	
+    subroutine get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, surface_index, neo_h, suffix)
+	use grids_z, only: nzgrid, zed
+        use grids_velocity, only: vpa, nvpa, mu, nmu
+        use geometry, only: bmag                 
+        use NEO_interface, only: neo_grid_data
 
-        ! implicit none
+        ! bmag is calculated and stored in stella as a two-dimensional array depending on alpha (for dealing with non-axisymmetric stellarator configurations) and z. 
+        ! Since we are dealing with an axisymmetric tokamak, bmag should be independent of alpha for a given z coordinate.
+        ! Here, loops over ia are therefore not needed and all calculations are based on ia = 1. 
+ 
+        implicit none
 
-    ! end subroutine construct_neo_h_on_stellas_grids
+        real, intent(in)  :: neo_h_hat_z_grid(-nzgrid:, :, :, :, :)
+        type(neo_grid_data), intent(in) :: neo_grid
+        integer, intent(in) :: surface_index
+        real, intent(out) :: neo_h(-nzgrid:, :, :, :, :)         
+
+        real :: xi_in, E_in
+        integer :: iz, iv, imu, is
+
+        integer :: unit
+        character(len=256) :: filename
+        character(len=*), intent(in), optional :: suffix               ! For saving interpolated data on surfaces.
+        
+        do is = 1, neo_grid%n_species
+            do iz = -nzgrid, nzgrid
+                do iv = 1, nvpa
+                    do imu = 1, nmu
+                        ! Calculate (ξ_in, E_in) from the (v∥​, μ) stella grid point.
+			xi_in = vpa(iv) / sqrt(vpa(iv)**2 + 2 * bmag(1, iz) * mu(imu)) 
+			E_in = (vpa(iv)**2 + 2 * bmag(1, iz) * mu(imu)) / 2
+
+                        ! Construct neo_h at the given (ξ_in, E_in) point. 
+                        neo_h(iz, iv, imu, is, surface_index) = get_neo_h_at_xi_energy(neo_h_hat_z_grid(iz, :, :, is, surface_index), E_in, xi_in, neo_grid)
+                    end do
+                end do
+            end do
+        end do
+
+        ! ================================================= !
+        ! ----------------- Diagnostic. ------------------- !
+        ! ================================================= !
+
+        ! unit = 99
+
+        ! if (present(suffix)) then
+            ! write(filename,'("neo_h_stella_grids_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
+        ! else
+            ! write(filename,'("neo_h_stella_grids_",I0,".dat")') surface_index
+        ! end if
+
+        ! open(unit=unit, file=filename, status='replace', action='write')
+
+        ! write(unit,'(A)') '# Diagnostic output: neo_h on stella grids'
+        ! write(unit,'(A,I0)') '# surface_index = ', surface_index
+        ! write(unit,'(A)') '# Columns:'
+        ! write(unit,'(A)') '#   iz   : z-grid index'
+        ! write(unit,'(A)') '#   iv   : v_parallel grid index'
+        ! write(unit,'(A)') '#   imu  : mu grid index'
+        ! write(unit,'(A)') '#   is   : species index'
+        ! write(unit,'(A)') '#   z    : stella z coordinate'
+        ! write(unit,'(A)') '#   vpa  : parallel velocity'
+        ! write(unit,'(A)') '#   mu   : magnetic moment'
+        ! write(unit,'(A)') '#   h    : reconstructed neo_h'
+        ! write(unit,'(A)') '#'
+        ! write(unit,'(A)') '# iz    iv   imu   is        z              vpa              mu               h'
+
+        ! do is = 1, neo_grid%n_species
+            ! do iz = -nzgrid, nzgrid
+                ! do iv = 1, nvpa
+                    ! do imu = 1, nmu
+                        ! write(unit,'(I6,1X,I6,1X,I6,1X,I4,1X,ES16.8,1X,ES16.8,1X,ES16.8,1X,ES16.8)') iz, iv, imu, is, zed(iz), vpa(iv), mu(imu), neo_h(iz, iv, imu, is, surface_index)
+                    ! end do
+                ! end do
+            ! end do
+        ! end do
+        ! close(unit)
+    end subroutine get_neo_h_on_stella_grids
 
 
 ! ================================================================================================================================================================================= !
@@ -393,7 +463,7 @@ contains
         implicit none
     
         real, dimension(:, :), intent(in) :: neo_h_hat_z_grid ! A 2-D slice of the 5-dimensional neo_h_hat_z_grid data, at fixed z, species and surface index. 
-        real, intent(in) :: E_in, xi_in
+        real, intent(in) :: xi_in, E_in
         type(neo_grid_data), intent(in) :: neo_grid
     
         integer :: ie, ix
