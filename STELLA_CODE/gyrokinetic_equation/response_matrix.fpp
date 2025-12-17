@@ -357,6 +357,7 @@ contains
          ! there are, while all kx-modes are typically connected for the smallest ky.
          ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
          do ie = 1, neigen(iky)
+            write(*,'(A, I0, I0)') 'calculate_response_matrix_to_invert', iky, ie
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
          
