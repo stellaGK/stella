@@ -115,6 +115,9 @@ module parallelisation_layouts
    public :: lu_option_none
    public :: lu_option_global
    
+   ! Print extra info with respect to the parallelisation
+   public :: verbose
+   
    !-------------------------- Parallelisation Layouts -------------------------
    
    ! The (kx,ky,z,tube) dimensions are local and the (vpa, mu, s) dimensions are parallelised.
