@@ -1796,7 +1796,7 @@ contains
    subroutine setup_response_matrix_zloc_idx(iky, ie, nresponse)
 
 #ifdef ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
       use mp, only: nbytes_real, proc0
 #endif
       use arrays, only: response_matrix
@@ -1808,6 +1808,7 @@ contains
 
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
+      integer(c_intptr_t) :: bytes
 
       ! ------------------------------------------------------------------------
       ! Exploit MPIs shared memory framework to reduce memory consumption 
@@ -1825,7 +1826,9 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
-         cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+         !cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+         bytes = int(nresponse, c_intptr_t) * int(nresponse, c_intptr_t) * 2_c_intptr_t * int(nbytes_real, c_intptr_t)
+         cur_pos = cur_pos + bytes
          
       end if
 
@@ -1839,7 +1842,9 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
-         cur_pos = cur_pos + nresponse * 4
+         !cur_pos = cur_pos + nresponse * 4
+         bytes = int(nresponse, c_intptr_t) * 4_c_intptr_t
+         cur_pos = cur_pos + bytes
          
       end if
 #else
