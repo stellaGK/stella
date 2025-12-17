@@ -244,7 +244,7 @@ contains
                       + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
                       
                end do
-            end doç
+            end do
          end if
 
          ! Print info to command prompt
