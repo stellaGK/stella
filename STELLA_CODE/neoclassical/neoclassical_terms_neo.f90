@@ -1,6 +1,6 @@
-! =================================================================================================================================================================================== !
-! ------------------------- Routines for remapping NEO data on to stella grids and calculating all quantites needed for higher order GK calculations. ------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! ------------------------ Routines for remapping NEO data on to stella grids and calculating all quantites needed for higher order GK calculations. ------------------------------ !
+! ================================================================================================================================================================================= !
 ! 
 ! NEO uses pitch angle cosine, ξ = v∥​/v, and normalised velocity for velocity coordinates. stella uses v∥​ and μ. A remapping of the NEO data on to the stella grids is required. 
 ! 
@@ -9,7 +9,7 @@
 !
 ! This representation can also be used to calculate the derivatives of H_1 in v∥​ and μ. The spatial gradient of H_1 (and F_1) may be calculated by a finite differences method. 
 !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
 
 module neoclassical_terms_neo
     implicit none
@@ -46,9 +46,9 @@ module neoclassical_terms_neo
 
 contains
 
-! =================================================================================================================================================================================== !
-! ------------------------------------------------------------------------ Read the neoclassical namelist. -------------------------------------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! ----------------------------------------------------------------------- Read the neoclassical namelist. ------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
 
     subroutine read_parameters_neoclassical
         use namelist_neoclassical_input, only: read_namelist_neoclassical_input
@@ -74,25 +74,25 @@ contains
     end subroutine read_parameters_neoclassical    
 
 
-! =================================================================================================================================================================================== !
-! -------------------------------------------------- A logical function telling stella when to include NEO corrections and routines. ------------------------------------------------ !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! -------------------------------------------------- A logical function telling stella when to include NEO corrections and routines. ---------------------------------------------- !
+! ================================================================================================================================================================================= !
 
     logical function neoclassical_is_enabled()
         neoclassical_is_enabled = include_neoclassical_terms .and. neo_option_switch == 2
     end function neoclassical_is_enabled
 
 
-! =================================================================================================================================================================================== !
-! ------------------------------------------------------------------ Initiliase the neoclassical terms. ----------------------------------------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! ----------------------------------------------------------------- Initiliase the neoclassical terms. ---------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
 
     subroutine init_neoclassical_terms_neo
         use mp, only: proc0, broadcast
         use iso_fortran_env, only: output_unit
         use grids_z, only: nzgrid
         use grids_kxky, only: nalpha
-        use grids_velocity, only: nvpa, nmu
+        use grids_velocity, only: nvgrid, nmu 
         use grids_species, only: nspec
         use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi, neo_grid_data, neo_version_data        
 
@@ -122,9 +122,9 @@ contains
 
         if (proc0) then
             call read_basic_neo_files(neo_grid, neo_version)
-            write(output_unit, '(A)') '! ============================================================================================== !'
+            write(output_unit, '(A)') '! ======================================================================================================== !'
             write(output_unit, '("Reading neo files created on system ",A," at ",A," (commit : ",A,")")') neo_version%system, neo_version%date, neo_version%commit
-            write(output_unit, '(A)') '! ============================================================================================== !'
+            write(output_unit, '(A)') '! ======================================================================================================== !'
         end if
        
         call broadcast(neo_grid%n_species)     ! Broadcast the NEO grid structure to other processors.
@@ -177,13 +177,13 @@ contains
 
         call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, neo_phi_z_grid)                            ! Calls interpolation on to stella z-grid for the central surface.
         call get_neo_phi_on_stella_z_grid(neo_phi_right_in, neo_grid, 1, neo_phi_right_z_grid, 'right')       ! Repeat for the right surface.
-        call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left_z_grid, 'left')          ! Repeat for the left surface.
+        call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left_z_grid, 'left')          ! Repeat for the left surface. 
 
         ! Now, we need to construct H_1 from the interpolated neo_h_hat data. Allocate the sizes of the datasets on the stella grids. 
 
-        allocate(neo_h(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
-        allocate(neo_h_right(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
-        allocate(neo_h_left(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
+        ! allocate(neo_h(-nzgrid:nzgrid, -nvgrid:nvgrid, 0:nmu, neo_grid%n_species, neo_grid%n_radial))
+        ! allocate(neo_h_right())
+        ! allocate(neo_h_left())
         
         ! call construct_neo_h_on_stellas_grids                                                      ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
         ! call construct_neo_h_on_stellas_grids                                                      ! Repeat for the right surface.                                         
@@ -192,9 +192,9 @@ contains
     end subroutine init_neoclassical_terms_neo
 
 
-! =================================================================================================================================================================================== !
-! ---------------------------------------------------------------------- Finish the neoclassical terms. ----------------------------------------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! --------------------------------------------------------------------- Finish the neoclassical terms. ---------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
 
     subroutine finish_neoclassical_terms_neo
         implicit none
@@ -203,31 +203,31 @@ contains
     end subroutine finish_neoclassical_terms_neo
 
 
-! =================================================================================================================================================================================== !
-! -------------------------------------------------------------------------------- Utilities. --------------------------------------------------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! ------------------------------------------------------------------------------- Utilities. -------------------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
 
-! =================================================================================================================================================================================== !
-! ---------------------------------- Allocates module level arrays for H_1, ϕ^1_0 and their derivatives in real space and velocity space. ------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! --------------------------------- Allocates module level arrays for H_1, ϕ^1_0 and their derivatives in real space and velocity space. ------------------------------------------ !
+! ================================================================================================================================================================================= !
 
     subroutine allocate_arrays
         implicit none
     end subroutine allocate_arrays
 
 
-! =================================================================================================================================================================================== !
-! ---------------------------------------------------------------------- Deallocates module level arrays. --------------------------------------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! --------------------------------------------------------------------- Deallocates module level arrays. -------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
 
     subroutine deallocate_arrays
         implicit none
     end subroutine deallocate_arrays
 
 
-! =================================================================================================================================================================================== !
-! ----------------------------------- Interpolate the NEO h_hat data from the NEO θ grid to the stella z grid for a specified flux surface. ----------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! ---------------------------------- Interpolate the NEO h_hat data from the NEO θ grid to the stella z grid for a specified flux surface. ---------------------------------------- !
+! ================================================================================================================================================================================= !
 
     subroutine get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, surface_index, neo_h_hat_z_grid, suffix)
         use grids_z, only: nzgrid, zed
@@ -238,20 +238,19 @@ contains
         implicit none
 
         real, intent(in)  :: neo_h_hat_in(:, :, :, :, :)    
-        real, intent(out) :: neo_h_hat_z_grid(:, :, :, :, :)
+        real, intent(out) :: neo_h_hat_z_grid(-nzgrid:, :, :, :, :)
 
         type(neo_grid_data), intent(in) :: neo_grid
         integer, intent(in) :: surface_index
-        integer :: il, ie, is, iz                                      ! il is for NEO ξ = v∥​/v, ie for NEO energy and is for species.
+        integer :: ix, ie, is, iz                                      ! ix is for NEO ξ = v∥​/v, ie for NEO E and is for species.
         character(len=*), intent(in), optional :: suffix               ! For saving interpolated data on surfaces. 
         integer :: unit
         character(len=256) :: filename
 
-
-        do il = 1, neo_grid%n_xi + 1
+        do ix = 1, neo_grid%n_xi + 1
             do ie = 1, neo_grid%n_energy + 1
                 do is = 1, neo_grid%n_species
-                    call linear_interp_periodic(neo_grid%theta, neo_h_hat_in(:, il, ie, is, surface_index), zed, neo_h_hat_z_grid(:, il, ie, is, surface_index), twopi) 
+                    call linear_interp_periodic(neo_grid%theta, neo_h_hat_in(:, ix, ie, is, surface_index), zed, neo_h_hat_z_grid(:, ix, ie, is, surface_index), twopi) 
 		end do
 	    end do
 	end do
@@ -260,47 +259,46 @@ contains
         ! ----------------- Diagnostic. ------------------- !
         ! ================================================= !
 
-        unit = 99 
+        ! unit = 99 
 
-        if (present(suffix)) then
-            write(filename,'("neo_h_hat_z_grid_",A,"_surf_",I0,".dat")') &
-                 trim(suffix), surface_index
-        else
-            write(filename,'("neo_h_hat_z_grid_surf_",I0,".dat")') surface_index
-        end if
+        ! if (present(suffix)) then
+            ! write(filename,'("neo_h_hat_z_grid_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
+        ! else
+            ! write(filename,'("neo_h_hat_z_grid_surf_",I0,".dat")') surface_index
+        ! end if
 
-        open(unit=unit, file=filename, status='replace', action='write')
+        ! open(unit=unit, file=filename, status='replace', action='write')
 
-        write(unit,'(A)') '# Diagnostic output: neo_h_hat_z_grid'
-        write(unit,'(A,I0)') '# surface_index = ', surface_index
-        write(unit,'(A)') '# Columns:'
-        write(unit,'(A)') '#   iz   : z-grid index'
-        write(unit,'(A)') '#   il   : NEO xi index'
-        write(unit,'(A)') '#   ie   : NEO energy index'
-        write(unit,'(A)') '#   is   : species index'
-        write(unit,'(A)') '#   z    : stella z coordinate'
-        write(unit,'(A)') '#   hhat : interpolated neo_h_hat on stella z-grid'
-        write(unit,'(A)') '#'
-        write(unit,'(A)') '# iz   il   ie   is        z              hhat'
+        ! write(unit,'(A)') '# Diagnostic output: neo_h_hat_z_grid'
+        ! write(unit,'(A,I0)') '# surface_index = ', surface_index
+        ! write(unit,'(A)') '# Columns:'
+        ! write(unit,'(A)') '#   iz   : z-grid index'
+        ! write(unit,'(A)') '#   ix   : NEO xi index'
+        ! write(unit,'(A)') '#   ie   : NEO energy index'
+        ! write(unit,'(A)') '#   is   : species index'
+        ! write(unit,'(A)') '#   z    : stella z coordinate'
+        ! write(unit,'(A)') '#   hhat : interpolated neo_h_hat on stella z-grid'
+        ! write(unit,'(A)') '#'
+        ! write(unit,'(A)') '# iz   il   ie   is        z              hhat'
         ! -----------------------------------
 
-        do il = 1, neo_grid%n_xi + 1
-            do ie = 1, neo_grid%n_energy + 1
-                do is = 1, neo_grid%n_species
-                    do iz = -nzgrid, nzgrid
-                        write(unit,'(I6,1X,I4,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8)') iz, il, ie, is, zed(iz), neo_h_hat_z_grid(iz, il, ie, is, surface_index)
-                    end do
-                end do
-            end do
-        end do
+        ! do ix = 1, neo_grid%n_xi + 1
+            ! do ie = 1, neo_grid%n_energy + 1
+                ! do is = 1, neo_grid%n_species
+                    ! do iz = -nzgrid, nzgrid
+                        ! write(unit,'(I6,1X,I4,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8)') iz, ix, ie, is, zed(iz), neo_h_hat_z_grid(iz, ix, ie, is, surface_index)
+                    ! end do
+                ! end do
+            ! end do
+        ! end do
 
-        close(unit)
+        ! close(unit)
     end subroutine get_neo_h_hat_on_stella_z_grid
 
 
-! =================================================================================================================================================================================== !
-! ---------------------------------- Interpolate the NEO ϕ^1_0 data from the NEO θ grid to the stella z grid for a specified flux surface. ------------------------------------------ !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! --------------------------------- Interpolate the NEO ϕ^1_0 data from the NEO θ grid to the stella z grid for a specified flux surface. ----------------------------------------- !
+! ================================================================================================================================================================================= !
 
     subroutine get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, surface_index, neo_phi_z_grid, suffix)
         use grids_z, only: nzgrid, zed
@@ -311,7 +309,7 @@ contains
         implicit none
 
         real, intent(in)  :: neo_phi_in(:, :)    
-        real, intent(out) :: neo_phi_z_grid(:, :)
+        real, intent(out) :: neo_phi_z_grid(-nzgrid:, :)
 
         type(neo_grid_data), intent(in) :: neo_grid
         integer, intent(in) :: surface_index
@@ -325,36 +323,36 @@ contains
         ! ----------------- Diagnostic. ------------------- !
         ! ================================================= !
 
-        unit = 99 
+        ! unit = 99 
 
-        if (present(suffix)) then
-            write(filename,'("neo_phi_z_grid_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
-        else
-            write(filename,'("neo_phi_z_grid",I0,".dat")') surface_index
-        end if
+        ! if (present(suffix)) then
+            ! write(filename,'("neo_phi_z_grid_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
+        ! else
+            ! write(filename,'("neo_phi_z_grid",I0,".dat")') surface_index
+        ! end if
 
-        open(unit=unit, file=filename, status='replace', action='write')
+        ! open(unit=unit, file=filename, status='replace', action='write')
 
-        write(unit,'(A)') '# Diagnostic output: neo_phi_z_grid'
-        write(unit,'(A,I0)') '# surface_index = ', surface_index
-        write(unit,'(A)') '# Columns:'
-        write(unit,'(A)') '#   iz   : z-grid index'
-        write(unit,'(A)') '#   z    : stella z coordinate'
-        write(unit,'(A)') '#   phi^1_0 : interpolated neo_phi on stella z-grid'
-        write(unit,'(A)') '#'
-        write(unit,'(A)') '# iz            z              hhat'
+        ! write(unit,'(A)') '# Diagnostic output: neo_phi_z_grid'
+        ! write(unit,'(A,I0)') '# surface_index = ', surface_index
+        ! write(unit,'(A)') '# Columns:'
+        ! write(unit,'(A)') '#   iz   : z-grid index'
+        ! write(unit,'(A)') '#   z    : stella z coordinate'
+        ! write(unit,'(A)') '#   phi^1_0 : interpolated neo_phi on stella z-grid'
+        ! write(unit,'(A)') '#'
+        ! write(unit,'(A)') '# iz            z              hhat'
         ! -----------------------------------
 
-        do iz = -nzgrid, nzgrid
-            write(unit,'(I6,ES16.8,1X,ES16.8)') iz, zed(iz), neo_phi_z_grid(iz, surface_index)
-        end do
-        close(unit)
+        ! do iz = -nzgrid, nzgrid
+            ! write(unit,'(I6,ES16.8,1X,ES16.8)') iz, zed(iz), neo_phi_z_grid(iz, surface_index)
+        ! end do
+        ! close(unit)
     end subroutine get_neo_phi_on_stella_z_grid
 
 
-! =================================================================================================================================================================================== !
-! ---------------------------------------------- Reconstruct NEO H_1 on stella z, v∥​ and μ grids for a selected flux surface. ------------------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! --------------------------------------------- Reconstruct NEO H_1 on stella z, v∥​ and μ grids for a selected flux surface. ------------------------------------------------------ !
+! ================================================================================================================================================================================= !
 !
 ! We have neo_h_hat which are the amplitudes in the Laguerre-Legendre basis. The full neo_h(r, θ, x_a, ξ) (for one particle species) is given by:
 !
@@ -364,34 +362,69 @@ contains
 ! polynomials. See: https://gacode.io/neo/outputs.html#neo-out-neo-f for more details.
 !
 ! We need to evaluate this on stellas v-space grids for v∥​ and μ. For each point on these grids, we can evaluate x_a and ξ, then evaluate the polynomials.  
-! The result will be neo_h on the stellas grids (modulo some normalisations) for a selected flux surface. 
+! The result will be neo_h on the stellas grids for a selected flux surface. 
 !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
 
     ! subroutine construct_neo_h_on_stellas_grids(neo_h_hat_z_grid, neo_grid, surface_index, neo_h)
-        ! use polynomials, only: evaluate_legendre, evaluate_laguerre_function
-	! use grids_velocity, only: vpa, nvpa, mu, nmu
+        ! use polynomials, only: get_legendre_array, get_laguerre_array
+	! use grids_velocity, only: vpa, nvpa, nvgrid,  mu, nmu
         ! use geometry, only: bmag 
         ! use NEO_interface, only: neo_grid_data	
 
         ! implicit none
 
-        ! real, intent(in)  :: neo_h_hat_z_grid(:, :, :, :, :) ! NEO h_hat data interpolated on to stellas z grid. 
-        ! real, intent(out) :: neo_h(:, :, :, :, :)            ! NEO h data on stellas z, v∥​ and μ grids. 
-        
-        ! integer :: iz, iv, imu, il, ie, is                   ! Loop indices. 
-
-
-        ! type(neo_grid_data), intent(in) :: neo_grid
-        ! integer, intent(in) :: surface_index
-        ! character(len=*), intent(in), optional :: suffix               ! <======= For saving H_1 data for inspection.
-        ! integer :: unit
-        ! character(len=256) :: filename
     ! end subroutine construct_neo_h_on_stellas_grids
 
 
-! =================================================================================================================================================================================== !
-! ------------------------------------------------------------------------------- End Module. --------------------------------------------------------------------------------------- !
-! =================================================================================================================================================================================== !
+! ================================================================================================================================================================================= !
+! ---------------------------------------------------------------- Constructs H_1 for a single (ξ_in, E_in) pair. ----------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+!
+! Performs the sum over the passed distribution function weighted by Legendre and associated Laguerre basis functions at a single (ξ_in, E_in).
+! The result is the neo distribution function, H_1 (not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
+!
+! ================================================================================================================================================================================= !
+
+    pure real function get_neo_h_at_xi_energy(neo_h_hat_z_grid, E_in, xi_in, neo_grid) result(the_sum)
+        use polynomials, only: get_legendre_array, get_laguerre_array
+        use NEO_interface, only: neo_grid_data
+    
+        implicit none
+    
+        real, dimension(:, :), intent(in) :: neo_h_hat_z_grid ! A 2-D slice of the 5-dimensional neo_h_hat_z_grid data, at fixed z, species and surface index. 
+        real, intent(in) :: E_in, xi_in
+        type(neo_grid_data), intent(in) :: neo_grid
+    
+        integer :: ie, ix
+
+        real :: P(0:neo_grid%n_xi+1)
+        real :: L05(0:neo_grid%n_energy+1)
+        real :: L15(0:neo_grid%n_energy+1)
+
+        the_sum = 0.0
+
+        call get_legendre_array(xi_in, neo_grid%n_xi+1, P)
+
+        ! We need to evaluate the Laguerre function with two different values of k, the first for the first ξ index and the other for all other ξ indices.
+        
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 0.5, L05)
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 1.5, L15)
+
+        ! Now iterate over data and perform the sum. First add in the piece for the first ξ index. 
+        do ie = 1, neo_grid%n_energy+1
+       	    the_sum = the_sum + P(0) * L05(ie) * neo_h_hat_z_grid(1, ie)
+
+            ! Now add in all the other xi indicies.
+            do ix = 2, neo_grid%n_xi+1
+                the_sum = the_sum + P(ix) * L15(ie) * neo_h_hat_z_grid(ix, ie)
+            end do
+        end do
+    end function get_neo_h_at_xi_energy
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------------------------------------------ End Module. -------------------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
 
 end module neoclassical_terms_neo
