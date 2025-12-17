@@ -79,7 +79,7 @@ contains
    !============================================================================
    subroutine init_response_matrix
 
-      use mp, only: proc0, iproc
+      use mp, only: proc0
       use debug_flags, only: print_extra_info_to_terminal
       use parallelisation_layouts, only: verbose
       use linear_solve, only: lu_decomposition
@@ -87,7 +87,7 @@ contains
       use parallelisation_layouts, only: mat_gen
       use file_units, only: unit_response_matrix
       use arrays, only: response_matrix
-      use grids_kxky, only: naky, nakx
+      use grids_kxky, only: naky
 #ifdef ISO_C_BINDING
       use arrays, only: response_window
 #endif
@@ -112,7 +112,7 @@ contains
 #ifdef ISO_C_BINDING
          write (*, '(A)') 'Use ISO_C_BINDING to create an MPI shared-memory window.'
 #else
-         write (*, '(A)') 'Warning: ISO_C_BINDING is not available.'
+         write (*, '(A)') 'Warning: ISO_C_BINDING is not available. Response matrix could hit memory limits.'
 #endif
       end if
       ! Set up response matrix utils
@@ -197,7 +197,7 @@ contains
 #ifdef ISO_C_BINDING
    subroutine setup_shared_memory_window
 
-      use mp, only: sgproc0, real_size, proc0
+      use mp, only: sgproc0, real_size
       use mp, only: create_shared_memory_window
       use arrays, only: response_window
       use field_equations, only: nfields
@@ -249,8 +249,9 @@ contains
          end if
 
          ! Print info to command prompt
-         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.0, A, F0.2, A)') &
+         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.2, A, F0.2, A)') &
             'Create shared window with ', win_size, ' bytes = ', win_size/1000000., ' Mb = ', win_size/1000000000., ' Gb.'
+         if (verbose .and. print_extra_info_to_terminal) write(*,*) ''
          
          ! Print a warning for 300Gb for now, to avoid hitting memory limits
          ! For example, Pitagora has 768Gb of RAM per node
@@ -318,7 +319,7 @@ contains
    !============================================================================
    subroutine construct_response_matrix
 
-      use mp, only: proc0, iproc
+      use mp, only: proc0
       use parallelisation_layouts, only: mat_gen
       use arrays, only: response_matrix
       use grids_kxky, only: naky
@@ -365,7 +366,6 @@ contains
          ! there are, while all kx-modes are typically connected for the smallest ky.
          ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
          do ie = 1, neigen(iky)
-            if (proc0) write(*,'(A, I0, A, I0)') 'calculate_response_matrix_to_invert for iky = ', iky, ' and ie = ', ie
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
          
@@ -600,7 +600,7 @@ contains
    subroutine get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
    
 #ifdef ISO_C_BINDING
-      use mp, only: sgproc0, proc0
+      use mp, only: sgproc0
 #endif
 
       use parallelisation_layouts, only: vmu_lo
@@ -725,7 +725,7 @@ contains
          phi_ext(idx) = phi_ext(idx) - 1.0
          
          ! But everywhere else, simply add a negative sign:
-         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse) ! COOKIE DEBUG: THIS WHERE WE HIT A MEMORY LIMIT
+         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
          if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
          if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
       
@@ -1805,7 +1805,7 @@ contains
 
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use mp, only: nbytes_real, proc0, mp_abort
+      use mp, only: nbytes_real, mp_abort
 #endif
       use arrays, only: response_matrix
 
@@ -1833,11 +1833,11 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
-         !cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
          cur_pos = cur_pos + int(nresponse, c_intptr_t) * int(nresponse, c_intptr_t) * 2_c_intptr_t * int(nbytes_real, c_intptr_t)
          
+         ! Make sure we do not have integer overflows
          if (cur_pos < 0_c_intptr_t) then
-            call mp_abort("cur_pos overflow detected. Aborting.")
+            call mp_abort("Integer overflow detected for cur_pos. Aborting.")
          end if
          
       end if
@@ -1852,11 +1852,11 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
-         !cur_pos = cur_pos + nresponse * 4
          cur_pos = cur_pos + int(nresponse, c_intptr_t) * 4_c_intptr_t
          
+         ! Make sure we do not have integer overflows
          if (cur_pos < 0_c_intptr_t) then
-            call mp_abort("cur_pos overflow detected. Aborting.")
+            call mp_abort("Integer overflow detected for cur_pos. Aborting.")
          end if
          
       end if
