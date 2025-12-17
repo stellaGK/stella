@@ -1825,7 +1825,7 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
-         cur_pos = cur_pos !+ nresponse**2 * 2 * nbytes_real
+         cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
          
       end if
 
@@ -1839,7 +1839,7 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
-         cur_pos = cur_pos !+ nresponse * 4
+         cur_pos = cur_pos + nresponse * 4
          
       end if
 #else
