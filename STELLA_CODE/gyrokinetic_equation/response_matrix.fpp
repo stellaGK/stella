@@ -331,7 +331,7 @@ contains
       ! ------------------------------------------------------------------------
       
       ! Loop over all ky modes, as these are all independent of one another.
-      do iky = 3, naky
+      do iky = 1, naky
 
          ! Write the ky-value to the output file
          if (proc0 .and. mat_gen) then
