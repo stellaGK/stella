@@ -422,9 +422,12 @@ contains
       subroutine print_info_to_command_prompt
 
          use mp, only: nproc
+         use iso_fortran_env, only: int64
          use debug_flags, only: print_extra_info_to_terminal
 
          implicit none
+         
+         integer(int64) :: prod_points
 
          !----------------------------------------------------------------------
          
@@ -443,6 +446,8 @@ contains
          ! Also print the grids and the number of points for 
          ! the distribution function and the electrostatic potential
          if (verbose .and. print_extra_info_to_terminal) then
+         
+            ! Grids
             write (*, *) ''
             write (*, *) 'Grids:'
             write (*, '(A,I0)') '    nx = ', nx
@@ -456,13 +461,18 @@ contains
             write (*, '(A,I0)') '    ntubes = ', ntubes
             write (*, '(A,I0)') '    nalpha = ', nalpha
             write (*, *) ''
+            
+            ! Total number of points (which can be more than the max 32-bit integer)
             write (*, *) 'Total number of grid points:'
-            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec, &
-               ' = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
-            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec, &
-               ' = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
-            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz = ', nakx*naky*nz, &
-               ' = ', nakx*naky*nz/1024./1024., ' MiB = ', nakx*naky*nz/1024./1024./1024., ' GiB.'
+            prod_points = int(nx, int64) * int(ny, int64) * int(nz, int64) * int(nmu, int64) * int(nvpa, int64) * int(nspec, int64)
+            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', prod_points, &
+               ' = ', prod_points/1024./1024., ' MiB = ', prod_points/1024./1024./1024., ' GiB.'
+            prod_points = int(nakx, int64) * int(naky, int64) * int(nz, int64) * int(ntubes, int64) * int(nspec, int64)
+            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', prod_points, &
+               ' = ', prod_points/1024./1024., ' MiB = ', prod_points/1024./1024./1024., ' GiB.'
+            prod_points = int(nakx, int64) * int(naky, int64) * int(nz, int64) * int(ntubes, int64) * int(nspec, int64)
+            write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz = ', prod_points, &
+               ' = ', prod_points/1024./1024., ' MiB = ', prod_points/1024./1024./1024., ' GiB.'
             write (*, *) ''
             write (*, *) 'Number of points to be parallelised:'
             write (*, '(A,I10,A)') '    vmu-layout:  ', nmu*nvpa*nspec, '    (nmu*nvpa*nspec)'
