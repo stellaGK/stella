@@ -1797,7 +1797,7 @@ contains
 
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use mp, only: nbytes_real, proc0
+      use mp, only: nbytes_real, proc0, mp_abort
 #endif
       use arrays, only: response_matrix
 
@@ -1826,9 +1826,13 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
-         !cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
-         bytes = int(nresponse, c_intptr_t) * int(nresponse, c_intptr_t) * 2_c_intptr_t * int(nbytes_real, c_intptr_t)
-         cur_pos = cur_pos + bytes
+         cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+         !bytes = int(nresponse, c_intptr_t) * int(nresponse, c_intptr_t) * 2_c_intptr_t * int(nbytes_real, c_intptr_t)
+         !cur_pos = cur_pos + bytes
+         
+         if (cur_pos < 0_c_intptr_t) then
+            mp_abort("cur_pos overflow detected. Aborting.")
+         end if
          
       end if
 
@@ -1842,9 +1846,13 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
-         !cur_pos = cur_pos + nresponse * 4
-         bytes = int(nresponse, c_intptr_t) * 4_c_intptr_t
-         cur_pos = cur_pos + bytes
+         cur_pos = cur_pos + nresponse * 4
+         !bytes = int(nresponse, c_intptr_t) * 4_c_intptr_t
+         !cur_pos = cur_pos + bytes
+         
+         if (cur_pos < 0_c_intptr_t) then
+            mp_abort("cur_pos overflow detected. Aborting.")
+         end if
          
       end if
 #else
