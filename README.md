@@ -278,5 +278,5 @@ It is the responsibility of the respective authors to list their contributions t
 ### Bug fixes
 
 - September 2024: Fixed masking of the `omega` data in the NetCDF output (H. Thienpondt).
-- December 2025: Fixed an integer-overflow bug in the MPI shared-memory implementation for the response matrix. The shared-window size and associated pointers were previously defined using 32-bit integers, limiting the usable shared memory to approximately 8–9 GB and leading to segmentation faults for larger problems. Redefining these quantities as 64-bit integers removes this limitation and allows response matrices of at least ~30 GB to be handled reliably (H. Thienpondt).
+- December 2025: Fixed an integer-overflow bug in the MPI shared-memory implementation for the response matrix. The shared-window size and associated pointers were previously defined using 32-bit integers, limiting the usable shared memory to approximately 8–9 GB and leading to segmentation faults for larger problems. These quantities are now defined using 64-bit integers, removing this artificial limitation and enabling reliable handling of response matrices of at least ~40 GB. The maximum supported size is now determined by the available node RAM rather than by internal stella integer limits (H. Thienpondt).
 
