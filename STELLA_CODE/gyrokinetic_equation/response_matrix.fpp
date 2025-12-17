@@ -248,13 +248,14 @@ contains
             end do
          end if
 
-         ! Print info to command prompt
-         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.2, A, F0.2, A)') &
-            'Create shared window with ', win_size, ' bytes = ', win_size/1000000., ' Mb = ', win_size/1000000000., ' Gb.'
+         ! Print info to command prompt (Gigabyte = 10**9 and Gigibyte = 2**20 = 1024**3)
+         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.2, A, F0.2, A, F0.2, A)') &
+            'Create shared window with ', win_size, ' bytes = ', win_size/1000000., &
+            ' Mb = ', win_size/1000000000., ' Gb = ', win_size/1024./1024./1024., ' Gib.'
          if (verbose .and. print_extra_info_to_terminal) write(*,*) ''
          
-         ! Print a warning for 300Gb for now, to avoid hitting memory limits
-         ! For example, Pitagora has 768Gb of RAM per node
+         ! Print a warning for 300Gib for now, to avoid hitting memory limits
+         ! For example, Pitagora has 768Gib of RAM per node
          if (win_size > 300_MPI_ADDRESS_KIND * 1024_MPI_ADDRESS_KIND**3) then
              write(*,*) 'WARNING: requested shared window is very large and might exceed the node memory!'
              stop

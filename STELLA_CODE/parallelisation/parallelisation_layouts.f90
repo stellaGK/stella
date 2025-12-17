@@ -394,8 +394,9 @@ contains
          write (*, '(A,I0)') '    nalpha = ', nalpha
          write (*, *) ''
          write (*, *) 'Total number of grid points:'
-         write (*, '(A,I0)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec
-         write (*, '(A,I0)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec
+         write (*, '(A,I0,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec, ' = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024./1024., ' Gib.'
+         write (*, '(A,I0,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec, ' = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024./1024., ' Gib.'
+         write (*, '(A,I0,A,F0.2,A)') '    nkx*nky*nz = ', nakx*naky*nz, ' = ', nakx*naky*nz/1024./1024./1024., ' Gib.'
          write (*, *) ''
          write (*, *) 'Number of points to be parallelised:'
          write (*, '(A,I7,A)') '    vmu-layout:  ', nmu*nvpa*nspec, '    (nmu*nvpa*nspec)'

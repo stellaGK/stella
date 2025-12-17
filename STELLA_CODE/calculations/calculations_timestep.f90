@@ -161,13 +161,13 @@ contains
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                        CFL CONDITION"
          write (*, '(A)') "############################################################"
-         write (*, '(A16)') 'LINEAR CFL_DT: '
+         write (*, *) ''; write (*, '(A16)') 'LINEAR CFL_DT: '
          if (.not. drifts_implicit) write (*, '(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
          if (.not. drifts_implicit) write (*, '(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
-         write (*, *)
+         write (*, *) ''
       end if
 
       ! Reduce the time step if it's much larger than the CFL condition
