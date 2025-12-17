@@ -1831,7 +1831,7 @@ contains
          !cur_pos = cur_pos + bytes
          
          if (cur_pos < 0_c_intptr_t) then
-            mp_abort("cur_pos overflow detected. Aborting.")
+            call mp_abort("cur_pos overflow detected. Aborting.")
          end if
          
       end if
@@ -1851,7 +1851,7 @@ contains
          !cur_pos = cur_pos + bytes
          
          if (cur_pos < 0_c_intptr_t) then
-            mp_abort("cur_pos overflow detected. Aborting.")
+            call mp_abort("cur_pos overflow detected. Aborting.")
          end if
          
       end if
