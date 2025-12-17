@@ -717,15 +717,15 @@ contains
          phi_ext(idx) = phi_ext(idx) - 1.0
          
          ! But everywhere else, simply add a negative sign:
-         if iky==3 then
-            if ie==1 then
+         if (iky==3) then
+            if (ie==1) then
                write(*,'(A, I0)') 'Memory issue: idx = ', idx
                write(*,*) 'Memory issue: -phi_ext(:nresponse = ', -phi_ext(:nresponse)
             end if
          end if
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse) ! COOKIE DEBUG: THIS WHERE WE HIT A MEMORY LIMIT
-         if iky==3 then
-            if ie==1 then
+         if (iky==3) then
+            if (ie==1) then
                write(*,*) 'Memory issue: response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = ', response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx)
                write(*,*) ''
             end if
