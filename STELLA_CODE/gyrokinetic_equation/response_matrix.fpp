@@ -213,7 +213,6 @@ contains
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer :: iky, ie
       integer :: nresponse
-      integer :: nz_ext, nresponse_per_field
 
       ! ------------------------------------------------------------------------
 
@@ -232,21 +231,11 @@ contains
                
                   ! Total data points required for the eigenmmode = fields * z-points
                   ! and +1 for the non-periodic endpoint in the extended z-grid
-                  !if (periodic(iky)) then
-                  !   nresponse = (nsegments(ie, iky) * nzed_segment) * nfields
-                  !else
-                  !   nresponse = (nsegments(ie, iky) * nzed_segment + 1) * nfields
-                  !end if
-               
-                  ! Total data points required for the eigenmmode = fields * z-points
-                  ! and +1 for the non-periodic endpoint in the extended z-grid
-                  nz_ext = nsegments(ie, iky) * nzed_segment + 1
                   if (periodic(iky)) then
-                     nresponse_per_field = nz_ext - 1
+                     nresponse = (nsegments(ie, iky) * nzed_segment) * nfields
                   else
-                     nresponse_per_field = nz_ext
+                     nresponse = (nsegments(ie, iky) * nzed_segment + 1) * nfields
                   end if
-                  nresponse = nresponse_per_field * nfields
                   
                   ! For each eigenmode we need the following memory: 4 * nresponse + 2 * nresponse**2 * real_size
                   ! We need integer metadata for the indices, which requires 4 bytes per <nresponse>
@@ -255,8 +244,7 @@ contains
                       + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
                       
                end do
-            end do
-            win_size = win_size * 2
+            end doç
          end if
 
          ! Print info to command prompt
@@ -343,7 +331,7 @@ contains
       ! ------------------------------------------------------------------------
       
       ! Loop over all ky modes, as these are all independent of one another.
-      do iky = 1, naky
+      do iky = 3, naky
 
          ! Write the ky-value to the output file
          if (proc0 .and. mat_gen) then
@@ -512,7 +500,7 @@ contains
       ! For iseg > 1 one endpoint is shared with the previous segment.
       izl_offset = 0
 
-      ! Here, we apply a unit impulse at every value of zed in this sements, and find the 
+      ! Here, we apply a unit impulse at every value of zed in this segment, and find the 
       ! response of gext to this unit impulse. The impulse is provided at the <idx> value.
       ! Note - No need to obtain response to impulses at negative kx values
       ! Loop over all segments
