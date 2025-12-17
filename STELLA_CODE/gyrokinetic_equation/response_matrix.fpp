@@ -248,7 +248,7 @@ contains
          end if
 
          ! Print info to command prompt
-         if (verbose .and. print_extra_info_to_terminal) write(*,'(A, I0, A, F0.4, A, F0.4, A)') &
+         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.0, A, F0.2, A)') &
             'Create shared window with ', win_size, ' bytes = ', win_size/1000000., ' Mb = ', win_size/1000000000., ' Gb.'
          
          ! Only <sgproc0> will pass a non-zero window size to the following function
@@ -1825,6 +1825,7 @@ contains
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
          cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+         write(*,'(A, I0)') 'DEBUG zloc: cur_pos = ', cur_pos
          
       end if
 
@@ -1839,6 +1840,7 @@ contains
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
          cur_pos = cur_pos + nresponse * 4
+         write(*,'(A, I0)') 'DEBUG idx: cur_pos = ', cur_pos
          
       end if
 #else
