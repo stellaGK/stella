@@ -467,7 +467,7 @@ contains
             prod_points = int(nx, int64) * int(ny, int64) * int(nz, int64) * int(nmu, int64) * int(nvpa, int64) * int(nspec, int64)
             write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', prod_points, &
                ' = ', prod_points/1024./1024., ' MiB = ', prod_points/1024./1024./1024., ' GiB.'
-            prod_points = int(nakx, int64) * int(naky, int64) * int(nz, int64) * int(ntubes, int64) * int(nspec, int64)
+            prod_points = int(nakx, int64) * int(naky, int64) * int(nz, int64) * int(nmu, int64) * int(nvpa, int64) * int(nspec, int64)
             write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', prod_points, &
                ' = ', prod_points/1024./1024., ' MiB = ', prod_points/1024./1024./1024., ' GiB.'
             prod_points = int(nakx, int64) * int(naky, int64) * int(nz, int64) * int(ntubes, int64) * int(nspec, int64)
