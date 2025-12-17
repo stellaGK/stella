@@ -366,7 +366,7 @@ contains
 
       !-------------------------------------------------------------------------
       
-      ! Print some basic info to the output file
+      ! Print some basic info to the output file (Gigabyte = 10**9 and Gigibyte = 2**20 = 1024**3)
       if (print_extra_info_to_terminal) then
          write (*, '(A)') '############################################################'
          write (*, '(A)') '                       PARALLELISATION                      '
@@ -394,20 +394,23 @@ contains
          write (*, '(A,I0)') '    nalpha = ', nalpha
          write (*, *) ''
          write (*, *) 'Total number of grid points:'
-         write (*, '(A,I0,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec, ' = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024./1024., ' Gib.'
-         write (*, '(A,I0,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec, ' = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024./1024., ' Gib.'
-         write (*, '(A,I0,A,F0.2,A)') '    nkx*nky*nz = ', nakx*naky*nz, ' = ', nakx*naky*nz/1024./1024./1024., ' Gib.'
+         write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nx*ny*nz*nmu*nvpa*nspec = ', nx*ny*nz*nmu*nvpa*nspec, &
+            ' = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nx*ny*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
+         write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz*nmu*nvpa*nspec = ', nakx*naky*nz*nmu*nvpa*nspec, &
+            ' = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024., ' MiB = ', nakx*naky*nz*nmu*nvpa*nspec/1024./1024./1024., ' GiB.'
+         write (*, '(A,I0,A,F0.2,A,F0.2,A)') '    nkx*nky*nz = ', nakx*naky*nz, &
+            ' = ', nakx*naky*nz/1024./1024., ' MiB = ', nakx*naky*nz/1024./1024./1024., ' GiB.'
          write (*, *) ''
          write (*, *) 'Number of points to be parallelised:'
-         write (*, '(A,I7,A)') '    vmu-layout:  ', nmu*nvpa*nspec, '    (nmu*nvpa*nspec)'
-         write (*, '(A,I7,A)') '    kxkyz-layout:', nakx*naky*nz*ntubes*nspec, '    (nkx*nky*nz*ntubes*nspec)'
+         write (*, '(A,I10,A)') '    vmu-layout:  ', nmu*nvpa*nspec, '    (nmu*nvpa*nspec)'
+         write (*, '(A,I10,A)') '    kxkyz-layout:', nakx*naky*nz*ntubes*nspec, '    (nkx*nky*nz*ntubes*nspec)'
          if (full_flux_surface) write (*, '(A,I7,A)') '    kxyz-layout: ', (nakx/2+1)*ny*nz*ntubes*nspec, '    ((nakx/2+1)*ny*nz*ntubes*nspec)'
          if (include_parallel_nonlinearity) write (*, '(A,I7,A)') '    xyz-layout:  ', nx*ny*nz*nspec, '    (nx*ny*nz*nspec)'
          if (.not. split_parallel_dynamics) write (*, '(A,I7,A)') '    kymus-layout:', naky*nmu*nspec, '    (nky*nmu*nspec)'
          write (*, *) ''
          write (*, *) 'Number of points per processor:'
-         write (*, '(A,I7)') '    vmu-layout:  ', (nmu*nvpa*nspec-1)/nproc+1
-         write (*, '(A,I7)') '    kxkyz-layout:', (nakx*naky*nz*ntubes*nspec-1)/nproc+1
+         write (*, '(A,I10)') '    vmu-layout:  ', (nmu*nvpa*nspec-1)/nproc+1
+         write (*, '(A,I10)') '    kxkyz-layout:', (nakx*naky*nz*ntubes*nspec-1)/nproc+1
          if (full_flux_surface) write (*, '(A,I7)') '    kxyz-layout: ', ((nakx/2+1)*ny*nz*ntubes*nspec-1)/nproc+1
          if (include_parallel_nonlinearity) write (*, '(A,I7)') '    xyz-layout:  ', (nx*ny*nz*nspec-1)/nproc+1
          if (.not. split_parallel_dynamics) write (*, '(A,I7)') '    kymus-layout:', (naky*nmu*nspec-1)/nproc+1

@@ -249,9 +249,8 @@ contains
          end if
 
          ! Print info to command prompt (Gigabyte = 10**9 and Gigibyte = 2**20 = 1024**3)
-         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.2, A, F0.2, A, F0.2, A)') &
-            'Create shared window with ', win_size, ' bytes = ', win_size/1000000., &
-            ' Mb = ', win_size/1000000000., ' Gb = ', win_size/1024./1024./1024., ' Gib.'
+         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.2, A, F0.2, A)') &
+            'Create shared window with ', win_size, ' bytes = ', win_size/1000000., ' Mb = ', win_size/1024./1024./1024., ' GiB.'
          if (verbose .and. print_extra_info_to_terminal) write(*,*) ''
          
          ! Print a warning for 300Gib for now, to avoid hitting memory limits
