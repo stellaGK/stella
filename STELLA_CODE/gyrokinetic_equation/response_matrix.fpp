@@ -213,6 +213,7 @@ contains
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer :: iky, ie
       integer :: nresponse
+      integer :: nz_ext, nresponse_per_field
 
       ! ------------------------------------------------------------------------
 
@@ -231,11 +232,21 @@ contains
                
                   ! Total data points required for the eigenmmode = fields * z-points
                   ! and +1 for the non-periodic endpoint in the extended z-grid
+                  !if (periodic(iky)) then
+                  !   nresponse = (nsegments(ie, iky) * nzed_segment) * nfields
+                  !else
+                  !   nresponse = (nsegments(ie, iky) * nzed_segment + 1) * nfields
+                  !end if
+               
+                  ! Total data points required for the eigenmmode = fields * z-points
+                  ! and +1 for the non-periodic endpoint in the extended z-grid
+                  nz_ext = nsegments(ie, iky) * nzed_segment + 1
                   if (periodic(iky)) then
-                     nresponse = (nsegments(ie, iky) * nzed_segment) * nfields
+                     nresponse_per_field = nz_ext - 1
                   else
-                     nresponse = (nsegments(ie, iky) * nzed_segment + 1) * nfields
+                     nresponse_per_field = nz_ext
                   end if
+                  nresponse = nresponse_per_field * nfields
                   
                   ! For each eigenmode we need the following memory: 4 * nresponse + 2 * nresponse**2 * real_size
                   ! We need integer metadata for the indices, which requires 4 bytes per <nresponse>
@@ -357,7 +368,7 @@ contains
          ! there are, while all kx-modes are typically connected for the smallest ky.
          ! Hence neigen(ky_min) is typically 1 while neigen(ky_max) is typically nakx.
          do ie = 1, neigen(iky)
-            write(*,'(A, I0, I0)') 'calculate_response_matrix_to_invert', iky, ie
+            write(*,'(A, I0, A, I0)') 'calculate_response_matrix_to_invert for iky = ', iky, ' and ie =', ie
             call calculate_response_matrix_to_invert(iky, ie)
          end do 
          
@@ -717,19 +728,7 @@ contains
          phi_ext(idx) = phi_ext(idx) - 1.0
          
          ! But everywhere else, simply add a negative sign:
-         if (iky==3) then
-            if (ie==1) then
-               write(*,'(A, I0)') 'Memory issue: idx = ', idx
-               write(*,*) 'Memory issue: -phi_ext(:nresponse = ', -phi_ext(:nresponse)
-            end if
-         end if
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse) ! COOKIE DEBUG: THIS WHERE WE HIT A MEMORY LIMIT
-         if (iky==3) then
-            if (ie==1) then
-               write(*,*) 'Memory issue: response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = ', response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx)
-               write(*,*) ''
-            end if
-         end if
          if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
          if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
       
@@ -1838,7 +1837,6 @@ contains
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
          cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
-         write(*,'(A, I0)') 'DEBUG zloc: cur_pos = ', cur_pos
          
       end if
 
@@ -1853,7 +1851,6 @@ contains
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
          cur_pos = cur_pos + nresponse * 4
-         write(*,'(A, I0)') 'DEBUG idx: cur_pos = ', cur_pos
          
       end if
 #else
