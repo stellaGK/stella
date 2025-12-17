@@ -385,7 +385,7 @@ contains
    
       !=========================================================================
       ! Sanity checks: on a 32-bit system (4 bytes) the largest signed integer 
-      ! is 2,147,483,647, integers which are bigger run into overflow errors.
+      ! is 2,147,483,647. Integers which are bigger will run into overflow errors.
       ! In this case, we would need to define these integers using 64 bits instead.
       !=========================================================================
       subroutine sanity_checks
@@ -401,7 +401,7 @@ contains
 
          !----------------------------------------------------------------------
          
-         ! Check the ivmu and ikxkyz indices using 64 bit integers
+         ! Check the ivmu and ikxkyz indices using 64-bit integers
          prod_ivmu = int(nmu, int64) * int(nvpa, int64) * int(nspec, int64)
          prod_ikxkyz = int(nakx, int64) * int(naky, int64) * int(nz, int64) * int(ntubes, int64) * int(nspec, int64)
       
