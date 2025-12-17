@@ -211,8 +211,8 @@ contains
 
       ! Local variables
       integer(kind=MPI_ADDRESS_KIND) :: win_size
+      integer(kind=MPI_ADDRESS_KIND) :: nresponse
       integer :: iky, ie
-      integer :: nresponse
 
       ! ------------------------------------------------------------------------
 
@@ -231,18 +231,19 @@ contains
                
                   ! Total data points required for the eigenmmode = fields * z-points
                   ! and +1 for the non-periodic endpoint in the extended z-grid
+                  ! To avoid overflowing the integers, we cast them to 64-bit integers first.
                   if (periodic(iky)) then
-                     nresponse = (nsegments(ie, iky) * nzed_segment) * nfields
+                     nresponse = int((nsegments(ie, iky) * nzed_segment) * nfields, MPI_ADDRESS_KIND)
                   else
-                     nresponse = (nsegments(ie, iky) * nzed_segment + 1) * nfields
+                     nresponse = int((nsegments(ie, iky) * nzed_segment + 1) * nfields, MPI_ADDRESS_KIND)
                   end if
                   
-                  ! For each eigenmode we need the following memory: 4 * nresponse + 2 * nresponse**2 * real_size
-                  ! We need integer metadata for the indices, which requires 4 bytes per <nresponse>
-                  ! Moreover, we need (real + imaginary) matrices of size (nresponse x nresponse) with real numbers (4 or 8 bytes)
-                  win_size = win_size + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                      + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
-                      
+                  ! Memory for integer metadata
+                  win_size = win_size + nresponse * 4_MPI_ADDRESS_KIND
+
+                  ! Memory for complex matrix: (real + imaginary) matrices of size (nresponse x nresponse)
+                  win_size = win_size + nresponse * nresponse * 2_MPI_ADDRESS_KIND * real_size
+
                end do
             end do
          end if
@@ -250,6 +251,13 @@ contains
          ! Print info to command prompt
          if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.0, A, F0.2, A)') &
             'Create shared window with ', win_size, ' bytes = ', win_size/1000000., ' Mb = ', win_size/1000000000., ' Gb.'
+         
+         ! Print a warning for 300Gb for now, to avoid hitting memory limits
+         ! For example, Pitagora has 768Gb of RAM per node
+         if (win_size > 300_MPI_ADDRESS_KIND * 1024_MPI_ADDRESS_KIND**3) then
+             write(*,*) 'WARNING: requested shared window is very large and might exceed the node memory!'
+             stop
+         end if
          
          ! Only <sgproc0> will pass a non-zero window size to the following function
          ! Allocates a single contiguous shared-memory region, and initializes the 
@@ -1808,7 +1816,6 @@ contains
 
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
-      integer(c_intptr_t) :: bytes
 
       ! ------------------------------------------------------------------------
       ! Exploit MPIs shared memory framework to reduce memory consumption 
@@ -1826,9 +1833,8 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
-         cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
-         !bytes = int(nresponse, c_intptr_t) * int(nresponse, c_intptr_t) * 2_c_intptr_t * int(nbytes_real, c_intptr_t)
-         !cur_pos = cur_pos + bytes
+         !cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+         cur_pos = cur_pos + int(nresponse, c_intptr_t) * int(nresponse, c_intptr_t) * 2_c_intptr_t * int(nbytes_real, c_intptr_t)
          
          if (cur_pos < 0_c_intptr_t) then
             call mp_abort("cur_pos overflow detected. Aborting.")
@@ -1846,9 +1852,8 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
-         cur_pos = cur_pos + nresponse * 4
-         !bytes = int(nresponse, c_intptr_t) * 4_c_intptr_t
-         !cur_pos = cur_pos + bytes
+         !cur_pos = cur_pos + nresponse * 4
+         cur_pos = cur_pos + int(nresponse, c_intptr_t) * 4_c_intptr_t
          
          if (cur_pos < 0_c_intptr_t) then
             call mp_abort("cur_pos overflow detected. Aborting.")
