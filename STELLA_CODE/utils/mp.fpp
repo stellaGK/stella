@@ -359,7 +359,7 @@ contains
       !-------------------------------------------------------------------------
       ! Create a shared-memory communicator
       !  - MPI-4: split by NUMA domain (resource-guided)
-      !  - MPI-3: split by node (MPI_COMM_TYPE_SHARED)
+      !  - MPI-3: split by node (mpi_comm_type_shared)
       !-------------------------------------------------------------------------
 
 #if defined(MPI_VERSION) && (MPI_VERSION >= 4)
@@ -375,7 +375,7 @@ contains
       write(*,*) 'Using NUMA domains'
       call mpi_info_create(mp_info, ierror)
       call mpi_info_set(mp_info, "mpi_hw_resource_type", "numa", ierror)
-      call mpi_comm_split_type(comm_all, MPI_COMM_TYPE_RESOURCE_GUIDED, aproc, mp_info, comm_shared, ierror)
+      call mpi_comm_split_type(comm_all, mpi_comm_type_resource_guided, aproc, mp_info, comm_shared, ierror)
 
 #else
 
