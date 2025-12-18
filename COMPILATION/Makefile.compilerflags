@@ -77,7 +77,7 @@ PETSC_INC ?=
 LIBSTELL_LIB ?=
 LAPACK_LIB ?=
 LAPACK_INC ?=
-MPI_VERSION ?=
+MPI_VERSION ?= 3
 
 ####################################################################
 #                        PLATFORM DEPENDENCE                       #
