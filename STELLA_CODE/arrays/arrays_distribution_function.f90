@@ -42,8 +42,8 @@ module arrays_distribution_function
    complex, dimension(:, :, :, :), allocatable :: g_krook
    complex, dimension(:, :, :, :), allocatable :: g_proj
 
-   ! Gyro-averaged pdf used when advancing parallel streaming and mirror without operator splitting
-   ! Distribution function parallelised over (ky, mu, s)
+   ! Gyro-averaged pdf used when advancing parallel streaming and mirror without 
+   ! operator splitting. Distribution function is parallelised over (ky, mu, s)
    ! (nakx, -nzgrid:nzgrid, ntubes, vpa, -kymus-layout-)
    complex, dimension(:, :, :, :, :), allocatable :: g_kymus
    

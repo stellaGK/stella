@@ -3,20 +3,20 @@
 ! (c) The Numerical Algorithms Group (NAG) Ltd, 2012
 ! on behalf of EPSRC for the HECToR project
 module redistribute
-!
+! 
 ! Redistribute distributed (integer, real, complex or logical)
 ! (1, 2, 3, or 4) dimensional arrays into two dimensional arrays with
 ! first index on local processor, and vice versa.
-!
+! 
 ! The first operation is called 'gather' and the second is called 'scatter.'
-!
+! 
 ! One can also do a 'fill' operation.  This consists of copying
 ! values from a (2, 3, or 4) dimensional array of
 ! (integer, real, complex, or logical ) values into
 ! another array with the same number of dimensions.
-!
+! 
 ! One can also do a three index to four index redistribution for complex numbers.
-!
+! 
    implicit none
    private
 

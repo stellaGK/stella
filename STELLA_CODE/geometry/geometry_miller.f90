@@ -389,7 +389,7 @@ contains
       real, dimension(-nzgrid:), intent(out) :: d_gradxdotgradx_drho_out, djac_drho_out
 
       ! Local variables - used for calculations
-      integer :: nr, n
+      integer :: nr
       integer :: i, j
       real :: rmin, dum
       real :: integral_jacrho_over_R2

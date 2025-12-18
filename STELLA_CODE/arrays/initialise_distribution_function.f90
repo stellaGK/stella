@@ -9,7 +9,7 @@
 !     - phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 !     - gvmu(nvpa, nmu, -kxkyz-layout-)
 ! 
-! If <split_parallel_dynamics> = True the following array will be initialised:
+! If <split_parallel_dynamics> = False the following array will be initialised:
 !     - g_kymus(nakx, -nzgrid:nzgrid, ntubes, vpa, -kymus-layout-)
 ! 
 ! The distribution function is initialised by initialising first the electrostatic
@@ -251,14 +251,14 @@ contains
       
       !-------------------------------------------------------------------------
       
-      ! Only allocate <g_kymus> if <split_parallel_dynamics> = True
+      ! Only allocate <g_kymus> if <split_parallel_dynamics> = False
       if (.not. allocated(g_kymus)) then
-            if (.not. split_parallel_dynamics) then
-               allocate (g_kymus(nakx, -nzgrid:nzgrid, ntubes, nvpa, kymus_lo%llim_proc:kymus_lo%ulim_alloc))
-            else
-               allocate (g_kymus(1, 1, 1, 1, 1))
-            end if
-            g_kymus = 0.
+         if (.not. split_parallel_dynamics) then
+            allocate (g_kymus(nakx, -nzgrid:nzgrid, ntubes, nvpa, kymus_lo%llim_proc:kymus_lo%ulim_alloc))
+         else
+            allocate (g_kymus(1, 1, 1, 1, 1))
+         end if
+         g_kymus = 0.
       end if
       
       !-------------------------------------------------------------------------

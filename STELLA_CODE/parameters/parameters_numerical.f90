@@ -104,7 +104,7 @@ contains
   !======================================================================
   !===================== READ NUMERICAL PARAMETERS ======================
   !======================================================================
-   subroutine read_parameters_numerical
+   subroutine read_parameters_numerical(fields_kxkyz)
 
       use mp, only: proc0, mp_abort
       use text_options, only: text_option, get_option_value
@@ -116,37 +116,33 @@ contains
       use namelist_parameters_numerical, only: read_namelist_flux_annulus
 
       implicit none
-
+         
+      logical, intent(in out) :: fields_kxkyz
       logical :: error = .false.
 
       !-------------------------------------------------------------------------
 
+      ! Only initialise once
       if (initialised) return
-
-      if (proc0) call read_namelist_time_trace_options(nstep, tend, autostop, avail_cpu_time)
-
-      if (proc0) call read_namelist_time_step(delt, delt_option_switch, &
-                        delt_max, delt_min, &
-                        cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower)
-
-      if (proc0) call read_namelist_numerical_algorithms(explicit_algorithm_switch, flip_flop, &
-                        stream_implicit, stream_iterative_implicit, &
-                        stream_matrix_inversion, driftkinetic_implicit, &
-                        mirror_implicit, mirror_semi_lagrange, &
-                        mirror_linear_interp, drifts_implicit, &
-                        fully_implicit, fully_explicit, &
-                        maxwellian_inside_zed_derivative, &
-                        use_deltaphi_for_response_matrix, & 
-                        split_parallel_dynamics)
-
-      if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
-
-      if (proc0) call read_namelist_flux_annulus(nitt)
-
-      if (proc0) call check_numerical_inputs 
-
-      call broadcast_parameters
       initialised = .true.
+
+      ! Read the input parameters
+      if (proc0) call read_namelist_time_trace_options(nstep, tend, autostop, avail_cpu_time)
+      if (proc0) call read_namelist_time_step(delt, delt_option_switch, delt_max, delt_min, &
+         cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower)
+      if (proc0) call read_namelist_numerical_algorithms(explicit_algorithm_switch, flip_flop, &
+         stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
+         mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
+         fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
+         use_deltaphi_for_response_matrix, split_parallel_dynamics)
+      if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
+      if (proc0) call read_namelist_flux_annulus(nitt)
+      
+      ! Check the numerical inputs
+      if (proc0) call check_numerical_inputs(fields_kxkyz)
+
+      ! Broadcast the input parameters to all processors
+      call broadcast_parameters
 
    contains
 
@@ -155,7 +151,7 @@ contains
       !**********************************************************************
       ! Change the other parameters for consistently.
       !**********************************************************************
-      subroutine check_numerical_inputs
+      subroutine check_numerical_inputs(fields_kxkyz)
 
          use parameters_physics, only: full_flux_surface
          use parameters_physics, only: include_apar
@@ -164,37 +160,33 @@ contains
          use parameters_physics, only: include_nonlinear
          use parameters_physics, only: include_xdrift, include_ydrift
          use parameters_physics, only: rhostar
-         use parallelisation_layouts, only: fields_kxkyz
-         use file_units, only: unit_error_file
+         use mp, only: mp_abort
          
          implicit none
+         
+         logical, intent(in out) :: fields_kxkyz
 
          !----------------------------------------------------------------------
 
          ! Abort if neither tend nor nstep are set
          if (tend < 0 .and. nstep < 0) then
-            write (unit_error_file, *) ''
-            write (unit_error_file, *) 'Please specify either <nstep> or <tend> in the <parameters_numerical> namelist.'
-            write (unit_error_file, *) 'Aborting.'
-            write (*, *) ''
-            write (*, *) 'Please specify either <nstep> or <tend> in the <parameters_numerical> namelist.'
-            write (*, *) 'Aborting.'
-            error = .true.
+            call mp_abort('Please specify either <nstep> or <tend> in the <parameters_numerical> namelist. Aborting')
          end if
 
          ! Abort if cfl_cushion_lower>cfl_cushion_upper or if cfl_cushion_lower==cfl_cushion_upper
-         if ((cfl_cushion_lower > cfl_cushion_upper - 0.001) &
-            .or. (cfl_cushion_middle > cfl_cushion_upper - 0.001) &
-            .or. (cfl_cushion_middle < cfl_cushion_lower + 0.001)) then
-            write (unit_error_file, *) ''
-            write (unit_error_file, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
-            write (unit_error_file, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'
-            write (unit_error_file, *) 'Aborting.'
-            write (*, *) ''
-            write (*, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
-            write (*, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'
-            write (*, *) 'Aborting.'
-            error = .true.
+         if (cfl_cushion_lower > cfl_cushion_upper - 0.001) then
+            call mp_abort('Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>. Aborting')
+         end if
+         if (cfl_cushion_middle > cfl_cushion_upper - 0.001) then
+            call mp_abort('Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_middle>. Aborting')
+         end if
+         if (cfl_cushion_middle < cfl_cushion_lower + 0.001) then
+            call mp_abort('Please make sure that <cfl_cushion_middle> is bigger than <cfl_cushion_lower>. Aborting')
+         end if
+         
+         ! The flag <split_parallel_dynamics> does not do anything for now
+         if (.not. split_parallel_dynamics) then
+            call mp_abort('The option split_parallel_dynamics = .false. has not been implemented yet. Aborting.')
          end if
 
          ! Semi-lagrange advance of mirror term is not supported for EM simulations
@@ -230,7 +222,7 @@ contains
             end if
          end if
 
-         if (.not. full_flux_surface) then  
+         if (.not. full_flux_surface) then
             nitt = 1
          end if
 
@@ -268,6 +260,7 @@ contains
          zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
          
          if (.not. include_mirror) mirror_implicit = .false.
+         
          if (.not. include_parallel_streaming) then
             stream_implicit = .false.
             driftkinetic_implicit = .false.
@@ -297,7 +290,9 @@ contains
             fully_implicit = .false.
             fully_explicit = .true.
           end if
-          
+         
+         ! Linear simulations can be stopped automatically when the growth rate
+         ! becomes saturated. Make sure this flag is off for nonlinear simulations.
          if (include_nonlinear) autostop = .false.
 
        end subroutine check_numerical_inputs
@@ -312,7 +307,7 @@ contains
 
          use mp, only: broadcast
          
-         implicit none    
+         implicit none
          
          ! Exit stella if we ran into an error
          call broadcast(error)

@@ -132,6 +132,7 @@ contains
  
       ! Print some key information about the VMEC file to the command prompt
       if (verbose .and. print_extra_info_to_terminal) then
+         write (*, *) ' '
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                       MAGNETIC FIELD"
          write (*, '(A)') "############################################################"

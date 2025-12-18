@@ -80,6 +80,8 @@ contains
    subroutine init_response_matrix
 
       use mp, only: proc0
+      use debug_flags, only: print_extra_info_to_terminal
+      use parallelisation_layouts, only: verbose
       use linear_solve, only: lu_decomposition
       use parallelisation_layouts, only: iv_idx, is_idx
       use parallelisation_layouts, only: mat_gen
@@ -101,9 +103,18 @@ contains
       !              Set up memory and timings for response matrix              
       ! ------------------------------------------------------------------------
       
-      ! Debug message -> print to terminal
-      if (debug) call write_response_matrix_message (1)
-
+      ! Print info to command prompt
+      if (verbose .and. print_extra_info_to_terminal) then
+         write (*, '(A)') '############################################################'
+         write (*, '(A)') '                       RESPONSE MATRIX                      '
+         write (*, '(A)') '############################################################'
+         write (*, '(A)') ''
+#ifdef ISO_C_BINDING
+         write (*, '(A)') 'Use ISO_C_BINDING to create an MPI shared-memory window.'
+#else
+         write (*, '(A)') 'Warning: ISO_C_BINDING is not available. Response matrix could hit memory limits.'
+#endif
+      end if
       ! Set up response matrix utils
       call setup_response_matrix_file_io
 
@@ -138,30 +149,8 @@ contains
       if (proc0 .and. mat_gen) then
          close (unit=unit_response_matrix)
       end if
-
-      ! End debug message -> print to terminal
-      if (debug) call write_response_matrix_message (2)
       
    end subroutine init_response_matrix
-
-   !============================================================================
-   !                         Write message to terminal
-   !============================================================================
-   subroutine write_response_matrix_message (toggle)
-
-      integer, intent (in) :: toggle
-
-      if (toggle == 1) then
-         write (*, *) " "
-         write (*, '(A)') "    ############################################################"
-         write (*, '(A)') "                         RESPONSE MATRIX"
-         write (*, '(A)') "    ############################################################"
-      elseif (toggle == 2) then
-         write (*, '(A)') "    ############################################################"
-         write (*, '(A)') " "
-      end if
-
-   end subroutine write_response_matrix_message
 
    !============================================================================
    !                     Set up .io file for response matrix                    
@@ -201,6 +190,9 @@ contains
    ! Create a single shared memory window for all the response matrices and
    ! permutation arrays. Creating a window for each matrix/array would lead 
    ! to performance degradation on some clusters
+   ! 1. Computes the total memory footprint needed to store response matrices/vectors
+   ! 2. Only one process per shared-memory node (sgproc0) computes this size
+   ! 3. Creates an MPI shared-memory window so all local MPI ranks can access it.
    !============================================================================
 #ifdef ISO_C_BINDING
    subroutine setup_shared_memory_window
@@ -212,33 +204,67 @@ contains
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen, nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
+      use debug_flags, only: print_extra_info_to_terminal
+      use parallelisation_layouts, only: verbose
 
       implicit none
 
       ! Local variables
       integer(kind=MPI_ADDRESS_KIND) :: win_size
+      integer(kind=MPI_ADDRESS_KIND) :: nresponse
       integer :: iky, ie
-      integer :: nresponse
 
       ! ------------------------------------------------------------------------
 
+      ! Only allocate the window once
       if (response_window == MPI_WIN_NULL) then
+      
+         ! Initialise the window size
          win_size = 0
+         
+         ! Only compute the window on the first processor of the shared-memory communicator
          if (sgproc0) then
+         
+            ! We need to allocate memory for each eigenmode
             do iky = 1, naky
                do ie = 1, neigen(iky)
+               
+                  ! Total data points required for the eigenmmode = fields * z-points
+                  ! and +1 for the non-periodic endpoint in the extended z-grid
+                  ! To avoid overflowing the integers, we cast them to 64-bit integers first.
                   if (periodic(iky)) then
-                     nresponse = (nsegments(ie, iky) * nzed_segment) * nfields
+                     nresponse = int((nsegments(ie, iky) * nzed_segment) * nfields, MPI_ADDRESS_KIND)
                   else
-                     nresponse = (nsegments(ie, iky) * nzed_segment + 1) * nfields
+                     nresponse = int((nsegments(ie, iky) * nzed_segment + 1) * nfields, MPI_ADDRESS_KIND)
                   end if
-                  win_size = win_size + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                      + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
+                  
+                  ! Memory for integer metadata
+                  win_size = win_size + nresponse * 4_MPI_ADDRESS_KIND
+
+                  ! Memory for complex matrix: (real + imaginary) matrices of size (nresponse x nresponse)
+                  win_size = win_size + nresponse * nresponse * 2_MPI_ADDRESS_KIND * real_size
+
                end do
             end do
          end if
 
+         ! Print info to command prompt (Gigabyte = 10**9 and Gigibyte = 2**20 = 1024**3)
+         if (verbose .and. print_extra_info_to_terminal) write (*,'(A, I0, A, F0.2, A, F0.2, A)') &
+            'Create shared window with ', win_size, ' bytes = ', win_size/1000000., ' Mb = ', win_size/1024./1024./1024., ' GiB.'
+         if (verbose .and. print_extra_info_to_terminal) write(*,*) ''
+         
+         ! Print a warning for 300Gib for now, to avoid hitting memory limits
+         ! For example, Pitagora has 768Gib of RAM per node
+         if (win_size > 300_MPI_ADDRESS_KIND * 1024_MPI_ADDRESS_KIND**3) then
+             write(*,*) 'WARNING: requested shared window is very large and might exceed the node memory!'
+             stop
+         end if
+         
+         ! Only <sgproc0> will pass a non-zero window size to the following function
+         ! Allocates a single contiguous shared-memory region, and initializes the 
+         ! cur_pos pointer. All MPI ranks on the node can now map this memory.
          call create_shared_memory_window(win_size, response_window, cur_pos)
+         
       end if
 
    end subroutine setup_shared_memory_window
@@ -390,7 +416,7 @@ contains
       use timers, only: time_response_matrix
       use parallelisation_layouts, only: mat_gen
       use parameters_physics, only: include_apar, include_bpar
-      use grids_extended_zgrid, only: neigen, ikxmod
+      use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -482,7 +508,7 @@ contains
       ! For iseg > 1 one endpoint is shared with the previous segment.
       izl_offset = 0
 
-      ! Here, we apply a unit impulse at every value of zed in this sements, and find the 
+      ! Here, we apply a unit impulse at every value of zed in this segment, and find the 
       ! response of gext to this unit impulse. The impulse is provided at the <idx> value.
       ! Note - No need to obtain response to impulses at negative kx values
       ! Loop over all segments
@@ -595,7 +621,6 @@ contains
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
-      character(5) :: dist
 
       ! ------------------------------------------------------------------------
       !                    1.A) Initialise a unit impulse in phi
@@ -773,7 +798,6 @@ contains
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
-      character(5) :: dist
       
       ! ------------------------------------------------------------------------
       !                   1.A) Initialise a unit impulse in apar
@@ -946,7 +970,6 @@ contains
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
-      character(5) :: dist
       
       ! ------------------------------------------------------------------------
       !                  1.A) Initialise a unit impulse in bpar
@@ -1441,7 +1464,6 @@ contains
          use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: denominator_fields, denominator_fields_MBR
-         use arrays, only: denominator_fields_h, denominator_fields_MBR_h
          use grids_species, only: adiabatic_option_switch
          use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -1677,7 +1699,6 @@ contains
          use grids_extended_zgrid, only: nsegments
          use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
-         use arrays, only: apar_denom
          use arrays, only: kperp2
 
          implicit none
@@ -1759,13 +1780,13 @@ contains
    end subroutine solve_field_equations_using_pdf_response
 
    !============================================================================
-   !                            Allocate zloc and idx 
+   !                            Allocate zloc and idx                           
    !============================================================================
-   ! Sets up the response matrix storage for a given (iky, ie) eigenmode.  
+   ! Sets up the response matrix storage for a given (iky, ie) eigenmode.
    ! 
-   ! Allocate the following: 
+   ! Allocate the following:
    ! ----------------------
-   ! - response_matrix%eigen%zloc is the dimension of the response matrix for a 
+   ! - response_matrix%eigen%zloc is the dimension of the response matrix for a
    !   given eigen chain 
    ! - response_matrix%idx is needed to keep track of permutations to the response
    !   matrix made during LU decomposition it will be input to LU back substitution
@@ -1775,16 +1796,16 @@ contains
    ! -------
    ! - When ISO_C_BINDING is available, it uses MPI’s shared memory buffer
    !   to avoid redundant allocations across ranks. This is done by mapping
-   !   existing memory into Fortran pointers with c_f_pointer.  
-   ! - Otherwise, it allocates fresh Fortran arrays.  
-   !   cur_pos acts as a memory cursor that steps through a shared memory block, 
+   !   existing memory into Fortran pointers with c_f_pointer.
+   ! - Otherwise, it allocates fresh Fortran arrays.
+   !   cur_pos acts as a memory cursor that steps through a shared memory block,
    !   ensuring each zloc and idx block points to its own reserved region.
    !============================================================================
    subroutine setup_response_matrix_zloc_idx(iky, ie, nresponse)
 
 #ifdef ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-      use mp, only: nbytes_real
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
+      use mp, only: nbytes_real, mp_abort
 #endif
       use arrays, only: response_matrix
 
@@ -1801,9 +1822,10 @@ contains
       ! of the response matrices by mapping existing memory blocks instead 
       ! of allocating separately on each process.
       ! ------------------------------------------------------------------------
-
+       
       ! Associate zloc (a 2D response matrix) if not already connected
       if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
+      
          ! Convert current memory cursor (cur_pos) into a C pointer
          cptr = transfer(cur_pos, cptr)
 
@@ -1811,11 +1833,18 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
          
          ! Advance cursor: nresponse^2 elements, each complex (2 reals)
-         cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+         cur_pos = cur_pos + int(nresponse, c_intptr_t) * int(nresponse, c_intptr_t) * 2_c_intptr_t * int(nbytes_real, c_intptr_t)
+         
+         ! Make sure we do not have integer overflows
+         if (cur_pos < 0_c_intptr_t) then
+            call mp_abort("Integer overflow detected for cur_pos. Aborting.")
+         end if
+         
       end if
 
       ! Associate idx (pivot indices) if not already connected
       if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) then
+      
          ! Convert current memory cursor to a C pointer
          cptr = transfer(cur_pos, cptr)
 
@@ -1823,16 +1852,21 @@ contains
          call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
 
          ! Advance cursor: nresponse integers, each assumed to take 4 bytes
-         cur_pos = cur_pos + nresponse * 4
+         cur_pos = cur_pos + int(nresponse, c_intptr_t) * 4_c_intptr_t
+         
+         ! Make sure we do not have integer overflows
+         if (cur_pos < 0_c_intptr_t) then
+            call mp_abort("Integer overflow detected for cur_pos. Aborting.")
+         end if
+         
       end if
 #else
       ! ------------------------------------------------------------------------
       ! If ISO_C_BINDING is not available:
       ! Allocate arrays normally in Fortran
       ! ------------------------------------------------------------------------
-      ! For each ky and set of connected kx values, so we must have a response
-      ! matrix that is N x N , with N = number of zeds per 2pi segment x number 
-      ! of 2pi segments
+      ! For each ky and set of connected kx values, so we must have a response matrix
+      ! that is N x N , with N = number of zeds per 2pi segment x number of 2pi segments
 
       ! Allocate zloc as an (nresponse x nresponse) matrix if not already allocated
       if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &

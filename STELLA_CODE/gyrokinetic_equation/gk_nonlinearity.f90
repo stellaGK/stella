@@ -153,6 +153,7 @@ contains
       integer, intent(in) :: istep
 
       ! Local variables
+      complex, dimension(:, :), allocatable :: apar_kykx, bpar_kykx
       complex, dimension(:, :), allocatable :: g0k, g0a, g0k_swap
       complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
@@ -165,7 +166,6 @@ contains
 
       ! Alpha-component of magnetic drift (requires ky -> y)
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
-
       if (debug) write (*, *) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
       ! Avoid divide by zero in cfl_dt terms below
@@ -175,10 +175,13 @@ contains
       cfl_dt_ExB = 10000000.
 
       restart_time_step = .false.
+      
       ! This statement seems to imply that flow shear is not compatible with FFS 
       ! need to check
       yfirst = .not. prp_shear_enabled
 
+      allocate (apar_kykx(naky, nakx)); apar_kykx = 0.
+      allocate (bpar_kykx(naky, nakx)); bpar_kykx = 0.
       allocate (g0k(naky, nakx))
       allocate (g0a(naky, nakx))
       allocate (g0xy(ny, nx))
@@ -205,36 +208,49 @@ contains
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
 
+      ! Iterate over velocity space
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
+            do iz = -nzgrid, nzgrid
+            
+               ! Get the fields (to avoid indexing arrays which aren't allocated)
+               if (include_apar) apar_kykx = apar(:, :, iz, it)
+               if (include_bpar) bpar_kykx = bpar(:, :, iz, it)
+            
                ! Compute i*ky*g
                call get_dgdy(g(:, :, iz, it, ivmu), g0k)
+               
                ! Take the FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
+               
                ! Compute i*kx*<chi>
                if (full_flux_surface) then
                   call get_dgdx(phi_gyro(:, :, iz, it, ivmu), g0k)
                else
-                  call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+                  call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
                end if
+               
                ! Zero out the zonal contribution to d<chi>/dx if requested
                if (suppress_zonal_interaction) then
                   g0k(1,:) = 0.0
                end if
+               
                ! If running with equilibrium flow shear, make adjustment to
                ! The term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0a)
+                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0a)
                   g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                end if
+               
                ! Take the FFT to get d<chi>/dx in (y,x) space
                call forward_transform(g0k, g1xy)
+               
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
                g1xy = g1xy * exb_nonlin_fac
+               
                ! Compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
                bracket = g0xy * g1xy
 
@@ -255,28 +271,35 @@ contains
 
                ! Compute dg/dx in k-space (= i*kx*g)
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
+               
                ! Zero out the zonal contribution to dg/dx if requested
                if (suppress_zonal_interaction) then
                   g0k(1,:) = 0.0
                end if
+               
                ! If running with equilibrium flow shear, correct dg/dx term
                if (prp_shear_enabled .and. hammett_flow_shear) then
                   call get_dgdy(g(:, :, iz, it, ivmu), g0a)
                   g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                end if
+               
                ! Take the FFT to get dg/dx in (y,x) space
                call forward_transform(g0k, g0xy)
+               
                ! Compute d<chi>/dy in k-space
                if (full_flux_surface) then
                   call get_dgdy(phi_gyro(:, :, iz, it, ivmu), g0k)
                else
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
                end if
+               
                ! Take the FFT to get d<chi>/dy in (y,x) space
                call forward_transform(g0k, g1xy)
+               
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
                g1xy = g1xy * exb_nonlin_fac
+               
                ! Compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx
                bracket = bracket - g0xy * g1xy
 
@@ -310,7 +333,7 @@ contains
                   call transform_x2kx_xfirst(g0xky, tmp)
                   gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
                end if
-               end do
+            end do
          end do
       end do
 
