@@ -92,6 +92,9 @@ contains
       
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
+
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h          ! <============== For NEO's neoclassical corrections. 
+
       use arrays, only: wstar, initialised_wstar
 
       ! Rescale the drive term with <wstarknob>
@@ -100,7 +103,7 @@ contains
       implicit none
 
       ! Indices
-      integer :: is, imu, iv, ivmu
+      integer :: is, imu, iv, ivmu, iz
       
       ! To make the calculations easier to follow, we
       ! calculate <energy> = v_parallel² + 2 mu B for each velocity point
@@ -139,9 +142,14 @@ contains
              wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                   * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
-         
-         wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         
+        
+         if (neoclassical_is_enabled()) then
+	     do iz = -nzgrid, nzgrid
+                 wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (1 + neo_h(iz, ivmu, 1)) 
+             end do  
+         else
+             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+         end if
       end do
 
       deallocate (energy)

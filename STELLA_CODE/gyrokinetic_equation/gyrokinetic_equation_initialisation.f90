@@ -76,7 +76,7 @@ contains
           call init_neoclassical_terms_neo                                               ! <=============== Call NEO neoclassical terms initilisation here.
           if (proc0) then
               write(output_unit, '(A)') '!==================================!'
-              write(output_unit, '(A)') '  NEOs Neoclassical terms enabled.  '           ! <=============== Print message to confirm this.
+              write(output_unit, '(A)') '  NEOs Neoclassical terms enabled.  '          
               write(output_unit, '(A)') '!==================================!' 
           end if
       end if 
