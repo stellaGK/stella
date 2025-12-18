@@ -398,6 +398,7 @@ contains
       ! Number of processes <nshared_proc> on the shared-memory communicator <comm_shared>
       ! This typically corresponds to the number of processors on a single node
       call mpi_comm_size(comm_shared, nshared_proc, ierror)
+      write(*,*) 'nshared_proc', nshared_proc
       
       ! Rank <sproc> of this process within the shared-memory communicator (i.e. within a node)
       call mpi_comm_rank(comm_shared, sproc, ierror)
