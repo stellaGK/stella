@@ -363,36 +363,23 @@ contains
       !  - MPI-3: split by node (mpi_comm_type_shared)
       !-------------------------------------------------------------------------
 
-#ifdef SPLIT_BY_NUMA
-
-      !------------------- MPI-4 NUMA-aware parallelisation --------------------
 
       ! Split communicator by shared-memory NUMA (Non-Uniform Memory Access) domains (MPI-4 feature)
-      ! In short, all processes on the same physical socket end up in the same comm_shared.
+      ! In short, all processes on the same physical socket / node end up in the same comm_shared.
       ! While the global (or parent) communicator <comm_all> contains all processors,
       ! each <comm_shared> communicator contains the processors which can access the same memory.
-      ! This typically groups processor per socket, since those can access the same "shared memory"
+      ! This typically groups processor per socket / node, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
-      ! WARNING: mp_info is not defined in this case! This is used by netcdf.
+      ! The first option splits by NUMA domains, the second by nodes.
+#ifdef SPLIT_BY_NUMA
       call mpi_comm_split_type(comm_all, ompi_comm_type_numa, aproc, mp_info, comm_shared, ierror)
 #else
-
-      !---------------------- MPI-3 node parallelisation -----------------------
-
-      ! Split communicator by shared-memory domains (MPI-3 feature)
-      ! In short, all processes on the same physical node end up in the same comm_shared.
-      ! While the global (or parent) communicator <comm_all> contains all processors,
-      ! each <comm_shared> communicator contains the processors which can access the same memory.
-      ! This typically groups processor per node, since those can access the same "shared memory"
-      ! Recall that <aproc> is the rank on the global communicator <comm_all>
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
-
 #endif
 
       ! Number of processes <nshared_proc> on the shared-memory communicator <comm_shared>
       ! This typically corresponds to the number of processors on a single node
       call mpi_comm_size(comm_shared, nshared_proc, ierror)
-      write(*,*) 'nshared_proc', nshared_proc
       
       ! Rank <sproc> of this process within the shared-memory communicator (i.e. within a node)
       call mpi_comm_rank(comm_shared, sproc, ierror)
