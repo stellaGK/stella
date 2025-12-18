@@ -15,6 +15,15 @@ USE_FFT = fftw3
 USE_NETCDF = on
 USE_HDF5 =
 
+# It is more efficient to create shared memory domains across a NUMA
+# (Non-Uniform Memory Access) domain than across an entire node. 
+# Each Pitagora node has 256 cores, located on 2 sockets, therefore we
+# encounter performance uses for the response matrix's shared memory
+# domain when using more than 128 cpus, as they cross NUMA domains.
+# Using MPI-4 we can split parallelisation over NUMA domains. If MPI_VERSION 
+# is not set, it will split over nodes which tends to be less efficient.
+MPI_VERSION = 4
+
 # Set the system compiler
 # In the loaded modules we use "--gcc--", so we use gnu-gfortran
 COMPILER = gnu-gfortran
