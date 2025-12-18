@@ -225,8 +225,6 @@ contains
          ! Only compute the window on the first processor of the shared-memory communicator
          if (sgproc0) then
          
-            write(*,*) 'Creating a shared window!!!'
-         
             ! We need to allocate memory for each eigenmode
             do iky = 1, naky
                do ie = 1, neigen(iky)
