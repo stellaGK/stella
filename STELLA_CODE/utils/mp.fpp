@@ -47,6 +47,7 @@ module mp
    public :: min_reduce, min_allreduce
    public :: comm_split, comm_free
    public :: nproc, iproc, proc0, job, min_proc
+   public :: nshared_proc
    public :: send, ssend, receive
    public :: numnodes, inode
    public :: barrier
@@ -371,6 +372,7 @@ contains
       ! This typically groups processor per socket / node, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
       ! The first option splits by NUMA domains, the second by nodes.
+      ! For both it is VERY important that each domain has the same number of CPUs.
 #ifdef SPLIT_BY_NUMA
       call mpi_comm_split_type(comm_all, ompi_comm_type_numa, aproc, mp_info, comm_shared, ierror)
 #else
@@ -387,19 +389,13 @@ contains
       ! Set <sproc0> to True if this is rank 0 in the shared-memory communicator ("master" rank)
       sproc0 = (sproc == 0)
       
-      ! Information for command prompt
-#ifdef SPLIT_BY_NUMA
-      if (sproc0) write(*,'(A,I0)') 'Using NUMA domains with nproc = ', nshared_proc
-#else
-      if (sproc0) write(*,'(A,I0)') 'Using node domains with nproc = ', nshared_proc
-#endif
-
       !-------------------------------------------------------------------------
       ! Node-level communicator (one rank per node, grouped across nodes)
       !-------------------------------------------------------------------------
    
       ! Create a communicator that groups processes with the same <sproc> rank
       ! i.e. ranks with the same intra-node index across all nodes
+      ! This assumes each shared-memory domain has the same number of CPUs
       call mpi_comm_split(comm_all, sproc, aproc, comm_node, ierror)
       
       ! Number of processes <numnodes> on the intra-node communicator <comm_node>
@@ -413,7 +409,6 @@ contains
       comm_scross = comm_node
       nscross_proc = numnodes
       scproc = inode
-      if (sproc0) write(*,'(A,I0)') 'Intra-node communicator', numnodes, inode
 
       !-------------------------------------------------------------------------
       ! Initialize default "group" communicators
