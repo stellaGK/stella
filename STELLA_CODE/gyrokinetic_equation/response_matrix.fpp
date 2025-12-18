@@ -79,7 +79,7 @@ contains
    !============================================================================
    subroutine init_response_matrix
 
-      use mp, only: proc0, nshared_proc, sgproc0
+      use mp, only: proc0, nshared_proc
       use debug_flags, only: print_extra_info_to_terminal
       use parallelisation_layouts, only: verbose
       use linear_solve, only: lu_decomposition
@@ -95,9 +95,9 @@ contains
       implicit none
 
       ! Local variables
+      integer :: num_shared_memory_domain
 #ifdef ISO_C_BINDING
       integer :: ierr
-      integer :: num_shared_memory_domain
 #endif
 
       ! ------------------------------------------------------------------------
@@ -105,7 +105,7 @@ contains
       ! ------------------------------------------------------------------------
       
       ! Check whether we can create shared memeory windows
-      call check_shared_memory_window
+      call check_shared_memory_window(num_shared_memory_domain)
       
       ! Print info to command prompt
       if (verbose .and. print_extra_info_to_terminal) then
@@ -168,11 +168,12 @@ contains
    !============================================================================
    subroutine check_shared_memory_window(num_shared_memory_domain)
    
-      use mp, only: nproc, nshared_proc, proc0, sgproc0
+      use mp, only: nproc, nshared_proc, sgproc0
       use mp, only: mp_abort, sum_allreduce
       
       implicit none
       
+      integer, intent(in out) :: num_shared_memory_domain
       integer :: cpus_per_domain
       
       ! ------------------------------------------------------------------------
