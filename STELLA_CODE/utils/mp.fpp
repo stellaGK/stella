@@ -321,7 +321,7 @@ contains
       integer, intent(in), optional :: comm_in
       
       ! Local variables
-      type(mpi_info) :: info_numa
+      integer :: info_numa
       integer :: ierror
       logical :: init
       
