@@ -22,7 +22,7 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
-    public :: h_neo, dh_neo_dpsi, dh_neo_dtheta, dh_neo_denergy, dh_neo_dxi        ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
+    public :: neo_h, dh_neo_dpsi, dh_neo_dtheta, dh_neo_denergy, dh_neo_dxi        ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
     public :: phi_neo, dphi_neo_dpsi, dphi_neo_dtheta                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
 
     public :: initialised_neoclassical_terms_neo
@@ -37,7 +37,7 @@ module neoclassical_terms_neo
     integer :: iz, unit
     character(len=128) :: filename
 
-    real(8), dimension(:, :, :), allocatable :: h_neo, dh_neo_dpsi, dh_neo_dtheta 
+    real(8), dimension(:, :, :), allocatable :: neo_h, dh_neo_dpsi, dh_neo_dtheta  
     real(8), dimension(:, :), allocatable :: phi_neo, dphi_neo_dpsi, dphi_neo_dtheta
     real(8), dimension(:, :, :), allocatable :: dh_neo_denergy 
     real(8), dimension(:, :, :), allocatable :: dh_neo_dxi
@@ -90,6 +90,7 @@ contains
     subroutine init_neoclassical_terms_neo
         use mp, only: proc0, broadcast
         use iso_fortran_env, only: output_unit
+        use parallelisation_layouts, only: vmu_lo
         use grids_z, only: nzgrid
         use grids_velocity, only: nvpa, nmu 
         use grids_species, only: nspec
@@ -105,12 +106,16 @@ contains
         real, dimension(:, :), allocatable :: neo_phi_z_grid, neo_phi_right_z_grid, neo_phi_left_z_grid                ! Holds NEO ϕ^1_0 data evaluated on the stella z grid.
         
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids. Since ϕ^1_0 is independent of velocity variables, there are no accompanying arrays for ϕ^1_0 here.
-        real, dimension(:, :, :, :, :), allocatable :: neo_h, neo_h_right, neo_h_left
+        real, dimension(:, :, :, :, :), allocatable :: neo_h_local, neo_h_local_right, neo_h_local_left
+
+        ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
+        real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                               ! neo_h has to be declared here? 
 
         ! ====================================================================================== !
         ! ------------------------ STILL NEED ARRAYS FOR DERIVATIVES HERE! --------------------- !
         ! ====================================================================================== !
 
+        integer :: iz
         integer :: surface_index      
 
         type(neo_grid_data) :: neo_grid
@@ -180,17 +185,87 @@ contains
 
         ! Now, we need to construct H_1 from the interpolated neo_h_hat data. Allocate the sizes of the datasets on the stella grids. 
 
-        allocate(neo_h(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        allocate(neo_h_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        allocate(neo_h_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
+        allocate(neo_h_local(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        allocate(neo_h_local_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        allocate(neo_h_local_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
 
-        call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h)                         ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
-        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_right, 'right')    ! Repeat for the right surface.                                         
-        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_left, 'left')       ! Repeat for the left surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_local)                         ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right, 'right')    ! Repeat for the right surface.                                         
+        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left, 'left')       ! Repeat for the left surface.
+
+        ! Now compact into 3 indices for use in the GK equation and also for calculating the derivatives.  
         
-        ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed. 
+        allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
 
+        do iz = -nzgrid, nzgrid
+            call distribute_vmus_over_procs(neo_h_local(iz, :, :, :, 1), neo_h(iz, :, 1))      
+        end do        
+
+        ! Test diagnostic for new information. 
+
+        call write_neo_h_vmu_diagnostic(neo_h, 1)
+
+        ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed. 
     end subroutine init_neoclassical_terms_neo
+
+
+! ================================================================================================================================================================================= !
+! ----------------------------------------------------------------- Read outputs of the distributed H_1 array. -------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    subroutine write_neo_h_vmu_diagnostic(neo_h, surface_index, suffix)
+        use grids_z, only: nzgrid, zed
+        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+        use mp, only: proc0
+
+        implicit none
+
+        real, intent(in) :: neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, surface_index)
+        integer, intent(in) :: surface_index
+        character(len=*), intent(in), optional :: suffix
+
+        integer :: unit
+        character(len=256) :: filename
+        integer :: iz, ivmu, iv, imu, is
+
+        ! Only rank-0 writes diagnostics.
+        if (.not. proc0) return
+            unit = 99
+
+            if (present(suffix)) then
+                write(filename,'("neo_h_vmu_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
+            else
+                write(filename,'("neo_h_vmu_surf_",I0,".dat")') surface_index
+            end if
+
+            open(unit=unit, file=filename, status='replace', action='write')
+
+            write(unit,'(A)') '# ================================================='
+            write(unit,'(A)') '# Diagnostic output: neo_h (distributed vmu)'
+            write(unit,'(A,I0)') '# surface_index = ', surface_index
+            write(unit,'(A)') '# Columns:'
+            write(unit,'(A)') '#   iz   : z-grid index'
+            write(unit,'(A)') '#   ivmu : local velocity-space index'
+            write(unit,'(A)') '#   iv   : v_parallel index'
+            write(unit,'(A)') '#   imu  : mu index'
+            write(unit,'(A)') '#   is   : species index'
+            write(unit,'(A)') '#   z    : stella z coordinate'
+            write(unit,'(A)') '#   neo_h: neoclassical correction'
+            write(unit,'(A)') '#'
+            write(unit,'(A)') '# iz   ivmu   iv   imu   is        z              neo_h'
+            write(unit,'(A)') '# -------------------------------------------------'
+
+           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv  = iv_idx (vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               is  = is_idx (vmu_lo, ivmu)
+
+               do iz = -nzgrid, nzgrid
+                   write(unit,'(I6,1X,I6,1X,I4,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8)') iz, ivmu, iv, imu, is, zed(iz), neo_h(iz, ivmu, 1)
+               end do
+           end do
+          close(unit)
+    end subroutine write_neo_h_vmu_diagnostic
 
 
 ! ================================================================================================================================================================================= !
@@ -224,6 +299,31 @@ contains
     subroutine deallocate_arrays
         implicit none
     end subroutine deallocate_arrays
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------------------------- Collapse distributuion arrays from 5 dimensions to 3. ------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+
+   subroutine distribute_vmus_over_procs(local, distributed)
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      real, dimension(-nzgrid:, :, :), intent(in) :: local
+      real, dimension(vmu_lo%llim_proc:), intent(out) :: distributed
+
+      integer :: ivmu, iv, imu, is
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         distributed(ivmu) = local(iv, imu, is)
+      end do
+   end subroutine distribute_vmus_over_procs
 
 
 ! ================================================================================================================================================================================= !
