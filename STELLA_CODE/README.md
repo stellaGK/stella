@@ -168,7 +168,8 @@ The `gyrokinetic_equation` folder contains the following scripts:
 - gk_implicit_terms.f90
 - gk_magnetic_drift.f90
 - gk_mirror.f90
-- gk_nonlinearity.f90
+- gk_ExB_nonlinearity.f90
+- gk_parallel_nonlinearity.f90
 - gk_parallel_streaming.f90
 - gyrokinetic_equation_explicit.f90
 - gyrokinetic_equation_implicit.f90
