@@ -363,7 +363,7 @@ contains
       !  - MPI-3: split by node (mpi_comm_type_shared)
       !-------------------------------------------------------------------------
 
-#if defined(MPI_VERSION) && (MPI_VERSION >= 4)
+#ifdef SPLIT_BY_NUMA
 
       !------------------- MPI-4 NUMA-aware parallelisation --------------------
 
@@ -373,12 +373,7 @@ contains
       ! each <comm_shared> communicator contains the processors which can access the same memory.
       ! This typically groups processor per socket, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
-      ! WARNIGN: mp_info is not defined in this case! This is used by netcdf.
-      write(*,*) 'Using NUMA domains'
-      !call mpi_info_create(info_numa, ierror)
-      !call mpi_info_set(info_numa, "mpi_hw_resource_type", "numa", ierror)
-      !call mpi_comm_split_type(comm_all, mpi_comm_type_resource_guided, aproc, info_numa, comm_shared, ierror)
-      !call mpi_info_free(info_numa, ierror)
+      ! WARNING: mp_info is not defined in this case! This is used by netcdf.
       call mpi_comm_split_type(comm_all, ompi_comm_type_numa, aproc, mp_info, comm_shared, ierror)
 #else
 
@@ -390,7 +385,6 @@ contains
       ! each <comm_shared> communicator contains the processors which can access the same memory.
       ! This typically groups processor per node, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
-      write(*,*) 'Using node domains'
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
 
 #endif
@@ -405,6 +399,13 @@ contains
       
       ! Set <sproc0> to True if this is rank 0 in the shared-memory communicator ("master" rank)
       sproc0 = (sproc == 0)
+      
+      ! Information for command prompt
+#ifdef SPLIT_BY_NUMA
+      if (sproc0) write(*,*) 'Using NUMA domains with nproc = ', nshared_proc
+#else
+      if (sproc0) write(*,*) 'Using node domains with nproc = ', nshared_proc
+#endif
 
       !-------------------------------------------------------------------------
       ! Node-level communicator (one rank per node, grouped across nodes)

@@ -20,9 +20,8 @@ USE_HDF5 =
 # Each Pitagora node has 256 cores, located on 2 sockets, therefore we
 # encounter performance uses for the response matrix's shared memory
 # domain when using more than 128 cpus, as they cross NUMA domains.
-# Using MPI-4 we can split parallelisation over NUMA domains. If MPI_VERSION 
-# is not set, it will split over nodes which tends to be less efficient.
-MPI_VERSION = 4
+# Using MPI-4 we can split parallelisation over NUMA domains. 
+SPLIT_BY_NUMA = on
 
 # Set the system compiler
 # In the loaded modules we use "--gcc--", so we use gnu-gfortran
