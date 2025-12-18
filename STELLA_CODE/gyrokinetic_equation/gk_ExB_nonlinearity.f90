@@ -111,7 +111,6 @@ contains
       ! By default, prp_shear_enabled = .false. and thus yfirst = .true., and we Fourier transform y first
       ! If perpendicular flow shear is included, it is important to Fourier transform x first
       yfirst = .not. prp_shear_enabled
-      yfirst = .false.
 
       ! Allocate arrays
       allocate (apar_kykx(naky, nakx))
