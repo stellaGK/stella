@@ -13,7 +13,7 @@
 # Set some flags
 USE_FFT = fftw3
 USE_NETCDF = on
-USE_HDF5 = on
+USE_HDF5 =
 
 # Set the system compiler
 # In the loaded modules we use "--gcc--", so we use gnu-gfortran
@@ -35,3 +35,6 @@ NETCDF_LIB= -L$(NETCDF_FORTRAN_LIB) -lnetcdff
 # Set the paths to hdf5, which stella usually struggles to find
 HDF5_INC = -I$(HDF5_HOME)/include
 HDF5_LIB = -L$(HDF5_HOME)/lib -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lhdf5_hl
+
+# Set the paths to lapack, which stella usually struggles to find
+LAPACK_LIB = -Wl,--copy-dt-needed-entries -mkl -lopenblas -L$(NETLIB_SCALAPACK_LIB) -lscalapack #-L$(LAPACK_HOME)/lib
