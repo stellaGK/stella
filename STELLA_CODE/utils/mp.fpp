@@ -377,7 +377,7 @@ contains
       write(*,*) 'Using NUMA domains'
       call mpi_info_create(info_numa, ierror)
       call mpi_info_set(info_numa, "mpi_hw_resource_type", "numa", ierror)
-      call mpi_comm_split_type(comm_all, mpi_comm_type_resource_guided, aproc, info_numa, comm_shared, ierror)
+      call mpi_comm_split_type(comm_all, MPI_COMM_TYPE_RESOURCE_GUIDED, aproc, info_numa, comm_shared, ierror)
       call mpi_info_free(info_numa, ierror)
 #else
 
