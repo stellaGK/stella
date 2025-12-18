@@ -26,14 +26,17 @@ contains
    !****************************************************************************
    subroutine advance_ExB_nonlinearity(g, gout, restart_time_step, istep)
 
+      ! Constants
       use constants, only: pi, zi
 
+      ! Parallelisation
       use job_manage, only: time_message
       use mp, only: proc0, min_allreduce
       use mp, only: scope, allprocs, subprocs
       use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx
       use file_utils, only: runtype_option_switch, runtype_multibox
 
+      ! Calculations
       use calculations_timestep, only: reset_dt
       use calculations_tofrom_ghf, only: g_to_h
       use calculations_gyro_averages, only: gyro_average
@@ -43,28 +46,36 @@ contains
       use calculations_transforms, only: transform_y2ky, transform_x2kx
       use calculations_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       
+      ! Physics
       use parameters_physics, only: fphi
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: suppress_zonal_interaction
       use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       
-      use timers, only: time_gke
+      ! Fields
       use arrays, only: shift_state
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
       use arrays_distribution_function, only: phi_gyro
       
+      ! Grids
       use grids_kxky, only: x
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx, aky, rho_clamped
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, nx, ny
       use grids_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
 
-      use gk_flow_shear, only: prp_shear_enabled, hammett_flow_shear
+      ! Flow shear
+      use gk_flow_shear, only: prp_shear_enabled
+      use gk_flow_shear, only: hammett_flow_shear
       use gk_flow_shear, only: g_exb, g_exbfac
 
+      ! Geometry
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
+      
+      ! TImers
+      use timers, only: time_gke
 
       implicit none
 
@@ -80,30 +91,30 @@ contains
       complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
       complex, dimension(:, :), allocatable :: tmp
-      real :: zero, cfl_dt
       integer :: ivmu, iz, it, imu, is
+      real :: zero, cfl_dt
       logical :: yfirst
 
       !-------------------------------------------------------------------------
 
-      ! Alpha-component of magnetic drift (requires ky -> y)
+      ! Start timer
       if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
       if (debug) write (*, *) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
-      ! Avoid divide by zero in cfl_dt terms below
+      ! Avoid dividing by zero in cfl_dt terms below
       zero = 100.*epsilon(0.)
 
-      ! Initialize cfl_dt_ExB
+      ! Initialize cfl_dt_ExB and restart_time_step
       cfl_dt_ExB = 10000000.
-
       restart_time_step = .false.
       
-      ! This statement seems to imply that flow shear is not compatible with FFS 
-      ! need to check
+      ! By default, prp_shear_enabled = .false. and thus yfirst = .true., and we Fourier transform y first
+      ! If perpendicular flow shear is included, it is important to Fourier transform x first
       yfirst = .not. prp_shear_enabled
 
-      allocate (apar_kykx(naky, nakx)); apar_kykx = 0.
-      allocate (bpar_kykx(naky, nakx)); bpar_kykx = 0.
+      ! Allocate arrays
+      allocate (apar_kykx(naky, nakx))
+      allocate (bpar_kykx(naky, nakx))
       allocate (g0k(naky, nakx))
       allocate (g0a(naky, nakx))
       allocate (g0xy(ny, nx))
@@ -112,6 +123,7 @@ contains
       allocate (prefac(naky, nx))
       allocate (tmp(size(gout, 1), size(gout, 2)))
 
+      ! Here naky_all = 2*naky-1
       if (yfirst) then
          allocate (g0k_swap(naky_all, ikx_max))
          allocate (g0kxy(ny, ikx_max))
@@ -125,7 +137,7 @@ contains
          prefac = exp(-zi * g_exb * g_exbfac * spread(x, 1, naky) * spread(aky * shift_state, 2, nx))
       end if
 
-      ! Incoming pdf is g = <f>. 
+      ! Incoming pdf is g = <f>.
       ! For EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
@@ -329,8 +341,9 @@ contains
 
          !----------------------------------------------------------------------
 
+         ! Fourier transform g(kx,ky) to g(kx,y) and then to g(x,y)
          if (yfirst) then
-               ! Ee have i*ky*g(kx,ky) for ky >= 0 and all kx.
+               ! We have i*ky*g(kx,ky) for ky >= 0 and all kx.
                ! We want to do 1D complex to complex transform in y, 
                ! which requires i*ky*g(kx,ky) for all ky and kx >= 0 .
                ! Use the reality condition: g(kx,-ky) = conjg(g(-kx,ky))
@@ -345,6 +358,8 @@ contains
                call swap_kxky(gk, g0k_swap)
                call transform_ky2y(g0k_swap, g0kxy)
                call transform_kx2x(g0kxy, gx)
+               
+         ! Fourier transform g(kx,ky) to g(x,ky) and then to g(x,y)
          else
                call transform_kx2x_xfirst(gk, g0xky)
                g0xky = g0xky * prefac
