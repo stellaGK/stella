@@ -180,20 +180,19 @@ contains
       if (sgproc0) num_shared_memory_domain = 1
       if (.not. sgproc0) num_shared_memory_domain = 0
       call sum_allreduce(num_shared_memory_domain)
-      if (sgproc0) write (*,'(A, I0)') "   DEBUG: Number of shared-memory domains: ", num_shared_memory_domain
       
       ! We needs to be able to divide the CPUs over the shared-memory domains
       if (mod(nproc,num_shared_memory_domain) /= 0 ) then
+         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' CPUs.' 
          call mp_abort('The number of CPUs needs to be divisible by the number of shared memory domains. Aborting')
       end if
       
       ! Ideal number of CPUs per shared-memory domain
       cpus_per_domain = nproc / num_shared_memory_domain
-      if (sgproc0) write (*,'(A, I0)') "   DEBUG: cpus_per_domain: ", cpus_per_domain
-      if (sgproc0) write (*,'(A, I0)') "   DEBUG: nshared_proc: ", nshared_proc
       
       ! Check that each domain has the correct number of CPUs
       if (nshared_proc /= cpus_per_domain) then
+         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' CPUs.' 
          call mp_abort('Each shared memory domain should have the same number of CPUs. Aborting.')
       end if
 
