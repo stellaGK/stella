@@ -145,7 +145,7 @@ $(warning      )
 endif
 
 # Add the MPI version to the preprocessor flags
-CPPFLAGS += -MPI_VERSION=$(MPI_VERSION)
+CPPFLAGS += -DMPI_VERSION=$(MPI_VERSION)
 
 ifdef HAS_ISO_C_BINDING
 	CPPFLAGS += -DISO_C_BINDING
