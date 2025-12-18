@@ -97,11 +97,15 @@ contains
       ! Local variables
 #ifdef ISO_C_BINDING
       integer :: ierr
+      integer :: num_shared_memory_domain
 #endif
 
       ! ------------------------------------------------------------------------
       !              Set up memory and timings for response matrix              
       ! ------------------------------------------------------------------------
+      
+      ! Check whether we can create shared memeory windows
+      call check_shared_memory_window
       
       ! Print info to command prompt
       if (verbose .and. print_extra_info_to_terminal) then
@@ -119,10 +123,8 @@ contains
 #else
          write (*, '(A)') 'Shared-memory domains are defined per node.'
 #endif
+         if (proc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains, with ', nshared_proc, ' CPUs per domain.' 
       end if
-      
-      ! Check whether we can create shared memeory windows
-      call check_shared_memory_window
       
       ! Set up response matrix utils
       call setup_response_matrix_file_io
@@ -164,14 +166,13 @@ contains
    !============================================================================
    !         Each shared-memory window should have the same number of CPUs      
    !============================================================================
-   subroutine check_shared_memory_window
+   subroutine check_shared_memory_window(num_shared_memory_domain)
    
       use mp, only: nproc, nshared_proc, proc0, sgproc0
       use mp, only: mp_abort, sum_allreduce
       
       implicit none
-       
-      integer :: num_shared_memory_domain
+      
       integer :: cpus_per_domain
       
       ! ------------------------------------------------------------------------
