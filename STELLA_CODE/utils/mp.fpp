@@ -372,6 +372,7 @@ contains
       ! each <comm_shared> communicator contains the processors which can access the same memory.
       ! This typically groups processor per socket, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
+      write(*,*) 'Using NUMA domains'
       call mpi_info_create(mp_info, ierror)
       call mpi_info_set(mp_info, "mpi_hw_resource_type", "numa", ierror)
       call mpi_comm_split_type(comm_all, MPI_COMM_TYPE_RESOURCE_GUIDED, aproc, mp_info, comm_shared, ierror)
@@ -386,6 +387,7 @@ contains
       ! each <comm_shared> communicator contains the processors which can access the same memory.
       ! This typically groups processor per node, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
+      write(*,*) 'Using node domains'
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
 
 #endif
