@@ -33,8 +33,11 @@ NETCDF_INC= -I$(NETCDF_FORTRAN_INCLUDE)
 NETCDF_LIB= -L$(NETCDF_FORTRAN_LIB) -lnetcdff
 
 # Set the paths to hdf5, which stella usually struggles to find
+# Note that while "USE_HDF5" is set to False, the compiler still needs the hdf5 modules
+# Otherwise you'll see "gfortran: warning: ...: linker input file unused because linking not done"
 HDF5_INC = -I$(HDF5_HOME)/include
 HDF5_LIB = -L$(HDF5_HOME)/lib -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lhdf5_hl
 
 # Set the paths to lapack, which stella usually struggles to find
-LAPACK_LIB = -Wl,--copy-dt-needed-entries -mkl -lopenblas -L$(NETLIB_SCALAPACK_LIB) -lscalapack #-L$(LAPACK_HOME)/lib
+# If it is missing you'll see "/usr/bin/ld: cannot find -llapack"
+LAPACK_LIB = -Wl,--copy-dt-needed-entries -mkl -lopenblas -L$(NETLIB_SCALAPACK_LIB) -lscalapack
