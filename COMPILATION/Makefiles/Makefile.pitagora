@@ -22,7 +22,7 @@ USE_HDF5 =
 # domain when using more than 128 cpus, as they cross NUMA domains.
 # Using MPI-4 we can split parallelisation over NUMA domains. 
 # THIS DOESNT WORK
-SPLIT_BY_NUMA =
+SPLIT_BY_NUMA = on
 
 # Set the system compiler
 # In the loaded modules we use "--gcc--", so we use gnu-gfortran
