@@ -321,6 +321,7 @@ contains
       integer, intent(in), optional :: comm_in
       
       ! Local variables
+      type(mpi_info) :: info_numa
       integer :: ierror
       logical :: init
       
@@ -372,11 +373,12 @@ contains
       ! each <comm_shared> communicator contains the processors which can access the same memory.
       ! This typically groups processor per socket, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
+      ! WARNIGN: mp_info is not defined in this case! This is used by netcdf.
       write(*,*) 'Using NUMA domains'
-      call mpi_info_create(mp_info, ierror)
-      call mpi_info_set(mp_info, "mpi_hw_resource_type", "numa", ierror)
-      call mpi_comm_split_type(comm_all, mpi_comm_type_resource_guided, aproc, mp_info, comm_shared, ierror)
-
+      call mpi_info_create(info_numa, ierror)
+      call mpi_info_set(info_numa, "mpi_hw_resource_type", "numa", ierror)
+      call mpi_comm_split_type(comm_all, mpi_comm_type_resource_guided, aproc, info_numa, comm_shared, ierror)
+      call mpi_info_free(info_numa, ierror)
 #else
 
       !---------------------- MPI-3 node parallelisation -----------------------
