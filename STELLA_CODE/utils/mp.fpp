@@ -389,9 +389,9 @@ contains
       
       ! Information for command prompt
 #ifdef SPLIT_BY_NUMA
-      if (sproc0) write(*,*) 'Using NUMA domains with nproc = ', nshared_proc
+      if (sproc0) write(*,'(A,I0)') 'Using NUMA domains with nproc = ', nshared_proc
 #else
-      if (sproc0) write(*,*) 'Using node domains with nproc = ', nshared_proc
+      if (sproc0) write(*,'(A,I0)') 'Using node domains with nproc = ', nshared_proc
 #endif
 
       !-------------------------------------------------------------------------
@@ -413,6 +413,7 @@ contains
       comm_scross = comm_node
       nscross_proc = numnodes
       scproc = inode
+      if (sproc0) write(*,'(A,I0)') 'Intra-node communicator', numnodes, inode
 
       !-------------------------------------------------------------------------
       ! Initialize default "group" communicators
