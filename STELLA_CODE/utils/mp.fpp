@@ -11,7 +11,7 @@
 ! 
 ! Modified by Michael Barnes in 2017, 2018 and 2019.
 ! Modified by Dennis St-Onge in 2020 and 2021.
-! Modified by Hanne Thienpondt in 2025. 
+! Modified by Hanne Thienpondt in 2025: Added NUMA-aware split of processors.
 ! 
 ! Communicators
 !----------------
@@ -33,7 +33,7 @@
 
 module mp
 
-# ifndef MPIINC
+#ifndef MPIINC
    use mpi
 #endif
 
@@ -69,7 +69,7 @@ module mp
    public :: create_shared_memory_window
 #endif
 
-# ifdef MPIINC
+#ifdef MPIINC
 ! CMR: defined MPIINC for machines where need to include mpif.h
    include 'mpif.h'
 #endif
@@ -357,8 +357,28 @@ contains
       aproc0 = (aproc == 0)
       
       !-------------------------------------------------------------------------
-      ! Shared-memory communicator (processes on the same node)
+      ! Create a shared-memory communicator
+      !  - MPI-4: split by NUMA domain (resource-guided)
+      !  - MPI-3: split by node (MPI_COMM_TYPE_SHARED)
       !-------------------------------------------------------------------------
+
+#if defined(MPI_VERSION) && (MPI_VERSION >= 4)
+
+      !------------------- MPI-4 NUMA-aware parallelisation --------------------
+
+      ! Split communicator by shared-memory NUMA (Non-Uniform Memory Access) domains (MPI-4 feature)
+      ! In short, all processes on the same physical socket end up in the same comm_shared.
+      ! While the global (or parent) communicator <comm_all> contains all processors,
+      ! each <comm_shared> communicator contains the processors which can access the same memory.
+      ! This typically groups processor per socket, since those can access the same "shared memory"
+      ! Recall that <aproc> is the rank on the global communicator <comm_all>
+      call mpi_info_create(mp_info, ierror)
+      call mpi_info_set(mp_info, "mpi_hw_resource_type", "numa", ierror)
+      call mpi_comm_split_type(comm_all, MPI_COMM_TYPE_RESOURCE_GUIDED, aproc, mp_info, comm_shared, ierror)
+
+#else
+
+      !---------------------- MPI-3 node parallelisation -----------------------
 
       ! Split communicator by shared-memory domains (MPI-3 feature)
       ! In short, all processes on the same physical node end up in the same comm_shared.
@@ -367,6 +387,8 @@ contains
       ! This typically groups processor per node, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
+
+#endif
 
       ! Number of processes <nshared_proc> on the shared-memory communicator <comm_shared>
       ! This typically corresponds to the number of processors on a single node
