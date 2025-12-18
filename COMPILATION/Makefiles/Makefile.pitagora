@@ -21,7 +21,8 @@ USE_HDF5 =
 # encounter performance uses for the response matrix's shared memory
 # domain when using more than 128 cpus, as they cross NUMA domains.
 # Using MPI-4 we can split parallelisation over NUMA domains. 
-SPLIT_BY_NUMA = on
+# THIS DOESNT WORK
+SPLIT_BY_NUMA =
 
 # Set the system compiler
 # In the loaded modules we use "--gcc--", so we use gnu-gfortran
