@@ -20,8 +20,8 @@ def get_parameters(research_or_experiment, key, knob):
         
     # Get the requested parameter
     for simulation in simulations:
-        simulation.input.inputParameters["parameters"]["teti"] = 1/simulation.input.inputParameters["parameters"]["tite"]
-        if key!="explicit_option" and key!="nfield_periods" and key!="boundary_option":
+        simulation.input.inputParameters["adiabatic_electron_response"]["teti"] = 1/simulation.input.inputParameters["adiabatic_electron_response"]["tite"]
+        if key!="explicit_algorithm" and key!="nfield_periods" and key!="boundary_option":
             value = float(simulation.input.inputParameters[knob][key])
         if key=="nfield_periods": 
             if simulation.input.vmec:     value = simulation.input.nfield_periods
@@ -29,7 +29,7 @@ def get_parameters(research_or_experiment, key, knob):
         if key=="poloidal_turns": 
             if simulation.input.vmec:     value = float(simulation.input.inputParameters[knob][key])
             if simulation.input.miller:   value = 2*(simulation.input.nperiod-1)+1 
-        if key=="explicit_option": 
+        if key=="explicit_algorithm": 
             if (simulation.input.inputParameters[knob][key]=="rk2"): value = 2 
             if (simulation.input.inputParameters[knob][key]=="rk3"): value = 3
         if key=="boundary_option": 

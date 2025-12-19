@@ -1,0 +1,139 @@
+
+
+! Simple linear example based on JET shot 92174
+
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  betadbprim = 0.0
+  betaprim = 0.058
+  d2psidr2 = 0.0
+  d2qdr2 = 0.0
+  kappa = 1.5504
+  kapprim = 0.94963
+  nzed_local = 128
+  qinp = 5.0848
+  rgeo = 3.1191
+  rhoc = 0.97427 
+  rmaj = 3.134
+  shat = 3.3594
+  shift = -0.34508
+  tri = 0.26253
+  triprim = 0.7368
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
+  nspec = 2 
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+&kxky_grid_range
+  akx_max = 0.0
+  akx_min = 0.0
+  aky_max = 1.5
+  aky_min = 0.5
+  nakx = 1
+  naky = 5
+/
+&z_grid
+  nzed = 12
+/
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
+  nmu = 2 
+  nvgrid = 3
+/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
+  nsave = 10
+  nwrite = 1
+/
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.01
+/
+
+&initialise_distribution_maxwellian
+  width0 = 1.0
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 10
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&debug_flags 
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+ 
+&dissipation_and_collisions_options
+  hyper_dissipation = .true.
+/
+

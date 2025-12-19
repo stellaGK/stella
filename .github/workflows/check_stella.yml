@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14] # ubuntu-22.04, ubuntu-24.04
+        os: [macos-14, macos-15, ubuntu-22.04, ubuntu-24.04]
         compiler: [Make, CMake]
     
     # Operating system
@@ -51,7 +51,7 @@ jobs:
             echo "NETCDF_LIB_DIR=/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.2/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = /usr/local/Cellar/netcdf-fortran/4.6.2/include/"
             echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.2/include/" >> $GITHUB_ENV
-          elif [ ${{ matrix.os }} == 'macos-14' ]; then 
+          elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then 
             echo "Set STELLA_SYSTEM = macos"
             echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
             echo "Set FFTW_LIB_DIR = /opt/homebrew/Cellar/fftw/3.3.10_2/lib/"
@@ -78,7 +78,7 @@ jobs:
               sudo mkdir /usr/local/gfortran
               sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
               gfortran --version
-            elif [ ${{ matrix.os }} == 'macos-14' ]; then
+            elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then
               brew rm gcc
               brew install gcc@11
               ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
@@ -164,7 +164,7 @@ jobs:
       - name: Install python virtual environment
         if: success() || failure()
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then 
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then 
             python3 -m venv AUTOMATIC_TESTS/venv
             source AUTOMATIC_TESTS/venv/bin/activate
             pip3 install -r AUTOMATIC_TESTS/requirements.txt
@@ -178,44 +178,50 @@ jobs:
       # Perform python tests  
       - name: Python tests 1 - Does stella run
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-1
           
       - name: Python tests 2 - Geometry
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-2
           
       - name: Python tests 3 - Gyrokinetic equation
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-3
           
       - name: Python tests 4 - Flux tube
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-4
           
       - name: Python tests 5 - Diagnostics
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-5
           
       - name: Python tests 6 - Full Flux Surface
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-6
           
       - name: Python tests 7 - Electromagnetic effects
         if: success() || failure() 
         run: |
-          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-7
+          
+      - name: Python tests 8 - Restart simulations
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-8
 
 #-----------------------------------------------------------------------
 #                              Quick build                              
@@ -287,6 +293,7 @@ jobs:
           - name: "5 - Diagnostics"
           - name: "6 - Full Flux Surface"
           - name: "7 - Electromagnetic effects"
+          - name: "8 - Restart simulations"
 
     steps:
 
@@ -323,7 +330,7 @@ jobs:
           if ${{ contains(matrix.config.name, '5 -') }}; then make numerical-tests-5; fi
           if ${{ contains(matrix.config.name, '6 -') }}; then make numerical-tests-6; fi
           if ${{ contains(matrix.config.name, '7 -') }}; then make numerical-tests-7; fi
-
+          if ${{ contains(matrix.config.name, '8 -') }}; then make numerical-tests-8; fi
 
 
   # Perform python on 1 processor.
@@ -388,39 +395,10 @@ jobs:
       - name: Python tests 7 - Electromagnetic effects"
         if: success() || failure() 
         run: make numerical-tests-7
-
-#-----------------------------------------------------------------------
-#                             Fortran tests                              
-#-----------------------------------------------------------------------
-
-  fortran-tests:
-    runs-on: ubuntu-22.04
-    name: "Automated Fortran tests"  
-    env:
-      OMPI_MCA_rmaps_base_oversubscribe: yes
-      MPIRUN: mpiexec -np 
-      STELLA_SYSTEM: gnu_ubuntu
-
-    steps:
-
-      # Check-out repository under $GITHUB_WORKSPACE
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      # Install dependencies
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin 
-          sudo apt install -y python3 python3-pip openmpi-bin libopenmpi-dev libblas-dev liblapack-dev
-          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
-      
-      # Build stella executable and pFUnit library
-      - name: Build stella and perform automated Fortran tests
-        run: |
-          git submodule update --init --recursive
-          cmake . -B build -DSTELLA_ENABLE_TESTS=on
-          cmake --build build -j1 --target check
+          
+      - name: Python tests 8 - Restart simulations"
+        if: success() || failure() 
+        run: make numerical-tests-8
 
 #-----------------------------------------------------------------------
 #                          Build in debug mode                          
@@ -432,7 +410,7 @@ jobs:
   # when reading a VMEC equilibirium during the python tests.
   debug-build:
     runs-on: ubuntu-22.04
-    name: "Build stella in debug mode"  
+    name: "Build stella in debug mode"
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np 

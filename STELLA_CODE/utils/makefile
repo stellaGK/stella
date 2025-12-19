@@ -159,8 +159,10 @@ $(OBJ)/command_line.o:
 $(OBJ)/constants.o: 
 $(OBJ)/convert.o: 
 $(OBJ)/fft_work.o: $(OBJ)/mp.o $(OBJ)/constants.o
+$(OBJ)/file_units.o: $(OBJ_DIR)/file_utils.o
 $(OBJ)/file_utils.o: $(OBJ)/command_line.o 
 $(OBJ)/gauss_quad.o: $(OBJ)/file_utils.o $(OBJ)/mp.o $(OBJ)/constants.o
+$(OBJ)/interface_random_number_generator.o: $(OBJ_DIR)/file_utils.o  $(OBJ_DIR)/mp.o $(OBJ_DIR)/ran.o 
 $(OBJ)/job_manage.o: $(OBJ)/file_utils.o $(OBJ)/mp.o
 $(OBJ)/linear_solve.o:  
 $(OBJ)/mp.o: $(OBJ)/file_utils.o $(OBJ)/constants.o

@@ -1,7 +1,7 @@
 # Run these tests automatically on Github on every push and pull request.
 # Use the macOS operating system, which has 4 cores.
 name: Check old stella releases
-on: [push]
+on: []
 
 # We always run in a bash shell
 defaults:

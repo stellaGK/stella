@@ -81,7 +81,7 @@ def subplot_moment_vs_time(
         specie=0):
     
     # Colors based on the number of simulations
-    colors = plt.cm.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)) 
+    colors = plt.colormaps.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)) 
     max_time = 0; min_moments = 0; max_moments = 0; count = 0
  
     # Plot qmoments(t) for one of the species

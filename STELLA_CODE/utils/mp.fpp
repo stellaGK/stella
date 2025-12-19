@@ -1,24 +1,41 @@
 # include "define.inc"
 
-module mp
-!
+!###############################################################################
+!                   SET-UP MPI (Message Passing Interface)
+!###############################################################################
+! 
 ! <doc> Easier Fortran90 interface to the MPI Message Passing Library. </doc>
-!
+! 
 !     (c) Copyright 1991 to 1998 by Michael A. Beer, William D. Dorland,
 !     P. B. Snyder, Q. P. Liu, and Gregory W. Hammett. ALL RIGHTS RESERVED.
-!
+! 
+! Modified by Michael Barnes in 2017, 2018 and 2019.
+! Modified by Dennis St-Onge in 2020 and 2021.
+! Modified by Hanne Thienpondt in 2025: Added NUMA-aware split of processors.
+! 
+! Communicators
+!----------------
+!  comm_all      - every processor
+!  comm_shared   - every processor on a node (shared memory)
+!  comm_group    - every processor on a given job
+!  comm_sgroup   - every processor on a node on a given job (shared memory)
+! 
+!  comm_node     - communicator that links procs of same rank across comm_shared
+!  comm_cross    - communicator that links procs of same rank across comm_group
+!  comm_scross   - communicator that links procs of same rank across comm_sgroup
+! 
 ! Note: mp_mpi_r8.f90 is a version of mp_mpi.f90 to use when compiling
 ! with -r8 (where the default real type is taken to be 8 bytes).  Just
 ! replaced all occurances of MPI_REAL with MPI_DOUBLE_PRECISION and
 ! MPI_COMPLEX with MPI_DOUBLE_COMPLEX.
-!
-# ifndef MPIINC
+! 
+!###############################################################################
+
+module mp
+
+#ifndef MPIINC
    use mpi
 #endif
-   ! TT: I experienced a problem on Ranger with mvapich-devel.
-   ! TT: Compiler complained an inconsistent variable type for reorder below.
-   ! TT: In this case, the problem was solved by commenting out the above line
-   ! TT: and use mpif.h below.  (4/16/08)
 
    implicit none
    private
@@ -30,6 +47,7 @@ module mp
    public :: min_reduce, min_allreduce
    public :: comm_split, comm_free
    public :: nproc, iproc, proc0, job, min_proc
+   public :: nshared_proc
    public :: send, ssend, receive
    public :: numnodes, inode
    public :: barrier
@@ -52,7 +70,7 @@ module mp
    public :: create_shared_memory_window
 #endif
 
-# ifdef MPIINC
+#ifdef MPIINC
 ! CMR: defined MPIINC for machines where need to include mpif.h
    include 'mpif.h'
 #endif
@@ -288,110 +306,225 @@ module mp
 
 contains
 
+!###############################################################################
+!                                INITIALISATION                                 
+!###############################################################################
+
    subroutine init_mp(comm_in)
+   
+      ! Import numerical precision info and error output unit
       use constants, only: pi, kind_rs, kind_rd
       use file_utils, only: error_unit
+      
       implicit none
+      
+      ! Optional input communicator (allows embedding in a larger MPI program)
       integer, intent(in), optional :: comm_in
+      
+      ! Local variables
+      !integer :: info_numa
       integer :: ierror
       logical :: init
+      
+      !-------------------------------------------------------------------------
+      ! Ensure MPI is initialized
+      !-------------------------------------------------------------------------
 
+      ! Check whether MPI has already been initialized, if not, initialise MPI
       call mpi_initialized(init, ierror)
       if (.not. init) call mpi_init(ierror)
+      
+      ! Duplicate MPI_COMM_WORLD to avoid accidental modification elsewhere
       call mpi_comm_dup(mpi_comm_world, mpi_comm_world_private, ierror)
+      
+      ! Use user-supplied communicator if present; otherwise use private WORLD
+      ! Set <comm_all> which is the parent communicator, which is typically MPI_COMM_WORLD
       if (present(comm_in)) then
          comm_all = comm_in
       else
          comm_all = mpi_comm_world_private
       end if
+      
+      !-------------------------------------------------------------------------
+      ! Global communicator information
+      !-------------------------------------------------------------------------
+   
+      ! Total number of processes <ntot_proc> in the global communicator
       call mpi_comm_size(comm_all, ntot_proc, ierror)
+      
+      ! Rank <aproc> of this process in the global communicator
       call mpi_comm_rank(comm_all, aproc, ierror)
-      aproc0 = aproc == 0
+      
+      ! Set <aproc0> to True if this is rank 0 in the global communicator ("master" rank)
+      aproc0 = (aproc == 0)
+      
+      !-------------------------------------------------------------------------
+      ! Create a shared-memory communicator
+      !  - MPI-4: split by NUMA domain (resource-guided)
+      !  - MPI-3: split by node (mpi_comm_type_shared)
+      !-------------------------------------------------------------------------
 
-      !the next communicator is between all cores on a given node (i.e. shared memory)
+
+      ! Split communicator by shared-memory NUMA (Non-Uniform Memory Access) domains (MPI-4 feature)
+      ! In short, all processes on the same physical socket / node end up in the same comm_shared.
+      ! While the global (or parent) communicator <comm_all> contains all processors,
+      ! each <comm_shared> communicator contains the processors which can access the same memory.
+      ! This typically groups processor per socket / node, since those can access the same "shared memory"
+      ! Recall that <aproc> is the rank on the global communicator <comm_all>
+      ! The first option splits by NUMA domains, the second by nodes.
+      ! For both it is VERY important that each domain has the same number of CPUs.
+#ifdef SPLIT_BY_NUMA
+      call mpi_comm_split_type(comm_all, ompi_comm_type_numa, aproc, mp_info, comm_shared, ierror)
+#else
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
+#endif
 
+      ! Number of processes <nshared_proc> on the shared-memory communicator <comm_shared>
+      ! This typically corresponds to the number of processors on a single node
       call mpi_comm_size(comm_shared, nshared_proc, ierror)
+      
+      ! Rank <sproc> of this process within the shared-memory communicator (i.e. within a node)
       call mpi_comm_rank(comm_shared, sproc, ierror)
-      sproc0 = sproc == 0
-
+      
+      ! Set <sproc0> to True if this is rank 0 in the shared-memory communicator ("master" rank)
+      sproc0 = (sproc == 0)
+      
+      !-------------------------------------------------------------------------
+      ! Node-level communicator (one rank per node, grouped across nodes)
+      !-------------------------------------------------------------------------
+   
+      ! Create a communicator that groups processes with the same <sproc> rank
+      ! i.e. ranks with the same intra-node index across all nodes
+      ! This assumes each shared-memory domain has the same number of CPUs
       call mpi_comm_split(comm_all, sproc, aproc, comm_node, ierror)
+      
+      ! Number of processes <numnodes> on the intra-node communicator <comm_node>
+      ! Number of nodes (i.e. size of this communicator)
       call mpi_comm_size(comm_node, numnodes, ierror)
+      
+      ! Rank <inode> of this process in the node-level communicator
       call mpi_comm_rank(comm_node, inode, ierror)
 
-      !group communicator is global communicator unless changed by job fork
+      ! Cross-node communicator (one process per node)
+      comm_scross = comm_node
+      nscross_proc = numnodes
+      scproc = inode
+
+      !-------------------------------------------------------------------------
+      ! Initialize default "group" communicators
+      !-------------------------------------------------------------------------
+   
+      ! Group communicator is global communicator unless changed by job fork
       comm_group = comm_all
       ngroup_proc = ntot_proc
       gproc = aproc
       gproc0 = aproc0
 
+      ! Shared subgroup communicator (shared memory within a group)
       comm_sgroup = comm_shared
       nsgroup_proc = nshared_proc
       sgproc = sproc
       sgproc0 = sproc0
+      
+      !-------------------------------------------------------------------------
+      ! Set communicator "scope" and synchronize node IDs
+      !-------------------------------------------------------------------------
 
-      comm_scross = comm_node
-      nscross_proc = numnodes
-      scproc = inode
-
+      ! Temporarily switch scope to shared-memory communicator
       call scope(sharedprocs)
+      
+      ! Broadcast node index so all shared-memory ranks know their node ID
       call broadcast(inode)
+      
+      ! Restore scope to global communicator
       call scope(allprocs)
 
+      !-------------------------------------------------------------------------
+      ! Determine minimum number of shared processes across all nodes
+      !-------------------------------------------------------------------------
+   
       min_proc = nshared_proc
       call min_allreduce(min_proc)
 
+      !-------------------------------------------------------------------------
+      ! Set MPI datatypes and sizes according to real precision
+      !-------------------------------------------------------------------------
+   
+      ! Single precision build (real*4)
       if ((kind(pi) == kind_rs) .and. (kind_rs /= kind_rd)) then
          mpireal = MPI_REAL
          mpicmplx = MPI_COMPLEX
          real_size = 4_MPI_ADDRESS_KIND
          nbytes_real = 4
+         
+      ! Double precision build (real*8)
       else if (kind(pi) == kind_rd) then
          mpireal = MPI_DOUBLE_PRECISION
          mpicmplx = MPI_DOUBLE_COMPLEX
          real_size = 8_MPI_ADDRESS_KIND
          nbytes_real = 8
+         
+      ! Precision mismatch: unsupported configuration
       else
          write (error_unit(), *) 'ERROR: precision mismatch in mpi'
       end if
 
    end subroutine init_mp
 
+!###############################################################################
+!                                  MPI SCOPE                                    
+!###############################################################################
+! This routine rebinds generic MPI handles (mp_comm, nproc, iproc, proc0) to 
+! different communicators, allowing the rest of the code to be written simpler.
+!###############################################################################
    subroutine scope(focus)
 
+      ! Identifier selecting which communicator to activate
       integer, intent(in) :: focus
-
+      
+      ! Global communicator: all MPI processes
       if (focus == allprocs) then
          curr_focus = allprocs
          mp_comm => comm_all
          nproc => ntot_proc
          iproc => aproc
          proc0 => aproc0
+      
+      ! Shared-memory communicator: processes on the same node
       else if (focus == sharedprocs) then
          curr_focus = sharedprocs
          mp_comm => comm_shared
          nproc => nshared_proc
          iproc => sproc
          proc0 => sproc0
+         
+      ! Subgroup communicator (e.g. domain decomposition groups)
       else if (focus == subprocs) then
          curr_focus = subprocs
          mp_comm => comm_group
          nproc => ngroup_proc
          iproc => gproc
          proc0 => gproc0
+         
+      ! Cross-domain communicator (one rank per domain)
+      ! Note that there is no meaningful "rank 0" in this communicator... be careful
       else if (focus == crossdomprocs) then
          curr_focus = crossdomprocs
          mp_comm => comm_cross
          nproc => ndomain_proc
          iproc => cproc
-!DSO - 'proc0' in this subgroup is meaningless... be careful
-         proc0 => null()
+         proc0 => null() 
+         
+      ! Shared-memory subgroup communicator
       else if (focus == sharedsubprocs) then
          curr_focus = sharedsubprocs
          mp_comm => comm_sgroup
          nproc => nsgroup_proc
          iproc => sgproc
          proc0 => sgproc0
+         
+      ! Shared cross-domain communicator
+      ! Note that there is no meaningful "rank 0" in this communicator... be careful
       else if (focus == scrossdomprocs) then
          curr_focus = scrossdomprocs
          mp_comm => comm_scross
@@ -402,6 +535,9 @@ contains
 
    end subroutine scope
 
+!###############################################################################
+!                                    JOBS                                       
+!###############################################################################
    subroutine init_job_topology(ncolumns, group0, ierr)
 
       implicit none
@@ -526,10 +662,15 @@ contains
 
    end subroutine init_job_topology
 
+
+!###############################################################################
+!                             SHARED MEMORY WINDOW                              
+!###############################################################################
+! Creates a shared memory window of a specific size.
+! Returns the MPI window, as well as the pointer to the specific
+! address in memory to be used with c_f_pointer
+!###############################################################################
 #ifdef ISO_C_BINDING
-!> creates a shared memory window of the specific size
-!> Returns the MPI window, as well as the pointer to the specific
-!> address in memory to be used with c_f_pointer
    subroutine create_shared_memory_window(win_size, window, cur_pos)
 
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
@@ -548,11 +689,10 @@ contains
 
       prior_focus = curr_focus
       call scope(sharedsubprocs)
-      call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, &
-                                   cptr, window, ierr)
+      call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, cptr, window, ierr)
 
+      ! Make sure all the procs have the right memory address
       if (.not. sgproc0) then
-         !make sure all the procs have the right memory address
          call mpi_win_shared_query(window, 0, win_size, disp_unit, cptr, ierr)
       end if
       call mpi_win_fence(0, window, ierr)
@@ -575,8 +715,13 @@ contains
    end subroutine create_shared_memory_window
 #endif
 
-!> split n tasks over current communicator. Returns the low and high
-!> indices for a given processor. Assumes indices start at 1
+!###############################################################################
+!                         SPLIT TASKS OVER COMMUNICATOR                         
+!###############################################################################
+! Split <n> tasks over the current communicator. Returns the low and high
+! indices for a given processor. Assumes indices start at 1.
+! This is used for the LU decomposition and radial variation.
+!###############################################################################
    subroutine split_n_tasks(n, lo, hi)
 
       implicit none
@@ -594,6 +739,10 @@ contains
       if (iproc < n_mod) hi = hi + 1
 
    end subroutine split_n_tasks
+   
+!###############################################################################
+!                                  FINISH MPI                                   
+!###############################################################################
 
    subroutine finish_mp
       implicit none
@@ -602,7 +751,9 @@ contains
       call mpi_finalize(ierror)
    end subroutine finish_mp
 
-! ************** broadcasts *****************************
+!###############################################################################
+!                                  BROADCASTS                                   
+!###############################################################################
 
    subroutine broadcast_character(char)
       implicit none
@@ -796,7 +947,9 @@ contains
       call mpi_bcast(z, size(z), mpicmplx, src, mp_comm, ierror)
    end subroutine bcastfrom_complex_2array
 
-! ************** reductions ***********************
+!###############################################################################
+!                                  REDUCTIONS                                   
+!###############################################################################
 
    subroutine sum_reduce_integer(i, dest)
       implicit none
@@ -1336,7 +1489,10 @@ contains
       call mpi_comm_free(comm_local, ierr)
    end subroutine comm_free
 
-! ********************* barrier **********************
+
+!###############################################################################
+!                                  MPI BARRIER                                  
+!###############################################################################
 
    subroutine barrier
       implicit none
@@ -1344,7 +1500,9 @@ contains
       call mpi_barrier(mp_comm, ierror)
    end subroutine barrier
 
-! ********************* sends **********************
+!###############################################################################
+!                                     SEND                                      
+!###############################################################################
 
    subroutine send_integer(i, dest, tag)
       implicit none
@@ -1492,8 +1650,11 @@ contains
          (s, len(s), MPI_CHARACTER, dest, tagp, mp_comm, ierror)
    end subroutine send_character
 
-! MAB> needed for Trinity
-! ********************* synchronous sends **********************
+!###############################################################################
+!                              SYNCHRONOUS SENDS                                
+!###############################################################################
+! Needed for Trinity.
+!###############################################################################
 
    subroutine ssend_integer(i, dest, tag)
       implicit none
@@ -1617,7 +1778,10 @@ contains
 !   end subroutine ssend_character
 ! <MAB
 
-! ********************* receives  **********************
+
+!###############################################################################
+!                                   RECEIVE                                     
+!###############################################################################
 
    subroutine receive_integer(i, src, tag)
       implicit none
@@ -1800,6 +1964,10 @@ contains
       call mpi_recv(s, len(s), MPI_CHARACTER, src, tagp, mp_comm, &
                     status, ierror)
    end subroutine receive_character
+   
+!###############################################################################
+!                                    WAIT                                       
+!###############################################################################
 
    subroutine waitany(count, requests, requestindex, status)
 
@@ -1814,6 +1982,10 @@ contains
       call mpi_waitany(count, requests, requestindex, status, ierror)
 
    end subroutine waitany
+
+!###############################################################################
+!                                                                               
+!###############################################################################
 
    subroutine all_to_group_real(all, group, njobs)
 
@@ -1953,6 +2125,10 @@ contains
 
    end subroutine group_to_all_real_array
 
+!###############################################################################
+!                                  MPI ABORT                                    
+!###############################################################################
+
    subroutine mp_abort(msg)
       use file_utils, only: error_unit, flush_output_file
       implicit none
@@ -1961,6 +2137,7 @@ contains
       integer, parameter :: error_code = MPI_ERR_UNKNOWN
 
       if (proc0) then
+         write(*,*) ' '; write (*,*) "Error: "//msg; write(*,*) ' '
          write (error_unit(), *) "Error: "//msg
          call flush_output_file(error_unit())
       end if
@@ -1969,7 +2146,12 @@ contains
 
    end subroutine mp_abort
 
-   ! this gathers a single integer from each processor into an array on proc0
+!###############################################################################
+!                                   GATHER                                      
+!###############################################################################
+! This gathers a single integer from each processor into an array on proc0
+!###############################################################################
+
    subroutine mp_gather(senddata, recvarray)
 
       implicit none
@@ -1982,6 +2164,10 @@ contains
       call mpi_gather(senddata, 1, mpi_integer, recvarray, &
                       1, mpi_integer, 0, mp_comm, ierr)
    end subroutine mp_gather
+
+!###############################################################################
+!                                 BROADCAST                                     
+!###############################################################################
 
    subroutine broadcast_with_comm(x, comm)
       implicit none

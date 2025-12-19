@@ -1,0 +1,60 @@
+&time_trace_options
+  nstep = 200
+/
+&time_step_temp
+  delt_option = 'check_restart'
+/
+&initialise_distribution_temp
+  initialise_distribution_option = 'many'
+/
+&diagnostics
+  nwrite = 10
+  nsave = 10
+  save_for_restart = .true.
+/
+&restart_options
+  restart_dir = 'restart'
+  save_many = .true.
+/
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+&species_knobs
+  nspec = 2
+/
+&species_parameters_1
+  z = 1.0
+  mass = 1.0
+  dens = 1.0
+  temp = 1.0
+  tprim = 3.0
+  fprim = 1.0
+  type = "ion"
+/
+&species_parameters_2
+  z = -1.0
+  mass = 5.43867E-4
+  dens = 1.0
+  temp = 1.0
+  tprim = 0.0
+  fprim = 1.0
+  type = "electron"
+/
+&kxky_grid_option
+  grid_option = "box"
+/
+&kxky_grid_box 
+  nx = 6
+  ny = 6
+  y0 = 5
+/
+&z_grid
+  nzed = 6
+/
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
+/
+&debug_flags 
+  print_extra_info_to_terminal = .false.
+/

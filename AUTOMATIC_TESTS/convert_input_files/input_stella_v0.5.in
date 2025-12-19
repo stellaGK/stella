@@ -16,12 +16,12 @@
    overwrite_cvdrift = .false.
    overwrite_gbdrift0 = .false.
    set_bmag_const = .false.
-   q_as_x = radial_variation
+   q_as_x = .false.
    geo_file = 'input.geometry'
 /
 
 &vmec_parameters
-   vmec_filename = 'wout*.nc'
+   vmec_filename = 'wout.nc'
    alpha0 = 0.0
    zeta_center = 0.0
    nfield_periods = -1.0
@@ -128,7 +128,12 @@
    d2ndr2 = 0.0
    d2Tdr2 = 0.0
    bess_fac = 1.0
-   type = "ion"
+   type = 'ion'
+/
+
+&euterpe_parameters
+   nradii = 1000
+   data_file = 'euterpe.dat'
 /
 
 &kt_grids_knobs
@@ -143,12 +148,14 @@
    phase_shift_angle = 0.
    x0 = -1.0
    y0 = -1.0
+   nalpha = 1
    centered_in_rho = .true.
    randomize_phase_shift = .false.
    periodic_variation = .false.
 /
 
 &kt_grids_range_parameters
+   nalpha = 1
    naky = 1
    nakx = 1
    aky_min = 0.0
@@ -175,8 +182,8 @@
    write_gzvs = .false.
    write_kspectra = .false.
    write_moments = .false.
-   write_radial_fluxes = radial_variation
-   write_radial_moments = radial_variation
+   write_radial_fluxes = .false.
+   write_radial_moments = .false.
    write_fluxes_kxkyz = .false.
    nc_mult = 1
    flux_norm = .true.
@@ -189,7 +196,7 @@
 &init_g_knobs
    tstart = 0.
    scale = 1.0
-   ginit_option = "default"
+   ginit_option = 'default'
    width0 = -3.5
    refac = 1.
    imfac = 0.
@@ -213,8 +220,8 @@
    scale_to_phiinit = .false.
    left = .true.
    even = .true.
-   restart_file = "dummy.nc"
-   restart_dir = "./"
+   restart_file = '.nc'
+   restart_dir = './'
 /
 
 !-------------------------------
@@ -224,7 +231,7 @@
 &dissipation
    include_collisions = .false.
    collisions_implicit = .true.
-   collision_model = "dougherty"
+   collision_model = 'dougherty'
    testpart = .true.
    fieldpart = .false.
    intraspec = .true.
@@ -310,11 +317,6 @@
 !--------  Neoclassics  --------
 !-------------------------------
 
-&euterpe_parameters
-   nradii = 1000
-   data_file = 'euterpe.dat'
-/
-
 &neoclassical_input
    include_neoclassical_terms = .false.
    nradii = 5
@@ -372,8 +374,8 @@
 
 &sources
    include_krook_operator = .false.
-   exclude_boundary_regions = radial_variation .and. .not. periodic_variation
-   exclude_boundary_regions_qn = exclude_boundary_regions
+   exclude_boundary_regions = .false.
+   exclude_boundary_regions_qn = .false.
    remove_zero_projection = .false.
    nu_krook = 0.05
    tcorr_source = 0.02

@@ -2,10 +2,44 @@
 ! Simple nonlinear example based on CBC
 ! Turned on all the diagnostics
 
-&physics_flags
-  nonlinear = .true.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
 /
-&species_knobs
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
   nspec = 2 
 /
 &species_parameters_1
@@ -26,73 +60,85 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
   jtwist = 5
   nx = 6
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
+&z_grid
   nzed = 24
 /
-&vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3  
+&z_boundary_condition
+  boundary_option = 'linked'
 /
-&knobs
-  delt = 0.01  
-  nstep = 100
-  print_extra_info_to_terminal = .false.  
-  rng_seed = 1
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
 /
-&stella_diagnostics_knobs
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
   nsave = 100
   nwrite = 10 
   write_all = .true.
-  write_omega = .true.
-  write_moments = .true.
-  write_phi_vs_time = .true.
-  write_apar_vs_time = .true.
-  write_bpar_vs_time = .true.
-  write_gvmus = .true.
-  write_gzvs = .true.
-  write_kspectra = .true.
-  write_radial_fluxes = .true.
-  write_radial_moments = .true.
-  write_fluxes_kxkyz = .true.
 /
-&init_g_knobs 
-  ginit_option = 'noise'
-  phiinit = 0.01   
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'noise'
+  phiinit = 0.01
 /
-&dissipation
-  hyper_dissipation = .true.
+
+&initialise_distribution_noise
+  rng_seed = 1
 /
-&geo_knobs
-  geo_option = 'miller'
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 100
 /
-&kt_grids_knobs
-  grid_option = 'box'
+
+&time_step
+  delt = 0.01
 /
-&time_advance_knobs
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&parameters_numerical
+  delt = 0.01
+  nstep = 100
   explicit_option = 'rk2'
 /
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation_and_collisions_options
+  hyper_dissipation = .true.
+/
+
