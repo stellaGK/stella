@@ -22,7 +22,7 @@ USE_HDF5 =
 # domain when using more than 128 cpus, as they cross NUMA domains.
 # Note that when this is turned on, you need to make sure to specify e.g.,
 # #SBATCH --ntasks-per-socket=40, so that each socket has the same amount
-# of CPUs, if shared-memory domains have different amount of CPUs, tje 
+# of CPUs, if shared-memory domains have different amount of CPUs, the 
 # parallelisation can not be done correctly, and stella will abort.
 SPLIT_BY_NUMA = on
 
