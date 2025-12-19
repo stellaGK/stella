@@ -79,7 +79,7 @@ contains
    !============================================================================
    subroutine init_response_matrix
 
-      use mp, only: proc0
+      use mp, only: proc0, nshared_proc
       use debug_flags, only: print_extra_info_to_terminal
       use parallelisation_layouts, only: verbose
       use linear_solve, only: lu_decomposition
@@ -95,6 +95,7 @@ contains
       implicit none
 
       ! Local variables
+      integer :: num_shared_memory_domain
 #ifdef ISO_C_BINDING
       integer :: ierr
 #endif
@@ -102,6 +103,9 @@ contains
       ! ------------------------------------------------------------------------
       !              Set up memory and timings for response matrix              
       ! ------------------------------------------------------------------------
+      
+      ! Check whether we can create shared memeory windows
+      call check_shared_memory_window(num_shared_memory_domain)
       
       ! Print info to command prompt
       if (verbose .and. print_extra_info_to_terminal) then
@@ -114,7 +118,14 @@ contains
 #else
          write (*, '(A)') 'Warning: ISO_C_BINDING is not available. Response matrix could hit memory limits.'
 #endif
+#ifdef SPLIT_BY_NUMA
+         write (*, '(A)') 'Shared-memory domains are defined per NUMA domain.'
+#else
+         write (*, '(A)') 'Shared-memory domains are defined per node.'
+#endif
+         if (proc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains, with ', nshared_proc, ' CPUs per domain.' 
       end if
+      
       ! Set up response matrix utils
       call setup_response_matrix_file_io
 
@@ -151,6 +162,43 @@ contains
       end if
       
    end subroutine init_response_matrix
+   
+   !============================================================================
+   !         Each shared-memory window should have the same number of CPUs      
+   !============================================================================
+   subroutine check_shared_memory_window(num_shared_memory_domain)
+   
+      use mp, only: nproc, nshared_proc, sgproc0
+      use mp, only: mp_abort, sum_allreduce
+      
+      implicit none
+      
+      integer, intent(in out) :: num_shared_memory_domain
+      integer :: cpus_per_domain
+      
+      ! ------------------------------------------------------------------------
+      
+      ! Get the number of shared memory domains
+      if (sgproc0) num_shared_memory_domain = 1
+      if (.not. sgproc0) num_shared_memory_domain = 0
+      call sum_allreduce(num_shared_memory_domain)
+      
+      ! We needs to be able to divide the CPUs over the shared-memory domains
+      if (mod(nproc,num_shared_memory_domain) /= 0 ) then
+         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' CPUs.' 
+         call mp_abort('The number of CPUs needs to be divisible by the number of shared memory domains. Aborting')
+      end if
+      
+      ! Ideal number of CPUs per shared-memory domain
+      cpus_per_domain = nproc / num_shared_memory_domain
+      
+      ! Check that each domain has the correct number of CPUs
+      if (nshared_proc /= cpus_per_domain) then
+         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' CPUs.' 
+         call mp_abort('Each shared memory domain should have the same number of CPUs. Aborting.')
+      end if
+
+   end subroutine check_shared_memory_window
 
    !============================================================================
    !                     Set up .io file for response matrix                    

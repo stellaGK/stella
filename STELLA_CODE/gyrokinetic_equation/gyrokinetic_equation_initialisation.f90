@@ -47,7 +47,7 @@ contains
       use gk_radial_variation, only: init_radial_variation
       use gk_sources, only: init_quasineutrality_source
       use gk_sources, only: init_source_timeaverage
-      use gk_nonlinearity, only: init_parallel_nonlinearity
+      use gk_parallel_nonlinearity, only: init_parallel_nonlinearity
       use neoclassical_terms, only: init_neoclassical_terms
 
       implicit none
@@ -131,7 +131,7 @@ contains
       use gk_flow_shear, only: finish_flow_shear
       use gk_drive, only: finish_wstar
       use gk_magnetic_drift, only: finish_wdrift
-      use gk_nonlinearity, only: finish_parallel_nonlinearity
+      use gk_parallel_nonlinearity, only: finish_parallel_nonlinearity
       use gk_radial_variation, only: finish_radial_variation
       use neoclassical_terms, only: finish_neoclassical_terms
       use dissipation_and_collisions, only: finish_dissipation

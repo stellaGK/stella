@@ -11,7 +11,7 @@
 ! 
 ! Modified by Michael Barnes in 2017, 2018 and 2019.
 ! Modified by Dennis St-Onge in 2020 and 2021.
-! Modified by Hanne Thienpondt in 2025. 
+! Modified by Hanne Thienpondt in 2025: Added NUMA-aware split of processors.
 ! 
 ! Communicators
 !----------------
@@ -33,7 +33,7 @@
 
 module mp
 
-# ifndef MPIINC
+#ifndef MPIINC
    use mpi
 #endif
 
@@ -47,6 +47,7 @@ module mp
    public :: min_reduce, min_allreduce
    public :: comm_split, comm_free
    public :: nproc, iproc, proc0, job, min_proc
+   public :: nshared_proc
    public :: send, ssend, receive
    public :: numnodes, inode
    public :: barrier
@@ -69,7 +70,7 @@ module mp
    public :: create_shared_memory_window
 #endif
 
-# ifdef MPIINC
+#ifdef MPIINC
 ! CMR: defined MPIINC for machines where need to include mpif.h
    include 'mpif.h'
 #endif
@@ -321,6 +322,7 @@ contains
       integer, intent(in), optional :: comm_in
       
       ! Local variables
+      !integer :: info_numa
       integer :: ierror
       logical :: init
       
@@ -357,16 +359,25 @@ contains
       aproc0 = (aproc == 0)
       
       !-------------------------------------------------------------------------
-      ! Shared-memory communicator (processes on the same node)
+      ! Create a shared-memory communicator
+      !  - MPI-4: split by NUMA domain (resource-guided)
+      !  - MPI-3: split by node (mpi_comm_type_shared)
       !-------------------------------------------------------------------------
 
-      ! Split communicator by shared-memory domains (MPI-3 feature)
-      ! In short, all processes on the same physical node end up in the same comm_shared.
+
+      ! Split communicator by shared-memory NUMA (Non-Uniform Memory Access) domains (MPI-4 feature)
+      ! In short, all processes on the same physical socket / node end up in the same comm_shared.
       ! While the global (or parent) communicator <comm_all> contains all processors,
       ! each <comm_shared> communicator contains the processors which can access the same memory.
-      ! This typically groups processor per node, since those can access the same "shared memory"
+      ! This typically groups processor per socket / node, since those can access the same "shared memory"
       ! Recall that <aproc> is the rank on the global communicator <comm_all>
+      ! The first option splits by NUMA domains, the second by nodes.
+      ! For both it is VERY important that each domain has the same number of CPUs.
+#ifdef SPLIT_BY_NUMA
+      call mpi_comm_split_type(comm_all, ompi_comm_type_numa, aproc, mp_info, comm_shared, ierror)
+#else
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
+#endif
 
       ! Number of processes <nshared_proc> on the shared-memory communicator <comm_shared>
       ! This typically corresponds to the number of processors on a single node
@@ -377,13 +388,14 @@ contains
       
       ! Set <sproc0> to True if this is rank 0 in the shared-memory communicator ("master" rank)
       sproc0 = (sproc == 0)
-
+      
       !-------------------------------------------------------------------------
       ! Node-level communicator (one rank per node, grouped across nodes)
       !-------------------------------------------------------------------------
    
       ! Create a communicator that groups processes with the same <sproc> rank
       ! i.e. ranks with the same intra-node index across all nodes
+      ! This assumes each shared-memory domain has the same number of CPUs
       call mpi_comm_split(comm_all, sproc, aproc, comm_node, ierror)
       
       ! Number of processes <numnodes> on the intra-node communicator <comm_node>

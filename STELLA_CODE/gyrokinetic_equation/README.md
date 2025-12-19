@@ -45,15 +45,20 @@ velocity of the particle becomes zero, and the particle reverses direction. Ther
 these so-called trapped particles bounce back and forward between two bounce points, 
 also called mirror points. Hence, the term containing b . ∇B is the mirror term.
 
-   
+
 ### Magnetic drift
 
-The drift term is evolved in 'gk_drifts.f90'.
+The drift term is evolved in 'gk_magnetic_drift.f90'.
+
+
+### Drive
+
+The drive term is evolved in 'gk_drive.f90'.
 
 
 ### Nonlinear term
 
-The nonlinear term is evolved in 'gk_nonlinearity.f90'.
+The nonlinear term is evolved in 'gk_ExB_nonlinearity.f90'.
 
 It is common to turn off the nonlinear term to study the behaviour of individual
 (kx,ky) modes in so-called linear simulations.
@@ -61,20 +66,10 @@ It is common to turn off the nonlinear term to study the behaviour of individual
 
 ## Time advance gyrokinetic equation
 
-The gyrokinetic equation is evolved in time in 'gk_time_advance.f90'.
+The gyrokinetic equation is evolved in time in 'gyrokinetic_equation_explicit.f90'
+and 'gyrokinetic_equation_implicit' for the explicit and implicit terms, respectively.
 
 
-## Write documentation for:
-   
-   - response_matrix.fpp
-   - timestep_calculations.f90
-   - gk_radial_variation.f90
-   - gk_sources.fpp
-   - gk_ffs_solve.f90
-   - gk_flow_shear.f90
-   - gk_implicit_solve.f90
-   
-   
 ## Clebsch form
 
 We assume the equations are derived using
