@@ -20,8 +20,10 @@ USE_HDF5 =
 # Each Pitagora node has 256 cores, located on 2 sockets, therefore we
 # encounter performance uses for the response matrix's shared memory
 # domain when using more than 128 cpus, as they cross NUMA domains.
-# Using MPI-4 we can split parallelisation over NUMA domains. 
-# THIS DOESNT WORK
+# Note that when this is turned on, you need to make sure to specify e.g.,
+# #SBATCH --ntasks-per-socket=40, so that each socket has the same amount
+# of CPUs, if shared-memory domains have different amount of CPUs, tje 
+# parallelisation can not be done correctly, and stella will abort.
 SPLIT_BY_NUMA = on
 
 # Set the system compiler
