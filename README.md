@@ -246,7 +246,7 @@ It is the responsibility of the respective authors to list their contributions t
 - A Linearised Fokker-Planck collision model has been implemented by A. von Boetticher in August 2021, as detailed in [[2024 - A. von Boetticher - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/ad6c7c)].
 - Stellarator-symmetric parallel boundary conditions have been implemented by A. González-Jerez in November 2021, based on [[2018 - Martin - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/aad38a)].
 - The radially global version of the $\texttt{stella}$ code has been developed by D. A. St-Onge in 2022, as detailed in [[2022 - D. A. St-Onge - Journal of Computational Physics](https://doi.org/10.1016/j.jcp.2022.111498)]. This paper used [stella release 0.5.1](https://github.com/stellaGK/stella/releases/tag/v0.5.1).
-- Hyper dissipation was added by S. Stroteich in March 2024.
+- Hyper dissipation in (vpa, z) was added by S. Stroteich in March 2024. These options can be controlled by the `D_zed` and `D_vpa` input variables in the `hyper_dissipation` namelist.
 - The electromagnetic extension of the $\texttt{stella}$ code has been implemented by M. Hardman in July 2024, with the help of G. Acton, M. Barnes and R. Davies.
 - The full-flux-surface version of $\texttt{stella}$ will be implemented by G. Acton in 2026.
 
