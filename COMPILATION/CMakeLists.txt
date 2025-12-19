@@ -101,7 +101,8 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gk_implicit_terms.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_magnetic_drift.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_mirror.f90
-  ../STELLA_CODE/gyrokinetic_equation/gk_nonlinearity.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_ExB_nonlinearity.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_parallel_nonlinearity.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_parallel_streaming.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_explicit.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_implicit.f90
