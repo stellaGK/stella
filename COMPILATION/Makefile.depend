@@ -4,6 +4,7 @@
 # >> make depend
 #
 stella_mod = \
+	 $(OBJ_DIR)/NEO_interface.o \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/arrays_fields.o \
@@ -101,12 +102,16 @@ stella_mod = \
 	 $(OBJ_DIR)/namelist_z_grid.o \
 	 $(OBJ_DIR)/neasyf.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
+	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/netcdf_utils.o \
+	 $(OBJ_DIR)/optionals.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/periodic_splines.o \
+	 $(OBJ_DIR)/polynomials.o \
 	 $(OBJ_DIR)/ran.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/response_matrix.o \
@@ -120,6 +125,8 @@ stella_mod = \
 	 $(OBJ_DIR)/timers.o \
 	 $(OBJ_DIR)/write_diagnostics_to_netcdf.o 
 
+$(OBJ_DIR)/NEO_interface.o: \
+	 $(OBJ_DIR)/optionals.o 
 $(OBJ_DIR)/arrays.o: \
 	 $(OBJ_DIR)/common_types.o 
 $(OBJ_DIR)/arrays_distribution_function.o: 
@@ -499,6 +506,7 @@ $(OBJ_DIR)/dissipation_hyper.o: \
 	 $(OBJ_DIR)/initialise_redistribute.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_dissipation.o \
+	 $(OBJ_DIR)/namelist_geometry.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/redistribute.o 
 $(OBJ_DIR)/ezcdf.o: \
@@ -706,6 +714,7 @@ $(OBJ_DIR)/gk_drive.o: \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
+	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/timers.o 
@@ -933,6 +942,7 @@ $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/namelist_geometry.o \
 	 $(OBJ_DIR)/namelist_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/ran.o 
@@ -1036,7 +1046,8 @@ $(OBJ_DIR)/gyrokinetic_equation_initialisation.o: \
 	 $(OBJ_DIR)/gk_radial_variation.o \
 	 $(OBJ_DIR)/gk_sources.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
-	 $(OBJ_DIR)/neoclassical_terms.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
@@ -1070,6 +1081,7 @@ $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/multibox.o \
+	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
@@ -1233,6 +1245,11 @@ $(OBJ_DIR)/namelist_z_grid.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/text_options.o 
 $(OBJ_DIR)/neasyf.o: 
+$(OBJ_DIR)/neoclassical_diagnostics.o: \
+	 $(OBJ_DIR)/NEO_interface.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o 
 $(OBJ_DIR)/neoclassical_terms.o: \
 	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/debug_flags.o \
@@ -1245,10 +1262,24 @@ $(OBJ_DIR)/neoclassical_terms.o: \
 	 $(OBJ_DIR)/namelist_neoclassical_input.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/sfincs_interface.o 
+$(OBJ_DIR)/neoclassical_terms_neo.o: \
+	 $(OBJ_DIR)/NEO_interface.o \
+	 $(OBJ_DIR)/constants.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/namelist_neoclassical_input.o \
+	 $(OBJ_DIR)/optionals.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/periodic_splines.o \
+	 $(OBJ_DIR)/polynomials.o 
 $(OBJ_DIR)/netcdf_utils.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o 
+$(OBJ_DIR)/optionals.o: 
 $(OBJ_DIR)/parallelisation_layouts.o: \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/mp.o \
@@ -1272,6 +1303,11 @@ $(OBJ_DIR)/parameters_numerical.o: \
 $(OBJ_DIR)/parameters_physics.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_physics_parameters.o 
+$(OBJ_DIR)/periodic_splines.o: \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/optionals.o \
+	 $(OBJ_DIR)/spl.o 
+$(OBJ_DIR)/polynomials.o: 
 $(OBJ_DIR)/ran.o: 
 $(OBJ_DIR)/redistribute.o: \
 	 $(OBJ_DIR)/job_manage.o \

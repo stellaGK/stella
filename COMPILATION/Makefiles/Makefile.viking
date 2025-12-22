@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------
+# System
+# ---------------------------------------------------------------
+# Host: Viking(2) @ york
+# GK_SYSTEM : viking
+# ---------------------------------------------------------------
+#
+# ---------------------------------------------------------------
+# A compatible set of modules can be achieved with the following:
+#
+# module purge
+# module load gompi/2022b OpenMPI/4.1.4-GCC-12.2.0 
+# module load netCDF-Fortran/4.6.0-gompi-2022b 
+# module load FFTW/3.3.10-GCC-12.2.0 
+# module load OpenBLAS/0.3.21-GCC-12.2.0 
+# module load Python/3.10.8-GCCcore-12.2.0
+#
+# ---------------------------------------------------------------
+
+COMPILER?=gnu-gfortran
+
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
+
+ifdef USE_NETCDF
+    NETCDF_DIR = ${EBROOTNETCDFMINFORTRAN}
+    NETCDF_INC = -I${NETCDF_DIR}/include
+    NETCDF_LIB = -L${NETCDF_DIR}/lib -lnetcdff -lnetcdf
+endif
+
+ifdef USE_FFT
+    FFT_DIR = ${EBROOTFFTW}
+    FFT_LIB = -L${FFT_DIR}/lib/ -lfftw3
+    FFT_INC = -I${FFT_DIR}/include/
+endif
+
+ifdef USE_LAPACK
+    LAPACK_LIB = -lopenblas
+endif
