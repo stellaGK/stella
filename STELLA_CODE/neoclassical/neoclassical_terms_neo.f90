@@ -169,9 +169,9 @@ contains
    
         ! Interpolates the NEO h_hat data on to the stella z grid for all three flux surfaces. h_hat data is still on the NEO velocity grids at this stage.
 
-        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, 1, neo_h_hat_z_grid)                      ! Calls interpolation on to stella z-grid for the central surface. 
-        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_right_in, neo_grid, 1, neo_h_hat_right_z_grid, 'right') ! Repeat for the right surface.
-        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_left_in, neo_grid, 1, neo_h_hat_left_z_grid, 'left')    ! Repeat for the left surface.
+        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, 1, neo_h_hat_z_grid, .false.)              ! Calls interpolation on to stella z-grid for the central surface. 
+        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_right_in, neo_grid, 1, neo_h_hat_right_z_grid, .false.)  ! Repeat for the right surface.
+        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_left_in, neo_grid, 1, neo_h_hat_left_z_grid, .false.)    ! Repeat for the left surface.
 
         ! Now repeat this process for the ϕ^1_0 data sets. 
 
@@ -179,9 +179,9 @@ contains
         allocate(neo_phi_right_z_grid(-nzgrid:nzgrid, neo_grid%n_radial))                                     ! Repeat for the right surface. 
         allocate(neo_phi_left_z_grid(-nzgrid:nzgrid, neo_grid%n_radial))                                      ! Repeat for the left surface.
 
-        call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, neo_phi_z_grid)                            ! Calls interpolation on to stella z-grid for the central surface.
-        call get_neo_phi_on_stella_z_grid(neo_phi_right_in, neo_grid, 1, neo_phi_right_z_grid, 'right')       ! Repeat for the right surface.
-        call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left_z_grid, 'left')          ! Repeat for the left surface. 
+        call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, neo_phi_z_grid, .false.)                   ! Calls interpolation on to stella z-grid for the central surface.
+        call get_neo_phi_on_stella_z_grid(neo_phi_right_in, neo_grid, 1, neo_phi_right_z_grid, .false.)       ! Repeat for the right surface.
+        call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left_z_grid, .false.)         ! Repeat for the left surface. 
 
         ! Now, we need to construct H_1 from the interpolated neo_h_hat data. Allocate the sizes of the datasets on the stella grids. 
 
@@ -189,9 +189,9 @@ contains
         allocate(neo_h_local_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         allocate(neo_h_local_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
 
-        call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_local)                         ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
-        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right, 'right')    ! Repeat for the right surface.                                         
-        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left, 'left')       ! Repeat for the left surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_local)                ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)    ! Repeat for the right surface.                                         
+        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      ! Repeat for the left surface.
 
         ! Now compact into 3 indices for use in the GK equation and also for calculating the derivatives.  
         
@@ -201,71 +201,9 @@ contains
             call distribute_vmus_over_procs(neo_h_local(iz, :, :, :, 1), neo_h(iz, :, 1))      
         end do        
 
-        ! Test diagnostic for new information. 
-
-        call write_neo_h_vmu_diagnostic(neo_h, 1)
-
+ 
         ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed. 
     end subroutine init_neoclassical_terms_neo
-
-
-! ================================================================================================================================================================================= !
-! ----------------------------------------------------------------- Read outputs of the distributed H_1 array. -------------------------------------------------------------------- !
-! ================================================================================================================================================================================= !
-
-    subroutine write_neo_h_vmu_diagnostic(neo_h, surface_index, suffix)
-        use grids_z, only: nzgrid, zed
-        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-        use mp, only: proc0
-
-        implicit none
-
-        real, intent(in) :: neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, surface_index)
-        integer, intent(in) :: surface_index
-        character(len=*), intent(in), optional :: suffix
-
-        integer :: unit
-        character(len=256) :: filename
-        integer :: iz, ivmu, iv, imu, is
-
-        ! Only rank-0 writes diagnostics.
-        if (.not. proc0) return
-            unit = 99
-
-            if (present(suffix)) then
-                write(filename,'("neo_h_vmu_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
-            else
-                write(filename,'("neo_h_vmu_surf_",I0,".dat")') surface_index
-            end if
-
-            open(unit=unit, file=filename, status='replace', action='write')
-
-            write(unit,'(A)') '# ================================================='
-            write(unit,'(A)') '# Diagnostic output: neo_h (distributed vmu)'
-            write(unit,'(A,I0)') '# surface_index = ', surface_index
-            write(unit,'(A)') '# Columns:'
-            write(unit,'(A)') '#   iz   : z-grid index'
-            write(unit,'(A)') '#   ivmu : local velocity-space index'
-            write(unit,'(A)') '#   iv   : v_parallel index'
-            write(unit,'(A)') '#   imu  : mu index'
-            write(unit,'(A)') '#   is   : species index'
-            write(unit,'(A)') '#   z    : stella z coordinate'
-            write(unit,'(A)') '#   neo_h: neoclassical correction'
-            write(unit,'(A)') '#'
-            write(unit,'(A)') '# iz   ivmu   iv   imu   is        z              neo_h'
-            write(unit,'(A)') '# -------------------------------------------------'
-
-           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv  = iv_idx (vmu_lo, ivmu)
-               imu = imu_idx(vmu_lo, ivmu)
-               is  = is_idx (vmu_lo, ivmu)
-
-               do iz = -nzgrid, nzgrid
-                   write(unit,'(I6,1X,I6,1X,I4,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8)') iz, ivmu, iv, imu, is, zed(iz), neo_h(iz, ivmu, 1)
-               end do
-           end do
-          close(unit)
-    end subroutine write_neo_h_vmu_diagnostic
 
 
 ! ================================================================================================================================================================================= !
@@ -330,70 +268,46 @@ contains
 ! ---------------------------------- Interpolate the NEO h_hat data from the NEO θ grid to the stella z grid for a specified flux surface. ---------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, surface_index, neo_h_hat_z_grid, suffix)
+    subroutine get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, surface_index, neo_h_hat_z_grid, derivative)
         use grids_z, only: nzgrid, zed
         use NEO_interface, only: neo_grid_data
-        use splines, only: linear_interp_periodic
+        use periodic_splines, only: periodic_spline, new_periodic_spline, delete_periodic_spline
         use constants, only: twopi
-    
+        use optionals, only: get_option_with_default    
+
         implicit none
 
         real, intent(in)  :: neo_h_hat_in(:, :, :, :, :)    
         real, intent(out) :: neo_h_hat_z_grid(-nzgrid:, :, :, :, :)
-
         type(neo_grid_data), intent(in) :: neo_grid
         integer, intent(in) :: surface_index
-        integer :: ix, ie, is, iz                                      ! ix is for NEO ξ = v∥​/v, ie for NEO E and is for species.
-        character(len=*), intent(in), optional :: suffix               ! For saving interpolated data on surfaces. 
-        integer :: unit
-        character(len=256) :: filename
+        logical, intent(in), optional :: derivative
+            
+        type(periodic_spline) :: the_spline
+        logical :: local_derivative 
+        integer :: ix, ie, is, iz                  
+
+        local_derivative = get_option_with_default(derivative, .false.)
 
         do ix = 1, neo_grid%n_xi + 1
             do ie = 1, neo_grid%n_energy + 1
                 do is = 1, neo_grid%n_species
-                    call linear_interp_periodic(neo_grid%theta, neo_h_hat_in(:, ix, ie, is, surface_index), zed, neo_h_hat_z_grid(:, ix, ie, is, surface_index), twopi) 
-		end do
-	    end do
-	end do
-       
-        ! ================================================= !
-        ! ----------------- Diagnostic. ------------------- !
-        ! ================================================= !
+                    the_spline = new_periodic_spline(neo_grid%theta, neo_h_hat_in(:, ix, ie, is, surface_index), twopi)
 
-        ! unit = 99 
+                    if (local_derivative) then
+                        do iz = -nzgrid, nzgrid
+                            neo_h_hat_z_grid(iz, ix, ie, is, surface_index) = the_spline%derivative(zed(iz))
+                        end do
+                    else
+                        do iz = -nzgrid, nzgrid
+                            neo_h_hat_z_grid(iz, ix, ie, is, surface_index) = the_spline%interpolate(zed(iz))
+                        end do
+                    end if
 
-        ! if (present(suffix)) then
-            ! write(filename,'("neo_h_hat_z_grid_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
-        ! else
-            ! write(filename,'("neo_h_hat_z_grid_surf_",I0,".dat")') surface_index
-        ! end if
-
-        ! open(unit=unit, file=filename, status='replace', action='write')
-
-        ! write(unit,'(A)') '# Diagnostic output: neo_h_hat_z_grid'
-        ! write(unit,'(A,I0)') '# surface_index = ', surface_index
-        ! write(unit,'(A)') '# Columns:'
-        ! write(unit,'(A)') '#   iz   : z-grid index'
-        ! write(unit,'(A)') '#   ix   : NEO xi index'
-        ! write(unit,'(A)') '#   ie   : NEO energy index'
-        ! write(unit,'(A)') '#   is   : species index'
-        ! write(unit,'(A)') '#   z    : stella z coordinate'
-        ! write(unit,'(A)') '#   hhat : interpolated neo_h_hat on stella z-grid'
-        ! write(unit,'(A)') '#'
-        ! write(unit,'(A)') '# iz   il   ie   is        z              hhat'
-        ! -----------------------------------
-
-        ! do ix = 1, neo_grid%n_xi + 1
-            ! do ie = 1, neo_grid%n_energy + 1
-                ! do is = 1, neo_grid%n_species
-                    ! do iz = -nzgrid, nzgrid
-                        ! write(unit,'(I6,1X,I4,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8)') iz, ix, ie, is, zed(iz), neo_h_hat_z_grid(iz, ix, ie, is, surface_index)
-                    ! end do
-                ! end do
-            ! end do
-        ! end do
-
-        ! close(unit)
+                    call delete_periodic_spline(the_spline)
+                end do
+            end do
+        end do
     end subroutine get_neo_h_hat_on_stella_z_grid
 
 
@@ -401,53 +315,38 @@ contains
 ! --------------------------------- Interpolate the NEO ϕ^1_0 data from the NEO θ grid to the stella z grid for a specified flux surface. ----------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, surface_index, neo_phi_z_grid, suffix)
+    subroutine get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, surface_index, neo_phi_z_grid, derivative)
         use grids_z, only: nzgrid, zed
         use NEO_interface, only: neo_grid_data
-        use splines, only: linear_interp_periodic
+        use periodic_splines, only: periodic_spline, new_periodic_spline, delete_periodic_spline
         use constants, only: twopi
+        use optionals, only: get_option_with_default
     
         implicit none
 
         real, intent(in)  :: neo_phi_in(:, :)    
         type(neo_grid_data), intent(in) :: neo_grid
-        character(len=*), intent(in), optional :: suffix               ! For saving interpolated data on surfaces.
         integer, intent(in) :: surface_index
-        real, intent(out) :: neo_phi_z_grid(-nzgrid:, :)        
-         
-        integer :: unit
-        character(len=256) :: filename
+        real, intent(out) :: neo_phi_z_grid(-nzgrid:, :)                 
+        logical, intent(in), optional :: derivative
+        
+        logical :: local_derivative
+        type(periodic_spline) :: the_spline
+        integer :: iz
 
-        call linear_interp_periodic(neo_grid%theta, neo_phi_in(:, surface_index), zed, neo_phi_z_grid(:,  surface_index), twopi)
+        the_spline = new_periodic_spline(neo_grid%theta, neo_phi_in(:, surface_index), twopi)
 
-        ! ================================================= !
-        ! ----------------- Diagnostic. ------------------- !
-        ! ================================================= !
+        local_derivative = get_option_with_default(derivative, .false.)
 
-        ! unit = 99 
-
-        ! if (present(suffix)) then
-            ! write(filename,'("neo_phi_z_grid_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
-        ! else
-            ! write(filename,'("neo_phi_z_grid",I0,".dat")') surface_index
-        ! end if
-
-        ! open(unit=unit, file=filename, status='replace', action='write')
-
-        ! write(unit,'(A)') '# Diagnostic output: neo_phi_z_grid'
-        ! write(unit,'(A,I0)') '# surface_index = ', surface_index
-        ! write(unit,'(A)') '# Columns:'
-        ! write(unit,'(A)') '#   iz   : z-grid index'
-        ! write(unit,'(A)') '#   z    : stella z coordinate'
-        ! write(unit,'(A)') '#   phi^1_0 : interpolated neo_phi on stella z-grid'
-        ! write(unit,'(A)') '#'
-        ! write(unit,'(A)') '# iz            z              hhat'
-        ! -----------------------------------
-
-        ! do iz = -nzgrid, nzgrid
-            ! write(unit,'(I6,ES16.8,1X,ES16.8)') iz, zed(iz), neo_phi_z_grid(iz, surface_index)
-        ! end do
-        ! close(unit)
+        do iz = -nzgrid, nzgrid
+            if (local_derivative) then
+                neo_phi_z_grid(iz, surface_index) = the_spline%derivative(zed(iz))
+            else
+                neo_phi_z_grid(iz, surface_index) = the_spline%interpolate(zed(iz))
+            end if
+        end do
+ 
+        call delete_periodic_spline(the_spline)
     end subroutine get_neo_phi_on_stella_z_grid
 
 
@@ -506,44 +405,6 @@ contains
             end do
         end do
 
-        ! ================================================= !
-        ! ----------------- Diagnostic. ------------------- !
-        ! ================================================= !
-
-        ! unit = 99
-
-        ! if (present(suffix)) then
-            ! write(filename,'("neo_h_stella_grids_",A,"_surf_",I0,".dat")') trim(suffix), surface_index
-        ! else
-            ! write(filename,'("neo_h_stella_grids_",I0,".dat")') surface_index
-        ! end if
-
-        ! open(unit=unit, file=filename, status='replace', action='write')
-
-        ! write(unit,'(A)') '# Diagnostic output: neo_h on stella grids'
-        ! write(unit,'(A,I0)') '# surface_index = ', surface_index
-        ! write(unit,'(A)') '# Columns:'
-        ! write(unit,'(A)') '#   iz   : z-grid index'
-        ! write(unit,'(A)') '#   iv   : v_parallel grid index'
-        ! write(unit,'(A)') '#   imu  : mu grid index'
-        ! write(unit,'(A)') '#   is   : species index'
-        ! write(unit,'(A)') '#   z    : stella z coordinate'
-        ! write(unit,'(A)') '#   vpa  : parallel velocity'
-        ! write(unit,'(A)') '#   mu   : magnetic moment'
-        ! write(unit,'(A)') '#   h    : reconstructed neo_h'
-        ! write(unit,'(A)') '#'
-        ! write(unit,'(A)') '# iz    iv   imu   is        z              vpa              mu               h'
-
-        ! do is = 1, neo_grid%n_species
-            ! do iz = -nzgrid, nzgrid
-                ! do iv = 1, nvpa
-                    ! do imu = 1, nmu
-                        ! write(unit,'(I6,1X,I6,1X,I6,1X,I4,1X,ES16.8,1X,ES16.8,1X,ES16.8,1X,ES16.8)') iz, iv, imu, is, zed(iz), vpa(iv), mu(imu), neo_h(iz, iv, imu, is, surface_index)
-                    ! end do
-                ! end do
-            ! end do
-        ! end do
-        ! close(unit)
     end subroutine get_neo_h_on_stella_grids
 
 
@@ -591,6 +452,26 @@ contains
             end do
         end do
     end function get_neo_h_at_xi_energy
+
+
+! ================================================================================================================================================================================= !
+! -------------------------------------------- Constructs the derivative of H_1 with respect to v∥​ for a single (ξ_in, E_in) pair. ------------------------------------------------ !
+! ================================================================================================================================================================================= !
+!
+! Performs the sum over the passed distribution function weighted by Legendre and associated Laguerre basis functions at a single (ξ_in, E_in).
+! The result is the neo distribution function, H_1 with respect to v∥​(not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
+!
+! ================================================================================================================================================================================= !
+
+
+! ================================================================================================================================================================================= !
+! -------------------------------------------- Constructs the derivative of H_1 with respect to μ​ for a single (ξ_in, E_in) pair. ------------------------------------------------ !
+! ================================================================================================================================================================================= !
+!
+! Performs the sum over the passed distribution function weighted by Legendre and associated Laguerre basis functions at a single (ξ_in, E_in).
+! The result is the neo distribution function, H_1 with respect to μ ​(not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
+!
+! ================================================================================================================================================================================= !
 
 
 ! ================================================================================================================================================================================= !
