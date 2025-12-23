@@ -93,7 +93,7 @@ contains
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h          ! <============== For NEO's neoclassical corrections. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h, neo_phi          ! <============== For NEO's neoclassical corrections. 
 
       use arrays, only: wstar, initialised_wstar
 
@@ -145,7 +145,8 @@ contains
         
          if (neoclassical_is_enabled()) then
 	     do iz = -nzgrid, nzgrid
-                 wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (1 + neo_h(iz, ivmu, 1)) 
+                 wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
+                 * (1 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) 
              end do  
          else
              wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
