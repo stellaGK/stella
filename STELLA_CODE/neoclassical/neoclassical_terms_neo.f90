@@ -22,8 +22,8 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
-    public :: neo_h, dh_neo_dpsi, dh_neo_dtheta, dh_neo_denergy, dh_neo_dxi        ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
-    public :: phi_neo, dphi_neo_dpsi, dphi_neo_dtheta                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
+    public :: neo_h, dneo_h_dpsi, dneo_h_dtheta, dneo_h_denergy, dneo_h_dxi        ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
+    public :: neo_phi, dneo_phi_dpsi, dneo_phi_dtheta                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
 
     public :: initialised_neoclassical_terms_neo
 
@@ -37,10 +37,10 @@ module neoclassical_terms_neo
     integer :: iz, unit
     character(len=128) :: filename
 
-    real(8), dimension(:, :, :), allocatable :: neo_h, dh_neo_dpsi, dh_neo_dtheta  
-    real(8), dimension(:, :), allocatable :: phi_neo, dphi_neo_dpsi, dphi_neo_dtheta
-    real(8), dimension(:, :, :), allocatable :: dh_neo_denergy 
-    real(8), dimension(:, :, :), allocatable :: dh_neo_dxi
+    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dtheta  
+    real, dimension(:, :), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dtheta
+    real, dimension(:, :, :), allocatable :: dneo_h_denergy 
+    real, dimension(:, :, :), allocatable :: dneo_h_dxi
     
     logical :: initialised_neoclassical_terms_neo = .false.
 
@@ -103,7 +103,7 @@ contains
 
         ! Intermediate arrays hold NEO h_hat data evaluated on the stella z grid, but on the NEO velocity grids.
         real, dimension(:, :, :, :, :), allocatable :: neo_h_hat_z_grid, neo_h_hat_right_z_grid, neo_h_hat_left_z_grid 
-        real, dimension(:, :), allocatable :: neo_phi_z_grid, neo_phi_right_z_grid, neo_phi_left_z_grid                ! Holds NEO ϕ^1_0 data evaluated on the stella z grid.
+        real, dimension(:, :), allocatable :: neo_phi_right, neo_phi_left                                 ! Holds NEO ϕ^1_0 data evaluated on the stella z grid.
         
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids. Since ϕ^1_0 is independent of velocity variables, there are no accompanying arrays for ϕ^1_0 here.
         real, dimension(:, :, :, :, :), allocatable :: neo_h_local, neo_h_local_right, neo_h_local_left
@@ -175,13 +175,17 @@ contains
 
         ! Now repeat this process for the ϕ^1_0 data sets. 
 
-        allocate(neo_phi_z_grid(-nzgrid:nzgrid, neo_grid%n_radial))                                           ! Allocates size of the NEO ϕ^1_0 data on stellas z grid.
-        allocate(neo_phi_right_z_grid(-nzgrid:nzgrid, neo_grid%n_radial))                                     ! Repeat for the right surface. 
-        allocate(neo_phi_left_z_grid(-nzgrid:nzgrid, neo_grid%n_radial))                                      ! Repeat for the left surface.
+        allocate(neo_phi(-nzgrid:nzgrid, neo_grid%n_radial))                                           ! Allocates size of the NEO ϕ^1_0 data on stellas z grid.
+        allocate(neo_phi_right(-nzgrid:nzgrid, neo_grid%n_radial))                                     ! Repeat for the right surface. 
+        allocate(neo_phi_left(-nzgrid:nzgrid, neo_grid%n_radial))                                      ! Repeat for the left surface.
 
-        call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, neo_phi_z_grid, .false.)                   ! Calls interpolation on to stella z-grid for the central surface.
-        call get_neo_phi_on_stella_z_grid(neo_phi_right_in, neo_grid, 1, neo_phi_right_z_grid, .false.)       ! Repeat for the right surface.
-        call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left_z_grid, .false.)         ! Repeat for the left surface. 
+        call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, neo_phi, .false.)                   ! Calls interpolation on to stella z-grid for the central surface.
+        call get_neo_phi_on_stella_z_grid(neo_phi_right_in, neo_grid, 1, neo_phi_right, .false.)       ! Repeat for the right surface.
+        call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left, .false.)         ! Repeat for the left surface. 
+       
+        call broadcast(neo_phi)
+        call broadcast(neo_phi_right)
+        call broadcast(neo_phi_left)
 
         ! Now, we need to construct H_1 from the interpolated neo_h_hat data. Allocate the sizes of the datasets on the stella grids. 
 
@@ -190,18 +194,27 @@ contains
         allocate(neo_h_local_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
 
         call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_local)                ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
-        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)    ! Repeat for the right surface.                                         
-        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      ! Repeat for the left surface.
+        ! call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)    ! Repeat for the right surface.                                         
+        ! call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      ! Repeat for the left surface.
 
         ! Now compact into 3 indices for use in the GK equation and also for calculating the derivatives.  
         
         allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        ! allocate(neo_h_right(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        ! allocate(neo_h_left(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
 
         do iz = -nzgrid, nzgrid
             call distribute_vmus_over_procs(neo_h_local(iz, :, :, :, 1), neo_h(iz, :, 1))      
+            ! call distribute_vmus_over_procs(neo_h_local_right(iz, :, :, :, 1), neo_h_right(iz, :, 1))
+            ! call distribute_vmus_over_procs(neo_h_local_left(iz, :, :, :, 1), neo_h_left(iz, :, 1))
         end do        
 
- 
+        ! Now deallocate the neo_h_local arrays. 
+
+        ! if (allocated(neo_h_local)) deallocate(neo_h_local)
+        ! deallocate(neo_h_local_right)
+        ! deallocate(neo_h_local_left) 
+
         ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed. 
     end subroutine init_neoclassical_terms_neo
 
@@ -315,19 +328,20 @@ contains
 ! --------------------------------- Interpolate the NEO ϕ^1_0 data from the NEO θ grid to the stella z grid for a specified flux surface. ----------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, surface_index, neo_phi_z_grid, derivative)
+    subroutine get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, surface_index, neo_phi, derivative)
         use grids_z, only: nzgrid, zed
         use NEO_interface, only: neo_grid_data
         use periodic_splines, only: periodic_spline, new_periodic_spline, delete_periodic_spline
         use constants, only: twopi
         use optionals, only: get_option_with_default
+        ! use neoclassical_diagnostics, only: write_neo_phi_on_stella_z_grid_diagnostic
     
         implicit none
 
         real, intent(in)  :: neo_phi_in(:, :)    
         type(neo_grid_data), intent(in) :: neo_grid
         integer, intent(in) :: surface_index
-        real, intent(out) :: neo_phi_z_grid(-nzgrid:, :)                 
+        real, intent(out) :: neo_phi(-nzgrid:, :)                 
         logical, intent(in), optional :: derivative
         
         logical :: local_derivative
@@ -340,13 +354,15 @@ contains
 
         do iz = -nzgrid, nzgrid
             if (local_derivative) then
-                neo_phi_z_grid(iz, surface_index) = the_spline%derivative(zed(iz))
+                neo_phi(iz, surface_index) = the_spline%derivative(zed(iz))
             else
-                neo_phi_z_grid(iz, surface_index) = the_spline%interpolate(zed(iz))
+                neo_phi(iz, surface_index) = the_spline%interpolate(zed(iz))
             end if
         end do
  
         call delete_periodic_spline(the_spline)
+       
+        ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_in, neo_grid, surface_index, neo_phi)
     end subroutine get_neo_phi_on_stella_z_grid
 
 

@@ -3,6 +3,7 @@ module splines
    implicit none
 
    public :: geo_spline, linear_interp_periodic
+   public :: fitp_curvp2
 
    type :: spline
       integer :: n
