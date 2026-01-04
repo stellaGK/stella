@@ -93,7 +93,8 @@ contains
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h, neo_phi          ! <============== For NEO's neoclassical corrections. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h, neo_phi
+      use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi, dneo_h_dz, dneo_phi_dz     ! <============== For NEO's neoclassical corrections. 
 
       use arrays, only: wstar, initialised_wstar
 
@@ -140,16 +141,17 @@ contains
                 ! * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
          else
              wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                  * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
+             * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))            
          end if
         
          if (neoclassical_is_enabled()) then
 	     do iz = -nzgrid, nzgrid
                  wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                 * (1 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) 
+                 * (1 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz, 1)) 
              end do  
          else
-             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) 
          end if
       end do
 
