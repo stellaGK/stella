@@ -22,8 +22,8 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
-    public :: neo_h, dneo_h_dpsi, dneo_h_dtheta, dneo_h_denergy, dneo_h_dxi        ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
-    public :: neo_phi, dneo_phi_dpsi, dneo_phi_dtheta                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
+    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_denergy, dneo_h_dxi        ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
+    public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
 
     public :: initialised_neoclassical_terms_neo
 
@@ -37,8 +37,8 @@ module neoclassical_terms_neo
     integer :: iz, unit
     character(len=128) :: filename
 
-    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dtheta  
-    real, dimension(:, :), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dtheta
+    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz  
+    real, dimension(:, :), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
     real, dimension(:, :, :), allocatable :: dneo_h_denergy 
     real, dimension(:, :, :), allocatable :: dneo_h_dxi
     
@@ -105,11 +105,23 @@ contains
         real, dimension(:, :, :, :, :), allocatable :: neo_h_hat_z_grid, neo_h_hat_right_z_grid, neo_h_hat_left_z_grid 
         real, dimension(:, :), allocatable :: neo_phi_right, neo_phi_left                                 ! Holds NEO ϕ^1_0 data evaluated on the stella z grid.
         
+        ! Holds the z derivative of the NEO h hat data for the central flux surface. This will still be evaluated on NEO velocity grids. 
+
+        real, dimension(:, :, :, :, :), allocatable :: dneo_h_hat_dz
+
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids. Since ϕ^1_0 is independent of velocity variables, there are no accompanying arrays for ϕ^1_0 here.
         real, dimension(:, :, :, :, :), allocatable :: neo_h_local, neo_h_local_right, neo_h_local_left
 
+        ! Holds the z derivative of the constructed NEO H_1 data for the central flux surface, evaluated on stellas z, v∥​ and μ grids.
+
+        real, dimension(:, :, :, :, :), allocatable :: dneo_h_local_dz
+
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
-        real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                               ! neo_h has to be declared here? 
+        real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
+    
+        ! Holds the z derivative of the constructed NEO H_1 data for the central flux surface, evaluated on stellas z, v∥​ and μ grids, compacted into 3 indices.
+
+        real, dimension(:, :, :), allocatable :: dneo_h_dz
 
         ! ====================================================================================== !
         ! ------------------------ STILL NEED ARRAYS FOR DERIVATIVES HERE! --------------------- !
@@ -194,28 +206,58 @@ contains
         allocate(neo_h_local_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
 
         call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_local)                ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
-        ! call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)    ! Repeat for the right surface.                                         
-        ! call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      ! Repeat for the left surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)    ! Repeat for the right surface.                                         
+        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      ! Repeat for the left surface.
 
         ! Now compact into 3 indices for use in the GK equation and also for calculating the derivatives.  
         
         allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        ! allocate(neo_h_right(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        ! allocate(neo_h_left(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        allocate(neo_h_right(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        allocate(neo_h_left(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
 
         do iz = -nzgrid, nzgrid
             call distribute_vmus_over_procs(neo_h_local(iz, :, :, :, 1), neo_h(iz, :, 1))      
-            ! call distribute_vmus_over_procs(neo_h_local_right(iz, :, :, :, 1), neo_h_right(iz, :, 1))
-            ! call distribute_vmus_over_procs(neo_h_local_left(iz, :, :, :, 1), neo_h_left(iz, :, 1))
+            call distribute_vmus_over_procs(neo_h_local_right(iz, :, :, :, 1), neo_h_right(iz, :, 1))
+            call distribute_vmus_over_procs(neo_h_local_left(iz, :, :, :, 1), neo_h_left(iz, :, 1))
         end do        
 
-        ! Now deallocate the neo_h_local arrays. 
+        ! Now deallocate the neo_h_local arrays for the left and right flux surface. 
+ 
+        if (allocated(neo_h_local)) deallocate(neo_h_local)
+        if (allocated(neo_h_local_right)) deallocate(neo_h_local_right)
+        if (allocated(neo_h_local_left)) deallocate(neo_h_local_left) 
 
-        ! if (allocated(neo_h_local)) deallocate(neo_h_local)
-        ! deallocate(neo_h_local_right)
-        ! deallocate(neo_h_local_left) 
+        ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed.
+        ! Allocate the psi derivative arrays. 
 
-        ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed. 
+        allocate(dneo_h_dpsi(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        allocate(dneo_phi_dpsi(-nzgrid:nzgrid, neo_grid%n_radial))
+
+        ! Calculate the psi derivative arrays via a simple finite difference method. 
+
+        dneo_h_dpsi = (neo_h_right - neo_h_left) / (2 * drho)
+        dneo_phi_dpsi = (neo_phi_right - neo_phi_left) / (2 * drho) 
+
+        ! z derivatives can be obtained via the derivative option of the interpolation routine. 
+        ! Allocate the z derivative arrays. 
+
+        allocate(dneo_h_hat_dz(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
+        allocate(dneo_phi_dz(-nzgrid:nzgrid, neo_grid%n_radial))
+
+        call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, dneo_phi_dz, .true.)
+        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, 1, dneo_h_hat_dz, .true.)
+        
+        ! Now we can construct the z derivative of H_1 from the z derivative of the amplitudes on stellas z, v∥​ and μ grids.  
+
+        allocate(dneo_h_local_dz(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+
+        call get_neo_h_on_stella_grids(dneo_h_hat_dz, neo_grid, 1, dneo_h_local_dz)
+
+        ! Now compact the data into 3 indices for use in the GK equation.
+
+        allocate(dneo_h_dz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+
+        call distribute_vmus_over_procs(dneo_h_local_dz(iz, :, :, :, 1), dneo_h_dz(iz, :, 1))
     end subroutine init_neoclassical_terms_neo
 
 
@@ -488,6 +530,7 @@ contains
 ! The result is the neo distribution function, H_1 with respect to μ ​(not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
 !
 ! ================================================================================================================================================================================= !
+ 
 
 
 ! ================================================================================================================================================================================= !
