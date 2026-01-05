@@ -1081,7 +1081,7 @@ contains
          real, intent(in) :: timer_total
          character(*), intent(in) :: routine
          character(len=25) :: fmt_min = "(a24, f9.2, a4, f9.2, a1)"
-         character(len=25) :: fmt_sec = "(a24, f9.2, a4 f9.2, a1)"
+         character(len=25) :: fmt_sec = "(a24, f9.2, a4, f9.2, a1)"
          character(len=25) :: fmt_hours = "(a24, f9.2, a6, f9.2, a1)"
          
          !----------------------------------------------------------------------
