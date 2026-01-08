@@ -38,7 +38,7 @@ contains
       
       ! Initialise the main terms of the gyrokinetic equation
       use calculations_timestep, only: init_cfl
-      use gk_drive, only: init_wstar
+      use gk_drive, only: init_wstar, init_wpol
       use gk_magnetic_drift, only: init_wdrift
       use gk_parallel_streaming, only: init_parallel_streaming
       use gk_mirror, only: init_mirror
@@ -51,7 +51,7 @@ contains
       use gk_sources, only: init_source_timeaverage
       use gk_nonlinearity, only: init_parallel_nonlinearity
       ! use neoclassical_terms, only: init_neoclassical_terms
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo      ! <========= Initialise neoclassical terms coming from NEO, only if NEO is selected. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo    
                                                                                    
       implicit none
 
@@ -73,7 +73,7 @@ contains
       ! This option should only be computed if NEO is selected as the neoclassical option (neo_option_switch = 2).
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
       if (neoclassical_is_enabled()) then
-          call init_neoclassical_terms_neo                                               ! <=============== Call NEO neoclassical terms initilisation here.
+          call init_neoclassical_terms_neo                                        
           if (proc0) then
               write(output_unit, '(A)') '!==================================!'
               write(output_unit, '(A)') '  NEOs Neoclassical terms enabled.  '          
@@ -100,6 +100,13 @@ contains
       ! Allocate and calculate the factor multiplying dphi/dy in the gradient drive term
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wstar'
       call init_wstar
+
+      ! Allocate and calculate the factor multiplying dphi/dx in the neoclassical gradient poloidal drive correction. 
+
+      if (neoclassical_is_enabled()) then
+          if (debug) write (6, *) 'time_advance::init_time_advance::init_wpol'
+          call init_wpol
+      end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
       ! shear and save it as <prl_shear>. Calculate the arrays needed for the discrete 
@@ -148,12 +155,10 @@ contains
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear
-      use gk_drive, only: finish_wstar
+      use gk_drive, only: finish_wstar, finish_wpol
       use gk_magnetic_drift, only: finish_wdrift
       use gk_nonlinearity, only: finish_parallel_nonlinearity
-      use gk_radial_variation, only: finish_radial_variation
-      ! use neoclassical_terms, only: finish_neoclassical_terms
-      use neoclassical_terms_neo, only: finish_neoclassical_terms_neo, neoclassical_is_enabled
+      use gk_radial_variation, only: finish_radial_variation 
       use dissipation_and_collisions, only: finish_dissipation
       
       implicit none
@@ -164,18 +169,13 @@ contains
       call finish_dissipation
       call finish_parallel_nonlinearity
       call finish_wstar
+      call finish_wpol
       call finish_wdrift
       call finish_radial_variation
       call finish_parallel_streaming
       call finish_flow_shear
       call finish_mirror
-      ! call finish_neoclassical_terms
-      
-      ! if (neoclassical_is_enabled()) then
-      !     call finish_neoclassical_terms_neo     ! < ================ Finish NEO's neoclassical terms. 
-      ! end if
-
-
+    
       initialised_gyrokinetic_equation = .false.
 
    end subroutine finish_gyrokinetic_equation

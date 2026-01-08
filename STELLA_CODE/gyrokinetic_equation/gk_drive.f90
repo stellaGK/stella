@@ -53,17 +53,23 @@
 !     wstar = - code_dt*omega_{*,k,s}/ky = - code_dt/(2C) <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho
 ! 
 !###############################################################################
+
+! ================================================================================================================================================================================= !
+! -------------------------------------------------------------------- Add documentation for NEO's corrections! ------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+
 module gk_drive
 
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
+   use neoclassical_terms_neo, only: neoclassical_is_enabled
 
    implicit none
    
    ! Make these routine available to gk_time_advance()
-   public :: init_wstar
-   public :: finish_wstar
-   public :: advance_wstar_explicit
+   public :: init_wstar, init_wpol
+   public :: finish_wstar, finish_wpol
+   public :: advance_wstar_explicit, advance_wpol_explicit
 
    integer :: neo_option_switch
    integer, parameter :: neo_option_sfincs = 1
@@ -91,15 +97,18 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
+
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h, neo_phi
-      use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi, dneo_h_dz, dneo_phi_dz     ! <============== For NEO's neoclassical corrections. 
+      use neoclassical_terms_neo, only:  neo_h, neo_phi             
+      use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
 
       use arrays, only: wstar, initialised_wstar
 
       ! Rescale the drive term with <wstarknob>
       use parameters_physics, only: wstarknob
+
+      use neoclassical_diagnostics, only: write_wpol_diagnostic
 
       implicit none
 
@@ -134,11 +143,12 @@ contains
          energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
          
          ! Calculate wstar = - code_dt*omega_{*,k,s}/ky = - code_dt * 0.5/C <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho 
-         !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²)
+         !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²). 
+         ! This block only computes when sfincs is chosen for the neoclassical option.
          if (include_neoclassical_terms .and. neo_option_switch == neo_option_sfincs) then
-            ! wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                ! * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                ! * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
+             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
+                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
          else
              wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
              * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))            
@@ -157,11 +167,84 @@ contains
 
       deallocate (energy)
 
+      ! Read out wstar using the wpol diagnostic. 
+      call write_wpol_diagnostic(wstar)
+
    end subroutine init_wstar
 
+! ================================================================================================================================================================================== !
+! --------------------------------------------------------------- If NEO's corrections are enabled, initialise wpol. --------------------------------------------------------------- !
+! ================================================================================================================================================================================== !
+
+    subroutine init_wpol
+        ! Parallelisation.
+        use mp, only: mp_abort, proc0
+        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      
+        ! Grids.
+        use grids_time, only: code_dt
+        use grids_kxky, only: nalpha
+        use grids_z, only: nzgrid
+        use grids_species, only: spec
+        use grids_velocity, only: vperp2, vpa
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      
+        use geometry, only: clebsch_factor, dxdpsi            
+        use geometry_miller, only: local
+
+        use neoclassical_terms_neo, only: neoclassical_is_enabled, dneo_h_dz, dneo_phi_dz
+        use neoclassical_diagnostics, only: write_wpol_diagnostic
+
+        use arrays, only: wpol, initialised_wpol
+
+        ! Rescale the drive term with <wstarknob>.
+        use parameters_physics, only: wstarknob
+
+        implicit none
+
+        ! Indices.
+        integer :: is, imu, iv, ivmu, iz
+        
+        ! If neoclassical terms are NOT enabled, exit the subroutine immediately. 
+        if (.not. neoclassical_is_enabled()) return
+ 
+        ! Only intialise omega_{pol,k,s} once.
+        if (initialised_wpol) return
+        initialised_wpol = .true.
+
+        ! Allocate omega_{pol,k,s} = wpol[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(wpol)) then
+            allocate (wpol(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wpol = 0.0
+        end if
+      
+        ! Iterate over velocity space.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+         
+            do iz = -nzgrid, nzgrid
+                wpol(:, iz, ivmu) = 0 
+                ! (1/clebsch_factor) * (1/local%qinp) * dxdpsi * wstarknob * 0.5 * code_dt &
+                ! * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz, 1))
+            end do
+        end do 
+       
+        ! Read out wpol array for inspection. 
+        ! call write_wpol_diagnostic(wpol)
+
+    end subroutine init_wpol
+
+! ================================================================================================================================================================================== !
+! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! ================================================================================================================================================================================== !
+
+
    !*****************************************************************************
-   !                           ADVANCE DRIVE TERM
+   !                           ADVANCE DRIVE TERM(S)
    !*****************************************************************************
+
+   ! Advances the wstar term. 
    subroutine advance_wstar_explicit(phi, gout)
    
       ! Grids
@@ -185,7 +268,13 @@ contains
       end if
    
    end subroutine advance_wstar_explicit
-   
+
+
+! ================================================================================================================================================================================= !
+! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
+! ================================================================================================================================================================================= !
+
+
    !-------------------------------- Flux tube ---------------------------------
    subroutine advance_wstar_explicit_flux_tube(phi, gout)
 
@@ -236,13 +325,15 @@ contains
       ! Calculate <g0> = i ky J_0 ϕ_k = d<chi>_theta/dy
       if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
       call get_dchidy(phi, apar, bpar, g0)
-      
-      ! Add the drive term to the right-hand-side of the gyrokinetic equation
+
+      ! Add the drive term to the right-hand-side of the gyrokinetic equation. 
       if (debug) write (*, *) 'time_advance::solve_gke::add_wstar_term'
       call add_explicit_term(g0, wstar(1, :, :), gout)
 
-      ! Deallocate <g0> = i ky J_0 ϕ_k
+      ! Deallocate <g0> = i ky J_0 ϕ_k.
       deallocate (g0)
+
+      
 
       ! Stop timing the time advance due to the driving gradients
       if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
@@ -297,7 +388,8 @@ contains
             call transform_ky2y(g0_swap, g0y(:, :, iz, it, ivmu))
          end do
       end do
-      
+  
+     
       ! multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
       call add_explicit_term_ffs(g0y, wstar, gout)
       
@@ -307,11 +399,90 @@ contains
 
       ! Stop timing the time advance due to the driving gradients
       if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
-
    end subroutine advance_wstar_explicit_ffs
 
+
+! =============================================================================================================================================================================== !
+! ---------------------------------------------------- Advance the wpol contribution explicitly if NEO's corrections are included ----------------------------------------------- !
+! =============================================================================================================================================================================== !
+
+   subroutine advance_wpol_explicit(phi, gout)
+      ! Parallelisation.
+      use mp, only: proc0
+      
+      ! Data arrays.
+      use arrays, only: wpol
+      use arrays_fields, only: apar, bpar
+      
+      ! Grids.
+      use parallelisation_layouts, only: vmu_lo, is_idx, iv_idx, imu_idx
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: naky, nakx
+      
+      ! Calculations.
+      use calculations_add_explicit_terms, only: add_explicit_term
+      use calculations_kxky_derivatives, only: get_dchidx
+
+      use neoclassical_diagnostics, only: write_dchidx_diagnostic_in_advance_wpol_routine
+
+      ! Currently this subroutine is not timed. 
+      ! use timers, only: time_gke
+      ! use job_manage, only: time_message
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
+      complex, dimension(:, :, :, :, :), allocatable :: g0
+   
+      ! Start timing the time advance due to the poloidal drive.
+      ! if (proc0) call time_message(.false., time_gke(:, 6), ' wpol advance')
+
+      if (proc0) then
+          print *, "DEBUG: Entering advance_wpol_explicit"
+          print *, "DEBUG: phi size: ", size(phi)
+          print *, "DEBUG: phi shape: ", shape(phi)
+          ! Check if phi contains any NaNs or actual values
+          print *, "DEBUG: phi max abs val: ", maxval(abs(phi))
+          print *, "DEBUG: phi sum: ", sum(phi)
+      end if
+
+      ! Allocate temporary array for <g0> = i ky J_0 ϕ_k.
+      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (proc0) print *, "g0 allocated successfully in the wpol time advance."
+
+      call get_dchidx(phi, apar, bpar, g0)
+
+      if (proc0) print *, "dchidx_4d called successfully."
+ 
+      ! DCHIDX DIAGNOSTIC. 
+
+      call write_dchidx_diagnostic_in_advance_wpol_routine(g0)
+     
+      print *, "DEBUG Step 1: gout (RHS) max BEFORE: ", maxval(abs(gout))
+
+      ! Add the poloidal drive term to the right-hand-side of the gyrokinetic equation.
+      if (debug) write (*, *) 'time_advance::solve_gke::add_wpol_term'
+      call add_explicit_term(g0, wpol(1, :, :), gout)
+      if (proc0) print *, "gout added to the GKE equation."
+
+      print *, "DEBUG Step 1: gout (RHS) max AFTER: ", maxval(abs(gout))
+
+      ! Deallocate <g0> = i kx J_0 ϕ_k.
+      deallocate (g0)
+
+      ! Stop timing the time advance due to the driving gradients.
+      ! if (proc0) call time_message(.false., time_gke(:, 6), ' wpol advance')
+
+   end subroutine advance_wpol_explicit
+
+! =============================================================================================================================================================================== !
+! ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! =============================================================================================================================================================================== !
+
+
    !*****************************************************************************
-   !                           FINALISE DRIVE TERM
+   !                           FINALISE DRIVE TERM(S)
    !*****************************************************************************
    subroutine finish_wstar
 
@@ -324,4 +495,28 @@ contains
 
    end subroutine finish_wstar
    
+! =============================================================================================================================================================================== !
+! ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! =============================================================================================================================================================================== !
+
+    subroutine finish_wpol
+
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use arrays, only: wpol, initialised_wpol
+
+      implicit none
+
+      ! If neoclassical terms are NOT enabled, exit the subroutine immediately. 
+      if (.not. neoclassical_is_enabled()) return
+
+      if (allocated(wpol)) deallocate (wpol)
+      initialised_wpol = .false.
+
+   end subroutine finish_wpol
+
+
+! =============================================================================================================================================================================== !
+! ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! =============================================================================================================================================================================== !
+
 end module gk_drive

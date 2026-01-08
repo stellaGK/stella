@@ -16,6 +16,7 @@ module arrays
    ! Keep track of which routines have been initialised
    public :: initialised_wdrift
    public :: initialised_wstar
+   public :: initialised_wpol
    public :: initialised_parallel_streaming
    public :: initialised_implicit_drifts
    public :: initialised_radial_variation
@@ -27,6 +28,7 @@ module arrays
    ! Velocity-dependent ferquencies used in the equations
    public :: wstar
    public :: wstarp
+   public :: wpol
    public :: wdriftx_g
    public :: wdrifty_g
    public :: wdriftx_phi
@@ -89,6 +91,7 @@ module arrays
    ! Keep track of which routines have been initialised
    logical :: initialised_wdrift
    logical :: initialised_wstar
+   logical :: initialised_wpol
    logical :: initialised_parallel_streaming
    logical :: initialised_radial_variation
    logical :: initialised_implicit_drifts
@@ -99,6 +102,7 @@ module arrays
    
    ! Frequencies appearing in the gyrokinetic equations vs (nalpha, -nzgrid:nzgrid, -vmu-layout-)
    real, dimension(:, :, :), allocatable :: wstar, wstarp
+   real, dimension(:, :, :), allocatable :: wpol
    real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g
    real, dimension(:, :, :), allocatable :: wdriftx_phi, wdrifty_phi
    real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar

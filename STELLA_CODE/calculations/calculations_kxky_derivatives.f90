@@ -42,6 +42,11 @@ module calculations_kxky_derivatives
       module procedure get_dchidy_2d
    end interface get_dchidy
 
+   interface get_dchidx
+      module procedure get_dchidx_4d
+      module procedure get_dchidx_2d
+   end interface get_dchidx
+
 contains
 
 !###############################################################################
@@ -382,7 +387,7 @@ contains
    !****************************************************************************
    !                Fourier [ d<phi>_theta/dx] = i kx J0 phi(ky,kx)            
    !****************************************************************************
-   subroutine get_dchidx(iz, ivmu, phi, apar, bpar, dchidx)
+   subroutine get_dchidx_2d(iz, ivmu, phi, apar, bpar, dchidx)
 
       ! Constants
       use constants, only: zi
@@ -452,6 +457,113 @@ contains
       deallocate (field)
       deallocate (gyro_tmp)
 
-   end subroutine get_dchidx
+   end subroutine get_dchidx_2d
+
+! ======================================================================================================================================================================================== !
+! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! ======================================================================================================================================================================================== !
+
+    subroutine get_dchidx_4d(phi, apar, bpar, dchidx)
+        ! Constants.
+        use constants, only: zi
+        use mp, only: proc0
+
+        ! Parallelisation.
+        use parallelisation_layouts, only: vmu_lo
+        use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
+
+        ! Flags. - note that the full flux surface is not supported. 
+        use parameters_physics, only: include_apar, include_bpar
+        use parameters_physics, only: fphi
+
+        ! Grids.
+        use grids_species, only: spec
+        use grids_z, only: nzgrid, ntubes
+        use grids_velocity, only: vpa, mu
+        use grids_kxky, only: nakx, naky, akx
+
+        ! Calculations.
+        use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+
+        use, intrinsic :: ieee_arithmetic, only: ieee_is_nan
+
+        use mp, only: iproc  
+
+        implicit none
+
+        ! Arguments.
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidx
+
+        ! Local variables.
+        integer :: ivmu, iv, is, imu, ikx
+        complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
+ 
+        allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+        if (proc0) then
+            print *, "DEBUG: Entering get_dchidx_4d"
+            print *, "DEBUG: phi size: ", size(phi)
+            print *, "DEBUG: phi shape: ", shape(phi)
+            ! Check if phi contains any NaNs or actual values
+            print *, "DEBUG: phi max abs val: ", maxval(abs(phi))
+            print *, "DEBUG: phi sum: ", sum(phi)
+        end if
+
+        ! Loop over (mu, vpa, s).
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is  = is_idx(vmu_lo, ivmu)
+            iv  = iv_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+           
+            ! DEBUGGING: 
+            if (any(phi /= phi)) print *, "RANK ", iproc, ": NaN found in input PHI at ivmu", ivmu
+
+            ! Calculate [ i kx (phi - 2 vpa A_parallel) ].
+            field = fphi * phi
+
+            ! DEBUGGING: 
+            if (any(field /= field)) print *, "RANK ", iproc, ": NaN found in FIELD after fphi*phi assignment. ivmu:", ivmu
+ 
+            if (include_apar) then
+                field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+ 
+                ! DEBUGGING:
+                if (any(field /= field)) print *, "RANK ", iproc, ": NaN found after include_apar block. ivmu:", ivmu
+            end if 
+                
+            do ikx = 1, nakx
+                field(:, ikx, :, :) = zi * akx(ikx) * field(:, ikx, :, :)
+
+                ! DEBUGGING:                              
+                if (any(field /= field)) print *, "RANK ", iproc, ": NaN found after ikx sum in include_apar block. ivmu:", ivmu
+            end do
+
+            call gyro_average(field, ivmu, dchidx(:, :, :, :, ivmu))
+
+            ! DEBUGGING:
+            if (any(dchidx(:, :, :, :, ivmu) /= dchidx(:, :, :, :, ivmu))) print *, "RANK ", iproc, ": NaN found after gyro_average. ivmu:", ivmu
+
+            ! Add the bpar contribution.
+            if (include_bpar) then
+            field = 4.0 * mu(imu) * spec(is)%tz * bpar
+            do ikx = 1, nakx
+                field(:, ikx, :, :) = zi * akx(ikx) * field(:, ikx, :, :)
+            end do
+            call gyro_average_j1(field, ivmu, gyro_tmp)
+            dchidx(:, :, :, :, ivmu) = dchidx(:, :, :, :, ivmu) + gyro_tmp
+            end if
+        end do
+
+    ! Deallocate temporary arrays.
+    deallocate (field)
+    deallocate (gyro_tmp)
+    end subroutine get_dchidx_4d
+
+
+! ======================================================================================================================================================================================== !
+! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! ======================================================================================================================================================================================== !
 
 end module calculations_kxky_derivatives
