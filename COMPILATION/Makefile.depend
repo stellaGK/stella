@@ -101,6 +101,7 @@ stella_mod = \
 	 $(OBJ_DIR)/namelist_velocity_grids.o \
 	 $(OBJ_DIR)/namelist_z_grid.o \
 	 $(OBJ_DIR)/neasyf.o \
+	 $(OBJ_DIR)/neoclassical_diagnostics.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/netcdf_utils.o \
@@ -184,6 +185,7 @@ $(OBJ_DIR)/calculations_kxky_derivatives.o: \
 	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/calculations_timestep.o: \
@@ -706,6 +708,7 @@ $(OBJ_DIR)/gk_drive.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/geometry_miller.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_time.o \
@@ -713,6 +716,7 @@ $(OBJ_DIR)/gk_drive.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/neoclassical_diagnostics.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
@@ -1010,6 +1014,7 @@ $(OBJ_DIR)/gyrokinetic_equation_explicit.o: \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/multibox.o \
+	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
@@ -1247,6 +1252,7 @@ $(OBJ_DIR)/namelist_z_grid.o: \
 $(OBJ_DIR)/neasyf.o: 
 $(OBJ_DIR)/neoclassical_diagnostics.o: \
 	 $(OBJ_DIR)/NEO_interface.o \
+	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o 
@@ -1271,6 +1277,7 @@ $(OBJ_DIR)/neoclassical_terms_neo.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_neoclassical_input.o \
+	 $(OBJ_DIR)/neoclassical_diagnostics.o \
 	 $(OBJ_DIR)/optionals.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/periodic_splines.o \

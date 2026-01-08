@@ -1,0 +1,253 @@
+! ================================================================================ !
+! ----------------------------------- Geometry ----------------------------------- !
+! ================================================================================ !
+
+&geometry_options
+  geometry_option = 'miller'
+/
+
+&geometry_miller
+  betadbprim = 0.0
+  betaprim = 0.0
+  d2psidr2 = 0.0
+  d2qdr2 = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  nzed_local = 128
+  qinp = 1.4
+  rgeo = 2.7778
+  rhoc = 0.5
+  rmaj = 2.7778
+  shat = 0.796
+  shift = 0.0
+  tri = 0.0
+  triprim = 0.0
+/
+
+
+! ================================================================================ !
+! ----------------------------------- Physics ------------------------------------ !
+! ================================================================================ !
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+  include_radial_variation = .false.
+  include_electromagnetic = .true.
+/
+
+&scale_gyrokinetic_terms
+  fphi = 1.0
+/
+
+&physics_inputs
+  rhostar = 0.005455594781168515
+/
+
+&electromagnetic
+  beta = 0.005
+  include_apar = .true.
+  include_bpar = .true.
+/
+
+
+! ================================================================================ !
+! --------------------------------- Diagnostics ---------------------------------- !
+! ================================================================================ !
+
+&diagnostics
+  nsave = 3000
+  nwrite = 20
+  save_for_restart = .false.
+/
+
+&diagnostics_omega
+  write_omega_avg_vs_kxky = .true.
+  write_omega_vs_kxky = .true.
+/
+
+&diagnostics_distribution
+  write_g2_vs_vpamus = .true.
+  write_g2_vs_zvpas = .true.
+/
+
+&diagnostics_potential
+  write_phi_vs_kxkyz = .true.
+/
+
+! ================================================================================ !
+! --------------------------- Initialise Distribution ---------------------------- !
+! ================================================================================ !
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 1.0
+/
+
+&initialise_distribution_maxwellian
+  chop_side = .false.
+  width0 = 1.0
+/
+
+&initialise_distribution_noise
+  chop_side = .false.
+/
+
+&initialise_distribution_kpar
+  chop_side = .false.
+  width0 = 1.0
+/
+
+&restart_options
+  restart_dir = 'nc'
+  restart_file = 'example.nc'
+/
+
+
+! ================================================================================ !
+! --------------------- Ion, electron and impurity species ----------------------- !
+! ================================================================================ !
+
+&species_options
+  nspec = 2
+  species_option = 'stella'
+/
+
+&adiabatic_electron_response
+  adiabatic_option = 'iphi00=2'
+/
+
+&species_parameters_1
+  dens = 1.0
+  fprim = 0.8
+  mass = 1.0
+  temp = 1.0
+  tprim = 2.4
+  type = 'ion'
+  z = 1.0
+/
+
+&species_parameters_2
+  dens = 1.0
+  fprim = 0.8
+  mass = 0.00027
+  temp = 1.0
+  tprim = 2.4
+  type = 'electron'
+  z = -1.0
+/
+
+
+! ================================================================================ !
+! --------------------- Discretized (kx,ky,z,mu,vpa) grid ------------------------ !
+! ================================================================================ !
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+
+&kxky_grid_range
+  nakx = 1
+  naky = 1
+  aky_min = 0.3
+  aky_max = 0.3
+  akx_min = 0.0
+  akx_max = 0.0
+/
+
+&z_grid
+  nperiod = 3            ! 3
+  ntubes = 1
+  nzed = 9               ! 9
+/
+
+&z_boundary_condition
+  boundary_option = 'default'
+/
+
+&velocity_grids
+  nmu = 14                ! 14  
+  nvgrid = 40             ! 40 
+  vpa_max = 3.0
+  vperp_max = 3.0
+/
+
+
+! ================================================================================ !
+! ----------------------------------- Numerics ----------------------------------- !
+! ================================================================================ !
+
+&time_trace_options
+  tend = 200
+  nstep = 80000
+/
+
+&time_step
+  delt = 0.1
+/
+
+&numerical_upwinding_for_derivatives
+  time_upwind = 0.02
+  vpa_upwind = 0.02
+  zed_upwind = 0.02
+/
+
+
+! ================================================================================ !
+! --------------------------------- Dissipation ---------------------------------- !
+! ================================================================================ !
+
+&dissipation_and_collisions_options
+  collision_model = 'fokker-planck'
+  collisions_implicit = .true.
+  hyper_dissipation = .false.
+  include_collisions = .false.
+  vnew_ref = 0.01
+  zeff = 1.0
+/
+
+&collisions_fokker_planck
+  deflknob = 1.0
+  eeknob = None
+  fieldpart = .false.
+  iiknob = None
+  interspec = .true.
+  intraspec = .true.
+  jmax = 1
+  lmax = 1
+  mu_operator = .true.
+  testpart = .true.
+  vpa_operator = .true.
+/
+
+
+! ================================================================================ !
+! --------------------------------- Neoclassics ---------------------------------- !
+! ================================================================================ !
+
+&neoclassical_input
+  include_neoclassical_terms = .false.
+  neo_option = 'NEO'
+  nradii = 3
+  drho = 0.01
+/
+
+
+! ================================================================================ !
+! ------------------------------- Radial variation ------------------------------- !
+! ================================================================================ !
+
+
+! ================================================================================ !
+! ------------------------------- Parallelisation -------------------------------- !
+! ================================================================================ !
+
+&parallelisation
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
+/
+
+
+! ================================================================================ !
+! ------------------------------------ Debug ------------------------------------- !
+! ================================================================================ !
+

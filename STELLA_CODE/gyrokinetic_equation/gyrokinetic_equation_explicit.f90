@@ -193,7 +193,7 @@ contains
       use gk_parallel_streaming, only: advance_parallel_streaming_explicit
       use gk_mirror, only: advance_mirror_explicit
       use gk_flow_shear, only: advance_parallel_flow_shear
-      use gk_drive, only: advance_wstar_explicit
+      use gk_drive, only: advance_wstar_explicit, advance_wpol_explicit
       use gk_magnetic_drift, only: advance_wdriftx_explicit, advance_wdrifty_explicit
       use gk_nonlinearity, only: advance_parallel_nonlinearity
       use gk_radial_variation, only: advance_radial_variation
@@ -201,6 +201,8 @@ contains
       use field_equations_radialvariation, only: get_radial_correction
       use field_equations, only: advance_fields
       use field_equations, only: fields_updated
+
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       implicit none
 
@@ -215,6 +217,7 @@ contains
       complex, dimension(:, :, :, :, :), pointer :: rhs
       complex, dimension(:, :), allocatable :: rhs_ky_swap
       integer :: iz, it, ivmu
+
 
       !-------------------------------------------------------------------------
 
@@ -305,9 +308,16 @@ contains
             
             ! Calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wstar_explicit'
-            call advance_wstar_explicit(phi, rhs)
+            call advance_wstar_explicit(phi, rhs) 
          end if
 
+         ! If NEO's corrections are included, calculate and add the omega_pol term to the RHS of GK eqn.
+
+         if (neoclassical_is_enabled()) then
+             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wpol_explicit'
+             call advance_wpol_explicit(phi, rhs)
+         end if
+ 
          ! Calculate and add contribution from collisions to RHS of GK eqn
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(pdf, phi, bpar, rhs)
 
