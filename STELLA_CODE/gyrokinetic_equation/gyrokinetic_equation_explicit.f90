@@ -202,7 +202,10 @@ contains
       use field_equations, only: advance_fields
       use field_equations, only: fields_updated
 
+      ! For advancing NEO's neoclassical corrections explicitly. 
+
       use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use gk_neoclassical_chi_terms, only: advance_neoclassical_chi_terms_explicit
 
       implicit none
 
@@ -310,10 +313,12 @@ contains
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wstar_explicit'
             call advance_wstar_explicit(phi, rhs) 
 
-            ! If NEO's corrections are included, calculate and add the omega_pol term to the RHS of GK eqn.
+            ! If NEO's corrections are included, then...
+
             if (neoclassical_is_enabled()) then
-                 if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wpol_explicit'
-                 call advance_wpol_explicit(phi, rhs)
+                 ! call advance_wpol_explicit(phi, rhs)
+
+                 call advance_neoclassical_chi_terms_explicit(phi, rhs)
             end if
 
          end if

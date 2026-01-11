@@ -20,6 +20,7 @@ module arrays
    public :: initialised_parallel_streaming
    public :: initialised_implicit_drifts
    public :: initialised_radial_variation
+   public :: initialised_neoclassical_chi_terms
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -59,7 +60,10 @@ module arrays
    public :: response_window
    public :: qn_window
    public :: qn_zf_window
-   
+
+   ! For NEO's neoclassical corrections. 
+   public :: neoclassical_chi_coeff
+
    !----------------------------------------------------------------------------
    ! For the Field Equations
    !----------------------------------------------------------------------------
@@ -96,6 +100,10 @@ module arrays
    logical :: initialised_radial_variation
    logical :: initialised_implicit_drifts
    
+   ! For NEO's neoclassical corrections. 
+
+   logical :: initialised_neoclassical_chi_terms
+   
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
    !----------------------------------------------------------------------------
@@ -127,6 +135,10 @@ module arrays
    
    ! For flow shear
    real, dimension(:), allocatable :: shift_state
+
+   ! For NEO's neoclassical corrections. 
+
+   real, dimension(:, :, :), allocatable :: neoclassical_chi_coeff
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
