@@ -7,7 +7,7 @@
 ! We must also reconstruct the NEO H_1 from the amplitudes provided by out.neo.f: see https://gacode.io/neo/outputs.html#neo-out-neo-f for details on the Legendre/Laguerre
 ! representation of H_1 in terms of the amplitudes. 
 !
-! This representation can also be used to calculate the derivatives of H_1 in v∥​ and μ. The spatial gradient of H_1 (and F_1) may be calculated by a finite differences method. 
+! This representation can also be used to calculate the derivatives of H_1 in v∥​ and μ. The spatial gradients of H_1 (and F_1) may be calculated by finite difference methods. 
 !
 ! ================================================================================================================================================================================= !
 
@@ -22,7 +22,7 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
-    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_denergy, dneo_h_dxi        ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
+    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_dvpa, dneo_h_dmu           ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
     public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
 
     public :: initialised_neoclassical_terms_neo
@@ -39,8 +39,7 @@ module neoclassical_terms_neo
 
     real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz  
     real, dimension(:, :), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
-    real, dimension(:, :, :), allocatable :: dneo_h_denergy 
-    real, dimension(:, :, :), allocatable :: dneo_h_dxi
+    real, dimension(:, :, :), allocatable :: dneo_h_dvpa, dneo_h_dmu
     
     logical :: initialised_neoclassical_terms_neo = .false.
 
@@ -240,6 +239,14 @@ contains
         call write_dneo_h_dz_diagnostic(dneo_h_dz, 1)
         call write_dneo_phi_dz_diagnostic(dneo_phi_dz, 1)
 
+        ! Finally we need the derivatives of the distribution with respect to stellas velocity variables. 
+        ! Allocate the distributed arrays. 
+
+        allocate(dneo_h_dvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        allocate(dneo_h_dmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+
+        call get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, dneo_h_dvpa, dneo_h_dmu)
+
     end subroutine init_neoclassical_terms_neo
 
 
@@ -388,8 +395,7 @@ contains
         end do
  
         call delete_periodic_spline(the_spline)
-       
-        ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_in, neo_grid, surface_index, neo_phi)
+
     end subroutine get_neo_phi_on_stella_z_grid
 
 
@@ -431,7 +437,7 @@ contains
 
         integer :: unit
         character(len=256) :: filename
-        character(len=*), intent(in), optional :: suffix               ! For saving interpolated data on surfaces.
+        character(len=*), intent(in), optional :: suffix           
         
         do is = 1, neo_grid%n_species
             do iz = -nzgrid, nzgrid
@@ -478,12 +484,12 @@ contains
 
         the_sum = 0.0
 
-        call get_legendre_array(xi_in, neo_grid%n_xi+1, P)
+        call get_legendre_array(xi_in, neo_grid%n_xi+1, P, derivative = .false.)
 
         ! We need to evaluate the Laguerre function with two different values of k, the first for the first ξ index and the other for all other ξ indices.
         
-        call get_laguerre_array(E_in, neo_grid%n_energy+1, 0.5, L05)
-        call get_laguerre_array(E_in, neo_grid%n_energy+1, 1.5, L15)
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 0.5, L05, derivative = .false.)
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 1.5, L15, derivative = .false.)
 
         ! Now iterate over data and perform the sum. First add in the piece for the first ξ index. 
         do ie = 1, neo_grid%n_energy+1
@@ -495,6 +501,201 @@ contains
             end do
         end do
     end function get_neo_h_at_xi_energy
+
+
+! ================================================================================================================================================================================= !
+! -------------------------------------------------------------- Constructs dH_1/dξ for a single (ξ_in, E_in) pair. --------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+!
+! Performs the sum over the passed distribution function weighted by Legendre derivative and associated Laguerre basis functions at a single (ξ_in, E_in).
+! The result is the derivative of the neo distribution function with respect to ξ, dH_1/dξ (not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
+!
+! ================================================================================================================================================================================= !
+
+    pure real function get_neo_h_at_xi_deriv_energy(neo_h_hat_z_grid, E_in, xi_in, neo_grid) result(the_sum)
+        use polynomials, only: get_legendre_array, get_laguerre_array
+        use NEO_interface, only: neo_grid_data
+    
+        implicit none
+    
+        real, dimension(:, :), intent(in) :: neo_h_hat_z_grid ! A 2-D slice of the 5-dimensional neo_h_hat_z_grid data, at fixed z, species and surface index. 
+        real, intent(in) :: xi_in, E_in
+        type(neo_grid_data), intent(in) :: neo_grid
+    
+        integer :: ie, ix
+
+        real :: P(0:neo_grid%n_xi+1)
+        real :: dP(0:neo_grid%n_xi+1)
+        real :: L05(0:neo_grid%n_energy+1)
+        real :: L15(0:neo_grid%n_energy+1)
+
+        the_sum = 0.0
+
+        call get_legendre_array(xi_in, neo_grid%n_xi+1, P, derivative = .true., dP = dP)
+
+        ! We need to evaluate the Laguerre function with two different values of k, the first for the first ξ index and the other for all other ξ indices.
+        
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 0.5, L05, derivative = .false.)
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 1.5, L15, derivative = .false.)
+
+        ! Now iterate over data and perform the sum. First add in the piece for the first ξ index. 
+        do ie = 1, neo_grid%n_energy+1
+       	    the_sum = the_sum + dP(0) * L05(ie) * neo_h_hat_z_grid(1, ie)
+
+            ! Now add in all the other xi indicies.
+            do ix = 2, neo_grid%n_xi+1
+                the_sum = the_sum + dP(ix) * L15(ie) * neo_h_hat_z_grid(ix, ie)
+            end do
+        end do
+    end function get_neo_h_at_xi_deriv_energy
+
+
+! ================================================================================================================================================================================= !
+! -------------------------------------------------------------- Constructs dH_1/dE for a single (ξ_in, E_in) pair. --------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+!
+! Performs the sum over the passed distribution function weighted by Legendre and associated Laguerre derivative basis functions at a single (ξ_in, E_in).
+! The result is the derivative of the neo distribution function with respect to E, dH_1/dE (not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
+!
+! ================================================================================================================================================================================= !
+
+    pure real function get_neo_h_at_xi_energy_deriv(neo_h_hat_z_grid, E_in, xi_in, neo_grid) result(the_sum)
+        use polynomials, only: get_legendre_array, get_laguerre_array
+        use NEO_interface, only: neo_grid_data
+
+        implicit none
+
+        real, dimension(:, :), intent(in) :: neo_h_hat_z_grid ! A 2-D slice of the 5-dimensional neo_h_hat_z_grid data, at fixed z, species and surface index. 
+        real, intent(in) :: xi_in, E_in
+        type(neo_grid_data), intent(in) :: neo_grid
+
+        integer :: ie, ix
+
+        real :: P(0:neo_grid%n_xi+1)
+        real :: L05(0:neo_grid%n_energy+1)
+        real :: dL05(0:neo_grid%n_energy+1)
+        real :: L15(0:neo_grid%n_energy+1)
+        real :: dL15(0:neo_grid%n_energy+1)
+
+        the_sum = 0.0
+
+        call get_legendre_array(xi_in, neo_grid%n_xi+1, P, derivative = .false.)
+
+        ! We need to evaluate the Laguerre function with two different values of k, the first for the first ξ index and the other for all other ξ indices.
+
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 0.5, L05, derivative = .true., dL=dL05)
+        call get_laguerre_array(E_in, neo_grid%n_energy+1, 1.5, L15, derivative = .true., dL=dL15)
+
+        ! Now iterate over data and perform the sum. First add in the piece for the first ξ index. 
+        do ie = 1, neo_grid%n_energy+1
+            the_sum = the_sum + P(0) * dL05(ie) * neo_h_hat_z_grid(1, ie)
+
+            ! Now add in all the other ξ indicies.
+            do ix = 2, neo_grid%n_xi+1
+                the_sum = the_sum + P(ix) * dL15(ie) * neo_h_hat_z_grid(ix, ie)
+            end do
+        end do
+    end function get_neo_h_at_xi_energy_deriv
+
+
+! ================================================================================================================================================================================= !
+! -------------------------------------- Reconstruct NEO dH_1/dv∥|_μ and dH_1/dμ|_v∥ on stella z, v∥​ and μ grids for a selected flux surface. ------------------------------------- !
+! ================================================================================================================================================================================= !
+!
+! We can calculate via the chain rule: dH_1/dv∥​|_μ = v∥​ dH/dE|_ξ + (1 - ξ^2)/sqrt{2E} dH/dξ|_E 
+!
+! We can also calculate: dH_1/dμ|_v∥​ = B_0 dH/dE|_ξ - (ξ B_0)/2E dH/dξ}|_E
+!
+! ================================================================================================================================================================================= !
+
+    subroutine get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, surface_index, dneo_h_dvpa, dneo_h_dmu)
+        use grids_z, only: nzgrid, zed
+        use grids_velocity, only: vpa, nvpa, mu, nmu
+        use geometry, only: bmag
+        use NEO_interface, only: neo_grid_data
+         
+        use, intrinsic :: ieee_arithmetic    ! FOR DEBUGGING. 
+ 
+        implicit none
+
+        real, intent(in)                :: neo_h_hat_z_grid(-nzgrid:, :, :, :, :)
+        type(neo_grid_data), intent(in) :: neo_grid
+        integer, intent(in)             :: surface_index
+        real, intent(out)               :: dneo_h_dvpa(-nzgrid:, :, :)
+        real, intent(out)               :: dneo_h_dmu(-nzgrid:, :, :)
+
+        real    :: xi_in, E_in
+        integer :: iz, iv, imu, is
+        real    :: dneo_h_dxi, dneo_h_dE
+
+        real, allocatable :: dneo_h_dvpa_global(:, :, :, :, :)
+        real, allocatable :: dneo_h_dmu_global(:, :, :, :, :)
+
+        ! FOR DEBUGGING: 
+    
+        real :: dvpa_min, dvpa_max
+        real :: dmu_min,  dmu_max
+        logical :: bad_data
+
+        bad_data = .false.
+
+        allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+
+        do is = 1, neo_grid%n_species
+            do iz = -nzgrid, nzgrid
+                do iv = 1, nvpa
+                    do imu = 1, nmu
+                        ! Calculate (ξ_in, E_in) from the (v∥​, μ) stella grid point.
+			xi_in = vpa(iv) / sqrt(vpa(iv)**2 + 2 * bmag(1, iz) * mu(imu)) 
+			E_in = (vpa(iv)**2 + 2 * bmag(1, iz) * mu(imu)) / 2
+
+                        ! Construct dH_1/dξ|_E at the given (ξ_in, E_in) point. 
+                        dneo_h_dxi = get_neo_h_at_xi_deriv_energy(neo_h_hat_z_grid(iz, :, :, is, surface_index), E_in, xi_in, neo_grid)
+
+                        ! Construct dH_1/dE​|_ξ at the given (ξ_in, E_in) point.
+                        dneo_h_dE = get_neo_h_at_xi_energy_deriv(neo_h_hat_z_grid(iz, :, :, is, surface_index), E_in, xi_in, neo_grid)
+
+                        ! Construct dH_1/dv∥|_μ at the given (ξ_in, E_in) point. 
+                        dneo_h_dvpa_global(iz, iv, imu, is, surface_index) = vpa(iv) * dneo_h_dE + ((1 - xi_in**2)/sqrt(2 * E_in)) * dneo_h_dxi                           
+ 
+                        ! Construct dH_1/dμ|_v∥ at the given (ξ_in, E_in) point.
+                        dneo_h_dmu_global(iz, iv, imu, is, surface_index) = bmag(1, iz) * dneo_h_dE - ((bmag(1, iz) * xi_in) / (2 * E_in)) * dneo_h_dxi 
+                    end do
+                end do
+            end do
+        end do
+ 
+        ! Collapse derivative arrays into 3 dimensions for use in GKE. 
+
+        do iz = -nzgrid, nzgrid
+            call distribute_vmus_over_procs(dneo_h_dvpa_global(iz, :, :, :, 1), dneo_h_dvpa(iz, :, 1))
+            call distribute_vmus_over_procs(dneo_h_dmu_global(iz, :, :, :, 1), dneo_h_dmu(iz, :, 1))
+        end do 
+
+        ! Deallocate the global arrays. 
+
+        deallocate(dneo_h_dvpa_global)
+        deallocate(dneo_h_dmu_global)
+
+        ! FOR DEBUGGING:
+
+        dvpa_min = minval(dneo_h_dvpa)
+        dvpa_max = maxval(dneo_h_dvpa)
+        dmu_min  = minval(dneo_h_dmu)
+        dmu_max  = maxval(dneo_h_dmu)
+
+        if (any(.not. ieee_is_finite(dneo_h_dvpa))) bad_data = .true.
+        if (any(.not. ieee_is_finite(dneo_h_dmu)))  bad_data = .true.
+
+        if (bad_data) then
+            write(*,*) 'NEO velocity-derivative diagnostic failure'
+            write(*,*) 'dvpa min/max = ', dvpa_min, dvpa_max
+            write(*,*) 'dmu  min/max = ', dmu_min,  dmu_max
+            error stop 'Non-finite values detected in NEO velocity derivatives'
+        end if
+
+    end subroutine get_neo_h_velocity_derivs_on_stella_grids
 
 
 ! ================================================================================================================================================================================= !
@@ -570,7 +771,7 @@ contains
 
 
 ! ================================================================================================================================================================================= !
-! -------------------------------------------- Constructs the derivative of H_1 with respect to μ​ for a single (ξ_in, E_in) pair. ------------------------------------------------ !
+! -------------------------------------------- Constructs the derivative of H_1 with respect to μ​ for a single (ξ_in, E_in) pair. ------------------------------------------------- !
 ! ================================================================================================================================================================================= !
 !
 ! Performs the sum over the passed distribution function weighted by Legendre and associated Laguerre basis functions at a single (ξ_in, E_in).

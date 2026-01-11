@@ -91,17 +91,20 @@ contains
       ! Grids
       use grids_time, only: code_dt
       use grids_kxky, only: nalpha
-      use grids_z, only: nzgrid
+      use grids_z, only: nzgrid, zed
       use grids_species, only: spec
       use grids_velocity, only: vperp2, vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
-      use geometry, only: dydalpha, drhodpsi, clebsch_factor
+      use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi
+      use geometry, only:  aref, bmag, gradx_dot_grady
+      use geometry_miller, only: local 
 
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
 
       use neoclassical_terms_neo, only:  neo_h, neo_phi             
       use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
+      use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
 
       use arrays, only: wstar, initialised_wstar
 
@@ -158,17 +161,23 @@ contains
 	     do iz = -nzgrid, nzgrid
                  wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
                  * (1 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz, 1)) 
+                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz, 1)) 
              end do  
          else
              wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) 
          end if
+
+         ! If NEO's corrections are enabled, we must add the remaining corrections to wstar, namely those proportinal to the z derivative of F_1. 
+
+         ! if (neoclassical_is_enabled()) then
+             ! do iz = -nzgrid, nzgrid
+                 ! wstar(:, iz, ivmu) = 
+             ! end do
+         ! end if
+
       end do
 
       deallocate (energy)
-
-      ! Read out wstar using the wpol diagnostic. 
-      call write_wpol_diagnostic(wstar)
 
    end subroutine init_wstar
 
@@ -224,14 +233,9 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
          
             do iz = -nzgrid, nzgrid
-                wpol(:, iz, ivmu) = 0 
-                ! (1/clebsch_factor) * (1/local%qinp) * dxdpsi * wstarknob * 0.5 * code_dt &
-                ! * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz, 1))
+                wpol(:, iz, ivmu) = 0.0 
             end do
         end do 
-       
-        ! Read out wpol array for inspection. 
-        ! call write_wpol_diagnostic(wpol)
 
     end subroutine init_wpol
 
@@ -438,35 +442,35 @@ contains
       ! Start timing the time advance due to the poloidal drive.
       ! if (proc0) call time_message(.false., time_gke(:, 6), ' wpol advance')
 
-      if (proc0) then
-          print *, "DEBUG: Entering advance_wpol_explicit"
-          print *, "DEBUG: phi size: ", size(phi)
-          print *, "DEBUG: phi shape: ", shape(phi)
+      ! if (proc0) then
+          ! print *, "DEBUG: Entering advance_wpol_explicit"
+          ! print *, "DEBUG: phi size: ", size(phi)
+          ! print *, "DEBUG: phi shape: ", shape(phi)
           ! Check if phi contains any NaNs or actual values
-          print *, "DEBUG: phi max abs val: ", maxval(abs(phi))
-          print *, "DEBUG: phi sum: ", sum(phi)
-      end if
+          ! print *, "DEBUG: phi max abs val: ", maxval(abs(phi))
+          ! print *, "DEBUG: phi sum: ", sum(phi)
+      ! end if
 
       ! Allocate temporary array for <g0> = i ky J_0 ϕ_k.
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      if (proc0) print *, "g0 allocated successfully in the wpol time advance."
+      ! if (proc0) print *, "g0 allocated successfully in the wpol time advance."
 
       call get_dchidx(phi, apar, bpar, g0)
 
-      if (proc0) print *, "dchidx_4d called successfully."
+      ! if (proc0) print *, "dchidx_4d called successfully."
  
       ! DCHIDX DIAGNOSTIC. 
 
       call write_dchidx_diagnostic_in_advance_wpol_routine(g0)
      
-      print *, "DEBUG Step 1: gout (RHS) max BEFORE: ", maxval(abs(gout))
+      ! print *, "DEBUG Step 1: gout (RHS) max BEFORE: ", maxval(abs(gout))
 
       ! Add the poloidal drive term to the right-hand-side of the gyrokinetic equation.
       if (debug) write (*, *) 'time_advance::solve_gke::add_wpol_term'
       call add_explicit_term(g0, wpol(1, :, :), gout)
-      if (proc0) print *, "gout added to the GKE equation."
+      ! if (proc0) print *, "gout added to the GKE equation."
 
-      print *, "DEBUG Step 1: gout (RHS) max AFTER: ", maxval(abs(gout))
+      ! print *, "DEBUG Step 1: gout (RHS) max AFTER: ", maxval(abs(gout))
 
       ! Deallocate <g0> = i kx J_0 ϕ_k.
       deallocate (g0)

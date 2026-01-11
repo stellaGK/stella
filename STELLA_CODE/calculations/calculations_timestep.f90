@@ -46,11 +46,14 @@ contains
       use parameters_numerical, only: stream_implicit
       use parameters_numerical, only: mirror_implicit
       use parameters_numerical, only: drifts_implicit
+      use parameters_physics, only: include_drive
+      use parameters_physics, only: include_xdrift, include_ydrift
       use gk_parallel_streaming, only: stream
       use gk_parallel_streaming, only: stream_rad_var1
       use gk_parallel_streaming, only: stream_rad_var2
       use gk_mirror, only: mirror
       use arrays, only: wdriftx_g, wdrifty_g
+      use arrays, only: wstar
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
@@ -66,8 +69,8 @@ contains
 
       ! Local variables
       real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_shear
-      real :: cfl_dt_wdriftx, cfl_dt_wdrifty
-      real :: wdriftx_max, wdrifty_max, zero
+      real :: cfl_dt_wdriftx, cfl_dt_wdrifty, cfl_dt_wstar
+      real :: wdriftx_max, wdrifty_max, wstar_max, zero      
       
       !-------------------------------------------------------------------------
 
@@ -78,7 +81,7 @@ contains
       
       if (cfl_dt_linear < 0) cfl_dt_linear = code_dt / cfl_cushion_upper
 
-      if (.not. drifts_implicit) then
+      if (.not. drifts_implicit .and. include_xdrift) then
       
          ! Get the local max value of wdriftx on each processor
          wdriftx_max = maxval(abs(wdriftx_g))
@@ -135,7 +138,7 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_mudiff)
       end if
 
-      if (.not. drifts_implicit) then
+      if (.not. drifts_implicit .and. include_ydrift) then
       
          ! Get the local max value of wdrifty on each processor
          wdrifty_max = maxval(abs(wdrifty_g))
@@ -151,6 +154,19 @@ contains
          
       end if
    
+      
+     if (.not. drifts_implicit .and. include_drive) then
+
+         wstar_max = maxval(abs(wstar))
+         if (nproc > 1) then
+             call max_allreduce(wstar_max)
+         end if
+         
+         cfl_dt_wstar = abs(code_dt) / max(maxval(abs(aky)) * wstar_max, zero)
+         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wstar)
+
+      end if
+
       ! Get the minimum value of <cfl_dt_linear> on all processors
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
       call min_allreduce(cfl_dt_linear)
@@ -162,8 +178,9 @@ contains
          write (*, '(A)') "                        CFL CONDITION"
          write (*, '(A)') "############################################################"
          write (*, '(A16)') 'LINEAR CFL_DT: '
-         if (.not. drifts_implicit) write (*, '(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
-         if (.not. drifts_implicit) write (*, '(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
+         if (.not. drifts_implicit .and. include_xdrift) write (*, '(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
+         if (.not. drifts_implicit .and. include_ydrift) write (*, '(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
+         if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '   wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
