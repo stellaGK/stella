@@ -502,14 +502,14 @@ contains
         allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
         allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-        if (proc0) then
-            print *, "DEBUG: Entering get_dchidx_4d"
-            print *, "DEBUG: phi size: ", size(phi)
-            print *, "DEBUG: phi shape: ", shape(phi)
+        ! if (proc0) then
+            ! print *, "DEBUG: Entering get_dchidx_4d"
+            ! print *, "DEBUG: phi size: ", size(phi)
+            ! print *, "DEBUG: phi shape: ", shape(phi)
             ! Check if phi contains any NaNs or actual values
-            print *, "DEBUG: phi max abs val: ", maxval(abs(phi))
-            print *, "DEBUG: phi sum: ", sum(phi)
-        end if
+            ! print *, "DEBUG: phi max abs val: ", maxval(abs(phi))
+            ! print *, "DEBUG: phi sum: ", sum(phi)
+        ! end if
 
         ! Loop over (mu, vpa, s).
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -518,32 +518,32 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
            
             ! DEBUGGING: 
-            if (any(phi /= phi)) print *, "RANK ", iproc, ": NaN found in input PHI at ivmu", ivmu
+            ! if (any(phi /= phi)) print *, "RANK ", iproc, ": NaN found in input PHI at ivmu", ivmu
 
             ! Calculate [ i kx (phi - 2 vpa A_parallel) ].
             field = fphi * phi
 
             ! DEBUGGING: 
-            if (any(field /= field)) print *, "RANK ", iproc, ": NaN found in FIELD after fphi*phi assignment. ivmu:", ivmu
+            ! if (any(field /= field)) print *, "RANK ", iproc, ": NaN found in FIELD after fphi*phi assignment. ivmu:", ivmu
  
             if (include_apar) then
                 field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
  
                 ! DEBUGGING:
-                if (any(field /= field)) print *, "RANK ", iproc, ": NaN found after include_apar block. ivmu:", ivmu
+                ! if (any(field /= field)) print *, "RANK ", iproc, ": NaN found after include_apar block. ivmu:", ivmu
             end if 
                 
             do ikx = 1, nakx
                 field(:, ikx, :, :) = zi * akx(ikx) * field(:, ikx, :, :)
 
                 ! DEBUGGING:                              
-                if (any(field /= field)) print *, "RANK ", iproc, ": NaN found after ikx sum in include_apar block. ivmu:", ivmu
+                ! if (any(field /= field)) print *, "RANK ", iproc, ": NaN found after ikx sum in include_apar block. ivmu:", ivmu
             end do
 
             call gyro_average(field, ivmu, dchidx(:, :, :, :, ivmu))
 
             ! DEBUGGING:
-            if (any(dchidx(:, :, :, :, ivmu) /= dchidx(:, :, :, :, ivmu))) print *, "RANK ", iproc, ": NaN found after gyro_average. ivmu:", ivmu
+            ! if (any(dchidx(:, :, :, :, ivmu) /= dchidx(:, :, :, :, ivmu))) print *, "RANK ", iproc, ": NaN found after gyro_average. ivmu:", ivmu
 
             ! Add the bpar contribution.
             if (include_bpar) then

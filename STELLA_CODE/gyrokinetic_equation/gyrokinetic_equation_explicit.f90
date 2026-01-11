@@ -309,13 +309,13 @@ contains
             ! Calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wstar_explicit'
             call advance_wstar_explicit(phi, rhs) 
-         end if
 
-         ! If NEO's corrections are included, calculate and add the omega_pol term to the RHS of GK eqn.
+            ! If NEO's corrections are included, calculate and add the omega_pol term to the RHS of GK eqn.
+            if (neoclassical_is_enabled()) then
+                 if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wpol_explicit'
+                 call advance_wpol_explicit(phi, rhs)
+            end if
 
-         if (neoclassical_is_enabled()) then
-             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wpol_explicit'
-             call advance_wpol_explicit(phi, rhs)
          end if
  
          ! Calculate and add contribution from collisions to RHS of GK eqn
