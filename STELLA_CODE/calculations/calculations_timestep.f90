@@ -65,6 +65,9 @@ contains
       use gk_flow_shear, only: prp_shear_enabled
       use file_utils, only: runtype_option_switch, runtype_multibox
 
+      ! NEO's neoclassical corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
       implicit none
 
       ! Local variables
@@ -164,6 +167,20 @@ contains
          
          cfl_dt_wstar = abs(code_dt) / max(maxval(abs(aky)) * wstar_max, zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wstar)
+
+      end if
+
+      ! Check that the introduction of the neoclassical chi coeffecient doesn't break the CFL condition. 
+
+      if (neoclassical_is_enabled()) then
+
+         ! neoclassical_chi_coeff_max = maxval(abs(neoclassical_chi_coeff))
+         ! if (nproc > 1) then
+             ! call max_allreduce(neoclassical_chi_coeff_max)
+         ! end if
+
+         ! cfl_dt_neoclassical_chi_coeff = abs(code_dt) / max(maxval(abs(aky)) * neoclassical_chi_coeff_max_max, zero)
+         ! cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neoclassical_chi_coeff)
 
       end if
 

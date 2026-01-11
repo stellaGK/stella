@@ -757,28 +757,7 @@ contains
         dneo_phi_dz(-nzgrid, surface_index) = (neo_phi(-nzgrid + 1, surface_index) - neo_phi(nzgrid - 1, surface_index)) / (2.0 * dz)
 
         dneo_phi_dz(nzgrid, surface_index) = dneo_phi_dz(-nzgrid, surface_index)
-    end subroutine get_dneo_phi_dz
-
-
-! ================================================================================================================================================================================= !
-! -------------------------------------------- Constructs the derivative of H_1 with respect to v∥​ for a single (ξ_in, E_in) pair. ------------------------------------------------ !
-! ================================================================================================================================================================================= !
-!
-! Performs the sum over the passed distribution function weighted by Legendre and associated Laguerre basis functions at a single (ξ_in, E_in).
-! The result is the neo distribution function, H_1 with respect to v∥​(not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
-!
-! ================================================================================================================================================================================= !
-
-
-! ================================================================================================================================================================================= !
-! -------------------------------------------- Constructs the derivative of H_1 with respect to μ​ for a single (ξ_in, E_in) pair. ------------------------------------------------- !
-! ================================================================================================================================================================================= !
-!
-! Performs the sum over the passed distribution function weighted by Legendre and associated Laguerre basis functions at a single (ξ_in, E_in).
-! The result is the neo distribution function, H_1 with respect to μ ​(not normalised to the Maxwellian, F_0), on the passed (ξ_in, E_in) values.
-!
-! ================================================================================================================================================================================= !
- 
+    end subroutine get_dneo_phi_dz 
 
 
 ! ================================================================================================================================================================================= !
