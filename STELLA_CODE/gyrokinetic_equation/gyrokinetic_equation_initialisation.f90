@@ -35,7 +35,8 @@ contains
       use dissipation_and_collisions, only: include_collisions
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
-      
+      use parameters_physics, only: include_apar      
+
       ! Initialise the main terms of the gyrokinetic equation
       use calculations_timestep, only: init_cfl
       use gk_drive, only: init_wstar, init_wpol
@@ -53,6 +54,7 @@ contains
       ! use neoclassical_terms, only: init_neoclassical_terms
       use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo
       use gk_neoclassical_chi_terms, only: init_neoclassical_chi_terms    
+      use gk_neoclassical_apar_terms, only: init_neoclassical_apar_terms
                                                                                    
       implicit none
 
@@ -109,16 +111,15 @@ contains
           ! call init_wpol
 
           ! Allocate and calculate the coeffecient multiplying phi in NEO's neoclassical corrections. 
-
           call init_neoclassical_chi_terms
 
           ! Allocate and calculate the coeffecient multiplying dphi/dz in NEO's neoclassical corrections.
-
           ! call init_neoclassical_dchi/dz_terms
 
           ! If apar is included, allocate and calculate the coeffecient multiplying apar.
-
-          ! call init_neoclassical_apar_terms
+          if (include_apar) then          
+              call init_neoclassical_apar_terms
+          end if 
       end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
@@ -164,6 +165,7 @@ contains
 
       use calculations_transforms, only: finish_transforms
       use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_apar
       use grids_extended_zgrid, only: finish_extended_zgrid
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
@@ -178,6 +180,7 @@ contains
 
       use neoclassical_terms_neo, only: neoclassical_is_enabled, finish_neoclassical_terms_neo
       use gk_neoclassical_chi_terms, only: finish_neoclassical_chi_terms
+      use gk_neoclassical_apar_terms, only: finish_neoclassical_apar_terms
 
       implicit none
 
@@ -205,6 +208,10 @@ contains
           ! call finish_neoclassical_dchi/dz_terms
 
           ! If apar is included, deallocate the apar neoclassical terms.  
+
+          if (include_apar) then
+              call finish_neoclassical_apar_terms
+          end if 
 
           ! call finish_neoclassical_apar_terms
       end if

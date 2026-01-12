@@ -20,7 +20,11 @@ module arrays
    public :: initialised_parallel_streaming
    public :: initialised_implicit_drifts
    public :: initialised_radial_variation
+   
+   ! For NEO's neoclassical corrections. 
+ 
    public :: initialised_neoclassical_chi_terms
+   public :: initialised_neoclassical_apar_terms
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -63,6 +67,7 @@ module arrays
 
    ! For NEO's neoclassical corrections. 
    public :: neoclassical_chi_coeff
+   public :: neoclassical_apar_coeff
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -103,7 +108,8 @@ module arrays
    ! For NEO's neoclassical corrections. 
 
    logical :: initialised_neoclassical_chi_terms
-   
+   logical :: initialised_neoclassical_apar_terms   
+
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
    !----------------------------------------------------------------------------
@@ -139,6 +145,7 @@ module arrays
    ! For NEO's neoclassical corrections. 
 
    real, dimension(:, :, :), allocatable :: neoclassical_chi_coeff
+   real, dimension(:, :, :), allocatable :: neoclassical_apar_coeff
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
