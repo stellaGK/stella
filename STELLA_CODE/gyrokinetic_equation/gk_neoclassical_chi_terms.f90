@@ -4,11 +4,11 @@
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = ( 1/2B^2 Z/T v_{th,s} v∥ b.∇B exp(-v²) ∂F_1/∂μ|_v∥ ) * J_0 ϕ_k
-! 
+! = 1/2B Z/T * v_{th,s} * b.∇B * exp(-v²) * ( v∥/B ∂F_1/∂μ|_v∥ - ∂F_1/∂v∥|_μ ) * J_0 ϕ_k           ! <============ NEEDS A TERM PROPORTIONAL TO ∂F_0/∂v∥|_μ !!!
+!                                                                                                  ! Does this need a 1/C factor !?
 ! Define the neoclassical chi coefficient as: 
 ! 
-! <neoclassical_chi_coeff> = v_{th,s} * mu_s * b . ∇z * dB/dz * code_dt
+! <neoclassical_chi_coeff> = 1/2B Z/T * v_{th,s} * b.∇B * exp(-v²) * ( v∥/B ∂F_1/∂μ|_v∥ - ∂F_1/∂v∥|_μ ) * code_dt
 !
 ! This must be multiplied by J_0 ϕ_k and then added to the RHS of the GKE.  
 ! 
@@ -24,8 +24,7 @@ module gk_neoclassical_chi_terms
    ! Make routines available to other modules. 
    public :: initialised_neoclassical_chi_terms
    public :: init_neoclassical_chi_terms, finish_neoclassical_chi_terms
-   ! public :: mirror
-   public :: advance_neoclassical_chi_terms_explicit ! advance_neoclassical_chi_terms_implicit
+   public :: advance_neoclassical_chi_terms_explicit ! advance_neoclassical_chi_terms_implicit, not needed right now but important later for kinetic electrons. 
 
    private
    
@@ -52,7 +51,7 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
+        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu, neo_h
 
         use parameters_physics, only: include_apar
 
@@ -79,19 +78,18 @@ contains
          
             ! Calculate neoclassical_chi_coeff at each grid point. Calculation is broken up for ease of reading.  
             do iz = -nzgrid, nzgrid
-                ! First compute the magnetic geometry terms. 
-                neoclassical_chi_coeff(:, iz, ivmu) = (0.5/bmag(:, iz)**2) * b_dot_gradz(:, iz) * dbdzed(:, iz) * code_dt 
-
-                ! Multiply by the vpa grid point. 
-
-                neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) * vpa(iv)
+                ! First compute the magnetic geometry prefactor.. 
+                neoclassical_chi_coeff(:, iz, ivmu) = (0.5/bmag(:, iz)) * b_dot_gradz(:, iz) * dbdzed(:, iz)
 
                 ! Multiply by species dependent factors. 
                 neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) * (spec%z / spec%temp) * maxwell_vpa(iv, is) &
                 * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * spec%stm_psi0
 
                 ! Multiply by the neoclassical distribution. 
-                neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) * dneo_h_dmu(iz, ivmu, 1) 
+                neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) * ( (vpa(iv)/bmag(1, iz)) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) ) 
+
+                ! Finally, multiply by code_dt. 
+                neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) * code_dt 
             end do 
         end do
 
@@ -128,15 +126,15 @@ contains
         complex, dimension(:, :, :, :, :), allocatable :: g0 
 
         ! ======================================================================================= ! 
-        !
-        ! Calculate the gyrokinetic potential:
-        ! 
-        ! <g0> = J_0 * ϕ_k
-        !  
-        ! Mutlipy this by neoclassical_chi_coeff and add to the right-hand-side of the GKE:
-        !     
-        ! add_explicit_term(g0, neoclassical_chi_coeff(1, :, :), gout)
-        !
+        !                                                                                         !
+        ! Calculate the gyrokinetic potential:                                                    ! 
+        !                                                                                         !
+        ! <g0> = J_0 * ϕ_k                                                                        !
+        !                                                                                         !
+        ! Mutlipy this by neoclassical_chi_coeff and add to the right-hand-side of the GKE:       !
+        !                                                                                         ! 
+        ! add_explicit_term(g0, neoclassical_chi_coeff(1, :, :), gout)                            !
+        !                                                                                         ! 
         ! ======================================================================================= !
 
         ! Start timing the time advance.
