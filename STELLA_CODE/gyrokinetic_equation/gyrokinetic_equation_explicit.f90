@@ -206,7 +206,8 @@ contains
 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use gk_neoclassical_chi_terms, only: advance_neoclassical_chi_terms_explicit
-
+      use gk_neoclassical_apar_terms, only: advance_neoclassical_apar_terms_explicit
+ 
       implicit none
 
       ! Arguments
@@ -319,6 +320,12 @@ contains
                  ! call advance_wpol_explicit(phi, rhs)
 
                  call advance_neoclassical_chi_terms_explicit(phi, rhs)
+
+                 ! If apar is switched on, we must advance the neoclassical apar terms. 
+
+                 if (include_apar) then
+                     call advance_neoclassical_apar_terms_explicit(rhs)
+                 end if
             end if
 
          end if

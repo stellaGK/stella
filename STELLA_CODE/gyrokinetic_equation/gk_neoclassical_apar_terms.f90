@@ -1,47 +1,45 @@
 ! ================================================================================================================================================================================= !
-! ----------------------------------------------- Evolves neoclassical corrections proportional to the gyroaveraged generalised, Χ. ----------------------------------------------- !​
+! -------------------------------------------------------------- Evolves neoclassical corrections proportional to <A∥_k>. --------------------------------------------------------- !​
 ! ================================================================================================================================================================================= !
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = 1/2B * Z/T * v_{th,s} * b.∇B * exp(-v²) * ( v∥/B * ∂F_1/∂μ|_v∥ - ∂F_1/∂v∥|_μ) * Χ_k           
+! = (Z * μ)/m * b.∇B * exp(-v²) * ( 1/v∥ * ∂F_1/∂v∥|_μ - 1/B * ∂F_1/∂μ|_v∥) * J_0 * A∥_k           
 !
 ! Derivatives coming from the Maxwellian normalisation cancel one another. 
 !         
-! Define the neoclassical chi coefficient as: 
+! Define the neoclassical apar coefficient as: 
 ! 
-! <neoclassical_chi_coeff> = 1/2B Z/T * v_{th,s} * b.∇B * exp(-v²) * ( v∥/B * ∂F_1/∂μ|_v∥ - ∂F_1/∂v∥|_μ ) * code_dt
+! <neoclassical_apar_coeff> = (Z * μ)/m * b.∇B * exp(-v²) * ( 1/v∥ * ∂F_1/∂v∥|_μ - 1/B * ∂F_1/∂μ|_v∥)  * code_dt
 !
-! This must be multiplied by Χ_k and then added to the RHS of the GKE.
-!
-! Neoclassical corrections proportional to Χ_k and the magnetic curvature drift will probably be handled in a seperate module for easier interpretation.   
+! This must be multiplied by <A∥_k> = J_0 * A∥_k and then added to the RHS of the GKE.
 ! 
 ! ================================================================================================================================================================================= !
 
-module gk_neoclassical_chi_terms
+module gk_neoclassical_apar_terms
 
    ! Load debug flags.
-   ! use debug_flags, only: debug => neoclassical_chi_terms_debug
+   ! use debug_flags, only: debug => neoclassical_apar_terms_debug
    
    implicit none
 
    ! Make routines available to other modules. 
-   public :: initialised_neoclassical_chi_terms
-   public :: init_neoclassical_chi_terms, finish_neoclassical_chi_terms
-   public :: advance_neoclassical_chi_terms_explicit ! advance_neoclassical_chi_terms_implicit, not needed right now but important later for kinetic electrons. 
+   public :: initialised_neoclassical_apar_terms
+   public :: init_neoclassical_apar_terms, finish_neoclassical_apar_terms
+   public :: advance_neoclassical_apar_terms_explicit ! advance_neoclassical_apar_terms_implicit, not needed right now but important later for kinetic electrons. 
 
    private
    
    ! Only initialise once.
-   logical :: initialised_neoclassical_chi_terms = .false.
+   logical :: initialised_neoclassical_apar_terms = .false.
 
 contains
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------ Initialise the neoclassical Χ_k terms. ----------------------------------------------------------------------- ! 
+! -------------------------------------------------------------------- Initialise the neoclassical A∥_k terms. -------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine init_neoclassical_chi_terms
+    subroutine init_neoclassical_apar_terms
         ! Parallelisation.
         use mp, only: mp_abort
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -57,21 +55,19 @@ contains
 
         use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
-        use parameters_physics, only: include_apar
-
-        use arrays, only: neoclassical_chi_coeff, initialised_neoclassical_chi_terms
+        use arrays, only: neoclassical_apar_coeff, initialised_neoclassical_apar_terms
 
         implicit none
 
         integer :: iz, iv, is, imu, ivmu
 
         ! Only intialise once.
-        if (initialised_neoclassical_chi_terms) return
-        initialised_neoclassical_chi_terms = .true.
+        if (initialised_neoclassical_apar_terms) return
+        initialised_neoclassical_apar_terms = .true.
 
-        ! Allocate neoclassical chi_coeff = neoclassical_chi_coeff[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(neoclassical_chi_coeff)) then
-            allocate (neoclassical_chi_coeff(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neoclassical_chi_coeff = 0.0
+        ! Allocate neoclassical_apar_coeff = neoclassical_apar_coeff[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(neoclassical_apar_coeff)) then
+            allocate (neoclassical_apar_coeff(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neoclassical_apar_coeff = 0.0
         end if
         
         ! Iterate over velocity space.
@@ -80,38 +76,42 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
          
-            ! Calculate neoclassical_chi_coeff at each grid point. Calculation is broken up for ease of reading.  
+            ! Calculate neoclassical_apar_coeff at each grid point. Calculation is broken up for ease of reading.  
             do iz = -nzgrid, nzgrid
                 ! First compute the magnetic geometry prefactor. 
-                neoclassical_chi_coeff(:, iz, ivmu) = (0.5/bmag(:, iz)) * b_dot_gradz(:, iz) * dbdzed(:, iz)
+                neoclassical_apar_coeff(:, iz, ivmu) = b_dot_gradz(:, iz) * dbdzed(:, iz)
 
                 ! Multiply by the species dependent prefactor. 
-                neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) * (spec(is)%z / spec(is)%temp) * maxwell_vpa(iv, is) &
-                * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * spec(is)%stm_psi0
+                neoclassical_apar_coeff(:, iz, ivmu) = neoclassical_apar_coeff(:, iz, ivmu) * spec(is)%z/spec(is)%mass &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+
+                ! Multiply by the μ grid point. 
+ 
+                neoclassical_apar_coeff(:, iz, ivmu) = neoclassical_apar_coeff(:, iz, ivmu) * mu(imu)
 
                 ! Multiply by the neoclassical distribution prefactor. 
-                neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) &
-                * ( (vpa(iv)/bmag(:, iz)) * (dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) ) ) 
+                neoclassical_apar_coeff(:, iz, ivmu) = neoclassical_apar_coeff(:, iz, ivmu) &
+                * ( (1/vpa(iv)) * dneo_h_dvpa(iz, ivmu, 1) - (1/bmag(:, iz)) * dneo_h_dmu(iz, ivmu, 1) )
 
                 ! Finally, multiply by code_dt. 
-                neoclassical_chi_coeff(:, iz, ivmu) = neoclassical_chi_coeff(:, iz, ivmu) * code_dt 
+                neoclassical_apar_coeff(:, iz, ivmu) = neoclassical_apar_coeff(:, iz, ivmu) * code_dt
             end do 
         end do
 
-    end subroutine init_neoclassical_chi_terms
+    end subroutine init_neoclassical_apar_terms
 
 ! ================================================================================================================================================================================= !
 ! ------------------------------------------------------------------------- Advance the terms explicitly. ------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_neoclassical_chi_terms_explicit(phi, gout)
+    subroutine advance_neoclassical_apar_terms_explicit(gout)
         ! Parallelisation.
         use mp, only: proc0
         use parallelisation_layouts, only: vmu_lo
       
         ! Data arrays.
-        use arrays, only: neoclassical_chi_coeff
-        use arrays_fields, only: apar, bpar      
+        use arrays, only: neoclassical_apar_coeff
+        use arrays_fields, only: apar
 
         ! Grids. 
         use grids_z, only: nzgrid, ntubes
@@ -126,56 +126,55 @@ contains
 
         implicit none
 
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout        
         complex, dimension(:, :, :, :, :), allocatable :: g0 
 
         ! ======================================================================================= ! 
         !                                                                                         !
-        ! Calculate the gyrokinetic potential:                                                    ! 
+        ! Calculate the gyroaveraged A∥_k:                                                        ! 
         !                                                                                         !
-        ! <g0> = Χ_k                                                                              !
+        ! <g0> = <A∥_k>                                                                           !
         !                                                                                         !
-        ! Mutlipy this by neoclassical_chi_coeff and add to the right-hand-side of the GKE:       !
+        ! Mutlipy this by neoclassical_apar_coeff and add to the right-hand-side of the GKE:      !
         !                                                                                         ! 
-        ! add_explicit_term(g0, neoclassical_chi_coeff(1, :, :), gout)                            !
+        ! add_explicit_term(g0, neoclassical_apar_coeff(1, :, :), gout)                           !
         !                                                                                         ! 
         ! ======================================================================================= !
 
         ! Start timing the time advance.
-        if (proc0) call time_message(.false., time_gke(:, 6), 'neoclassical_chi_coeff advance')
+        if (proc0) call time_message(.false., time_gke(:, 6), 'neoclassical_apar_coeff advance')
 
-        ! Allocate temporary array for <g0> = J_0 Χ_k.
+        ! Allocate temporary array for <g0> = <A∥_k>.
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
  
-        ! Construct the generalised potential. 
-        call get_chi(phi, apar, bpar, g0)        
+        ! Construct <A∥_k> potential. 
+        call get_apar(apar, g0)        
         
         ! Add the term to the right-hand-side of the GKE. 
-        call add_explicit_term(g0, neoclassical_chi_coeff(1, :, :), gout)
+        call add_explicit_term(g0, neoclassical_apar_coeff(1, :, :), gout)
 
         ! Deallocate <g0>.
         deallocate (g0)
 
         ! Stop timing the time advance.
-        if (proc0) call time_message(.false., time_gke(:, 6), 'neoclassical_chi_coeff advance')
+        if (proc0) call time_message(.false., time_gke(:, 6), 'neoclassical_apar_coeff advance')
 
-    end subroutine advance_neoclassical_chi_terms_explicit
+    end subroutine advance_neoclassical_apar_terms_explicit
 
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------------------- Finish the terms. ------------------------------------------------------------------------------- ! 
+! ---------------------------------------------------------------------------- Finish the A∥_k terms. ----------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine finish_neoclassical_chi_terms
-        use arrays, only: neoclassical_chi_coeff, initialised_neoclassical_chi_terms
+    subroutine finish_neoclassical_apar_terms
+        use arrays, only: neoclassical_apar_coeff, initialised_neoclassical_apar_terms
 
         implicit none
 
-        if (allocated(neoclassical_chi_coeff)) deallocate (neoclassical_chi_coeff)
-        initialised_neoclassical_chi_terms = .false.
+        if (allocated(neoclassical_apar_coeff)) deallocate (neoclassical_apar_coeff)
+        initialised_neoclassical_apar_terms = .false.
 
-    end subroutine finish_neoclassical_chi_terms
+    end subroutine finish_neoclassical_apar_terms
 
 
 ! ================================================================================================================================================================================= !
@@ -183,17 +182,16 @@ contains
 ! ================================================================================================================================================================================= !
 
 ! ================================================================================================================================================================================= !
-! ---------------------------------------------------------------------- Calculate the gyroaveraged potential. -------------------------------------------------------------------- ! 
+! ------------------------------------------------------------------------ Calculate the gyroaveraged A∥_k. ----------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine get_chi(phi, apar, bpar, chi)      
+    subroutine get_apar(apar, gyro_apar)      
         ! Parallelisation.
         use parallelisation_layouts, only: vmu_lo
         use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
       
         ! Flags.
-        use parameters_physics, only: include_apar, include_bpar
-        use parameters_physics, only: fphi
+        use parameters_physics, only: include_apar
       
         ! Grids.
         use grids_species, only: spec
@@ -203,58 +201,41 @@ contains
       
         ! Calculations.
         use calculations_gyro_averages, only: gyro_average
-        use calculations_gyro_averages, only: gyro_average_j1
 
         implicit none
 
         ! Arguments.
-        complex, dimension(:, :, -nzgrid:, :), intent(in)                     :: phi, apar, bpar
-        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: chi
+        complex, dimension(:, :, -nzgrid:, :), intent(in)                     :: apar
+        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_apar
 
         ! Local variables.
         integer :: ivmu, iv, is, imu
-        complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
+        complex, dimension(:, :, :, :), allocatable :: field
 
-        ! Allocate temporary array for <g0> = Χ_k. 
+        ! Allocate temporary array for <gyro_apar> = A∥_k. 
         allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
-        allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
-
-        ! Construct the generalised potential.
-        ! Iterate over the (mu,vpa,s) points.
+ 
+        ! Iterate over the (mu,vpa,s) points. 
 
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
 
-            ! Calculate phi.
-            field = fphi * phi
+            ! Calculate the apar field. 
+            field = - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
 
-            ! If apar is present, we must account for this.
-            if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
-
-            ! Gyroaverage the J_0 contribution.
-            call gyro_average(field, ivmu, chi(:, :, :, :, ivmu))
-
-            ! If bpar is present, we must account for this too.
-            if (include_bpar) then
-                field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
-               
-                ! Gyroaverage the J_1 contribution.
-                call gyro_average_j1(field, ivmu, gyro_tmp)
-              
-                chi(:, :, :, :, ivmu) = chi(:, :, :, :, ivmu) + gyro_tmp
-            end if
+            ! Gyroaverage.
+            call gyro_average(field, ivmu, gyro_apar(:, :, :, :, ivmu))
         end do
 
-        ! Deallocate temporary arrays.
+        ! Deallocate temporary array.
         deallocate (field)
-        deallocate (gyro_tmp)
 
-    end subroutine get_chi
+    end subroutine get_apar
 
 ! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-end module gk_neoclassical_chi_terms
+end module gk_neoclassical_apar_terms
