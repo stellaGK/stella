@@ -193,7 +193,7 @@ contains
       use gk_parallel_streaming, only: advance_parallel_streaming_explicit
       use gk_mirror, only: advance_mirror_explicit
       use gk_flow_shear, only: advance_parallel_flow_shear
-      use gk_drive, only: advance_wstar_explicit, advance_wpol_explicit
+      use gk_drive, only: advance_wstar_explicit
       use gk_magnetic_drift, only: advance_wdriftx_explicit, advance_wdrifty_explicit
       use gk_nonlinearity, only: advance_parallel_nonlinearity
       use gk_radial_variation, only: advance_radial_variation
@@ -205,8 +205,10 @@ contains
       ! For advancing NEO's neoclassical corrections explicitly. 
 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use gk_neoclassical_chi_terms, only: advance_neoclassical_chi_terms_explicit
-      use gk_neoclassical_apar_terms, only: advance_neoclassical_apar_terms_explicit
+      use gk_neo_chi_terms, only: advance_neo_chi_terms_explicit
+      use gk_neo_apar_terms, only: advance_neo_apar_terms_explicit
+      use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
+      use gk_neo_drive, only: advance_wstar1_explicit, advance_wpol_explicit
  
       implicit none
 
@@ -317,15 +319,20 @@ contains
             ! If NEO's corrections are included, then...
 
             if (neoclassical_is_enabled()) then
-                 ! call advance_wpol_explicit(phi, rhs)
-
-                 call advance_neoclassical_chi_terms_explicit(phi, rhs)
+                 ! Advance the neoclassical chi terms.
+                 call advance_neo_chi_terms_explicit(phi, rhs)
 
                  ! If apar is switched on, we must advance the neoclassical apar terms. 
-
                  if (include_apar) then
-                     call advance_neoclassical_apar_terms_explicit(rhs)
+                     call advance_neo_apar_terms_explicit(rhs)
                  end if
+ 
+                 ! Advance the neoclassical dchi/dz terms.
+                 call advance_neo_dchidz_terms_explicit(phi, rhs)
+ 
+                 ! Advance the neoclassical equilibrium gradient drive terms. 
+                 call advance_wstar1_explicit(phi, rhs)
+                 ! call advance_wpol_explicit(phi, rhs)
             end if
 
          end if

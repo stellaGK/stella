@@ -16,15 +16,17 @@ module arrays
    ! Keep track of which routines have been initialised
    public :: initialised_wdrift
    public :: initialised_wstar
-   public :: initialised_wpol
    public :: initialised_parallel_streaming
    public :: initialised_implicit_drifts
    public :: initialised_radial_variation
    
    ! For NEO's neoclassical corrections. 
  
-   public :: initialised_neoclassical_chi_terms
-   public :: initialised_neoclassical_apar_terms
+   public :: initialised_neo_chi_terms
+   public :: initialised_neo_apar_terms
+   public :: initialised_neo_dchidz_terms
+   public :: initialised_wstar1
+   public :: initialised_wpol
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -33,7 +35,6 @@ module arrays
    ! Velocity-dependent ferquencies used in the equations
    public :: wstar
    public :: wstarp
-   public :: wpol
    public :: wdriftx_g
    public :: wdrifty_g
    public :: wdriftx_phi
@@ -66,8 +67,11 @@ module arrays
    public :: qn_zf_window
 
    ! For NEO's neoclassical corrections. 
-   public :: neoclassical_chi_coeff
-   public :: neoclassical_apar_coeff
+   public :: neo_chi_coeff
+   public :: neo_apar_coeff
+   public :: neo_dchidz_coeff
+   public :: wstar1
+   public :: wpol
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -100,15 +104,17 @@ module arrays
    ! Keep track of which routines have been initialised
    logical :: initialised_wdrift
    logical :: initialised_wstar
-   logical :: initialised_wpol
    logical :: initialised_parallel_streaming
    logical :: initialised_radial_variation
    logical :: initialised_implicit_drifts
    
    ! For NEO's neoclassical corrections. 
 
-   logical :: initialised_neoclassical_chi_terms
-   logical :: initialised_neoclassical_apar_terms   
+   logical :: initialised_neo_chi_terms
+   logical :: initialised_neo_apar_terms   
+   logical :: initialised_neo_dchidz_terms
+   logical :: initialised_wstar1
+   logical :: initialised_wpol
 
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -116,7 +122,6 @@ module arrays
    
    ! Frequencies appearing in the gyrokinetic equations vs (nalpha, -nzgrid:nzgrid, -vmu-layout-)
    real, dimension(:, :, :), allocatable :: wstar, wstarp
-   real, dimension(:, :, :), allocatable :: wpol
    real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g
    real, dimension(:, :, :), allocatable :: wdriftx_phi, wdrifty_phi
    real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar
@@ -144,8 +149,11 @@ module arrays
 
    ! For NEO's neoclassical corrections. 
 
-   real, dimension(:, :, :), allocatable :: neoclassical_chi_coeff
-   real, dimension(:, :, :), allocatable :: neoclassical_apar_coeff
+   real, dimension(:, :, :), allocatable :: neo_chi_coeff
+   real, dimension(:, :, :), allocatable :: neo_apar_coeff
+   real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
+   real, dimension(:, :, :), allocatable :: wstar1
+   real, dimension(:, :, :), allocatable :: wpol
 
    !----------------------------------------------------------------------------
    ! For the Field Equations

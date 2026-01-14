@@ -54,6 +54,8 @@ contains
       use gk_mirror, only: mirror
       use arrays, only: wdriftx_g, wdrifty_g
       use arrays, only: wstar
+      use arrays, only: neo_chi_coeff, neo_apar_coeff, neo_dchidz_coeff
+      use arrays, only: wstar1
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
@@ -65,7 +67,7 @@ contains
       use gk_flow_shear, only: prp_shear_enabled
       use file_utils, only: runtype_option_switch, runtype_multibox
 
-      ! NEO's neoclassical corrections.
+      ! For NEO's neoclassical corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       implicit none
@@ -73,7 +75,14 @@ contains
       ! Local variables
       real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_shear
       real :: cfl_dt_wdriftx, cfl_dt_wdrifty, cfl_dt_wstar
-      real :: wdriftx_max, wdrifty_max, wstar_max, zero      
+      real :: wdriftx_max, wdrifty_max, wstar_max, zero
+      
+      ! For NEO's neoclassical corrections. 
+
+      real :: cfl_dt_neo_chi_coeff, cfl_dt_neo_apar_coeff, cfl_dt_neo_dchidz_coeff
+      real :: cfl_dt_wstar1, cfl_dt_wpol
+      real :: neo_chi_coeff_max, neo_apar_coeff_max, neo_dchidz_coeff_max
+      real :: wstar1_max, wpol_max
       
       !-------------------------------------------------------------------------
 
@@ -173,16 +182,62 @@ contains
       ! Check that the introduction of the neoclassical chi coeffecient doesn't break the CFL condition. 
 
       if (neoclassical_is_enabled()) then
+          neo_chi_coeff_max = maxval(abs(neo_chi_coeff))
+          if (nproc > 1) then
+              call max_allreduce(neo_chi_coeff_max)
+          end if
 
-         ! neoclassical_chi_coeff_max = maxval(abs(neoclassical_chi_coeff))
-         ! if (nproc > 1) then
-             ! call max_allreduce(neoclassical_chi_coeff_max)
-         ! end if
-
-         ! cfl_dt_neoclassical_chi_coeff = abs(code_dt) / max(maxval(abs(aky)) * neoclassical_chi_coeff_max_max, zero)
-         ! cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neoclassical_chi_coeff)
-
+          cfl_dt_neo_chi_coeff = abs(code_dt) / max(neo_chi_coeff_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_chi_coeff)
       end if
+
+      ! Check that the introduction of the neoclassical apar coeffecient doesn't break the CFL condition.
+ 
+      if (neoclassical_is_enabled()) then
+          neo_apar_coeff_max = maxval(abs(neo_apar_coeff))
+          if (nproc > 1) then
+              call max_allreduce(neo_apar_coeff_max)
+          end if
+
+          cfl_dt_neo_apar_coeff = abs(code_dt) / max(neo_apar_coeff_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_apar_coeff)
+      end if
+
+      ! Check that the introduction of the neoclassical dchi/dz coeffecient doesn't break the CFL condition.
+
+      if (neoclassical_is_enabled()) then
+          neo_dchidz_coeff_max = maxval(abs(neo_dchidz_coeff))
+          if (nproc > 1) then
+              call max_allreduce(neo_dchidz_coeff_max)
+          end if
+
+          cfl_dt_neo_dchidz_coeff = abs(code_dt) / max(neo_dchidz_coeff_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_dchidz_coeff)
+      end if
+
+      ! Check that the introduction of the neoclassical wstar1 drive doesn't break the CFL condition.
+
+      if (neoclassical_is_enabled()) then
+          wstar1_max = maxval(abs(wstar1))
+          if (nproc > 1) then
+              call max_allreduce(wstar1_max)
+          end if
+
+          cfl_dt_wstar1 = abs(code_dt) / max(wstar1_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wstar1)
+      end if
+
+      ! Check that the introduction of the neoclassical wpol drive doesn't break the CFL condition.
+
+      ! if (neoclassical_is_enabled()) then
+          ! wpol_max = maxval(abs(wpol))
+          ! if (nproc > 1) then
+              ! call max_allreduce(wpol_max)
+          ! end if
+
+          ! cfl_dt_wpol = abs(code_dt) / max(wpol_max, zero)
+          ! cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wpol)
+      ! end if
 
       ! Get the minimum value of <cfl_dt_linear> on all processors
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
@@ -200,6 +255,11 @@ contains
          if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '   wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') '   neo_chi: ', cfl_dt_neo_chi_coeff
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') '  neo_apar: ', cfl_dt_neo_apar_coeff
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_dchidz: ', cfl_dt_neo_dchidz_coeff
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wstar1: ', cfl_dt_wstar1
+         ! if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wpol: ', cfl_dt_wpol
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *)
       end if

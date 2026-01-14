@@ -54,9 +54,6 @@
 ! 
 !###############################################################################
 
-! ================================================================================================================================================================================= !
-! -------------------------------------------------------------------- Add documentation for NEO's corrections! ------------------------------------------------------------------- !
-! ================================================================================================================================================================================= !
 
 module gk_drive
 
@@ -67,9 +64,9 @@ module gk_drive
    implicit none
    
    ! Make these routine available to gk_time_advance()
-   public :: init_wstar, init_wpol
-   public :: finish_wstar, finish_wpol
-   public :: advance_wstar_explicit, advance_wpol_explicit
+   public :: init_wstar
+   public :: finish_wstar
+   public :: advance_wstar_explicit
 
    integer :: neo_option_switch
    integer, parameter :: neo_option_sfincs = 1
@@ -102,16 +99,10 @@ contains
 
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
 
-      use neoclassical_terms_neo, only:  neo_h, neo_phi             
-      use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
-      use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
-
       use arrays, only: wstar, initialised_wstar
 
       ! Rescale the drive term with <wstarknob>
       use parameters_physics, only: wstarknob
-
-      use neoclassical_diagnostics, only: write_wpol_diagnostic
 
       implicit none
 
@@ -149,99 +140,20 @@ contains
          !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²). 
          ! This block only computes when sfincs is chosen for the neoclassical option.
          if (include_neoclassical_terms .and. neo_option_switch == neo_option_sfincs) then
-             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
+             ! wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+                 ! * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
+                 ! * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
          else
              wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
              * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))            
          end if
         
-         if (neoclassical_is_enabled()) then
-	     do iz = -nzgrid, nzgrid
-                 wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                 * (1 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * (dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz, 1)) 
-             end do  
-         else
-             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) 
-         end if
-
-         ! If NEO's corrections are enabled, we must add the remaining corrections to wstar, namely those proportinal to the z derivative of F_1. 
-
-         ! if (neoclassical_is_enabled()) then
-             ! do iz = -nzgrid, nzgrid
-                 ! wstar(:, iz, ivmu) = 
-             ! end do
-         ! end if
-
+         wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
       end do
 
       deallocate (energy)
 
    end subroutine init_wstar
-
-! ================================================================================================================================================================================== !
-! --------------------------------------------------------------- If NEO's corrections are enabled, initialise wpol. --------------------------------------------------------------- !
-! ================================================================================================================================================================================== !
-
-    subroutine init_wpol
-        ! Parallelisation.
-        use mp, only: mp_abort, proc0
-        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      
-        ! Grids.
-        use grids_time, only: code_dt
-        use grids_kxky, only: nalpha
-        use grids_z, only: nzgrid
-        use grids_species, only: spec
-        use grids_velocity, only: vperp2, vpa
-        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      
-        use geometry, only: clebsch_factor, dxdpsi            
-        use geometry_miller, only: local
-
-        use neoclassical_terms_neo, only: neoclassical_is_enabled, dneo_h_dz, dneo_phi_dz
-        use neoclassical_diagnostics, only: write_wpol_diagnostic
-
-        use arrays, only: wpol, initialised_wpol
-
-        ! Rescale the drive term with <wstarknob>.
-        use parameters_physics, only: wstarknob
-
-        implicit none
-
-        ! Indices.
-        integer :: is, imu, iv, ivmu, iz
-        
-        ! If neoclassical terms are NOT enabled, exit the subroutine immediately. 
-        if (.not. neoclassical_is_enabled()) return
- 
-        ! Only intialise omega_{pol,k,s} once.
-        if (initialised_wpol) return
-        initialised_wpol = .true.
-
-        ! Allocate omega_{pol,k,s} = wpol[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(wpol)) then
-            allocate (wpol(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wpol = 0.0
-        end if
-      
-        ! Iterate over velocity space.
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
-         
-            do iz = -nzgrid, nzgrid
-                wpol(:, iz, ivmu) = 0.0 
-            end do
-        end do 
-
-    end subroutine init_wpol
-
-! ================================================================================================================================================================================== !
-! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
-! ================================================================================================================================================================================== !
 
 
    !*****************************************************************************
@@ -272,11 +184,6 @@ contains
       end if
    
    end subroutine advance_wstar_explicit
-
-
-! ================================================================================================================================================================================= !
-! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
-! ================================================================================================================================================================================= !
 
 
    !-------------------------------- Flux tube ---------------------------------
@@ -336,8 +243,6 @@ contains
 
       ! Deallocate <g0> = i ky J_0 ϕ_k.
       deallocate (g0)
-
-      
 
       ! Stop timing the time advance due to the driving gradients
       if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
@@ -480,10 +385,6 @@ contains
 
    end subroutine advance_wpol_explicit
 
-! =============================================================================================================================================================================== !
-! ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
-! =============================================================================================================================================================================== !
-
 
    !*****************************************************************************
    !                           FINALISE DRIVE TERM(S)
@@ -498,29 +399,6 @@ contains
       initialised_wstar = .false.
 
    end subroutine finish_wstar
-   
-! =============================================================================================================================================================================== !
-! ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
-! =============================================================================================================================================================================== !
 
-    subroutine finish_wpol
-
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use arrays, only: wpol, initialised_wpol
-
-      implicit none
-
-      ! If neoclassical terms are NOT enabled, exit the subroutine immediately. 
-      if (.not. neoclassical_is_enabled()) return
-
-      if (allocated(wpol)) deallocate (wpol)
-      initialised_wpol = .false.
-
-   end subroutine finish_wpol
-
-
-! =============================================================================================================================================================================== !
-! ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
-! =============================================================================================================================================================================== !
 
 end module gk_drive
