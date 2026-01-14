@@ -39,7 +39,7 @@ contains
 
       ! Initialise the main terms of the gyrokinetic equation
       use calculations_timestep, only: init_cfl
-      use gk_drive, only: init_wstar, init_wpol
+      use gk_drive, only: init_wstar
       use gk_magnetic_drift, only: init_wdrift
       use gk_parallel_streaming, only: init_parallel_streaming
       use gk_mirror, only: init_mirror
@@ -52,9 +52,14 @@ contains
       use gk_sources, only: init_source_timeaverage
       use gk_nonlinearity, only: init_parallel_nonlinearity
       ! use neoclassical_terms, only: init_neoclassical_terms
+      
+      ! For NEO's neoclassical corrections. 
+
       use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo
-      use gk_neoclassical_chi_terms, only: init_neoclassical_chi_terms    
-      use gk_neoclassical_apar_terms, only: init_neoclassical_apar_terms
+      use gk_neo_chi_terms, only: init_neo_chi_terms    
+      use gk_neo_apar_terms, only: init_neo_apar_terms
+      use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
+      use gk_neo_drive, only: init_wstar1, init_wpol
                                                                                    
       implicit none
 
@@ -107,19 +112,20 @@ contains
       ! If NEO's neoclassical corrections are enabled, then ...
 
       if (neoclassical_is_enabled()) then
-          ! NOT CURRENTLY WORKING.
-          ! call init_wpol
-
-          ! Allocate and calculate the coeffecient multiplying phi in NEO's neoclassical corrections. 
-          call init_neoclassical_chi_terms
-
-          ! Allocate and calculate the coeffecient multiplying dphi/dz in NEO's neoclassical corrections.
-          ! call init_neoclassical_dchi/dz_terms
+          ! Allocate and calculate the coeffecient multiplying chi in NEO's neoclassical corrections. 
+          call init_neo_chi_terms
 
           ! If apar is included, allocate and calculate the coeffecient multiplying apar.
           if (include_apar) then          
-              call init_neoclassical_apar_terms
+              call init_neo_apar_terms
           end if 
+
+          ! Allocate and calculate the coeffecient multiplying dchi/dz in NEO's neoclassical corrections.
+          call init_neo_dchidz_terms
+
+          ! Allocate and calculate the neoclassical counterpart to wstar. 
+          call init_wstar1
+          ! call init_wpol - NOT CURRENTLY WORKING: Allocaite and calculate wpol in the neoclassical gradient drive.
       end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
@@ -170,7 +176,7 @@ contains
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear
-      use gk_drive, only: finish_wstar, finish_wpol
+      use gk_drive, only: finish_wstar
       use gk_magnetic_drift, only: finish_wdrift
       use gk_nonlinearity, only: finish_parallel_nonlinearity
       use gk_radial_variation, only: finish_radial_variation 
@@ -179,8 +185,10 @@ contains
       ! For NEO's neoclassical corrections. 
 
       use neoclassical_terms_neo, only: neoclassical_is_enabled, finish_neoclassical_terms_neo
-      use gk_neoclassical_chi_terms, only: finish_neoclassical_chi_terms
-      use gk_neoclassical_apar_terms, only: finish_neoclassical_apar_terms
+      use gk_neo_chi_terms, only: finish_neo_chi_terms
+      use gk_neo_apar_terms, only: finish_neo_apar_terms
+      use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
+      use gk_neo_drive, only: finish_wstar1, finish_wpol
 
       implicit none
 
@@ -190,7 +198,6 @@ contains
       call finish_dissipation
       call finish_parallel_nonlinearity
       call finish_wstar
-      call finish_wpol
       call finish_wdrift
       call finish_radial_variation
       call finish_parallel_streaming
@@ -201,19 +208,18 @@ contains
 
       if (neoclassical_is_enabled()) then
           call finish_neoclassical_terms_neo
-
-          ! NOT CURRENTLY WORKING.
-          ! finish init_wpol
-          call finish_neoclassical_chi_terms
-          ! call finish_neoclassical_dchi/dz_terms
+          call finish_neo_chi_terms
 
           ! If apar is included, deallocate the apar neoclassical terms.  
 
           if (include_apar) then
-              call finish_neoclassical_apar_terms
+              call finish_neo_apar_terms
           end if 
 
-          ! call finish_neoclassical_apar_terms
+          call finish_neo_dchidz_terms
+          call finish_wstar1
+          ! call finish_wpol - NOT CURRENTLY WORKING. 
+
       end if
 
       initialised_gyrokinetic_equation = .false.
