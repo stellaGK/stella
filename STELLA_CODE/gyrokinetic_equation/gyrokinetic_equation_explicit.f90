@@ -332,7 +332,7 @@ contains
  
                  ! Advance the neoclassical equilibrium gradient drive terms. 
                  call advance_wstar1_explicit(phi, rhs)
-                 ! call advance_wpol_explicit(phi, rhs)
+                 call advance_wpol_explicit(phi, rhs)
             end if
 
          end if

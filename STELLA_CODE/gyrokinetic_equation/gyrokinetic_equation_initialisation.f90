@@ -125,7 +125,7 @@ contains
 
           ! Allocate and calculate the neoclassical counterpart to wstar. 
           call init_wstar1
-          ! call init_wpol - NOT CURRENTLY WORKING: Allocaite and calculate wpol in the neoclassical gradient drive.
+          call init_wpol
       end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
@@ -218,8 +218,7 @@ contains
 
           call finish_neo_dchidz_terms
           call finish_wstar1
-          ! call finish_wpol - NOT CURRENTLY WORKING. 
-
+          call finish_wpol
       end if
 
       initialised_gyrokinetic_equation = .false.
