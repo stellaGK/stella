@@ -100,7 +100,7 @@ module geometry
    public :: gradzeta_gradx_R2overB2
    public :: gradzeta_grady_R2overB2
    public :: b_dot_gradzeta_RR
-   
+
    ! Used in kt_grids.f90
    public :: geo_option_switch
 

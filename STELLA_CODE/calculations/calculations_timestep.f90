@@ -55,7 +55,7 @@ contains
       use arrays, only: wdriftx_g, wdrifty_g
       use arrays, only: wstar
       use arrays, only: neo_chi_coeff, neo_apar_coeff, neo_dchidz_coeff
-      use arrays, only: wstar1
+      use arrays, only: wstar1, wpol
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
@@ -229,15 +229,15 @@ contains
 
       ! Check that the introduction of the neoclassical wpol drive doesn't break the CFL condition.
 
-      ! if (neoclassical_is_enabled()) then
-          ! wpol_max = maxval(abs(wpol))
-          ! if (nproc > 1) then
-              ! call max_allreduce(wpol_max)
-          ! end if
+      if (neoclassical_is_enabled()) then
+          wpol_max = maxval(abs(wpol))
+          if (nproc > 1) then
+              call max_allreduce(wpol_max)
+          end if
 
-          ! cfl_dt_wpol = abs(code_dt) / max(wpol_max, zero)
-          ! cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wpol)
-      ! end if
+          cfl_dt_wpol = abs(code_dt) / max(wpol_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wpol)
+      end if
 
       ! Get the minimum value of <cfl_dt_linear> on all processors
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
@@ -259,7 +259,7 @@ contains
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') '  neo_apar: ', cfl_dt_neo_apar_coeff
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_dchidz: ', cfl_dt_neo_dchidz_coeff
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wstar1: ', cfl_dt_wstar1
-         ! if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wpol: ', cfl_dt_wpol
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wpol: ', cfl_dt_wpol
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *)
       end if
