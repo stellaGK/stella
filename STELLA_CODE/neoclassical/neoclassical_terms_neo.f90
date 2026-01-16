@@ -112,7 +112,8 @@ contains
         real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
 
         integer :: iz
-        integer :: surface_index      
+        integer :: surface_index
+        integer :: ierr      
 
         type(neo_grid_data) :: neo_grid
         type(neo_version_data) :: neo_version
@@ -139,13 +140,20 @@ contains
         call broadcast(neo_grid%theta)
         call broadcast(neo_grid%radius)
        
-        allocate(neo_h_hat_in(neo_grid%n_theta, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))       ! Allocate for the h_hat arrays on NEO grids.  
-        allocate(neo_h_hat_right_in(neo_grid%n_theta, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
-        allocate(neo_h_hat_left_in(neo_grid%n_theta, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
+        ! Allocate all of the arrays that will be used in the higher order corrections. 
 
-        allocate(neo_phi_in(neo_grid%n_theta, neo_grid%n_radial)) ! Allocate for the phi arrays on NEO grid. 
-        allocate(neo_phi_right_in(neo_grid%n_theta, neo_grid%n_radial))
-        allocate(neo_phi_left_in(neo_grid%n_theta, neo_grid%n_radial))
+        if (.not. allocated(neo_h)) allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(neo_phi)) allocate(neo_phi(-nzgrid:nzgrid, neo_grid%n_radial))
+        if (.not. allocated(dneo_h_dpsi)) allocate(dneo_h_dpsi(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(dneo_phi_dpsi)) allocate(dneo_phi_dpsi(-nzgrid:nzgrid, neo_grid%n_radial))
+        if (.not. allocated(dneo_h_dz)) allocate(dneo_h_dz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(dneo_phi_dz)) allocate(dneo_phi_dz(-nzgrid:nzgrid, neo_grid%n_radial))
+        if (.not. allocated(dneo_h_dvpa)) allocate(dneo_h_dvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(dneo_h_dmu)) allocate(dneo_h_dmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+
+        ! Allocate all temporary arrays needed for initilization. 
+
+        call allocate_temp_arrays
 
         if (proc0) then
             call read_neo_f_and_phi(neo_h_hat_in, neo_phi_in, neo_grid)                                ! Read in NEO h and ϕ^1_0 data for the central surface. 
@@ -153,51 +161,27 @@ contains
             call read_neo_f_and_phi(neo_h_hat_left_in, neo_phi_left_in, neo_grid, suffix = '.left')    ! Repeat for the left surface.
         end if        
         
-        call broadcast(neo_h_hat_in) ; call broadcast(neo_phi_in)             ! Broadcast the central surface data. 
-        call broadcast(neo_h_hat_right_in) ; call broadcast(neo_phi_right_in) ! Repeat for the right surface.
-        call broadcast(neo_h_hat_left_in) ; call broadcast(neo_phi_left_in)   ! Repeat for the left surface.
-
-        ! Allocates size of the NEO h_hat data on stellas z grid.
-
-        allocate(neo_h_hat_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))  
-        allocate(neo_h_hat_right_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))  ! Repeat for the right surface.
-        allocate(neo_h_hat_left_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial)) ! Repeat for the left surface.
+        ! Broadcast the read in data.
+ 
+        call broadcast(neo_h_hat_in) ; call broadcast(neo_phi_in)             
+        call broadcast(neo_h_hat_right_in) ; call broadcast(neo_phi_right_in)
+        call broadcast(neo_h_hat_left_in) ; call broadcast(neo_phi_left_in)
    
         ! Interpolates the NEO h_hat data on to the stella z grid for all three flux surfaces. h_hat data is still on the NEO velocity grids at this stage.
 
         call get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, 1, neo_h_hat_z_grid, .false.)              ! Calls interpolation on to stella z-grid for the central surface. 
         call get_neo_h_hat_on_stella_z_grid(neo_h_hat_right_in, neo_grid, 1, neo_h_hat_right_z_grid, .false.)  ! Repeat for the right surface.
-        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_left_in, neo_grid, 1, neo_h_hat_left_z_grid, .false.)    ! Repeat for the left surface.
-
-        ! Now repeat this process for the ϕ^1_0 data sets. 
-
-        allocate(neo_phi(-nzgrid:nzgrid, neo_grid%n_radial))                                           ! Allocates size of the NEO ϕ^1_0 data on stellas z grid.
-        allocate(neo_phi_right(-nzgrid:nzgrid, neo_grid%n_radial))                                     ! Repeat for the right surface. 
-        allocate(neo_phi_left(-nzgrid:nzgrid, neo_grid%n_radial))                                      ! Repeat for the left surface.
+        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_left_in, neo_grid, 1, neo_h_hat_left_z_grid, .false.)    ! Repeat for the left surface. 
 
         call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, neo_phi, .false.)                   ! Calls interpolation on to stella z-grid for the central surface.
         call get_neo_phi_on_stella_z_grid(neo_phi_right_in, neo_grid, 1, neo_phi_right, .false.)       ! Repeat for the right surface.
         call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left, .false.)         ! Repeat for the left surface. 
-       
-        call broadcast(neo_phi)
-        call broadcast(neo_phi_right)
-        call broadcast(neo_phi_left)
-
-        ! Now, we need to construct H_1 from the interpolated neo_h_hat data. Allocate the sizes of the datasets on the stella grids. 
-
-        allocate(neo_h_local(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        allocate(neo_h_local_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        allocate(neo_h_local_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
 
         call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_local)                ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
-        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)    ! Repeat for the right surface.                                         
-        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      ! Repeat for the left surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)                                             
+        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      
 
-        ! Now compact into 3 indices for use in the GK equation and also for calculating the derivatives.  
-        
-        allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        allocate(neo_h_right(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        allocate(neo_h_left(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        ! Now compact distribution into 3 indices for use in the GK equation and also for calculating the derivatives.  
 
         do iz = -nzgrid, nzgrid
             call distribute_vmus_over_procs(neo_h_local(iz, :, :, :, 1), neo_h(iz, :, 1))      
@@ -205,48 +189,92 @@ contains
             call distribute_vmus_over_procs(neo_h_local_left(iz, :, :, :, 1), neo_h_left(iz, :, 1))
         end do        
 
-        ! Now deallocate the neo_h_local arrays for the left and right flux surfaces. 
- 
-        if (allocated(neo_h_local_right)) deallocate(neo_h_local_right)
-        if (allocated(neo_h_local_left)) deallocate(neo_h_local_left) 
-
         ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed.
-        ! Allocate the psi derivative arrays. 
-
-        allocate(dneo_h_dpsi(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        allocate(dneo_phi_dpsi(-nzgrid:nzgrid, neo_grid%n_radial))
-
         ! Calculate the psi derivative arrays via a simple finite difference method. 
 
         dneo_h_dpsi = (neo_h_right - neo_h_left) / (2 * drho)
         dneo_phi_dpsi = (neo_phi_right - neo_phi_left) / (2 * drho) 
 
-        ! ============================================================================================================================================================= !
-        ! -------------------------------------------------- Deallocate left and right arrays here, no longer needed? ------------------------------------------------- ! 
-        ! ============================================================================================================================================================= !
-
         ! z derivatives can be obtained via the derivative option of the interpolation routine. 
-        ! Allocate the z derivative arrays. 
-
-        allocate(dneo_h_dz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        allocate(dneo_phi_dz(-nzgrid:nzgrid, neo_grid%n_radial))
 
         call get_dneo_h_dz(neo_h, 1, dneo_h_dz)
         call get_dneo_phi_dz(neo_phi, 1, dneo_phi_dz)
 
-        ! Call diagnostic to check the results of the differentiation. 
-
-        call write_dneo_h_dz_diagnostic(dneo_h_dz, 1)
-        call write_dneo_phi_dz_diagnostic(dneo_phi_dz, 1)
-
-        ! Finally we need the derivatives of the distribution with respect to stellas velocity variables. 
-        ! Allocate the distributed arrays. 
-
-        allocate(dneo_h_dvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        allocate(dneo_h_dmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        ! Finally we need the derivatives of the distribution with respect to stellas velocity variables.
 
         call get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, dneo_h_dvpa, dneo_h_dmu)
+   
+        ! Finally, deallocate all temporary arrays.
+        call deallocate_temp_arrays
 
+    contains
+
+
+    ! ========================================================================================================================================================================== !
+    ! ------------------------------------ Allocates temporary arrays for H_1, ϕ^1_0 and their derivatives, used in init_neoclassical_terms_neo. ------------------------------- !
+    ! ========================================================================================================================================================================== !
+
+    subroutine allocate_temp_arrays
+        implicit none
+
+        ! Allocate the h_hat arrays on NEO grids.
+        if (.not. allocated(neo_h_hat_in)) allocate(neo_h_hat_in(neo_grid%n_theta, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))  
+        if (.not. allocated(neo_h_hat_right_in)) allocate(neo_h_hat_right_in(neo_grid%n_theta, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_h_hat_left_in)) allocate(neo_h_hat_left_in(neo_grid%n_theta, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
+      
+        ! Allocate the ϕ^1_0 arrays on NEOs z grid.
+        if (.not. allocated(neo_phi_in)) allocate(neo_phi_in(neo_grid%n_theta, neo_grid%n_radial))   
+        if (.not. allocated(neo_phi_right_in)) allocate(neo_phi_right_in(neo_grid%n_theta, neo_grid%n_radial))
+        if (.not. allocated(neo_phi_left_in)) allocate(neo_phi_left_in(neo_grid%n_theta, neo_grid%n_radial))
+
+         ! Allocate the NEO h_hat arrays on stellas z grid. Data will still be on NEOs velocity grids at this point. 
+        if (.not. allocated(neo_h_hat_z_grid)) allocate(neo_h_hat_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_h_hat_right_z_grid)) allocate(neo_h_hat_right_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial)) 
+        if (.not. allocated(neo_h_hat_left_z_grid)) allocate(neo_h_hat_left_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))   
+
+        ! Allocate the ϕ^1_0 arrays (for left and right flux surfaces) on stellas z grid.                                                                                                    
+        if (.not. allocated(neo_phi_right)) allocate(neo_phi_right(-nzgrid:nzgrid, neo_grid%n_radial)) 
+        if (.not. allocated(neo_phi_left)) allocate(neo_phi_left(-nzgrid:nzgrid, neo_grid%n_radial))    
+
+        ! Allocate the NEO H_1 5D arrays on stellas z and velocity grids.
+        if (.not. allocated(neo_h_local)) allocate(neo_h_local(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
+        if (.not. allocated(neo_h_local_right)) allocate(neo_h_local_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_h_local_left)) allocate(neo_h_local_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+
+        ! Allocate the NEO H_1 3D arrays (for left and right flux surfaces) on stellas z and velocity grids.
+        if (.not. allocated(neo_h_right)) allocate(neo_h_right(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial)) 
+        if (.not. allocated(neo_h_left)) allocate(neo_h_left(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))   
+
+    end subroutine allocate_temp_arrays
+    
+
+    ! ========================================================================================================================================================================== !
+    ! ----------------------------------- Deallocates temporary arrays for H_1, ϕ^1_0 and their derivatives, used in init_neoclassical_terms_neo. ------------------------------ !
+    ! ========================================================================================================================================================================== !
+
+    subroutine deallocate_temp_arrays
+        implicit none
+
+        if (allocated(neo_h_hat_in)) deallocate(neo_h_hat_in) 
+        if (allocated(neo_h_hat_right_in)) deallocate(neo_h_hat_right_in)
+        if (allocated(neo_h_hat_left_in)) deallocate(neo_h_hat_left_in)
+        if (allocated(neo_phi_in)) deallocate(neo_phi_in)  
+        if (allocated(neo_phi_right_in)) deallocate(neo_phi_right_in)
+        if (allocated(neo_phi_left_in)) deallocate(neo_phi_left_in)
+        if (allocated(neo_h_hat_z_grid)) deallocate(neo_h_hat_z_grid)     
+        if (allocated(neo_h_hat_right_z_grid)) deallocate(neo_h_hat_right_z_grid)    
+        if (allocated(neo_h_hat_left_z_grid)) deallocate(neo_h_hat_left_z_grid)   
+        if (allocated(neo_phi_right)) deallocate(neo_phi_right) 
+        if (allocated(neo_phi_left)) deallocate(neo_phi_left)
+        if (allocated(neo_h_local)) deallocate(neo_h_local)       
+        if (allocated(neo_h_local_right)) deallocate(neo_h_local_right)
+        if (allocated(neo_h_local_left)) deallocate(neo_h_local_left)
+        if (allocated(neo_h_right)) deallocate(neo_h_right)   
+        if (allocated(neo_h_left)) deallocate(neo_h_left)  
+
+    end subroutine deallocate_temp_arrays
+
+    
     end subroutine init_neoclassical_terms_neo
 
 
@@ -257,31 +285,23 @@ contains
     subroutine finish_neoclassical_terms_neo
         implicit none
 
-        call deallocate_arrays
+        if (allocated(neo_h)) deallocate(neo_h)
+        if (allocated(neo_phi)) deallocate(neo_phi)
+        if (allocated(dneo_h_dpsi)) deallocate(dneo_h_dpsi)
+        if (allocated(dneo_phi_dpsi)) deallocate(dneo_phi_dpsi)
+        if (allocated(dneo_h_dz)) deallocate(dneo_h_dz)
+        if (allocated(dneo_phi_dz)) deallocate(dneo_phi_dz)
+        if (allocated(dneo_h_dvpa)) deallocate(dneo_h_dvpa)
+        if (allocated(dneo_h_dmu)) deallocate(dneo_h_dmu)
+
+        initialised_neoclassical_terms_neo = .false.
+        
     end subroutine finish_neoclassical_terms_neo
 
 
 ! ================================================================================================================================================================================= !
 ! ------------------------------------------------------------------------------- Utilities. -------------------------------------------------------------------------------------- !
 ! ================================================================================================================================================================================= !
-
-! ================================================================================================================================================================================= !
-! --------------------------------- Allocates module level arrays for H_1, ϕ^1_0 and their derivatives in real space and velocity space. ------------------------------------------ !
-! ================================================================================================================================================================================= !
-
-    subroutine allocate_arrays
-        implicit none
-    end subroutine allocate_arrays
-
-
-! ================================================================================================================================================================================= !
-! --------------------------------------------------------------------- Deallocates module level arrays. -------------------------------------------------------------------------- !
-! ================================================================================================================================================================================= !
-
-    subroutine deallocate_arrays
-        implicit none
-    end subroutine deallocate_arrays
-
 
 ! ================================================================================================================================================================================= !
 ! ------------------------------------------------------------- Collapse distributuion arrays from 5 dimensions to 3. ------------------------------------------------------------- !
