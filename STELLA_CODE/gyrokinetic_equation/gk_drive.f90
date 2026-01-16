@@ -96,9 +96,6 @@ contains
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
 
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
-  
-      use neoclassical_terms_neo, only:  neo_h, neo_phi             
-      use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
 
       use arrays, only: wstar, initialised_wstar
 
@@ -135,35 +132,21 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          
          ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu)
-         energy(:, :) = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
+         energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
          
          ! Calculate wstar = - code_dt*omega_{*,k,s}/ky = - code_dt * 0.5/C <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho 
          !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²). 
          ! This block only computes when sfincs is chosen for the neoclassical option.
-         if (include_neoclassical_terms .and. neo_option_switch == neo_option_sfincs) then
+         if (include_neoclassical_terms) then
+            wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+                * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
+                * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
+         else
              wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                 * (spec(is)%fprim + spec(is)%tprim * (energy(:, :) - 1.5)) - dfneo_drho(:, :, ivmu)) &
-                 * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         else
-             ! Calculate the magnetic geometry prefactor. 
-             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt
-
-             ! Mutliply by the species-dependent Maxwellian factor.
-             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)    
+                  * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
-        
-
-         ! If NEO's neoclassical corrections are turned on, we must multiply wstar by the neoclassical distribution factor. 
-
-         if (neoclassical_is_enabled()) then
-             do iz = -nzgrid, nzgrid
-                 wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * ( ( 1 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) &
-                 * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) + dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz, 1) )
-             end do
-         else
-             wstar(:, :, ivmu) = wstar(:, :, ivmu) * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, :) - 1.5 ) )
-         end if 
+         
+         wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
       end do
 
       deallocate (energy)

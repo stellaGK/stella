@@ -223,20 +223,23 @@ contains
               call max_allreduce(wstar1_max)
           end if
 
-          cfl_dt_wstar1 = abs(code_dt) / max(wstar1_max, zero)
+          cfl_dt_wstar1 = abs(code_dt) / max(maxval(abs(aky)) * wstar1_max, zero)
           cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wstar1)
       end if
 
       ! Check that the introduction of the neoclassical wpol drive doesn't break the CFL condition.
 
       if (neoclassical_is_enabled()) then
-          wpol_max = maxval(abs(wpol))
-          if (nproc > 1) then
-              call max_allreduce(wpol_max)
-          end if
+          ! Only calculate the CFL constaint if there are non-zero akx present. 
+          if (maxval(abs(akx)) > epsilon(0.0)) then
+              wpol_max = maxval(abs(wpol))
+              if (nproc > 1) then
+                  call max_allreduce(wpol_max)
+              end if
 
-          cfl_dt_wpol = abs(code_dt) / max(wpol_max, zero)
-          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wpol)
+              cfl_dt_wpol = abs(code_dt) / max(maxval(abs(akx)) * wpol_max, zero) 
+              cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wpol)
+          end if
       end if
 
       ! Get the minimum value of <cfl_dt_linear> on all processors
@@ -259,7 +262,7 @@ contains
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') '  neo_apar: ', cfl_dt_neo_apar_coeff
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_dchidz: ', cfl_dt_neo_dchidz_coeff
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wstar1: ', cfl_dt_wstar1
-         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wpol: ', cfl_dt_wpol
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'wpol: ', cfl_dt_wpol
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *)
       end if

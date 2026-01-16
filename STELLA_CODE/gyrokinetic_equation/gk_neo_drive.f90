@@ -6,12 +6,24 @@
 ! When F_1 is included, the gradient drive has both a ψ derivative component and a θ (poloidal angle) derivative component. When using a miller geometry, this is equivalent to a 
 ! z derivative component.     
 !         
-! In this routine we define two coeffecients, wstar1 and wpol. wstar1 is the higher-order counterpart to wstar. 
+! In this routine we define two coeffecients, wstar1 and wpol. wstar1 is the higher-order counterpart to wstar. The dimensionless expression is  
 ! 
-! 
+! wstar1 = wstar1psi + wstar1z
 !
-! wstar1 must be multiplied by ik_y * <Χ_k> and then added to the RHS of the GKE. wpol must be multiplied by ik_x * <Χ_k> and added to the RHS of the GKE. 
+! where 
+!
+! wstar1psi = - 1/2C * exp(-v²) * dy/dα * dρ/dψ * ( ∂F₁/∂ρ + F₁ * dlnF₀/dρ )
+!
+! and 
+!
+! wstar1z =  1/2C * exp(-v²) * ( dψ/dx * ( |∇x ⋅∇y|/( q * R₀² * B₀²) )  + (ŝ/ρ) * dρ/dψ * dy/dα * z ) * ∂F₁/∂z
+!
+! wstar1 must then be multiplied by ik_y * <Χ_k> and then added to the RHS of the GKE. Similarly wpol is given by: 
 ! 
+! wpol = 
+!
+! This must be multiplied by ik_x * <Χ_k> and added to the RHS of the GKE.
+!
 ! ================================================================================================================================================================================= !
 
 module gk_neo_drive
@@ -69,10 +81,15 @@ contains
 
         ! Indices.
         integer :: is, imu, iv, ivmu, iz
-      
-        ! To make the calculations easier to follow, we calculate <energy> = v_parallel² + 2 mu B for each velocity point.
+     
+        ! wstar1 has a component which is proportional to ∂F_1/∂ψ, we will call this wstar1psi. 
+        ! Similarly the component proportional to ∂F_1/∂z will be called wstarz. 
+        ! We need to declare temporary arrays for both of these; this should make the maths easier to follow.
+        real, dimension(:, :, :), allocatable :: wstar1psi, wstar1z         
+        
+        ! To make the calculations easier to follow, we also calculate energy = v_parallel² + 2 mu B for each velocity point
         real, dimension(:, :), allocatable :: energy
-         
+
         ! Only intialise omega_{*,k,s,1} once.
         if (initialised_wstar1) return
         initialised_wstar1 = .true.
@@ -82,24 +99,46 @@ contains
             allocate (wstar1(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1 = 0.0
         end if
 
-        ! Allocate <energy>[ialpha,iz].
-        allocate (energy(nalpha, -nzgrid:nzgrid))
-      
+        ! Allocate the temporary arrays. 
+
+        allocate (energy(nalpha, -nzgrid:nzgrid))        
+        allocate (wstar1psi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))      
+        allocate (wstar1z(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
-         
-            ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu).
-            energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
 
-            wstar1(:, :, ivmu) = 0    
+            ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu). 
+            energy(:, :) = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
+ 
+            ! Mutliply by the magnetic geometry prefactor.
+            wstar1psi(:, :, ivmu) = - (0.5/clebsch_factor) * dydalpha * drhodpsi 
 
-            ! We must add the remaining corrections to wstar1, namely those proportinal to the z derivative of F_1. 
+            ! Mutliply by the species dependent prefactor.
+            wstar1psi(:, :, ivmu) = wstar1psi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+
+            do iz = -nzgrid, nzgrid
+                ! Multiply by the neolcassical distribution factor. 
+                wstar1psi(:, iz, ivmu) = wstar1psi(:, iz, ivmu) * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz, 1) &
+                + ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) )
+            end do
+
+            ! Finally multiply by code_dt.
+           
+            wstar1psi(:, :, ivmu) = wstar1psi(:, :, ivmu) * code_dt
+ 
+            ! We must add the remaining corrections to wstar1, namely those proportinal to the z derivative of F_1...
       end do
 
-      deallocate (energy)
+      ! Calculate wstar1 = wstar1psi + wstar1z.
+      wstar1 = wstar1psi
+
+      deallocate(energy)
+      deallocate(wstar1psi)
+      deallocate(wstar1z)
 
     end subroutine init_wstar1
 
