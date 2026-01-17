@@ -2,27 +2,29 @@
 ! ------------------------------------------------------------------- Evolves the neoclassical gradient drive. -------------------------------------------------------------------- !​
 ! ================================================================================================================================================================================= !
 ! 
-! This module evolves the neoclassical gradient drive. In the conventional theory, this has only a ψ derivative component, which is captured by wstar defined in gk_drive.f90.
-! When F_1 is included, the gradient drive has both a ψ derivative component and a θ (poloidal angle) derivative component. When using a miller geometry, this is equivalent to a 
-! z derivative component.     
-!         
-! In this routine we define two coeffecients, wstar1 and wpol. wstar1 is the higher-order counterpart to wstar. The dimensionless expression is  
+! This module evolves the neoclassical gradient drive:
+!
+! (k⟂ x B₀) ⋅∇F₁ = ∂F₁/∂ψ (k⟂ x B₀) ⋅∇ψ + ∂F₁/∂θ (k⟂ x B₀) ⋅∇θ 
+!
+! In the conventional theory this has only a ∂F₀/∂ψ component, which is captured by wstar defined in gk_drive.f90. When F₁ is included, the gradient drive has both a ∂F₁/∂ψ  
+! component and a ∂F₁/∂θ component. When using a miller geometry, this is equivalent to ∂F₁/∂z. In this routine we define two coeffecients, wstar1 and wpol. wstar1 is the 
+! higher-order counterpart to wstar. The dimensionless expression is  
 ! 
 ! wstar1 = wstar1psi + wstar1z
 !
 ! where 
 !
-! wstar1psi = - 1/2C * exp(-v²) * dy/dα * dρ/dψ * ( ∂F₁/∂ρ + F₁ * dlnF₀/dρ )
+! wstar1psi = - (1/2C) * exp(-v²) * dy/dα * dρ/dψ * ( ∂F₁/∂ρ + F₁ * dlnF₀/dρ )
 !
 ! and 
 !
-! wstar1z =  1/2C * exp(-v²) * ( dψ/dx * ( |∇x ⋅∇y|/( q * R₀² * B₀²) )  + (ŝ/ρ) * dρ/dψ * dy/dα * z ) * ∂F₁/∂z
+! wstar1z =  (1/2C) * exp(-v²) * ( dψ/dx * ( |∇x ⋅∇y|/( q * R₀² * B₀² ) ) + (ŝ/ρ) * dρ/dψ * dy/dα * z ) * ∂F₁/∂z
 !
-! wstar1 must then be multiplied by ik_y * <Χ_k> and then added to the RHS of the GKE. Similarly wpol is given by: 
+! wstar1 must then be multiplied by i * ky * <Χ_k> and then added to the RHS of the GKE. Similarly wpol is given by: 
 ! 
-! wpol = 
+! wpol = (1/2Cq) * exp(-v²) * ( dψ/dx * ( |∇x ⋅∇x|/( R₀² * B₀² ) ) - dx/dψ ) * ∂F₁/∂z
 !
-! This must be multiplied by ik_x * <Χ_k> and added to the RHS of the GKE.
+! This must be multiplied by i * kx * <Χ_k> and added to the RHS of the GKE.
 !
 ! ================================================================================================================================================================================= !
 
@@ -52,11 +54,11 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine init_wstar1
-        ! Parallelisation
+        ! Parallelisation.
         use mp, only: mp_abort
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       
-        ! Grids
+        ! Grids.
         use grids_time, only: code_dt
         use grids_kxky, only: nalpha
         use grids_z, only: nzgrid, zed
@@ -64,14 +66,17 @@ contains
         use grids_velocity, only: vperp2, vpa
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
+        ! Geometry. 
         use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi
         use geometry, only: bmag, gradx_dot_grady
         use geometry, only: geo_surf
 
-        use neoclassical_terms_neo, only:  neo_h, neo_phi             
+        ! NEO data.
+        use neoclassical_terms_neo, only: neo_h, neo_phi             
         use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
         use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
 
+        ! Arrays. 
         use arrays, only: wstar1, initialised_wstar1
 
         ! Rescale the drive term with <wstar1knob>.
@@ -87,7 +92,7 @@ contains
         ! We need to declare temporary arrays for both of these; this should make the maths easier to follow.
         real, dimension(:, :, :), allocatable :: wstar1psi, wstar1z         
         
-        ! To make the calculations easier to follow, we also calculate energy = v_parallel² + 2 mu B for each velocity point
+        ! To make the calculations easier to follow, we also calculate energy = v_parallel² + 2 mu B for each velocity point.
         real, dimension(:, :), allocatable :: energy
 
         ! Only intialise omega_{*,k,s,1} once.
@@ -125,18 +130,35 @@ contains
                 wstar1psi(:, iz, ivmu) = wstar1psi(:, iz, ivmu) * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz, 1) &
                 + ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) )
             end do
-
-            ! Finally multiply by code_dt.
-           
-            wstar1psi(:, :, ivmu) = wstar1psi(:, :, ivmu) * code_dt
- 
-            ! We must add the remaining corrections to wstar1, namely those proportinal to the z derivative of F_1...
       end do
 
-      ! Calculate wstar1 = wstar1psi + wstar1z.
-      wstar1 = wstar1psi
-
+      ! The energy array is no longer needed. 
       deallocate(energy)
+
+      ! We must add the remaining corrections to wstar1, namely those proportinal to the z derivative of F₁.
+      ! Iterate over velocity space.
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+          is = is_idx(vmu_lo, ivmu)
+          imu = imu_idx(vmu_lo, ivmu)
+          iv = iv_idx(vmu_lo, ivmu)
+
+          ! Mutliply by the species dependent prefactor.
+          wstar1z(:, :, ivmu) = maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+
+          do iz = -nzgrid, nzgrid
+              ! Multiply by the neolcassical distribution factor. 
+              wstar1z(:, iz, ivmu) = wstar1z(:, iz, ivmu) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz, 1) )
+
+              ! Mutliply by the magnetic geometry prefactor.
+              wstar1z(:, iz, ivmu) = wstar1z(:, iz, ivmu) * (0.5/clebsch_factor) * ( gradx_dot_grady(:, iz)/( dxdpsi * geo_surf%qinp &
+              * ( bmag(:, iz) * geo_surf%rmaj )**2 ) + (geo_surf%shat/geo_surf%rhoc) * drhodpsi * dydalpha * zed(iz) )
+          end do
+      end do
+
+      ! Finally, calculate wstar1 = wstar1psi + wstar1z.
+      wstar1 = ( wstar1psi + wstar1z ) * code_dt
+
+      ! Deallocate the remaining temporary arrays. 
       deallocate(wstar1psi)
       deallocate(wstar1z)
 
@@ -160,12 +182,15 @@ contains
         use grids_velocity, only: vpa
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
+        ! Geometry.
         use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi
         use geometry, only: bmag, gradx_dot_gradx
         use geometry, only: geo_surf
    
+        ! NEO data.
         use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
 
+        ! Arrays. 
         use arrays, only: wpol, initialised_wpol
 
         ! Rescale the drive term with <wpolknob>.
@@ -195,7 +220,7 @@ contains
             wpol(:, :, ivmu) = maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
 
             ! Multiply by the magnetic geometry factor. 
-            wpol(:, :, ivmu) = 0.5 * (1/ ( clebsch_factor * geo_surf%qinp ) ) * ( gradx_dot_gradx/( dxdpsi * ( bmag(:, :) * geo_surf%rmaj )**2 )  - dxdpsi )
+            wpol(:, :, ivmu) = ( 0.5 / ( clebsch_factor * geo_surf%qinp ) ) * ( gradx_dot_gradx(:, :)/( dxdpsi * ( bmag(:, :) * geo_surf%rmaj )**2 )  - dxdpsi )
 
             ! Multiply by the neoclassical coeffecient. 
             do iz = -nzgrid, nzgrid
@@ -244,13 +269,13 @@ contains
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
         !                                                                                            ! 
-        ! Add the neoclassical  drive term to the GKE:                                               !
+        ! Add the neoclassical ψ drive term to the GKE:                                              !
         !                                                                                            ! 
-        ! -i omega_{*,k,s, 1} _k = <wstar1> * i ky <Χ_k>                                             !
+        ! wstar1 * i * ky * <Χ_k>                                                                    !
         !                                                                                            !
-        ! First we calculate i ky * <Χ_k> which corresponds to d<chi>_theta/dy:                      !
+        ! First we calculate i * ky * <Χ_k> which corresponds to ∂<Χ_k>/∂y:                          !
         !                                                                                            ! 
-        ! Then multiply with <wstar> and add it to the right-hand-side of the GKE:                   !
+        ! Then multiply with <wstar1> and add it to the RHS of the GKE:                              !
         !                                                                                            !
         ! add_explicit_term(g0, wstar1(1, :, :), gout)                                               !
         !                                                                                            ! 
@@ -261,18 +286,18 @@ contains
         ! Start timing the time advance due to the driving gradient.
         if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1 advance')
 
-        ! Allocate temporary array for <g0> = i ky J_0 ϕ_k.
+        ! Allocate temporary array for <g0> = ∂Χ_k/∂y = i *ky * <Χ_k>.
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       
-        ! Calculate <g0> = i ky J_0 ϕ_k = d<chi>_theta/dy.
+        ! Calculate <g0>.
         ! if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
         call get_dchidy(phi, apar, bpar, g0)
 
-        ! Add the drive term to the right-hand-side of the gyrokinetic equation. 
+        ! Add the drive term to the RHS of the gyrokinetic equation. 
         ! if (debug) write (*, *) 'time_advance::solve_gke::add_wstar1_term'
         call add_explicit_term(g0, wstar1(1, :, :), gout)
 
-        ! Deallocate <g0> = i ky J_0 ϕ_k.
+        ! Deallocate <g0>.
         deallocate (g0)
 
         ! Stop timing the time advance due to the driving gradient.
@@ -316,13 +341,13 @@ contains
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
         !                                                                                            ! 
-        ! Add the neoclassical  drive term to the GKE:                                               !
+        ! Add the neoclassical z drive term to the GKE:                                              !
         !                                                                                            ! 
-        ! i omega_pol Χ_k = <wpol> * ikx * <Χ_k>                                                     !
+        ! wpol * i * kx * <Χ_k>                                                                      !
         !                                                                                            !
-        ! First we calculate ikx * <Χ_k> which corresponds to d<chi>/dx:                             !
+        ! First we calculate i * kx * <Χ_k> which corresponds to d<Χ_k>/dx:                          !
         !                                                                                            ! 
-        ! Then multiply with <wpol> and add it to the right-hand-side of the GKE:                    !
+        ! Then multiply with wpol and add it to the right-hand-side of the GKE:                      !
         !                                                                                            !
         ! add_explicit_term(g0, wpol(1, :, :), gout)                                                 !
         !                                                                                            ! 
@@ -333,18 +358,18 @@ contains
         ! Start timing the time advance due to the driving gradient.
         if (proc0) call time_message(.false., time_gke(:, 6), ' wpol advance')
 
-        ! Allocate temporary array for <g0> = i kx <Χ_k>.
+        ! Allocate temporary array for <g0> = d<Χ_k>/dx  = i * kx * <Χ_k>.
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       
-        ! Calculate <g0> = d<chi>/dx.
+        ! Calculate <g0>.
         ! if (debug) write (*, *) 'time_advance::solve_gke::get_dchidx'
         call get_dchidx(phi, apar, bpar, g0)
 
-        ! Add the drive term to the right-hand-side of the GKE. 
+        ! Add the drive term to the RHS of the GKE. 
         ! if (debug) write (*, *) 'time_advance::solve_gke::add_wpol_term'
         call add_explicit_term(g0, wpol(1, :, :), gout)
 
-        ! Deallocate <g0> = i kx <Χ_k>.
+        ! Deallocate <g0>.
         deallocate (g0)
 
         ! Stop timing the time advance due to the driving gradient.
