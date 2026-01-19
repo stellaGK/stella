@@ -209,6 +209,7 @@ contains
       use gk_neo_apar_terms, only: advance_neo_apar_terms_explicit
       use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
       use gk_neo_drive, only: advance_wstar1_explicit, advance_wpol_explicit
+      use gk_neo_drifts, only: advance_neo_mag_drift_explicit
  
       implicit none
 
@@ -333,6 +334,9 @@ contains
                  ! Advance the neoclassical equilibrium gradient drive terms. 
                  call advance_wstar1_explicit(phi, rhs)
                  call advance_wpol_explicit(phi, rhs)
+
+                 ! Advance the neoclassical magnetic drift term.
+                 call advance_neo_mag_drift_explicit(phi, rhs)
             end if
 
          end if

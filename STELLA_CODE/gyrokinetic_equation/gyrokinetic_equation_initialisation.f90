@@ -54,12 +54,12 @@ contains
       ! use neoclassical_terms, only: init_neoclassical_terms
       
       ! For NEO's neoclassical corrections. 
-
       use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo
       use gk_neo_chi_terms, only: init_neo_chi_terms    
       use gk_neo_apar_terms, only: init_neo_apar_terms
       use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
       use gk_neo_drive, only: init_wstar1, init_wpol
+      use gk_neo_drifts, only: init_neo_mag_drift
                                                                                    
       implicit none
 
@@ -123,9 +123,12 @@ contains
           ! Allocate and calculate the coeffecient multiplying dchi/dz in NEO's neoclassical corrections.
           call init_neo_dchidz_terms
 
-          ! Allocate and calculate the neoclassical counterpart to wstar. 
+          ! Allocate and calculate the neoclassical counterpart to wstar and the poloidal gradient drive. 
           call init_wstar1
           call init_wpol
+
+          ! Allocate and calculate the neoclassical magnetic drift correction. 
+          call init_neo_mag_drift
       end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
@@ -189,6 +192,7 @@ contains
       use gk_neo_apar_terms, only: finish_neo_apar_terms
       use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
       use gk_neo_drive, only: finish_wstar1, finish_wpol
+      use gk_neo_drifts, only: finish_neo_mag_drift 
 
       implicit none
 
@@ -219,6 +223,7 @@ contains
           call finish_neo_dchidz_terms
           call finish_wstar1
           call finish_wpol
+          call finish_neo_mag_drift
       end if
 
       initialised_gyrokinetic_equation = .false.
