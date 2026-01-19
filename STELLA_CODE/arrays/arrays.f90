@@ -27,6 +27,8 @@ module arrays
    public :: initialised_neo_dchidz_terms
    public :: initialised_wstar1
    public :: initialised_wpol
+   public :: initialised_neo_mag_drift
+   public :: initialised_neo_curv_drift
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -72,6 +74,10 @@ module arrays
    public :: neo_dchidz_coeff
    public :: wstar1
    public :: wpol
+   public :: neomagx
+   public :: neomagy
+   public :: neocurvx
+   public :: neocurvy
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -109,12 +115,13 @@ module arrays
    logical :: initialised_implicit_drifts
    
    ! For NEO's neoclassical corrections. 
-
    logical :: initialised_neo_chi_terms
    logical :: initialised_neo_apar_terms   
    logical :: initialised_neo_dchidz_terms
    logical :: initialised_wstar1
    logical :: initialised_wpol
+   logical :: initialised_neo_mag_drift
+   logical :: initialised_neo_curv_drift
 
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -152,8 +159,9 @@ module arrays
    real, dimension(:, :, :), allocatable :: neo_chi_coeff
    real, dimension(:, :, :), allocatable :: neo_apar_coeff
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
-   real, dimension(:, :, :), allocatable :: wstar1
-   real, dimension(:, :, :), allocatable :: wpol
+   real, dimension(:, :, :), allocatable :: wstar1, wpol
+   real, dimension(:, :, :), allocatable :: neomagx, neomagy
+   real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
 
    !----------------------------------------------------------------------------
    ! For the Field Equations

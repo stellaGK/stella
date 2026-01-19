@@ -91,7 +91,7 @@ contains
                 * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * spec(is)%stm_psi0
 
                 ! Multiply by the neoclassical distribution prefactor. 
-                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * ( (vpa(iv)/bmag(:, iz)) * (dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) ) ) 
+                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) *  ( ( vpa(iv)/bmag(:, iz) ) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) )
 
                 ! Finally, multiply by code_dt. 
                 neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * code_dt 
