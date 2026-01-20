@@ -52,10 +52,16 @@ contains
       use gk_parallel_streaming, only: stream_rad_var1
       use gk_parallel_streaming, only: stream_rad_var2
       use gk_mirror, only: mirror
+      
+      ! Arrays.
       use arrays, only: wdriftx_g, wdrifty_g
       use arrays, only: wstar
+      
+      ! NEO's neoclassical corrections.
       use arrays, only: neo_chi_coeff, neo_apar_coeff, neo_dchidz_coeff
       use arrays, only: wstar1, wpol
+      use arrays, only: neomagx, neomagy
+      use arrays, only: neocurvx, neocurvy
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
@@ -81,9 +87,14 @@ contains
 
       real :: cfl_dt_neo_chi_coeff, cfl_dt_neo_apar_coeff, cfl_dt_neo_dchidz_coeff
       real :: cfl_dt_wstar1, cfl_dt_wpol
+      real :: cfl_dt_neomagx, cfl_dt_neomagy
+      real :: cfl_dt_neocurvx, cfl_dt_neocurvy
       real :: neo_chi_coeff_max, neo_apar_coeff_max, neo_dchidz_coeff_max
       real :: wstar1_max, wpol_max
-      
+      real :: neomagx_max, neomagy_max
+      real :: neocurvx_max, neocurvy_max      
+
+
       !-------------------------------------------------------------------------
 
       ! Avoid divide by zero in cfl_dt terms below
@@ -180,7 +191,6 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical chi coeffecient doesn't break the CFL condition. 
-
       if (neoclassical_is_enabled()) then
           neo_chi_coeff_max = maxval(abs(neo_chi_coeff))
           if (nproc > 1) then
@@ -192,7 +202,6 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical apar coeffecient doesn't break the CFL condition.
- 
       if (neoclassical_is_enabled()) then
           neo_apar_coeff_max = maxval(abs(neo_apar_coeff))
           if (nproc > 1) then
@@ -204,7 +213,6 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical dchi/dz coeffecient doesn't break the CFL condition.
-
       if (neoclassical_is_enabled()) then
           neo_dchidz_coeff_max = maxval(abs(neo_dchidz_coeff))
           if (nproc > 1) then
@@ -216,7 +224,6 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical wstar1 drive doesn't break the CFL condition.
-
       if (neoclassical_is_enabled()) then
           wstar1_max = maxval(abs(wstar1))
           if (nproc > 1) then
@@ -228,7 +235,6 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical wpol drive doesn't break the CFL condition.
-
       if (neoclassical_is_enabled()) then
           ! Only calculate the CFL constaint if there are non-zero akx present. 
           if (maxval(abs(akx)) > epsilon(0.0)) then
@@ -239,6 +245,56 @@ contains
 
               cfl_dt_wpol = abs(code_dt) / max(maxval(abs(akx)) * wpol_max, zero) 
               cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wpol)
+          end if
+      end if
+
+      ! Check that the introduction of the neoclassical neomagy doesn't break the CFL condition.
+      if (neoclassical_is_enabled()) then
+          neomagy_max = maxval(abs(neomagy))
+          if (nproc > 1) then
+              call max_allreduce(neomagy_max)
+          end if
+
+          cfl_dt_neomagy = abs(code_dt) / max(maxval(abs(aky)) * neomagy_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neomagy)
+      end if
+
+      ! Check that the introduction of the neoclassical neomagx drive doesn't break the CFL condition.
+      if (neoclassical_is_enabled()) then
+          ! Only calculate the CFL constaint if there are non-zero akx present. 
+          if (maxval(abs(akx)) > epsilon(0.0)) then
+              neomagx_max = maxval(abs(neomagx))
+              if (nproc > 1) then
+                  call max_allreduce(neomagx_max)
+              end if
+
+              cfl_dt_neomagx = abs(code_dt) / max(maxval(abs(akx)) * neomagx_max, zero)
+              cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neomagx)
+          end if
+      end if
+
+      ! Check that the introduction of the neoclassical neocurvy doesn't break the CFL condition.
+      if (neoclassical_is_enabled()) then
+          neocurvy_max = maxval(abs(neocurvy))
+          if (nproc > 1) then
+              call max_allreduce(neocurvy_max)
+          end if
+
+          cfl_dt_neocurvy = abs(code_dt) / max(maxval(abs(aky)) * neocurvy_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neocurvy)
+      end if
+
+      ! Check that the introduction of the neoclassical neocurvx drive doesn't break the CFL condition.
+      if (neoclassical_is_enabled()) then
+          ! Only calculate the CFL constaint if there are non-zero akx present. 
+          if (maxval(abs(akx)) > epsilon(0.0)) then
+              neocurvx_max = maxval(abs(neocurvx))
+              if (nproc > 1) then
+                  call max_allreduce(neocurvx_max)
+              end if
+
+              cfl_dt_neocurvx = abs(code_dt) / max(maxval(abs(akx)) * neocurvx_max, zero)
+              cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neocurvx)
           end if
       end if
 
@@ -263,6 +319,10 @@ contains
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_dchidz: ', cfl_dt_neo_dchidz_coeff
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wstar1: ', cfl_dt_wstar1
          if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'wpol: ', cfl_dt_wpol
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neomagy: ', cfl_dt_neomagy
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neomagx: ', cfl_dt_neomagx
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neocurvy: ', cfl_dt_neocurvy
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neocurvx: ', cfl_dt_neocurvx 
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *)
       end if
