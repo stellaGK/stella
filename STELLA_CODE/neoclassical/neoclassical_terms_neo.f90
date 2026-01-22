@@ -123,9 +123,11 @@ contains
 
         if (proc0) then
             call read_basic_neo_files(neo_grid, neo_version)
-            write(output_unit, '(A)') '! ======================================================================================================== !'
+            write(output_unit, '(A)') '############################################################'
+            write(output_unit, '(A)') '               O(Δ¹ δ¹ v_th/L F₀) CORRECTIONS               ' 
+            write(output_unit, '(A)') '############################################################'
             write(output_unit, '("Reading neo files created on system ",A," at ",A," (commit : ",A,")")') neo_version%system, neo_version%date, neo_version%commit
-            write(output_unit, '(A)') '! ======================================================================================================== !'
+            write(output_unit, '(A)') '                                                            '
         end if
        
         call broadcast(neo_grid%n_species)     ! Broadcast the NEO grid structure to other processors.

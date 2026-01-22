@@ -31,12 +31,31 @@
 ! whereas the electrostatic potential phi is given in (r,t).
 ! 
 !###############################################################################
+
+! ================================================================================================================================================================================== !
+! --------------------------------------------------------------------------- For NEO's higher order corrections. ------------------------------------------------------------------ ! 
+! ================================================================================================================================================================================== !
+!
+! When NEO's neoclassical corrections are included, we define a new distribution function, gbarneo:
+!
+! gbarneo = gbar + (Z/T) * <Χ_k> * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - e * Φ₀¹ ) )
+!
+! This expression is valid for electromagnetic simulations. For electrostatic, this expression reduces to: 
+!
+! gbarneo = g + (Z/T) * J₀ * ϕ_k * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - e * Φ₀¹ ) )
+!
+! These routines will be called when explicitly evolving the neoclassical <Χ_k> terms. 
+!
+! ================================================================================================================================================================================== !
+
+
 module calculations_tofrom_ghf
    
    ! Make routines available to other modules
    public :: gbar_to_g
    public :: g_to_h
    public :: g_to_f
+   public :: g_or_gbar_to_gbarneo
 
    private
 
@@ -57,6 +76,11 @@ module calculations_tofrom_ghf
       module procedure g_to_f_kxkyz
       module procedure g_to_f_vmu
    end interface g_to_f
+
+   interface g_or_gbar_to_gbarneo
+      module procedure g_or_gbar_to_gbarneo_vmu
+      module procedure g_or_gbar_to_gbarneo_vmu_single
+   end interface g_or_gbar_to_gbarneo
 
 contains
 
@@ -756,5 +780,132 @@ contains
       if (allocated(g0k)) deallocate (g0k)
 
    end subroutine g_to_f_vmu
+
+
+! ================================================================================================================================================================================== !
+! ---------------------------------------------------------------------- Convert <g> or <gbar> to <gbarneo>. ----------------------------------------------------------------------- !
+! ================================================================================================================================================================================== !
+
+    subroutine g_or_gbar_to_gbarneo_vmu(g, phi, apar, bpar, facchi)
+        use grids_z, only: nzgrid
+        use parallelisation_layouts, only: vmu_lo
+
+        implicit none
+
+        ! Arguments.
+        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+        real, intent(in) :: facchi
+
+        ! Local variables.
+        integer :: ivmu
+
+        ! Convert <gbar> to <g> for each ivpamus point.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call g_or_gbar_to_gbarneo_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, apar, bpar, facchi)
+        end do
+
+    end subroutine g_or_gbar_to_gbarneo_vmu
+
+
+! ================================================================================================================================================================================== !
+! --------------------------------------------- Convert <gbar> or <g> to <gbarneo> using (kx,ky,z,ivpamus) for a specific ivpamus point -------------------------------------------- !
+! ------------------------------------------- Recall that the correction to be added is: (1/2B₀) * (Z/T) * <Χ_k> * exp(-v²) * ∂H_1/∂μ|_v∥. ----------------------------------------- ! 
+! ================================================================================================================================================================================== !
+
+    subroutine g_or_gbar_to_gbarneo_vmu_single(ivmu, g0, phi, apar, bpar, facchi)
+        ! Parallelisation.
+        use parallelisation_layouts, only: vmu_lo
+        use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+      
+        ! Calculations.
+        use calculations_kxky, only: multiply_by_rho
+        use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+      
+        ! Grids.
+        use grids_species, only: spec
+        use grids_z, only: nzgrid, ntubes
+        use grids_kxky, only: naky, nakx
+        use grids_velocity, only: vpa, mu
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+
+        ! Geometry. 
+        use geometry, only: bmag 
+      
+        ! Flags.
+        use parameters_physics, only: include_apar, include_bpar
+        use parameters_physics, only: fphi
+
+        ! NEO's Neoclassical information.
+        use neoclassical_terms_neo, only: dneo_h_dmu, neo_h, neo_phi
+
+        implicit none
+
+        ! Arguments.
+        integer, intent(in) :: ivmu
+        complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g0
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+        real, intent(in) :: facchi
+
+        ! Local variables.
+        integer :: iv, imu, is
+        integer :: it, iz, ia
+        complex, dimension(:, :), allocatable :: field, gyro_averaged_field, gyro_tmp
+      
+        ! Allocate local arrays.
+        allocate (field(naky, nakx))
+        allocate (gyro_averaged_field(naky, nakx))
+        allocate (gyro_tmp(naky, nakx))
+      
+        ! Get the indices of this ivpamus point.
+        iv = iv_idx(vmu_lo, ivmu)
+        imu = imu_idx(vmu_lo, ivmu)
+        is = is_idx(vmu_lo, ivmu)
+
+        ! Assume we only have one field line. 
+        ia = 1
+      
+        ! Iterate over the (it,iz) points. 
+        do it = 1, ntubes
+           do iz = -nzgrid, nzgrid
+               ! First calculate the gyroaveraged field being used, <>. 
+               ! Calculate the phi contribution to gyoraveraged fields.
+         
+               field = fphi * phi (:, :, iz, it) 
+
+               ! If apar is present, we must account for this.
+               if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar(:, :, iz, it)
+ 
+               ! Gyroaverage the J₀ contribution.
+               call gyro_average(field, iz, ivmu, gyro_averaged_field)
+            
+               ! If bpar is present, we must account for this too.
+               if (include_bpar) then
+                   field = 4.0 * mu(imu) * (spec(is)%tz) * bpar(:, :, iz, it)
+               
+                   ! Gyroaverage the J_1 contribution.
+                   call gyro_average_j1(field, iz, ivmu, gyro_tmp)
+              
+                   ! Now get the full gyroaveraged field. 
+                   gyro_averaged_field = gyro_averaged_field + gyro_tmp
+               end if
+
+               ! Calculate the transformed distribution. 
+               g0(:, :, iz, it) = g0(:, :, iz, it) + (spec(is)%z / spec(is)%temp) * gyro_averaged_field * facchi &
+               *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
+               *  ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) )
+
+           end do
+       end do
+      
+       ! Deallocate local arrays.
+       deallocate (field, gyro_averaged_field, gyro_tmp)
+
+   end subroutine g_or_gbar_to_gbarneo_vmu_single
+
+
+! ================================================================================================================================================================================== !
+! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
+! ================================================================================================================================================================================== !
 
 end module calculations_tofrom_ghf

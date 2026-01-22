@@ -4,15 +4,13 @@
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = (Z * μ)/m * b.∇B * exp(-v²) * ( 1/v∥ * ∂F_1/∂v∥|_μ - 1/B * ∂F_1/∂μ|_v∥) * J_0 * A∥_k           
-!
-! Derivatives coming from the Maxwellian normalisation cancel one another. 
+! = (Z * μ)/(m * v∥) * b.∇B * J₀ * A∥_k * exp(-v²) * ( ∂H_1/∂v∥|_μ - 2v∥ * ( H_1 - e * ϕ₀¹ ) )            
 !         
 ! Define the neoclassical apar coefficient as: 
 ! 
-! <neo_apar_coeff> = (Z * μ)/m * b.∇B * exp(-v²) * ( 1/v∥ * ∂F_1/∂v∥|_μ - 1/B * ∂F_1/∂μ|_v∥)  * code_dt
+! <neo_apar_coeff> = (Z * μ)/(m * v∥) * b.∇B * exp(-v²) * ( ∂H_1/∂v∥|_μ - 2v∥ * ( H_1 - e * ϕ₀¹ ) )  * code_dt
 !
-! This must be multiplied by <A∥_k> = J_0 * A∥_k and then added to the RHS of the GKE.
+! This must be multiplied by <A∥_k> = J₀ * A∥_k and then added to the RHS of the GKE.
 ! 
 ! ================================================================================================================================================================================= !
 
@@ -53,7 +51,7 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
+        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
 
         use arrays, only: neo_apar_coeff, initialised_neo_apar_terms
 
@@ -85,13 +83,12 @@ contains
                 neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * spec(is)%z/spec(is)%mass &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
 
-                ! Multiply by the μ grid point. 
- 
-                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * mu(imu)
+                ! Multiply by the μ grid point and divide by the v∥ grid point.
+                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * ( mu(imu)/vpa(iv) )
 
                 ! Multiply by the neoclassical distribution prefactor. 
                 neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) &
-                * ( (1/vpa(iv)) * dneo_h_dvpa(iz, ivmu, 1) - (1/bmag(:, iz)) * dneo_h_dmu(iz, ivmu, 1) )
+                * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) )
 
                 ! Finally, multiply by code_dt. 
                 neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * code_dt

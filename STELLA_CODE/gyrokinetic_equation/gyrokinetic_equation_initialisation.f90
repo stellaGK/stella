@@ -82,14 +82,8 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
       if (neoclassical_is_enabled()) then
           call init_neoclassical_terms_neo                                        
-          if (proc0) then
-              write(output_unit, '(A)') '!==================================!'
-              write(output_unit, '(A)') '  NEOs Neoclassical terms enabled.  '          
-              write(output_unit, '(A)') '!==================================!' 
-          end if
       end if 
  
-     
       ! Calculate the term multiplying dg/dvpa in the mirror term and set up either the
       ! semi-Lagrange machinery or the tridiagonal matrix to be inverted if solving implicitly
       if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
