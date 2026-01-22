@@ -52,7 +52,7 @@ contains
       use gk_parallel_streaming, only: stream_sign
       
       ! Calculations
-      use calculations_tofrom_ghf, only: gbar_to_g
+      use calculations_tofrom_ghf, only: gbar_to_g, g_or_gbar_to_gbarneo
       
       ! Numerical time advance schemes
       use parameters_numerical, only: explicit_algorithm_switch
@@ -60,6 +60,9 @@ contains
       use parameters_numerical, only: explicit_algorithm_rk2
       use parameters_numerical, only: explicit_algorithm_rk4
       use parameters_numerical, only: explicit_algorithm_euler
+
+      ! For NEO's neoclassical corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       implicit none
 
@@ -79,6 +82,11 @@ contains
       ! If the fields are not already updated, then update them
       if (include_apar) then
          call advance_fields(g, phi, apar, bpar, dist='g')
+      end if
+
+      ! If NEO's higher order corrections are included,  convert from g to gbarneo, as gbarneo appears in time derivatives
+      if (neoclassical_is_enabled()) then
+         call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
       end if
 
       ! Incoming distribution function is g = h - (Z F0/T) (J0 phi + 4 mu (T/Z) (J1/gamma) bpar)
@@ -106,11 +114,16 @@ contains
       if (include_apar) then
          call advance_fields(g, phi, apar, bpar, dist='gbar')
       end if
-      
+
       ! Later, the implicit solve will use <g> rather than <gbar> to advance the 
       ! distribution function in time. Therefore, convert <gbar> to <g> again
       if (include_apar) then
          call gbar_to_g(g, apar, 1.0)
+      end if
+
+      ! We now switch back to g. 
+      if (neoclassical_is_enabled()) then
+         call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
       end if
 
       ! Enforce periodicity for periodic (including zonal) modes
@@ -156,7 +169,7 @@ contains
       use arrays_gyro_averages, only: j0_ffs
       use calculations_gyro_averages, only: gyro_average
       use calculations_kxky, only: swap_kxky_back
-      use calculations_tofrom_ghf, only: gbar_to_g 
+      use calculations_tofrom_ghf, only: gbar_to_g
 
       ! Physics flags
       use parameters_physics, only: include_parallel_nonlinearity
@@ -317,11 +330,12 @@ contains
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_wstar_explicit'
             call advance_wstar_explicit(phi, rhs) 
 
+            ! =========================================================================== !
             ! If NEO's corrections are included, then...
 
             if (neoclassical_is_enabled()) then
-                 ! Advance the neoclassical chi terms.
-                 call advance_neo_chi_terms_explicit(phi, rhs)
+                 ! Advance the neoclassical chi terms.                 
+                 ! call advance_neo_chi_terms_explicit(phi, rhs)
 
                  ! If apar is switched on, we must advance the neoclassical apar terms. 
                  if (include_apar) then
@@ -329,16 +343,17 @@ contains
                  end if
  
                  ! Advance the neoclassical dchi/dz terms.
-                 call advance_neo_dchidz_terms_explicit(phi, rhs)
+                 ! call advance_neo_dchidz_terms_explicit(phi, rhs)
  
                  ! Advance the neoclassical equilibrium gradient drive terms. 
                  call advance_wstar1_explicit(phi, rhs)
                  call advance_wpol_explicit(phi, rhs)
 
                  ! Advance the neoclassical magnetic and curvature drift terms.
-                 call advance_neo_mag_drift_explicit(phi, rhs)
-                 call advance_neo_curv_drift_explicit(phi, rhs)
+                 ! call advance_neo_mag_drift_explicit(phi, rhs)
+                 ! call advance_neo_curv_drift_explicit(phi, rhs)
             end if
+            ! ============================================================================ !
 
          end if
  

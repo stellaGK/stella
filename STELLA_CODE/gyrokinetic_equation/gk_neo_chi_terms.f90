@@ -4,7 +4,7 @@
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = 1/2B * Z/T * v_{th,s} * b.∇B * exp(-v²) * ( v∥/B * ∂F_1/∂μ|_v∥ - ∂F_1/∂v∥|_μ) * <Χ_k>           
+! = 1/2B₀ * Z/T * v_{th,s} * b.∇B₀ * exp(-v²) * ( v∥/B₀ * ∂F_1/∂μ|_v∥ - ∂F_1/∂v∥|_μ) * <Χ_k>           
 !
 ! Derivatives coming from the Maxwellian normalisation cancel one another. 
 !         
@@ -14,8 +14,18 @@
 !
 ! This must be multiplied by <Χ_k> and then added to the RHS of the GKE.
 !
-! Neoclassical corrections proportional to <Χ_k> and the magnetic curvature drift will probably be handled in a seperate module for easier interpretation.   
+! Neoclassical corrections proportional to <Χ_k> and the magnetic/curvature drifts are handled in a seperate module called gk_neo_drifts.f90, for easier interpretation.   
 ! 
+! There is one last NEO <Χ_k> correction on the RHS:
+!
+! - 1/2B₀ * Z/T * exp(-v²) * ∂F_1/∂μ|_v∥ * ∂<Χ_k>/∂t
+!
+! This is handled by adding a source term to this module: 
+! 
+! + 1/2B₀ * Z/T * exp(-v²) * ∂F_1/∂μ|_v∥ * <Χ_k>
+!
+! and transforming the distribution to gbarneo when advancing this term. See calculations_tofrom_ghf.f90 for more details on gbarneo.
+!
 ! ================================================================================================================================================================================= !
 
 module gk_neo_chi_terms
