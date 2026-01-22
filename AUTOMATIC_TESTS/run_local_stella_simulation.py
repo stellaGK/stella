@@ -594,10 +594,10 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     dydalpha_new = float(variables[7])
     exb_nonlin_new = float(variables[8])
     fluxfac_new = float(variables[9])
+    oneovernablerho_new = float(variables[10])
     
     # Read arrays in new *.geometry file
-    if with_btor: data = np.loadtxt(local_geometry_file,skiprows=4,dtype='float').reshape(-1, 15)
-    if not with_btor: data = np.loadtxt(local_geometry_file,skiprows=4,dtype='float').reshape(-1, 15)
+    data = np.loadtxt(local_geometry_file,skiprows=4,dtype='float').reshape(-1, 12)
     alpha_new = data[:,0]
     zed_new = data[:,1]
     zeta_new = data[:,2]
@@ -606,13 +606,10 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     grady_dot_grady_new = data[:,5]
     gradx_dot_grady_new = data[:,6]
     gradx_dot_gradx_new = data[:,7]
-    gds23_new = data[:,8]
-    gds24_new = data[:,9]
-    B_times_gradB_dot_grady_new = data[:,10]
-    B_times_kappa_dot_grady_new = data[:,11]
-    B_times_gradB_dot_gradx_new = data[:,12]
-    bmag_psi0_new = data[:,13]
-    if with_btor: btor_new = data[:,14]
+    B_times_gradB_dot_grady_new = data[:,8]
+    B_times_kappa_dot_grady_new = data[:,9]
+    B_times_gradB_dot_gradx_new = data[:,10]
+    bmag_psi0_new = data[:,11]
     
     # New definitions
     gds2_new = grady_dot_grady_new
@@ -659,8 +656,6 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     if not (np.allclose(cvdrift_old, cvdrift_new, equal_nan=True)): error = process_error('cvdrift')
     if not (np.allclose(gbdrift0_old, gbdrift0_new, equal_nan=True)): error = process_error('gbdrift0')
     if not (np.allclose(bmag_psi0_old, bmag_psi0_new, equal_nan=True)): error = process_error('bmag_psi0')
-    if with_btor: 
-        if not (np.allclose(btor_old, btor_new, equal_nan=True)): error = process_error('btor')
     assert (not error), f'The geometry data does not match in the *.geometry file.'
     
     # Do not compare gds23 and gds24 it was badly defined in Miller and VMEC
