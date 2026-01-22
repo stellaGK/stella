@@ -70,7 +70,7 @@ module geometry
    public :: communicate_geo_multibox, x_displacement_fac
    
    ! Geometric quantities for the gyrokinetic equations
-   public :: bmag, dbdzed, btor, bmag_psi0, grho, grho_norm, grad_x
+   public :: bmag, dbdzed, btor, bmag_psi0, grho, grad_x
    public :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    public :: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24, gds25, gds26
    public :: B_times_kappa_dot_grady, B_times_kappa_dot_gradx
@@ -96,6 +96,10 @@ module geometry
    ! Extended z-grid for final fields diagnostics
    public :: b_dot_gradz_avg_eqarc, zed_eqarc
    
+   ! Geometry quantities for flux-surface-average
+   public :: fluxnorm_vs_z, one_over_nablarho
+   public :: grho_norm
+   
    ! Geometric quantities for momentum flux
    public :: gradzeta_gradx_R2overB2
    public :: gradzeta_grady_R2overB2
@@ -117,7 +121,7 @@ module geometry
    ! Geometric quantities
    real :: grad_x_grad_y_end, clebsch_factor
    real :: aref, bref, dxdpsi, dydalpha
-   real :: dqdrho, dIdrho, grho_norm
+   real :: dqdrho, dIdrho
    real :: drhodpsi, drhodpsip, drhodpsip_psi0, shat, qinp
    real :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
    real :: b_dot_gradz_avg_eqarc, dzetadz
@@ -142,12 +146,15 @@ module geometry
    ! Geometric quantities for full flux surface
    real, dimension(:, :), allocatable :: b_dot_gradz
    
+   ! Geometry quantities for flux-surface-average
+   real, dimension(:), allocatable :: fluxnorm_vs_z
+   real :: one_over_nablarho, grho_norm
+   
    ! Geometric quantities for the momentum flux
    real, dimension(:, :), allocatable :: gradzeta_gradx_R2overB2
    real, dimension(:, :), allocatable :: gradzeta_grady_R2overB2
    real, dimension(:, :), allocatable :: b_dot_gradzeta_RR
 
- 
    ! The geometric quantities can be read from an old geometry file
    logical :: overwrite_bmag, overwrite_b_dot_gradzeta, overwrite_geometry
    logical :: overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx
@@ -156,7 +163,7 @@ module geometry
    character(100) :: geometry_file
   
    ! Only initialise once
-   logical :: initialised_geometry = .false.   
+   logical :: initialised_geometry = .false.
 
 contains
 
@@ -232,7 +239,7 @@ contains
          ! The following will get multiplied by <exb_nonlin_fac> in <advance_exb_nonlinearity>
          if (q_as_x) exb_nonlin_fac_p = geo_surf%d2qdr2 / dqdrho - geo_surf%d2psidr2 * drhodpsip
          
-         ! In the diagnostics of final fields we want out extented z-grid in arc length units
+         ! In the diagnostics of final fields we want the extented z-grid in arc length units
          ! So here we calculate <zed_eqarc> which is z = arc length
          call get_b_dot_gradz_avg_eqarc(b_dot_gradz_avg, zed, delzed, b_dot_gradz_avg_eqarc)
          call get_zed_eqarc(b_dot_gradz_avg, delzed, zed, b_dot_gradz_avg_eqarc, zed_eqarc)
@@ -282,15 +289,11 @@ contains
       ! FLAG COOKIE TO GEORGIA - <djacdrho> is not defined for VMEC?
       d_dl_over_b_drho = spread(delzed, 1, nalpha) * djacdrho
       d_dl_over_b_drho(:, nzgrid) = 0
-      d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b &
-            * spread(sum(d_dl_over_b_drho, dim=2) / sum(dl_over_b, dim=2), 2, 2 * nzgrid + 1)
+      d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b * spread(sum(d_dl_over_b_drho, dim=2) / sum(dl_over_b, dim=2), 2, 2 * nzgrid + 1)
       d_dl_over_b_drho = gfac * d_dl_over_b_drho / spread(sum(dl_over_b, dim=2), 2, 2 * nzgrid + 1)
 
       ! Normalize dl/B by int dl/B
       dl_over_b = dl_over_b / spread(sum(dl_over_b, dim=2), 2, 2 * nzgrid + 1)
-
-      ! We normalize the fluxes with sum( dl/J * |nabla rho| )
-      grho_norm = sum(dl_over_b(1, :) * grho(1, :))
 
       ! FLAG - would probably be better to compute this in the various geometry
       ! subroutines (Miller, VMEC, etc.), as there B is likely calculated on a finer z-grid
@@ -321,13 +324,72 @@ contains
          end if
 
       end select
+      
+      ! Get the 1/<∇̃ρ>_ψ factor if <flux_norm> = .true.
+      ! Set one_over_nablarho, grho_norm and fluxnorm_vs_z
+      call get_factor_for_fluxsurfaceaverage()
 
+      ! Write geometry to a txt file
       if (proc0) call write_geometric_coefficients(nalpha)
       
       ! Deallocate the local arrays within the Miller module
       call finish_init_geometry
 
    end subroutine init_geometry
+   
+   !============================================================================
+   !=========================== FLUX SURFACE AVERAGE ===========================
+   !============================================================================
+   ! 
+   ! The flux surface average reduces to the field line average in the flux tube approximation
+   !     <Q>_ψ = <Q>_fluxsurface = int Q dV / int dV = int Q J dz / int J dz
+   !     <Q>_ψ[iz] = Q[iz]*jacob[iz]*delzed[iz] / sum(jacob[iz]*delzed[iz])
+   ! 
+   ! Therefore the integration weights or the normalization factor for the fluxes is defined as 
+   !     fluxnorm_vs_z[iz] = < . >_ψ = jacob[iz]*delzed[iz] / sum(jacob[iz]*delzed[iz])
+   ! 
+   ! In the definition of the fluxes we have a factor 1/<∇̃ρ>_fluxsurface which is calculated as 
+   !      1/<∇̃ρ>_ψ = int dV / int ∇̃ρ dV = sum(jacob[iz]*delzed[iz]) / sum(grho[iz]*jacob[iz]*delzed[iz])
+   !      grho = a|∇ρ0| = a (dρ0/dψ) ∇ψ = 1/ρ0 * ∇ψ/(a*Bref) = sqrt(|grad_psi_grad_psi|)/ρ0
+   ! 
+   ! If <flux_norm> = True then we absorb the factor 1/<∇̃ρ>_fluxsurface in the definition of <fluxnorm_vs_z> 
+   !     fluxnorm_vs_z[iz] = < . >_ψ / <∇̃ρ>_ψ = jacob[iz]*delzed[iz] / sum(grho[iz]*jacob[iz]*delzed[iz]) 
+   !============================================================================
+   subroutine get_factor_for_fluxsurfaceaverage()
+
+      use parameters_diagnostics, only: flux_norm
+      use grids_z, only: delzed, nzgrid
+
+      implicit none
+
+      ! Local variables
+      real, dimension(:), allocatable :: jacob_times_delzed_vs_z 
+
+      ! Allocate temporary array
+      allocate (jacob_times_delzed_vs_z(-nzgrid:nzgrid))
+
+      ! Multiply the Jacobian with the step size in z and make each end count towards half the flux
+      jacob_times_delzed_vs_z = jacob(1, :) * delzed
+      jacob_times_delzed_vs_z(-nzgrid) = 0.5 * jacob_times_delzed_vs_z(-nzgrid)
+      jacob_times_delzed_vs_z(nzgrid) = 0.5 * jacob_times_delzed_vs_z(nzgrid)
+
+      ! Define the factor in front of the defintion of the fluxes 
+      ! If <flux_norm> = False:  fluxnorm_vs_z[iz] = < . >_ψ = jacob[iz]*delzed[iz] / sum(jacob[iz]*delzed[iz])
+      ! If <flux_norm> = True:   fluxnorm_vs_z[iz] = < . >_ψ / <∇̃ρ>_ψ = jacob[iz]*delzed[iz] / sum(grho[iz]*jacob[iz]*delzed[iz]) 
+      if (.not. flux_norm) fluxnorm_vs_z = jacob_times_delzed_vs_z / sum(jacob_times_delzed_vs_z) 
+      if (flux_norm) fluxnorm_vs_z = jacob_times_delzed_vs_z / sum(jacob_times_delzed_vs_z * grho(1, :))
+
+      ! If <flux_norm> = True, we include the factor <∇̃ρ>_ψ in the flux definition, otherwise we ignore it 
+      ! 1/<∇̃ρ>_ψ = int dV / int ∇̃ρ dV = sum(jacob[iz]*delzed[iz]) / sum(grho[iz]*jacob[iz]*delzed[iz])
+      one_over_nablarho = sum(jacob_times_delzed_vs_z) / sum(jacob_times_delzed_vs_z * grho(1, :))
+
+      ! We normalize the fluxes with sum( dl/J * |nabla rho| ) for the radial variation routine
+      grho_norm = sum(dl_over_b(1, :) * grho(1, :))
+
+      ! Deallocate arrays
+      deallocate (jacob_times_delzed_vs_z)
+
+   end subroutine get_factor_for_fluxsurfaceaverage
 
    !======================================================================
    !====================== READ GEOMETRY FROM VMEC =======================
@@ -1045,6 +1107,9 @@ contains
       if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.0
       if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
       
+      ! For calculation of the flux-tube fluxes
+      if (.not. allocated(fluxnorm_vs_z)) allocate (fluxnorm_vs_z(-nzgrid:nzgrid)); fluxnorm_vs_z = 0.0
+      
       ! Needed for the momentum flux diagnostic for non-axisymmetric devices
       if (.not. allocated(gradzeta_gradx_R2overB2)) allocate (gradzeta_gradx_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_gradx_R2overB2 = 0.0
       if (.not. allocated(gradzeta_grady_R2overB2)) allocate (gradzeta_grady_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_grady_R2overB2 = 0.0
@@ -1346,21 +1411,21 @@ contains
       call open_output_file(geometry_unit, '.geometry')
 
       ! Write the most important geometric variables to a text file
-      write (geometry_unit, '(a1,11a14)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', &
-         'aref', 'bref', 'dxdpsi', 'dydalpha', 'exb_nonlin', 'flux_fac'
-      write (geometry_unit, '(a1,11e14.4)') '#', geo_surf%rhoc, geo_surf%qinp, &
-         geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac
+      write (geometry_unit, '(a1,a12,11a13)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', &
+         'aref', 'bref', 'dxdpsi', 'dydalpha', 'exb_nonlin', 'flux_fac', '1/Grho'
+      write (geometry_unit, '(a1,e12.4,11e13.4)') '#', geo_surf%rhoc, geo_surf%qinp, &
+         geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac, one_over_nablarho
       write (geometry_unit, *)
 
       ! Write the most important geometric arrays to a text file
-      write (geometry_unit, '(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'grady_dot_grady', 'gradx_dot_grady', 'gradx_dot_gradx', &
-         'gds23', 'gds24', 'B_times_gradB_dot_grady', 'B_times_kappa_dot_grady', 'B_times_gradB_dot_gradx', 'bmag_psi0', 'btor'
+      write (geometry_unit, '(a1,a12,11a13)')  '#', 'alpha', 'zed', 'zeta', 'bmag', 'b.Gz', 'Gy.Gy', 'Gx.Gy', 'Gx.Gx', &
+         'BxGB.Gy', 'Bxkappa.Gy', 'BxGB.Gx', 'bmag_psi0'
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
-            write (geometry_unit, '(15e12.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_gradz(ia, iz), &
-               grady_dot_grady(ia, iz), gradx_dot_grady(ia, iz), gradx_dot_gradx(ia, iz), gds23(ia, iz), &
-               gds24(ia, iz), B_times_gradB_dot_grady(ia, iz), B_times_kappa_dot_grady(ia, iz), B_times_gradB_dot_gradx(ia, iz), &
-               bmag_psi0(ia, iz), btor(iz)
+            write (geometry_unit, '(12e13.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_gradz(ia, iz), &
+               grady_dot_grady(ia, iz), gradx_dot_grady(ia, iz), gradx_dot_gradx(ia, iz), &
+               B_times_gradB_dot_grady(ia, iz), B_times_kappa_dot_grady(ia, iz), B_times_gradB_dot_gradx(ia, iz), &
+               bmag_psi0(ia, iz)
          end do
          write (geometry_unit, *)
       end do
@@ -1441,7 +1506,8 @@ contains
       if (allocated(theta_vmec)) deallocate (theta_vmec)
       if (allocated(alpha)) deallocate (alpha)
       if (allocated(zeta)) deallocate (zeta)
-      if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
+      if (allocated(x_displacement_fac)) deallocate (x_displacement_fac) 
+      if (allocated(fluxnorm_vs_z)) deallocate (fluxnorm_vs_z) 
       
       ! Arrays for the momentum flux 
       if (allocated(gradzeta_gradx_R2overB2)) deallocate (gradzeta_gradx_R2overB2)
