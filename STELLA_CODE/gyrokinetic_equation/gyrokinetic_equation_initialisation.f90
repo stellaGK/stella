@@ -59,7 +59,7 @@ contains
       use gk_neo_apar_terms, only: init_neo_apar_terms
       use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
       use gk_neo_drive, only: init_wstar1, init_wpol
-      use gk_neo_drifts, only: init_neo_mag_drift, init_neo_curv_drift
+      use gk_neo_drifts, only: init_neo_curv_drift !, init_neo_mag_drift
                                                                                    
       implicit none
 
@@ -122,7 +122,7 @@ contains
           call init_wpol
 
           ! Allocate and calculate the neoclassical magnetic and curvature drift corrections. 
-          call init_neo_mag_drift
+          ! call init_neo_mag_drift
           call init_neo_curv_drift
       end if
       
@@ -187,7 +187,7 @@ contains
       use gk_neo_apar_terms, only: finish_neo_apar_terms
       use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
       use gk_neo_drive, only: finish_wstar1, finish_wpol
-      use gk_neo_drifts, only: finish_neo_mag_drift, finish_neo_curv_drift
+      use gk_neo_drifts, only: finish_neo_curv_drift !, finish_neo_mag_drift
 
       implicit none
 
@@ -218,7 +218,7 @@ contains
           call finish_neo_dchidz_terms
           call finish_wstar1
           call finish_wpol
-          call finish_neo_mag_drift
+          ! call finish_neo_mag_drift
           call finish_neo_curv_drift
       end if
 

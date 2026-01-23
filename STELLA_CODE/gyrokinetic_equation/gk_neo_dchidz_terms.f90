@@ -4,13 +4,11 @@
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * (∂F_1/∂v∥|_μ - v∥/B * ∂F_1/∂μ|_v∥) * ∂<Χ_k>/∂z           
-!
-! Derivatives coming from the Maxwellian normalisation cancel one another. 
+! = 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( ∂H_1/∂v∥|_μ - 2v∥ * ( H_1 - e * ϕ₀¹ ) ) * ∂<Χ_k>/∂z            
 !         
 ! Define the neoclassical ∂<Χ_k>/∂z coefficient as: 
 ! 
-! <neo_dchidz_coeff> = 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * (∂F_1/∂v∥|_μ - v∥/B * ∂F_1/∂μ|_v∥) * code_dt
+! <neo_dchidz_coeff> = 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( ∂H_1/∂v∥|_μ - 2v∥ * ( H_1 - e * ϕ₀¹ ) ) * code_dt
 !
 ! This must be multiplied by ∂<Χ_k>/∂z and then added to the RHS of the GKE.
 ! 
@@ -53,7 +51,7 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
+        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
 
         use parameters_physics, only: include_apar
 
@@ -88,7 +86,8 @@ contains
                 * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * spec(is)%stm_psi0
 
                 ! Multiply by the neoclassical distribution prefactor. 
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - (vpa(iv)/bmag(:, iz)) * dneo_h_dmu(iz, ivmu, 1) ) 
+                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) &
+                * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) ) 
 
                 ! Finally, multiply by code_dt. 
                 neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * code_dt 

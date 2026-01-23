@@ -222,7 +222,7 @@ contains
       use gk_neo_apar_terms, only: advance_neo_apar_terms_explicit
       use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
       use gk_neo_drive, only: advance_wstar1_explicit, advance_wpol_explicit
-      use gk_neo_drifts, only: advance_neo_mag_drift_explicit, advance_neo_curv_drift_explicit
+      use gk_neo_drifts, only: advance_neo_curv_drift_explicit !, advance_neo_mag_drift_explicit
  
       implicit none
 
@@ -351,7 +351,7 @@ contains
 
                  ! Advance the neoclassical magnetic and curvature drift terms.
                  ! call advance_neo_mag_drift_explicit(phi, rhs)
-                 ! call advance_neo_curv_drift_explicit(phi, rhs)
+                 call advance_neo_curv_drift_explicit(phi, rhs)
             end if
             ! ============================================================================ !
 

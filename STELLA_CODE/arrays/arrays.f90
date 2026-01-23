@@ -27,7 +27,7 @@ module arrays
    public :: initialised_neo_dchidz_terms
    public :: initialised_wstar1
    public :: initialised_wpol
-   public :: initialised_neo_mag_drift
+   ! public :: initialised_neo_mag_drift
    public :: initialised_neo_curv_drift
    
    !----------------------------------------------------------------------------
@@ -74,8 +74,8 @@ module arrays
    public :: neo_dchidz_coeff
    public :: wstar1
    public :: wpol
-   public :: neomagx
-   public :: neomagy
+   ! public :: neomagx
+   ! public :: neomagy
    public :: neocurvx
    public :: neocurvy
 
@@ -120,7 +120,7 @@ module arrays
    logical :: initialised_neo_dchidz_terms
    logical :: initialised_wstar1
    logical :: initialised_wpol
-   logical :: initialised_neo_mag_drift
+   ! logical :: initialised_neo_mag_drift
    logical :: initialised_neo_curv_drift
 
    !----------------------------------------------------------------------------
@@ -160,7 +160,7 @@ module arrays
    real, dimension(:, :, :), allocatable :: neo_apar_coeff
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
    real, dimension(:, :, :), allocatable :: wstar1, wpol
-   real, dimension(:, :, :), allocatable :: neomagx, neomagy
+   ! real, dimension(:, :, :), allocatable :: neomagx, neomagy
    real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
 
    !----------------------------------------------------------------------------
