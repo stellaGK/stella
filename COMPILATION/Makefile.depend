@@ -652,6 +652,7 @@ $(OBJ_DIR)/geometry.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_geometry.o \
+	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/geometry_inputprofiles_interface.o: \
