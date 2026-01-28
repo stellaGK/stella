@@ -76,7 +76,6 @@ contains
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
       use parameters_physics, only: full_flux_surface
-      use parameters_physics, only: streamknob
 
       implicit none
 
@@ -117,7 +116,7 @@ contains
          do iv = 1, nvpa
             do iz = -nzgrid, nzgrid
                do ia = 1, nalpha
-                  stream(ia, iz, iv, :) = - streamknob * code_dt * b_dot_gradz(ia, iz) * vpa(iv) * spec%stm_psi0
+                  stream(ia, iz, iv, :) = - code_dt * b_dot_gradz(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                !----------------------------------------------------------------
                !               Full Flux Surface simulation

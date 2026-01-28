@@ -1186,6 +1186,7 @@ $(OBJ_DIR)/namelist_debug.o: \
 $(OBJ_DIR)/namelist_diagnostics.o: \
 	 $(OBJ_DIR)/file_units.o \
 	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/namelist_dissipation.o: \

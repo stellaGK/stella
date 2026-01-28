@@ -16,7 +16,6 @@
 !      oddparity = .false.
 !      chop_side = .false.
 !      left = .true.
-!      set_theta0_to_zero = .false.
 ! 
 !   initialise_distribution_noise
 !      zf_init = 1.0
@@ -203,8 +202,7 @@ contains
    !****************************************************************************
    !                      INITIALISE POTENTIAL: MAXWELLIAN                     !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, & 
-      left, chop_side, set_theta0_to_zero)
+   subroutine read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side, zf_init)
 
       use mp, only: proc0
       
@@ -215,7 +213,7 @@ contains
       logical, intent(out) :: oddparity
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
-      logical, intent(out) :: set_theta0_to_zero
+      real, intent (out) :: zf_init
       
       !-------------------------------------------------------------------------
 
@@ -237,8 +235,7 @@ contains
          oddparity = .false.
          chop_side = .false.
          left = .true.
-         set_theta0_to_zero = .false. 
-
+         zf_init = 1.0
       end subroutine set_default_parameters_initialise_distribution_maxwellian
 
       !---------------------------- Read input file ----------------------------
@@ -248,8 +245,7 @@ contains
          
          implicit none
 
-         namelist /initialise_distribution_maxwellian/ width0, den0, upar0, oddparity, & 
-               left, chop_side, set_theta0_to_zero
+         namelist /initialise_distribution_maxwellian/ width0, den0, upar0, oddparity, left, chop_side, zf_init
          in_file = input_unit_exist('initialise_distribution_maxwellian', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_maxwellian) 
 
@@ -271,7 +267,6 @@ contains
          write (unit, '(A, L0)') '  oddparity = ', oddparity
          write (unit, '(A, L0)') '  left = ', left
          write (unit, '(A, L0)') '  chop_side = ', chop_side
-         write (unit, '(A, L0)') '  set_theta0_to_zero = ', set_theta0_to_zero
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       
@@ -454,7 +449,7 @@ contains
    !****************************************************************************
    !                          INITIALISE POTENTIAL: RH                         !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
+   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, init_wstar_rh)
 
       use mp, only: proc0
 
@@ -463,6 +458,7 @@ contains
       ! Variables that are read from the input file
       real, intent(out) :: kxmax, kxmin
       real, intent(out) :: imfac, refac
+      logical, intent (out) :: init_wstar_rh
       
       !-------------------------------------------------------------------------
 
@@ -482,6 +478,7 @@ contains
          kxmin = 0.0
          imfac = 0.0
          refac = 1.0
+         init_wstar_rh = .false.
 
       end subroutine set_default_parameters_initialise_distribution_rh
 
@@ -491,7 +488,7 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac
+         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac, init_wstar_rh
          in_file = input_unit_exist('initialise_distribution_rh', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 

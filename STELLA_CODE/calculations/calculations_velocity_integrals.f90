@@ -302,7 +302,7 @@ contains
    !---------------- Each processor has a number of ivmu points ----------------
    subroutine integrate_vmu_vmulo_ivmu_only_real(g, ia, iz, total)
 
-      use mp, only: sum_allreduce
+      use mp, only: sum_allreduce, sum_reduce, nproc
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
@@ -319,7 +319,6 @@ contains
 
       ! Initialize sum
       total = 0.
-
       ! Iterate over the i[vpa, mu, s] points
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
       
@@ -327,12 +326,10 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         
          ! Integrate over mu and vpa
          total(is) = total(is) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(ivmu)
          
       end do
-
       ! Each processor has a few [ivmu] points, so sum all calculations
       call sum_allreduce(total)
 

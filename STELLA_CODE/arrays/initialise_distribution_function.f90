@@ -9,7 +9,7 @@
 !     - phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 !     - gvmu(nvpa, nmu, -kxkyz-layout-)
 ! 
-! If <split_parallel_dynamics> = False the following array will be initialised:
+! If <split_parallel_dynamics> = True the following array will be initialised:
 !     - g_kymus(nakx, -nzgrid:nzgrid, ntubes, vpa, -kymus-layout-)
 ! 
 ! The distribution function is initialised by initialising first the electrostatic
@@ -251,14 +251,14 @@ contains
       
       !-------------------------------------------------------------------------
       
-      ! Only allocate <g_kymus> if <split_parallel_dynamics> = False
+      ! Only allocate <g_kymus> if <split_parallel_dynamics> = True
       if (.not. allocated(g_kymus)) then
-         if (.not. split_parallel_dynamics) then
-            allocate (g_kymus(nakx, -nzgrid:nzgrid, ntubes, nvpa, kymus_lo%llim_proc:kymus_lo%ulim_alloc))
-         else
-            allocate (g_kymus(1, 1, 1, 1, 1))
-         end if
-         g_kymus = 0.
+            if (.not. split_parallel_dynamics) then
+               allocate (g_kymus(nakx, -nzgrid:nzgrid, ntubes, nvpa, kymus_lo%llim_proc:kymus_lo%ulim_alloc))
+            else
+               allocate (g_kymus(1, 1, 1, 1, 1))
+            end if
+            g_kymus = 0.
       end if
       
       !-------------------------------------------------------------------------
@@ -484,7 +484,7 @@ contains
       use grids_kxky, only: theta0, akx, zonal_mode
       use grids_kxky, only: reality
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: vpa
+      use grids_velocity, only: vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_distribution_function, only: gvmu
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
@@ -500,34 +500,27 @@ contains
       
       ! Read the following variables from the input file
       real :: width0, den0, upar0
-      logical :: oddparity, left, chop_side, set_theta0_to_zero
-      
+      logical :: oddparity, left, chop_side
+      real :: zf_init
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_maxwellian> namelist
-      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, & 
-         left, chop_side, set_theta0_to_zero)
+      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side, zf_init)
          
       ! Broadcast to all processors
+      call broadcast(zf_init)
       call broadcast(width0)
       call broadcast(den0)
       call broadcast(upar0)
       call broadcast(oddparity)
       call broadcast(left)
       call broadcast(chop_side)
-      call broadcast(set_theta0_to_zero)
 
       right = .not. left
 
-      if (set_theta0_to_zero) then 
-         do iz = -nzgrid, nzgrid
-            phi(:, :, iz) = exp(-(zed(iz) / width0)**2) * cmplx(1.0, 1.0)
-         end do
-      else
-         do iz = -nzgrid, nzgrid
-            phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
-         end do
-      end if
+      do iz = -nzgrid, nzgrid
+         phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
+      end do
       ! this is a messy way of doing things
       ! could tidy it up a bit
       if (sum(cabs(phi)) < epsilon(0.)) then
@@ -550,6 +543,7 @@ contains
 
       if (zonal_mode(1)) then
          ! zero out kx = ky = 0 mode
+         phi(1,:,:) = phi(1,:,:) * zf_init
          if (abs(akx(1)) < epsilon(0.0)) then
             phi(1, 1, :) = 0.0
          end if
@@ -571,7 +565,7 @@ contains
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
+         gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) * ( spread(vpa, 2, nmu)**4 )   / abs(spec(is)%z) &
             * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
             * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
@@ -856,6 +850,7 @@ contains
    !****************************************************************************
    subroutine initialise_distribution_rh
 
+      use grids_z, only: zed
       use mp, only: proc0, broadcast
       use grids_species, only: spec
       use arrays_distribution_function, only: gvmu
@@ -863,10 +858,11 @@ contains
       use parallelisation_layouts, only: kxkyz_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: nvpa, nmu, vpa, mu
       use grids_kxky, only: akx
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_rh
 
+      use arrays_gyro_averages, only: aj0v_y
       implicit none
 
       integer :: ikxkyz, iky, ikx, iz, is, ia
@@ -874,17 +870,19 @@ contains
       ! Read the following variables from the input file
       real :: imfac, refac
       real :: kxmax, kxmin
+      logical :: init_wstar_rh
       
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_rh> namelist
-      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
+      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, init_wstar_rh)
       
       ! Broadcast to all processors
       call broadcast(refac)
       call broadcast(imfac)
       call broadcast(kxmax)
       call broadcast(kxmin)
+      call broadcast(init_wstar_rh) 
 
       ! initialise g to be a Maxwellian with a constant density perturbation
 
@@ -900,10 +898,17 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz)
 
          if (abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
-            gvmu(:, :, ikxkyz) = spec(is)%z * 0.5 * phiinit * kperp2(iky, ikx, ia, iz) &
-                                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            gvmu(:, :, ikxkyz) = spec(is)%z * phiinit * kperp2(iky, ikx, ia, iz) &
+               * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            
+            if (init_wstar_rh) then
+               gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * (3/2 - spread(vpa, 2, nmu)**2 - spread(mu, 1, nvpa))
+            end if
          end if
+
+         gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * spread(aj0v_y(:, ikxkyz), 1, nvpa)
       end do
+
 
    end subroutine initialise_distribution_rh
 
@@ -954,17 +959,17 @@ contains
       use save_stella_for_restart, only: stella_restore
       use mp, only: proc0
       use file_units, only: unit_error_file
-      
+
       implicit none
 
       integer :: istatus
-
+      
       !-------------------------------------------------------------------------
 
       ! should really check if profile_variation=T here but need
       ! to move profile_variation to module that is accessible here
       call stella_restore(gvmu, scale, istatus)
-
+      
       if (istatus /= 0) then
          if (proc0) write (unit_error_file, *) "Error reading file: ", trim(restart_file)
          gvmu = 0.

@@ -40,14 +40,19 @@ module parameters_diagnostics
    public :: write_g2_vs_zvpas
    public :: write_g2_vs_zmus 
    public :: write_g2_vs_kxkyzs 
-   public :: write_g2_vs_zvpamus 
+   public :: write_g2_vs_zvpamus
    public :: write_distribution_g
    public :: write_distribution_h
    public :: write_distribution_f
 
+   public :: write_g_vs_zvpas_zonal
+   public :: write_free_energy_diagnostic
+   public :: number_zonals_kxs
+   public :: zonal_iks
+
    ! Write moments in <diagnostics_moments>
    public :: write_radial_moments
-   public :: write_moments  
+   public :: write_moments 
 
    private
 
@@ -97,10 +102,15 @@ module parameters_diagnostics
    logical :: write_g2_vs_zvpas
    logical :: write_g2_vs_zmus 
    logical :: write_g2_vs_kxkyzs 
-   logical :: write_g2_vs_zvpamus 
+   logical :: write_g2_vs_zvpamus
+   logical :: write_g_vs_zvpas_zonal
    logical :: write_distribution_g
    logical :: write_distribution_h
    logical :: write_distribution_f
+
+   logical :: write_free_energy_diagnostic
+   integer :: number_zonals_kxs
+   integer, dimension (:), allocatable :: zonal_iks
 
    ! Write moments in <diagnostics_moments>
    logical :: write_radial_moments
@@ -140,7 +150,8 @@ contains
          use namelist_diagnostics, only: &
             read_namelist_diagnostics, read_namelist_diagnostics_potential, &
             read_namelist_diagnostics_omega, read_namelist_diagnostics_distribution, &
-            read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments
+            read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments, & 
+            read_namelist_diagnostics_zonal
 
          use parameters_numerical, only: autostop
 
@@ -177,9 +188,8 @@ contains
                         write_all_velocity_space, &
                         write_g2_vs_vpamus, write_g2_vs_zvpas, &
                         write_g2_vs_zmus, write_g2_vs_kxkyzs, &
-                        write_g2_vs_zvpamus, &
-                        write_distribution_g, write_distribution_h, &
-                        write_distribution_f)
+                        write_g2_vs_zvpamus, write_distribution_g, &
+                        write_distribution_h, write_distribution_f)
          
          call read_namelist_diagnostics_fluxes (write_all_fluxes, &
                         write_all_time_traces, write_all_spectra_kxkyz, &
@@ -190,6 +200,12 @@ contains
 
          call read_namelist_diagnostics_moments (write_all_moments, &
                         write_moments, write_radial_moments)
+
+
+         allocate(zonal_iks(1)) ; zonal_iks = 0.0
+
+         call read_namelist_diagnostics_zonal (write_g_vs_zvpas_zonal, write_free_energy_diagnostic, &
+               number_zonals_kxs, zonal_iks)
             
          !-------------------------------------------------------------------
          
@@ -247,9 +263,14 @@ contains
          call broadcast(write_g2_vs_zmus)
          call broadcast(write_g2_vs_kxkyzs)
          call broadcast(write_g2_vs_zvpamus)
+         call broadcast(write_g_vs_zvpas_zonal)
          call broadcast(write_distribution_g)
          call broadcast(write_distribution_f)
          call broadcast(write_distribution_h)
+         call broadcast(write_free_energy_diagnostic)
+         call broadcast(number_zonals_kxs)
+         call broadcast(zonal_iks)
+         
          call broadcast(write_radial_fluxes)
          call broadcast(write_radial_moments)
          call broadcast(write_fluxes_kxkyz)

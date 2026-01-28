@@ -407,7 +407,36 @@ contains
                end if
                
             else
-               call mp_abort('The choice ky=0 is inconsistent with akx_min different from akx_max. Aborting.')
+
+               if (abs(aky(1)) > zero) aky_min_notzero = aky(1)
+               if (abs(aky(1)) < zero) aky_min_notzero = aky(2)
+               ! Ballooning angle is theta0 = kx / (ky*shat); or theta0 = kx / ky if x = q
+               ! The minimum and maximum balooning angle occur for the smallest value of ky
+               theta0_min = akx_min / (tfac * aky_min_notzero)
+               theta0_max = akx_max / (tfac * aky_min_notzero)
+
+               ! Construct the array of ballooning angles theta0 = kx / (ky*shat) 
+               do j = 1, naky
+                  if (abs(aky(j)) > zero) then
+                     theta0_min_temp = akx_min / (tfac * aky(j))
+                     theta0_max_temp = akx_max / (tfac * aky(j))
+                     if (nakx > 1) dtheta0 = (theta0_max_temp - theta0_min_temp) / real(nakx - 1)
+                  else
+                     theta0_min_temp = 0.0
+                     theta0_max_temp = 0.0
+                     dtheta0 = 0.0
+                  end if
+                  theta0(j, :) = (/(theta0_min_temp + dtheta0 * real(i), i=0, nakx - 1)/)
+               end do
+
+               ! Construct the range of kx-modes
+               if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
+               akx = (/(10**(akx_min + dkx * real(i)), i=0, nakx - 1) /)
+               
+               !do ikx = 1, nakx                  
+               !   akx(ikx) = 10**(linear(ikx))
+               
+               !!call mp_abort('The choice ky=0 is inconsistent with akx_min different from akx_max. Aborting.')
             end if
          
          ! If <shat> is smaller than <shat_zero>, periodic boundary conditions are enforced

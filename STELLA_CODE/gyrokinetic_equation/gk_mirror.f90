@@ -56,8 +56,7 @@ contains
       use neoclassical_terms, only: dphineo_dzed
       use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
       use parameters_physics, only: include_apar
-      use parameters_physics, only: include_mirror, radial_variation
-      use parameters_physics, only: mirrorknob
+      use parameters_physics, only: include_mirror, radial_variation, mirror_fac
 
       implicit none
 
@@ -87,7 +86,7 @@ contains
          do imu = 1, nmu
             do ia = 1, nalpha
                do iz = -nzgrid, nzgrid
-                  mirror(ia, iz, imu, :) = mirrorknob * code_dt * spec%stm_psi0 * b_dot_gradz(ia, iz) &
+                  mirror(ia, iz, imu, :) = mirror_fac * code_dt * spec%stm_psi0 * b_dot_gradz(ia, iz) &
                        * (mu(imu) * dbdzed(ia, iz) + neoclassical_term(iz, :))
                end do
             end do
@@ -401,6 +400,7 @@ contains
       ! Grids + Arrays
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: vpa, maxwell_vpa
       use grids_kxky, only: nakx, naky, naky_all, ny, ikx_max
       use arrays_distribution_function, only: gvmu
 
@@ -417,7 +417,7 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0x
       complex, dimension(:, :), allocatable :: dgdv, g_swap
       integer :: ikxyz, iz, it
-      integer :: ivmu, is
+      integer :: ivmu, iv, is
 
       !-------------------------------------------------------------------------
 
@@ -636,7 +636,6 @@ contains
    !****************************************************************************
    ! Advance mirror implicit solve:
    !              dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
-   !****************************************************************************
    subroutine advance_mirror_implicit(collisions_implicit, g, apar)
 
       ! Parallelisation
@@ -655,6 +654,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: ny, nakx
       use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: maxwell_vpa
       use grids_kxky, only: naky_all, ikx_max
       use grids_velocity, only: dvpa
       use arrays_distribution_function, only: gvmu
@@ -702,25 +702,23 @@ contains
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       tupwnd = (1.0 - time_upwind) * 0.5
-      
-      ! Incoming pdf is g = <f>
+      ! incoming pdf is g = <f>
       dist = 'g'
 
-      ! Now that we have g^{*}, we need to solve
-      !    g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
-      ! Define A_0^{-1} = dt*mu*bhat.gradB/2 so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
-      ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach to invert and obtain h^{n+1}
-      
+
+      ! now that we have g^{*}, need to solve
+      ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
+      ! define A_0^{-1} = dt*mu*bhat.gradB/2
+      ! so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
+      ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
+      ! to invert and obtain h^{n+1}
       ! ------------------------------------------------------------------------
       !                                Flux Tube
       ! ------------------------------------------------------------------------
-      
-      ! Flux tube simulations
-      if (.not. full_flux_surface) then
-      
-         ! For the mirror term, we need the velocity data to be local, therefore, scatter the
-         ! g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout) data to gvmu(nvpa, nmu, kxkyz-layout) 
-         if (.not. collisions_implicit) then 
+      if (.not. full_flux_surface) then 
+         ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
+         if (.not. collisions_implicit) then
+            ! get g^{*} with v-space on processor
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
             call scatter(kxkyz2vmu, g, gvmu)
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
@@ -793,13 +791,11 @@ contains
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         
-      ! ------------------------------------------------------------------------
-      !                            Full Flux Surface                            
-      ! ------------------------------------------------------------------------
 
-      ! Full flux surface simulations
       elseif (full_flux_surface) then
+         ! ---------------------------------------------------------------------
+         !                              Full Flux Surface
+         ! ---------------------------------------------------------------------
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -898,7 +894,7 @@ contains
       use calculations_tofrom_ghf, only: gbar_to_g
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
-      use grids_velocity, only: dvpa, nvpa
+      use grids_velocity, only: dvpa, vpa, nvpa
 
       implicit none
 

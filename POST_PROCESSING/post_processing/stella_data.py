@@ -4,17 +4,13 @@
 
 from scipy.io import netcdf
 import numpy as np
-import netCDF4 as nc4
+import netCDF4 as nc4    
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/barnesm/codes/stella/runs/zpinch_om/new_pinch_source/nonlinear/'
-#input_directory = '/Users/barnesm/stella_data/om_zpinch/eta1_tprim40_nz8/'
-file_prefix = 'LBLT50_nz8'
+input_directory = '/Users/giorgiaacton/Documents/runs/ALL_RH/RH_wstar_log_resolve_peak/'
+file_prefix = 'input'
 infile = input_directory + file_prefix + '.out.nc'
-#infile = '../stella.out.nc'
-#print()
-#outdir = input("Path for output: ")
 outdir = input_directory
 ncfile = nc4.Dataset(infile)
 
@@ -30,11 +26,15 @@ naky = len(ncfile.dimensions['ky'])
 # this is the index of the first negative value of kx
 # note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
 nakx_mid = nakx//2+1
-kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
+kx = kx_stella[::-1]#np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
+
+print('kx_stella=', kx_stella) 
+print('kx====', kx)
 
 # get zed grid
 zed = np.copy(ncfile.variables['zed'][:])
 nzed = zed.size
+print('nzed=', nzed)
 delzed = zed[1]-zed[0]
 iz0 = nzed//2+1
 
@@ -47,12 +47,15 @@ nspec = len(ncfile.dimensions['species'])
 
 # get geometric quantities
 bmag = np.copy(ncfile.variables['bmag'][:])
-gradpar = np.copy(ncfile.variables['gradpar'][:])
-gbdrift = np.copy(ncfile.variables['gbdrift'][:])
-gbdrift0 = np.copy(ncfile.variables['gbdrift0'][:])
-cvdrift = np.copy(ncfile.variables['cvdrift'][:])
-cvdrift0 = np.copy(ncfile.variables['cvdrift0'][:])
-#gds2 = np.copy(ncfile.variables['gds2'][:])
+b_dot_gradz_avg = np.copy(ncfile.variables['b_dot_gradz_avg'][:])
+B_times_gradB_dot_grady = np.copy(ncfile.variables['B_times_gradB_dot_grady'][:])
+B_times_kappa_dot_grady = np.copy(ncfile.variables['B_times_kappa_dot_grady'][:])
+# gradpar = np.copy(ncfile.variables['gradpar'][:])
+# gbdrift = np.copy(ncfile.variables['gbdrift'][:])
+# gbdrift0 = np.copy(ncfile.variables['gbdrift0'][:])
+# cvdrift = np.copy(ncfile.variables['cvdrift'][:])
+# cvdrift0 = np.copy(ncfile.variables['cvdrift0'][:])
+# #gds2 = np.copy(ncfile.variables['gds2'][:])
 #gds21 = np.copy(ncfile.variables['gds21'][:])
 #gds22 = np.copy(ncfile.variables['gds22'][:])
 
@@ -75,16 +78,25 @@ phi2_vs_kxky_stella, phi2_vs_kxky_present \
     = read_stella_float('phi2_vs_kxky')
 if (phi2_vs_kxky_present):
     phi2_vs_kxky_stella[:,0,0] = 0.0
-    phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:,nakx_mid:,:],phi2_vs_kxky_stella[:,:nakx_mid,:]),axis=1)
+    phi2_vs_kxky = phi2_vs_kxky_stella[:,::-1,:] #np.concatenate((phi2_vs_kxky_stella[:,nakx_mid:,:],phi2_vs_kxky_stella[:,:nakx_mid,:]),axis=1)
 # electrostatic potential as a function of (z,kx,ky,t)
 phi_vs_t, phi_vs_t_present \
     = read_stella_float('phi_vs_t')
 # |g|^2 averaged over kx, ky, and z
 gvmus, gvmus_present \
-    = read_stella_float('gvmus')
+    = read_stella_float('g2_vs_vpamus')
 # |g|^2 averaged over kx, ky, and mu
 gzvs, gzvs_present \
-    = read_stella_float('gzvs')
+    = read_stella_float('g2_vs_zvpas')
+
+gzvs_zonal, gzvs_zonal_present \
+    = read_stella_float('g_vs_zvpas_zonal')
+g2nozonal_vs_vpamus, g2nozonal_vs_vpamus_present \
+    = read_stella_float('g2nozonal_vs_vpamus')
+
+g2nozonal_vs_zvpas, g2nozonal_vs_zvpas_present \
+    = read_stella_float('g2nozonal_vs_zvpas')
+
 # jacobian for transformation to (rho,alpha,z) coordinates
 jacob, jacob_present \
     = read_stella_float('jacob')
@@ -113,28 +125,40 @@ if es_part_by_k_present is not True:
     es_part_by_k, es_part_by_k_present = \
         read_stella_float('es_part_flux_by_mode')
 # time-dependent heat flux for each species as a function of (kx,ky)
-es_heat_by_k, es_heat_by_k_present = \
-    read_stella_float('es_heat_by_k')
-if es_heat_by_k_present is not True:
-    es_heat_by_k_stella, es_heat_by_k_present = \
-        read_stella_float('qflux_vs_kxkys')
-    es_heat_by_k_stella[:,:,0,0] = 0.0
-    es_heat_by_k = np.concatenate((es_heat_by_k_stella[:,:,nakx_mid:,:],es_heat_by_k_stella[:,:,:nakx_mid,:]),axis=2)
+# es_heat_by_k, es_heat_by_k_present = \
+#    read_stella_float('es_heat_by_k')
+
+pflux_vs_kxkys, pflux_vs_kxkys_present = \
+    read_stella_float('pflux_vs_kxkys')
+
+vflux_vs_kxkys, vflux_vs_kxkys_present = \
+    read_stella_float('vflux_vs_kxkys')
+
+qflux_vs_kxkys, qflux_vs_kxkys_present = \
+    read_stella_float('qflux_vs_kxkys')
+
+print('shape qflux_vs_kxkys', qflux_vs_kxkys.shape)
+
+#if es_heat_by_k_present is not True:
+#    es_heat_by_k_stella, es_heat_by_k_present = \
+#        read_stella_float('qflux_vs_kxkys')
+#    es_heat_by_k_stella[:,:,0,0] = 0.0
+#    es_heat_by_k = np.concatenate((es_heat_by_k_stella[:,:,nakx_mid:,:],es_heat_by_k_stella[:,:,:nakx_mid,:]),axis=2)
 
     # time-dependent momentum flux for each species as a function of (kx,ky)
-es_mom_by_k, es_mom_by_k_present = \
-    read_stella_float('es_mom_by_k')
-if es_mom_by_k_present is not True:
-    es_mom_by_k, es_mom_by_k_present = \
-        read_stella_float('es_mom_flux_by_mode')
-es_energy_exchange_by_k, es_energy_exchange_by_k_present = \
-    read_stella_float('es_energy_exchange_by_k')
-if es_energy_exchange_by_k_present is not True:
-    es_energy_exchange_by_k, es_energy_exchange_by_k_present = \
-        read_stella_float('es_energy_exchange_by_mode')
+#es_mom_by_k, es_mom_by_k_present = \
+#    read_stella_float('es_mom_by_k')
+#if es_mom_by_k_present is not True:
+#    es_mom_by_k, es_mom_by_k_present = \
+#        read_stella_float('es_mom_flux_by_mode')
+# es_energy_exchange_by_k, es_energy_exchange_by_k_present = \
+#     read_stella_float('es_energy_exchange_by_k')
+# if es_energy_exchange_by_k_present is not True:
+#     es_energy_exchange_by_k, es_energy_exchange_by_k_present = \
+#         read_stella_float('es_energy_exchange_by_mode')
     
-es_energy_exchange_by_ky, es_energy_exchange_by_ky_present = \
-    read_stella_float('es_energy_exchange_by_ky')
+#es_energy_exchange_by_ky, es_energy_exchange_by_ky_present = \
+#    read_stella_float('es_energy_exchange_by_ky')
 # parallel velocity grid
 vpa, vpa_present = \
     read_stella_float('vpa')
@@ -159,9 +183,9 @@ if (xgrid_present):
     xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
 else:
     xgrid = np.arange(nakx,dtype=float)
-    dx = 2*np.pi/(kx_stella[1]*nakx)
-    for ikx in range(nakx):
-        xgrid[ikx] = ikx*dx
+#    dx = 2*np.pi/(kx_stella[1]*nakx)
+#    for ikx in range(nakx):
+#        xgrid[ikx] = ikx*dx
 # density fluctuation (kx,ky,z,t)
 density, density_present = \
     read_stella_float('density')
@@ -171,6 +195,9 @@ upar, upar_present = \
 # temperature fluctuation (kx,ky,z,t)
 temperature, temperature_present = \
     read_stella_float('temperature')
+
+entropy_vs_kx, entropy_vs_kx_present = \
+    read_stella_float('entropy_vs_kx')
 
 ncfile.close()
 

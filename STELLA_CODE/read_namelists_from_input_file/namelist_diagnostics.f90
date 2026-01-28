@@ -80,6 +80,7 @@ module namelist_diagnostics
    public :: read_namelist_diagnostics_distribution
    public :: read_namelist_diagnostics_fluxes
    public :: read_namelist_diagnostics_moments
+   public :: read_namelist_diagnostics_zonal
 
    private
 
@@ -403,6 +404,8 @@ contains
 
       subroutine check_inputs_diagnostics_omega
 
+         use parameters_physics, only: include_nonlinear
+
          implicit none
 
          if (write_all_omega) then
@@ -475,6 +478,7 @@ contains
          namelist /diagnostics_distribution/ write_g2_vs_vpamus, write_g2_vs_zvpas, &
             write_g2_vs_zmus, write_g2_vs_kxkyzs, write_g2_vs_zvpamus, &
             write_distribution_g, write_distribution_h, write_distribution_f
+            
          
          !----------------------------------------------------------------------
 
@@ -689,5 +693,141 @@ contains
       end subroutine check_inputs_diagnostics_moments
 
    end subroutine read_namelist_diagnostics_moments
+
+   !****************************************************************************
+   !                             DIAGNOSTICS ZONAL                             !
+   !****************************************************************************
+   subroutine read_namelist_diagnostics_zonal(write_g_vs_zvpas_zonal, write_free_energy_diagnostic, &
+      number_zonals_kxs, zonal_iks )
+
+      use mp, only: proc0
+      implicit none
+
+      ! public interface / arguments
+      logical, intent (out) :: write_g_vs_zvpas_zonal
+      logical, intent (out) :: write_free_energy_diagnostic
+      integer, intent (out) :: number_zonals_kxs
+      integer, intent(out) :: zonal_iks(:)
+
+      ! locals used by namelist-reading logic must be declared in this same scope
+      real, allocatable :: zonal_ks(:)        ! must be declared before the NAMELIST
+      integer :: in_file
+      logical :: dexist
+
+      ! Place the NAMELIST here (same scope as the named variables)
+      namelist /diagnostics_zonal/ write_g_vs_zvpas_zonal, write_free_energy_diagnostic, &
+            number_zonals_kxs, zonal_ks
+
+      !-------------------------------------------------------------------------
+
+      if (.not. proc0) return
+      write(*,*) 'A'
+      call set_default_parameters_diagnostics_zonal
+      write(*,*) 'B'
+      !call read_input_file_diagnostics_zonal
+      write(*,*) 'C'
+
+   contains
+
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_diagnostics_zonal
+         implicit none
+         write_g_vs_zvpas_zonal = .false.
+         write_free_energy_diagnostic = .false.
+         number_zonals_kxs = 1
+         zonal_iks(1) = 1
+
+      end subroutine set_default_parameters_diagnostics_zonal
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_diagnostics_zonal
+
+         use file_utils, only: input_unit_exist
+         
+         implicit none
+
+         integer :: ios
+         character(len=512) :: line
+         integer :: pos, tmp_n, i
+
+
+
+         ! tmp_n = 0
+
+         ! in_file = input_unit_exist('diagnostics_zonal', dexist)
+
+         ! if (dexist) then
+         !    do
+         !       read(unit=in_file, fmt='(A)', iostat=ios) line
+         !       if (ios /= 0) exit
+         !       if (index(adjustl(line), 'number_zonals_kxs') /= 0) then
+         !          pos = index(line, '=')
+         !          if (pos /= 0) then
+         !             read(line(pos+1:), *, iostat=ios) tmp_n
+         !             if (ios == 0) exit
+         !          end if
+         !       end if
+         !    end do
+         ! end if
+
+         ! if (tmp_n <= 0) then
+         !    write(*,*) 'Could not determine number_zonals_kxs (or invalid).'
+         !    if (dexist) rewind(in_file)
+         !    return
+         ! end if
+
+         ! ! allocate zonal_ks (declared in outer scope and therefore visible to the NAMELIST)
+         ! if (allocated(zonal_ks)) deallocate(zonal_ks)
+         ! allocate(zonal_ks(tmp_n))
+         ! number_zonals_kxs = tmp_n
+
+         ! rewind(in_file)
+         ! read(unit=in_file, nml=diagnostics_zonal, iostat=ios)
+         ! if (ios /= 0) then
+         !    write(*,*) 'Error reading namelist diagnostics_zonal, iostat=', ios
+         ! end if
+
+         ! if (tmp_n > 0) call nearest_searchsorted(zonal_ks, zonal_iks)
+
+         ! if (allocated(zonal_ks)) then
+         !    deallocate(zonal_ks)
+         ! end if
+
+         end subroutine read_input_file_diagnostics_zonal
+
+         subroutine nearest_searchsorted(a, idx)
+            ! find nearest indices in module array kx for values in a
+            use grids_kxky, only: akx 
+            implicit none
+
+            real, intent(in) :: a(:)
+            integer, intent(out) :: idx(size(a))
+            integer :: i, p, n, cand1, cand2, best
+            real(kind=8) :: d1, d2
+
+            n = size(akx)
+            do i = 1, size(a)
+               p = a(i)   ! p in [1, n+1]
+               if (p == 1) then
+                  best = 1
+               else if (p == n + 1) then
+                  best = n
+               else
+                  cand1 = p - 1
+                  cand2 = p
+                  d1 = abs(akx(cand1) - a(i))
+                  d2 = abs(akx(cand2) - a(i))
+                  if (d1 <= d2) then
+                     best = cand1
+                  else
+                     best = cand2
+                  end if
+               end if
+               idx(i) = best
+            end do
+         end subroutine nearest_searchsorted
+      
+   end subroutine read_namelist_diagnostics_zonal
+
 
 end module namelist_diagnostics

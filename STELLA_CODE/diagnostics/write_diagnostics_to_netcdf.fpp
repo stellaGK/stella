@@ -144,6 +144,7 @@ module write_diagnostics_to_netcdf
    public :: write_g2nozonal_vs_zvpas_nc
    public :: write_g2nozonal_vs_zmus_nc
    public :: write_g2nozonal_vs_zvpamus_nc
+   public :: write_g_vs_zvpas_zonal_nc
    public :: write_h2_vs_vpamus_nc
    public :: write_h2_vs_zvpas_nc
    public :: write_h2_vs_zmus_nc
@@ -162,6 +163,7 @@ module write_diagnostics_to_netcdf
    public :: write_f2nozonal_vs_zvpas_nc
    public :: write_f2nozonal_vs_zmus_nc
    public :: write_f2nozonal_vs_zvpamus_nc
+   public :: write_free_energy_diagnostic_nc
    public :: write_kspectra_nc
    public :: write_omega_nc
    public :: write_moments_nc
@@ -952,6 +954,28 @@ contains
          long_name="Guiding center distribution function averaged over (kx, ky, mu)")
 #endif
    end subroutine write_g2_vs_zvpas_nc
+
+   subroutine write_g_vs_zvpas_zonal_nc (nout, g_vs_zvpas_zonal)
+     implicit none
+     integer, intent(in) :: nout
+     real, dimension(:, :, :, :, :), intent(in) :: g_vs_zvpas_zonal
+     call neasyf_write(ncid, "g_vs_zvpas_zonal", g_vs_zvpas_zonal, &
+          dim_names=[character(len=7)::"ri", "kx", "zed", "vpa", "species", "t"], start=[1, 1, 1, 1, 1, nout], &
+          long_name="Guiding center Zonal distribution function for min kx, ky = 0, averaged over (mu)")
+   end subroutine write_g_vs_zvpas_zonal_nc
+
+      subroutine write_free_energy_diagnostic_nc(nout, free_energy_vs_kx)
+      use grids_z, only: nzgrid
+      implicit none
+      integer, intent(in) :: nout
+      real, dimension(:), intent(in) :: free_energy_vs_kx
+#ifdef NETCDF
+      call neasyf_write(ncid, "free_energy_vs_kx", free_energy_vs_kx, &
+         dim_names=[character(len=2)::"kx", "t"], start=[1, nout], &
+         long_name="Zonal Free Energy Function")
+#endif
+   end subroutine write_free_energy_diagnostic_nc
+   
 
    !------------------------- g2_vs_zmus(tube,z,mu,s,t) -------------------------
    subroutine write_g2_vs_zmus_nc(nout, g2_vs_zmus)

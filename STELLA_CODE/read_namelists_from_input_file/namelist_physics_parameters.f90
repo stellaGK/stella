@@ -215,20 +215,17 @@ contains
    !****************************************************************************
    !                          SCALE GYROKINETIC TERMS                          !
    !****************************************************************************
-   subroutine read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
-      include_parallel_streaming, include_mirror, xdriftknob, ydriftknob, wstarknob, &
-      streamknob, mirrorknob, fphi, suppress_zonal_interaction)
+   subroutine read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, &
+      include_mirror, xdriftknob, ydriftknob, wstarknob, mirror_fac, fphi, suppress_zonal_interaction)
 
       use mp, only: proc0
 
       implicit none
 
       ! Variables that are read from the input file
-      logical, intent (in) :: include_xdrift, include_ydrift, include_drive
-      logical, intent (in) :: include_parallel_streaming, include_mirror
+      logical, intent (in) :: include_xdrift, include_ydrift, include_drive, include_mirror
       logical, intent (out) :: suppress_zonal_interaction
-      real, intent (out) :: xdriftknob, ydriftknob, wstarknob 
-      real, intent (out) :: streamknob, mirrorknob
+      real, intent (out) :: xdriftknob, ydriftknob, wstarknob, mirror_fac
       real, intent (out) :: fphi
       
       !-------------------------------------------------------------------------
@@ -253,9 +250,8 @@ contains
          xdriftknob = 1.0
          ydriftknob = 1.0
          wstarknob = 1.0
-         streamknob = 1.0
-         mirrorknob = 1.0
-
+         mirror_fac = 1.0
+         
          ! The zonal modes can be set to zero at every time step to eliminate their effect
          suppress_zonal_interaction = .false.
 
@@ -268,8 +264,8 @@ contains
 
          implicit none
 
-         namelist /scale_gyrokinetic_terms/ xdriftknob, ydriftknob, wstarknob, streamknob, mirrorknob, &
-            fphi, suppress_zonal_interaction
+         namelist /scale_gyrokinetic_terms/ xdriftknob, ydriftknob, wstarknob, mirror_fac, fphi, &
+            suppress_zonal_interaction
 
          in_file = input_unit_exist('scale_gyrokinetic_terms', dexist)
          if (dexist) read (unit=in_file, nml=scale_gyrokinetic_terms)
@@ -285,8 +281,7 @@ contains
          if (.not. include_xdrift) xdriftknob = 0.0
          if (.not. include_ydrift) ydriftknob = 0.0
          if (.not. include_drive) wstarknob = 0.0
-         if (.not. include_parallel_streaming) streamknob = 0.0
-         if (.not. include_mirror) mirrorknob = 0.0
+         if (.not. include_mirror) mirror_fac = 0.0
 
       end subroutine check_inputs_scale_gyrokinetic_terms
       

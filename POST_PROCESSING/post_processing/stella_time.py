@@ -1,4 +1,4 @@
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from stella_data import time, ntime
 
 # get starting index for steady-state
@@ -14,6 +14,6 @@ time_interval = time[it_max-1]-time[it_min]
 
 def timeavg(ft):
 
-    favg = simps(ft[it_min:it_max],x=time_steady) \
+    favg = simpson(ft[it_min:it_max],x=time_steady) \
         / time_interval
     return favg

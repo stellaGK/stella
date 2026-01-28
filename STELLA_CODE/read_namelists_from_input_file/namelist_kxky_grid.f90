@@ -501,11 +501,11 @@ contains
          if ((nakx==1) .and. (naky==1)) return
          
          ! We can not launch a range of modes with only ky=0
-         if (naky==1) then
-            if (aky_min==0.0 .or. aky_max==0.0) then
-               call mp_abort('Can not launch only the ky=0 mode. Aborting')
-            end if
-         end if
+         !if (naky==1) then
+            !if (aky_min==0.0 .or. aky_max==0.0) then
+             !  call mp_abort('Can not launch only the ky=0 mode. Aborting')
+            !end if
+         !end if
       
       end subroutine check_kxky_grid_range_parameters
       

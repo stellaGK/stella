@@ -45,6 +45,7 @@ module arrays_gyro_averages
 
    ! Make arrays available
    public :: aj0x, aj0v, aj1x, aj1v
+   public :: aj0v_y
    public :: j0_B_ffs, j0_ffs 
    public :: j1_ffs
    public :: j0_const, j0_B_const
@@ -57,6 +58,8 @@ module arrays_gyro_averages
    
    ! Dimension (nmu, ikxkyzspecies) on kxkyz-layout[llim_proc:ulim_alloc])
    real, dimension(:, :), allocatable :: aj0v, aj1v
+
+   real, dimension(:, :), allocatable :: aj0v_y
 
    ! Variables for the full flux surface simulations
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j0_ffs, j0_B_ffs
@@ -148,6 +151,11 @@ contains
          allocate (aj1v(nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          aj1v = 0.
       end if
+
+      if (.not. allocated(aj0v_y)) then
+         allocate (aj0v_y(nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         aj0v_y = 0.
+      end if
       
       ! Assume we have a single field line
       ia = 1
@@ -164,11 +172,14 @@ contains
          
             ! The argument of the bessel function is a_k = k_perp*rho_s
             arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-            
+         
             ! Calculate the Bessel functions with arg = a_k = k_perp*rho_s
             aj0v(imu, ikxkyz) = j0(arg)
             aj1v(imu, ikxkyz) = j1(arg)
-            
+
+            arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, 1, ia, iz)) / bmag(ia, iz)
+            aj0v_y(imu, ikxkyz) = j0(arg)
+
          end do
       end do
       
@@ -533,6 +544,7 @@ contains
       implicit none
 
       if (allocated(aj0v)) deallocate (aj0v)
+      if (allocated(aj0v_y)) deallocate (aj0v_y)
       if (allocated(aj1v)) deallocate (aj1v)
       if (allocated(aj0x)) deallocate (aj0x)
       if (allocated(aj1x)) deallocate (aj1x)
