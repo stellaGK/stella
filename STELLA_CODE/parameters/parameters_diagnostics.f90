@@ -45,10 +45,11 @@ module parameters_diagnostics
    public :: write_distribution_h
    public :: write_distribution_f
 
+   ! Write diaganostics for zonal flows
    public :: write_g_vs_zvpas_zonal
-   public :: write_free_energy_diagnostic
+   public :: write_free_energy
    public :: number_zonals_kxs
-   public :: zonal_iks
+   public :: zonal_ks, zonal_iks
 
    ! Write moments in <diagnostics_moments>
    public :: write_radial_moments
@@ -103,13 +104,14 @@ module parameters_diagnostics
    logical :: write_g2_vs_zmus 
    logical :: write_g2_vs_kxkyzs 
    logical :: write_g2_vs_zvpamus
-   logical :: write_g_vs_zvpas_zonal
    logical :: write_distribution_g
    logical :: write_distribution_h
    logical :: write_distribution_f
 
-   logical :: write_free_energy_diagnostic
+   logical :: write_g_vs_zvpas_zonal
+   logical :: write_free_energy
    integer :: number_zonals_kxs
+   real, dimension (:), allocatable :: zonal_ks
    integer, dimension (:), allocatable :: zonal_iks
 
    ! Write moments in <diagnostics_moments>
@@ -202,11 +204,9 @@ contains
                         write_moments, write_radial_moments)
 
 
-         allocate(zonal_iks(1)) ; zonal_iks = 0.0
-
-         call read_namelist_diagnostics_zonal (write_g_vs_zvpas_zonal, write_free_energy_diagnostic, &
-               number_zonals_kxs, zonal_iks)
-            
+         call read_namelist_diagnostics_zonal (write_g_vs_zvpas_zonal, write_free_energy, &
+               number_zonals_kxs, zonal_ks)
+      
          !-------------------------------------------------------------------
          
          ! If <save_for_restart> = False then we need <nsave> = -1
@@ -263,13 +263,13 @@ contains
          call broadcast(write_g2_vs_zmus)
          call broadcast(write_g2_vs_kxkyzs)
          call broadcast(write_g2_vs_zvpamus)
-         call broadcast(write_g_vs_zvpas_zonal)
          call broadcast(write_distribution_g)
          call broadcast(write_distribution_f)
          call broadcast(write_distribution_h)
-         call broadcast(write_free_energy_diagnostic)
+         
+         call broadcast(write_g_vs_zvpas_zonal)
+         call broadcast(write_free_energy)
          call broadcast(number_zonals_kxs)
-         call broadcast(zonal_iks)
          
          call broadcast(write_radial_fluxes)
          call broadcast(write_radial_moments)

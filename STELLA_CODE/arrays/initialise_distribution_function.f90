@@ -123,10 +123,10 @@ contains
    
       ! Make sure the parallelisation parameters are already read
       call read_parameters_parallelisation_layouts
-      
+
       ! Read <initialise_distribution> namelist
       call read_namelist_initialise_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
-         
+
       ! Broadcast to all processors
       call broadcast(init_distribution_switch)
       call broadcast(scale_to_phiinit)
@@ -136,14 +136,13 @@ contains
       ! Most of these options will be parsed to other stella modules
       ! Except the <scale> variable which is used in init_distribution_switch = 'many'
       if (proc0) call read_namelist_restart_options(tstart, scale, restart_file, restart_dir, save_many)
-         
+
       ! Broadcast to all processors
       call broadcast(tstart)
       call broadcast(scale)
       call broadcast(restart_file)
       call broadcast(restart_dir)
       call broadcast(save_many)
-
       ! Prepend restart_dir to restart_file, and append trailing slash if not exists
       if (restart_dir(len_trim(restart_dir):) /= "/") &
          restart_dir = trim(restart_dir)//"/" 
@@ -863,6 +862,9 @@ contains
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_rh
 
       use arrays_gyro_averages, only: aj0v_y
+      use geometry, only: bmag 
+      use grids_kxky, only: aky
+
       implicit none
 
       integer :: ikxkyz, iky, ikx, iz, is, ia
@@ -871,11 +873,12 @@ contains
       real :: imfac, refac
       real :: kxmax, kxmin
       logical :: init_wstar_rh
+      logical :: bessel_rh
       
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_rh> namelist
-      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, init_wstar_rh)
+      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, init_wstar_rh, bessel_rh)
       
       ! Broadcast to all processors
       call broadcast(refac)
@@ -883,11 +886,10 @@ contains
       call broadcast(kxmax)
       call broadcast(kxmin)
       call broadcast(init_wstar_rh) 
-
+      call broadcast(bessel_rh)
       ! initialise g to be a Maxwellian with a constant density perturbation
 
       gvmu = 0.
-
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          ! only set the first ky mode to be non-zero
@@ -897,18 +899,24 @@ contains
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
 
-         if (abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
-            gvmu(:, :, ikxkyz) = spec(is)%z * phiinit * kperp2(iky, ikx, ia, iz) &
-               * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-            
-            if (init_wstar_rh) then
-               gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * (3/2 - spread(vpa, 2, nmu)**2 - spread(mu, 1, nvpa))
+         if (aky(iky) == 0.0) then 
+            if (abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
+               gvmu(:, :, ikxkyz) = spec(is)%z * phiinit &
+                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+               
+               if (init_wstar_rh) then
+                  gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * (1.5 - spread(vpa, 2, nmu)**2 - 2* spread(mu, 1, nvpa) * bmag(ia, iz) )
+               else
+                  gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * 0.5 * kperp2(iky, ikx, ia, iz)
+               end if
             end if
-         end if
 
-         gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * spread(aj0v_y(:, ikxkyz), 1, nvpa)
+            if (bessel_rh) gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * spread(aj0v_y (:, ikxkyz), 1, nvpa)
+         else 
+             gvmu(:, :, ikxkyz) = 0.0
+         end if 
+
       end do
-
 
    end subroutine initialise_distribution_rh
 

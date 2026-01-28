@@ -141,7 +141,6 @@ contains
       use write_diagnostics_to_netcdf, only: write_g2nozonal_vs_zvpas_nc
       use write_diagnostics_to_netcdf, only: write_g2nozonal_vs_zmus_nc
       use write_diagnostics_to_netcdf, only: write_g2nozonal_vs_zvpamus_nc
-      use write_diagnostics_to_netcdf, only: write_g_vs_zvpas_zonal_nc
       
       use write_diagnostics_to_netcdf, only: write_h2_vs_vpamus_nc
       use write_diagnostics_to_netcdf, only: write_h2_vs_zvpas_nc
@@ -161,7 +160,9 @@ contains
       use write_diagnostics_to_netcdf, only: write_f2nozonal_vs_zvpas_nc
       use write_diagnostics_to_netcdf, only: write_f2nozonal_vs_zmus_nc
       use write_diagnostics_to_netcdf, only: write_f2nozonal_vs_zvpamus_nc
-      use write_diagnostics_to_netcdf, only: write_free_energy_diagnostic_nc
+
+      use write_diagnostics_to_netcdf, only: write_g_vs_zvpas_zonal_nc
+      use write_diagnostics_to_netcdf, only: write_free_energy_nc
       
       ! Input file
       use parameters_diagnostics, only: write_distribution_g
@@ -174,7 +175,7 @@ contains
       use parameters_diagnostics, only: write_g2_vs_zvpamus
 
       use parameters_diagnostics, only: write_g_vs_zvpas_zonal
-      use parameters_diagnostics, only: write_free_energy_diagnostic
+      use parameters_diagnostics, only: write_free_energy
       use parameters_diagnostics, only: number_zonals_kxs, zonal_iks
       
       ! Calculations
@@ -190,18 +191,20 @@ contains
       ! And we will do this for g, h and delta f
       real, dimension(:, :, :), allocatable :: g2_vs_vpamus, g2nozonal_vs_vpamus
       real, dimension(:, :, :, :), allocatable :: g2_vs_zvpas, g2_vs_zmus, g2nozonal_vs_zvpas, g2nozonal_vs_zmus
+
+      ! Zonals
       real, dimension(:, :, :, :, :), allocatable :: g_vs_zvpas_zonal
       real, dimension(:), allocatable :: free_energy_vs_kx
 
       real, dimension(:, :, :, :, :), allocatable :: g2_vs_zkykxs, g2_vs_zvpamus, g2nozonal_vs_zvpamus
 
-      !-------------------------------------------------------------------------
+      !------------------------------------------------------------------------- 
 
       ! Only continue if we write data 
       if ((.not. write_distribution_g) .and. (.not. write_distribution_h) .and. (.not. write_distribution_f)) return
       if ((.not. write_g2_vs_vpamus) .and. (.not. write_g2_vs_zvpas) .and. (.not. write_g2_vs_zmus) &
             .and. (.not. write_g2_vs_kxkyzs) .and. (.not. write_g2_vs_zvpamus) .and. (.not. write_g_vs_zvpas_zonal) &
-            .and. (.not. write_free_energy_diagnostic)) return
+            .and. (.not. write_free_energy)) return
 
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'Write distribution')
@@ -220,7 +223,7 @@ contains
 
       ! Zonal diagnostics
       if (write_g_vs_zvpas_zonal) allocate (g_vs_zvpas_zonal(2, number_zonals_kxs, nztot, nvpa, nspec))
-      if (write_free_energy_diagnostic) allocate (free_energy_vs_kx(nakx)) 
+      if (write_free_energy) allocate (free_energy_vs_kx(nakx)) 
 
       ! Redistribute the data from <gnew>(ky,kx,z,tube,i[vpa,mu,s]) to <gvmu>(vpa,mu,i[kx,ky,z,s]) for |g|^2(z,kx,ky,s)
       if (write_g2_vs_kxkyzs) call scatter(kxkyz2vmu, gnew, gvmu)
@@ -244,10 +247,10 @@ contains
          if (write_g2_vs_zmus .and. proc0) call write_g2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)
          if (write_g2_vs_zvpamus .and. proc0) call write_g2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
          if (write_g_vs_zvpas_zonal .and. proc0) call write_g_vs_zvpas_zonal_nc(nout, g_vs_zvpas_zonal)
-         if (write_free_energy_diagnostic) then 
+         if (write_free_energy) then 
             call g_to_h(gnew, phi, bpar, fphi)
             call calculate_free_energy(gnew, free_energy_vs_kx)
-            if (proc0) call write_free_energy_diagnostic_nc(nout, free_energy_vs_kx)
+            if (proc0) call write_free_energy_nc(nout, free_energy_vs_kx)
             call g_to_h(gnew, phi, bpar, -fphi)
          end if
 
@@ -275,7 +278,9 @@ contains
          if (write_g2_vs_zvpas .and. proc0) call write_h2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas)
          if (write_g2_vs_zmus .and. proc0) call write_h2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)
          if (write_g2_vs_zvpamus .and. proc0) call write_h2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
-         !if (write_free_energy_diagnostic .and. proc0) call write_free_energy_diagnostic_nc(nout, free_energy_vs_kx)
+
+         call calculate_free_energy(gnew, free_energy_vs_kx)
+         if (proc0) call write_free_energy_nc(nout, free_energy_vs_kx)
 
          ! Switch back to g
          if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
@@ -318,7 +323,7 @@ contains
       if (write_g2_vs_kxkyzs) deallocate (g2_vs_zkykxs)
       if (write_g2_vs_zvpamus) deallocate (g2_vs_zvpamus)
       if (write_g_vs_zvpas_zonal) deallocate (g_vs_zvpas_zonal)
-      if (write_free_energy_diagnostic) deallocate (free_energy_vs_kx)
+      if (write_free_energy) deallocate (free_energy_vs_kx)
       ! End timer
       if (proc0) call time_message(.false., timer(:), 'Write distribution')
 
@@ -368,9 +373,8 @@ contains
       use parameters_diagnostics, only: write_g2_vs_zmus
       use parameters_diagnostics, only: write_g2_vs_kxkyzs
       use parameters_diagnostics, only: write_g2_vs_zvpamus
-      use parameters_diagnostics, only: write_g_vs_zvpas_zonal
 
-      use parameters_diagnostics, only: write_free_energy_diagnostic
+      use parameters_diagnostics, only: write_g_vs_zvpas_zonal
       use parameters_diagnostics, only: number_zonals_kxs, zonal_iks
 
       implicit none
@@ -388,6 +392,8 @@ contains
       ! Arrays needed to perform calculations
       real, dimension(:, :, :), allocatable :: g2_vs_ztubeivmus, g2nozonal_vs_ztubeivmus 
       real, dimension(:, :), allocatable :: g2_vs_ztube, g2_vs_vpamu
+
+      ! Zonals
       real, dimension(:, :, :, :), allocatable :: g_vs_zivmus_zonal
 
       integer :: ivmus, ia, iz, it, ikx, iky, izp, is, iv, imu, ikxkyzs
@@ -448,7 +454,7 @@ contains
             end do
          end do
 
-
+         ! Zonals
          if (write_g_vs_zvpas_zonal) then
             if (number_zonals_kxs == 1) then 
                if (abs(akx(1)) < epsilon(0.)) then
@@ -572,7 +578,7 @@ contains
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use mp, only: nproc, sum_reduce
 
-      use parameters_diagnostics, only: write_free_energy_diagnostic
+      ! use parameters_diagnostics, only: write_free_energy
 
       implicit none
 

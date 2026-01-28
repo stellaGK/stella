@@ -226,6 +226,8 @@ contains
       use mp, only: mp_abort
       use common_types, only: flux_surface_type
       use grids_z, only: read_parameters_z_grid
+
+      use parameters_diagnostics, only: number_zonals_kxs
       
       implicit none
       
@@ -246,6 +248,8 @@ contains
          call init_grids_kxky_box
       end select
 
+      if (number_zonals_kxs >0) call zonal_diagnostic (number_zonals_kxs)
+      
       ! Determine if <iky> corresponds to a zonal mode, i.e., whether ky=0
       if (.not. allocated(zonal_mode)) allocate (zonal_mode(naky))
       zonal_mode = .false.
@@ -774,6 +778,42 @@ contains
       end subroutine allocate_arrays
       
    end subroutine init_grids_kxky
+
+
+   subroutine zonal_diagnostic (number_zonals_kxs)
+
+      use mp, only: proc0
+      use parameters_diagnostics, only: zonal_ks
+      use parameters_diagnostics, only: zonal_iks
+
+      implicit none
+
+      integer, intent (in) :: number_zonals_kxs
+
+      allocate(zonal_iks(number_zonals_kxs)) 
+      if(proc0) call nearest_searchsorted(zonal_ks, zonal_iks) 
+
+   contains
+
+      subroutine nearest_searchsorted(a, idx)
+
+         implicit none
+
+         real(kind=8), intent(in) :: a(:) 
+         integer, intent(out) :: idx(size(a)) 
+         integer :: i
+         real(kind=8) :: diffs(size(akx))
+
+         do i = 1, size(a)
+            diffs = abs(akx - a(i))
+            idx(i) = minloc(diffs, dim=1)
+            if (idx(i) < 1) idx(i) = 1
+            if (idx(i) > size(akx)) idx(i) = size(akx)
+         end do
+      end subroutine nearest_searchsorted
+
+   end subroutine zonal_diagnostic
+
    
 !###############################################################################
 !############################ FINISH (KX,KY) GRIDS #############################
