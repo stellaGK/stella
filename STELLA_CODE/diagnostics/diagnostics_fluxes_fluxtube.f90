@@ -98,6 +98,7 @@ contains
 
       ! Flags
       use parameters_physics, only: include_apar, include_bpar
+      use parameters_diagnostics, only: flux_norm
       
       ! Input file
       use parameters_diagnostics, only: write_fluxes_kxkyz
@@ -112,7 +113,9 @@ contains
       use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: gradzeta_gradx_R2overB2
       use geometry, only: gradzeta_grady_R2overB2
-      use geometry, only: b_dot_gradzeta_RR 
+      use geometry, only: b_dot_gradzeta_RR
+      use geometry, only: one_over_nablarho
+      use geometry, only: fluxnorm_vs_z
       
       ! Dimensions
       use grids_velocity, only: vperp2, vpa, mu
@@ -142,15 +145,13 @@ contains
 
       ! Local variables
       complex, dimension(:, :), allocatable :: velocityintegrand_vs_vpamu, temp1_vs_vpamu, temp2_vs_vpamu
-      real, dimension(:), allocatable :: fluxnorm_vs_z
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
-      real :: one_over_nablarho
       logical :: write_vs_kxkyz
+      real :: prefac
 
       !-------------------------------------------------------------------------
 
       ! Allocate arrays
-      allocate (fluxnorm_vs_z(-nzgrid:nzgrid))
       allocate (velocityintegrand_vs_vpamu(nvpa, nmu), temp1_vs_vpamu(nvpa, nmu), temp2_vs_vpamu(nvpa, nmu))
       
       ! Track the code 
@@ -160,9 +161,13 @@ contains
       pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0.
       pflux_vs_kxkyzts = 0.; vflux_vs_kxkyzts = 0.; qflux_vs_kxkyzts = 0.
 
-      ! Get <fluxnorm_vs_z> which takes care of the flux surface average,
-      ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1.
-      call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho)
+      ! Define the factor in front of the defintion of the fluxes
+      ! If <flux_norm> = True, we include the factor <∇̃ρ>_ψ in the flux definition, otherwise we ignore it 
+      ! 1/<∇̃ρ>_ψ = int dV / int ∇̃ρ dV = sum(jacob[iz]*delzed[iz]) / sum(grho[iz]*jacob[iz]*delzed[iz])
+      ! If <flux_norm> = False:  fluxnorm_vs_z[iz] = < . >_ψ = jacob[iz]*delzed[iz] / sum(jacob[iz]*delzed[iz])
+      ! If <flux_norm> = True:   fluxnorm_vs_z[iz] = < . >_ψ / <∇̃ρ>_ψ = jacob[iz]*delzed[iz] / sum(grho[iz]*jacob[iz]*delzed[iz]) 
+      if (flux_norm) prefac = one_over_nablarho
+      if (.not. flux_norm) prefac = 1.0
 
       ! We only have one flux tube since <radial_variation> = False
       ia = 1
@@ -192,14 +197,14 @@ contains
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the particle flux 
             call gyro_average(df_vs_vpamuikxkyzs(:, :, ikxkyz), ikxkyz, velocityintegrand_vs_vpamu)
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), pflux_vs_s(is))
-            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, & 
                   phi(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! For the heat flux we have <VELOCITY_INTEGRAND>(vpa,mu) = h(mu,vpa)*J0*v^2
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the heat flux 
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(1, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), qflux_vs_s(is))
-            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, &
                   phi(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! For the parallel (first term) and perpendicular (second term) component of the momentum flux we have,
@@ -223,7 +228,7 @@ contains
 
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_s(is))
-            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, &
                phi(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
          end do
@@ -245,13 +250,13 @@ contains
             temp1_vs_vpamu = -2.0*df_vs_vpamuikxkyzs(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
             call gyro_average(temp1_vs_vpamu, ikxkyz, velocityintegrand_vs_vpamu)
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), pflux_vs_s(is))
-            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! Apar contribution to heat flux
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), qflux_vs_s(is))
-            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! TODO -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !! Only valid for axis-symmetric devices now
@@ -266,7 +271,7 @@ contains
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), vflux_vs_s(is))
-            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
          end do
@@ -286,12 +291,12 @@ contains
             temp1_vs_vpamu = 4.0 * df_vs_vpamuikxkyzs(:, :, ikxkyz) * spec(is)%tz * spread(mu, 1, nvpa)
             call gyro_average_j1(temp1_vs_vpamu, ikxkyz, velocityintegrand_vs_vpamu)
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), pflux_vs_s(is))
-            call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! Bpar contribution to heat flux
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), qflux_vs_s(is))
-            call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! Bpar contribution to momentum flux
             ! NOT SUPPORTED, REQUIRES d J1(x)/ d x 
@@ -301,7 +306,7 @@ contains
             temp2_vs_vpamu = 0.0
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), vflux_vs_s(is)) 
-            call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, prefac, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
          end do
       end if
 
@@ -343,7 +348,6 @@ contains
 
       ! Deallocate the arrays
       deallocate (velocityintegrand_vs_vpamu, temp1_vs_vpamu, temp2_vs_vpamu)
-      deallocate (fluxnorm_vs_z) 
       
       ! Track code
       if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::finished'
@@ -409,63 +413,5 @@ contains
       flux_out = flux_out + flux_fac * mode_fac(iky) * aky(iky) * aimag(velocity_integral * conjg(phi)) * norm
 
    end subroutine get_one_flux
-
-   !============================================================================
-   !=========================== FLUX SURFACE AVERAGE ===========================
-   !============================================================================
-   ! 
-   ! The flux surface average reduces to the field line average in the flux tube approximation
-   !     <Q>_ψ = <Q>_fluxsurface = int Q dV / int dV = int Q J dz / int J dz
-   !     <Q>_ψ[iz] = Q[iz]*jacob[iz]*delzed[iz] / sum(jacob[iz]*delzed[iz])
-   ! 
-   ! Therefore the integration weights or the normalization factor for the fluxes is defined as 
-   !     fluxnorm_vs_z[iz] = < . >_ψ = jacob[iz]*delzed[iz] / sum(jacob[iz]*delzed[iz])
-   ! 
-   ! In the definition of the fluxes we have a factor 1/<∇̃ρ>_fluxsurface which is calculated as 
-   !      1/<∇̃ρ>_ψ = int dV / int ∇̃ρ dV = sum(jacob[iz]*delzed[iz]) / sum(grho[iz]*jacob[iz]*delzed[iz])
-   !      grho = a|∇ρ0| = a (dρ0/dψ) ∇ψ = 1/ρ0 * ∇ψ/(a*Bref) = sqrt(|grad_psi_grad_psi|)/ρ0
-   ! 
-   ! If <flux_norm> = True then we absorb the factor 1/<∇̃ρ>_fluxsurface in the definition of <fluxnorm_vs_z> 
-   !     fluxnorm_vs_z[iz] = < . >_ψ / <∇̃ρ>_ψ = jacob[iz]*delzed[iz] / sum(grho[iz]*jacob[iz]*delzed[iz]) 
-   !============================================================================
-   subroutine get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho) 
-
-      use parameters_diagnostics, only: flux_norm
-      use geometry, only: jacob, grho
-      use grids_z, only: delzed, nzgrid  
-
-      implicit none
-
-      ! Construct the factor in front of the flux definition 
-      real, dimension(:), allocatable, intent(out) :: fluxnorm_vs_z 
-      real, intent(out) :: one_over_nablarho
-
-      ! Local variables
-      real, dimension(:), allocatable :: jacob_times_delzed_vs_z 
-
-      ! Allocate array
-      allocate (fluxnorm_vs_z(-nzgrid:nzgrid))
-      allocate (jacob_times_delzed_vs_z(-nzgrid:nzgrid))
-
-      ! Multiply the Jacobian with the step size in z and make each end count towards half the flux
-      jacob_times_delzed_vs_z = jacob(1, :) * delzed
-      jacob_times_delzed_vs_z(-nzgrid) = 0.5 * jacob_times_delzed_vs_z(-nzgrid)
-      jacob_times_delzed_vs_z(nzgrid) = 0.5 * jacob_times_delzed_vs_z(nzgrid)
-
-      ! Define the factor in front of the defintion of the fluxes 
-      ! If <flux_norm> = False:  fluxnorm_vs_z[iz] = < . >_ψ = jacob[iz]*delzed[iz] / sum(jacob[iz]*delzed[iz])
-      ! If <flux_norm> = True:   fluxnorm_vs_z[iz] = < . >_ψ / <∇̃ρ>_ψ = jacob[iz]*delzed[iz] / sum(grho[iz]*jacob[iz]*delzed[iz]) 
-      if (.not. flux_norm) fluxnorm_vs_z = jacob_times_delzed_vs_z / sum(jacob_times_delzed_vs_z) 
-      if (flux_norm) fluxnorm_vs_z = jacob_times_delzed_vs_z / sum(jacob_times_delzed_vs_z * grho(1, :))
-
-      ! If <flux_norm> = True, we include the factor <∇̃ρ>_ψ in the flux definition, otherwise we ignore it 
-      ! 1/<∇̃ρ>_ψ = int dV / int ∇̃ρ dV = sum(jacob[iz]*delzed[iz]) / sum(grho[iz]*jacob[iz]*delzed[iz])
-      if (flux_norm) one_over_nablarho = sum(jacob_times_delzed_vs_z) / sum(jacob_times_delzed_vs_z * grho(1, :))
-      if (.not. flux_norm) one_over_nablarho = 1.0
-
-      ! Deallocate arrays
-      deallocate (jacob_times_delzed_vs_z)
-
-   end subroutine get_factor_for_fluxsurfaceaverage
 
 end module diagnostics_fluxes_fluxtube
