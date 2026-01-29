@@ -618,8 +618,10 @@ contains
                   
                it = 1
                free_energy_vs_kxkyz_vmu(iky, ikx, :, ivmus) = dl_over_b(ia, :) * & 
-                  + (0.5 * spec(ion_species)%temp * g2_vs_ztube(:, it) / (maxwell_vpa(iv, ion_species) * maxwell_mu(ia, :, imu, ion_species) ) &
-                  + 0.5 * (spec(ion_species)%z * spec(ion_species)%z * spec(ion_species)%dens / spec(ion_species)%temp - tite / nine) * real(phi(iky, ikx, :, it)) * conjg(phi(iky, ikx, :, it)) * mode_fac(iky)  )
+                  spec(ion_species)%temp * g2_vs_ztube(:, it) / (maxwell_vpa(iv, ion_species) * maxwell_mu(ia, :, imu, ion_species) )! &
+                  ! + spec(ion_species)%dens * spec(ion_species)%temp * (conjg(phi(iky, ikx, :, it)) * mode_fac(iky) &
+                  ! + tite / nine * (conjg(phi(iky, ikx, :, it)) * mode_fac(iky) - conjg(phi(0, ikx, :, it)) * mode_fac(0)) ) &
+                  ! * real(phi(iky, ikx, :, it)) * conjg(phi(iky, ikx, :, it)) * mode_fac(iky))
             end do 
          end do
       end do
@@ -629,6 +631,10 @@ contains
          do ikx = 1, nakx
             do iky = 1, naky
                call integrate_vmu(free_energy_vs_kxkyz_vmu(iky,ikx,iz,:), ia, iz, free_energy_vs_kxkyz(iky,ikx,iz,:) )
+               free_energy_vs_kxkyz(iky, ikx, iz, ion_species) = free_energy_vs_kxkyz(iky, ikx, iz, ion_species) &
+                     + spec(ion_species)%dens * spec(ion_species)%temp * (conjg(phi(iky, ikx, iz, it)) * mode_fac(iky) &
+                     + tite / nine * (conjg(phi(iky, ikx, iz, it)) * mode_fac(iky) - conjg(phi(0, ikx, iz, it)) * mode_fac(0)) ) &
+                     * real(phi(iky, ikx, iz, it)) * conjg(phi(iky, ikx, iz, it)) * mode_fac(iky) * dl_over_b(ia, iz) 
             end do
          end do 
       end do 

@@ -56,8 +56,8 @@ for ikx in range(nakx):
     axs[0].semilogy(time,phi2[:,ikx,0])
     print('phi2(t=0), kx=', np.sqrt(phi2[0,ikx,0])/kx[ikx]**2 )
     axs[1].scatter(kx[ikx], np.sqrt(phi2[-1, ikx,0]/phi2[0,ikx,0]))
-
     print('ratio =', np.sqrt(phi2[-1, ikx,0]/phi2[0,ikx,0]), 'kx=',kx[ikx])
+    
 axs[1].set_xscale('log')
 axs[0].set_xlabel('$t (v_{t}/a)$')
 axs[1].set_label('$k_x \rho_i$') 

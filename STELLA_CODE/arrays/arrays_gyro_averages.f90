@@ -131,6 +131,9 @@ contains
       
       ! Species parameters
       use grids_species, only: spec
+
+      use geometry, only: grady_dot_grady
+      use grids_kxky, only: aky
       
       implicit none
       
@@ -177,7 +180,7 @@ contains
             aj0v(imu, ikxkyz) = j0(arg)
             aj1v(imu, ikxkyz) = j1(arg)
 
-            arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, 1, ia, iz)) / bmag(ia, iz)
+            arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * (0.1**2) * grady_dot_grady(ia,iz) ) / bmag(ia, iz)
             aj0v_y(imu, ikxkyz) = j0(arg)
 
          end do
