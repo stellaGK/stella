@@ -874,11 +874,13 @@ contains
       real :: kxmax, kxmin
       logical :: init_wstar_rh
       logical :: bessel_rh
+      logical :: include_zmaxwellian
       
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_rh> namelist
-      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, init_wstar_rh, bessel_rh)
+      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, & 
+         init_wstar_rh, bessel_rh, include_zmaxwellian)
       
       ! Broadcast to all processors
       call broadcast(refac)
@@ -887,6 +889,7 @@ contains
       call broadcast(kxmin)
       call broadcast(init_wstar_rh) 
       call broadcast(bessel_rh)
+      call broadcast(include_zmaxwellian)
       ! initialise g to be a Maxwellian with a constant density perturbation
 
       gvmu = 0.
@@ -905,13 +908,14 @@ contains
                   * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
                
                if (init_wstar_rh) then
-                  gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * (1.5 - spread(vpa, 2, nmu)**2 - 2* spread(mu, 1, nvpa) * bmag(ia, iz) )
+                  gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * (1.5 - spread(vpa, 2, nmu)**2 - 2* spread(mu, 1, nvpa) * bmag(ia, iz) ) 
                else
                   gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * 0.5 * kperp2(iky, ikx, ia, iz)
                end if
             end if
 
             if (bessel_rh) gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * spread(aj0v_y (:, ikxkyz), 1, nvpa)
+            if (include_zmaxwellian) gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * exp(-zed(iz)**2)
          else 
              gvmu(:, :, ikxkyz) = 0.0
          end if 

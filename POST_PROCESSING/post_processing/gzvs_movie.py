@@ -12,7 +12,7 @@ gmin = np.arange(ntime,dtype=float)
 print('SHAPE=', gzvs_zonal.shape)
 
 #g_zonal = np.zeros((ntime, nvpa,  nzed), dtype=complex)
-g_zonal = np.array(gzvs_zonal[:, 0, :, :, 0] + 1j*gzvs_zonal[:, 0, :, :, 1], dtype=complex) #gzvs - g2nozonal_vs_zvpas
+g_zonal = np.array(gzvs_zonal[:, 0, :, :, 1, 0] + 1j*gzvs_zonal[:, 0, :, :, 1, 1], dtype=complex) #gzvs - g2nozonal_vs_zvpas
 
 print('shape zonal', np.shape(g_zonal))
 

@@ -449,7 +449,8 @@ contains
    !****************************************************************************
    !                          INITIALISE POTENTIAL: RH                         !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, init_wstar_rh, bessel_rh)
+   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, & 
+      init_wstar_rh, bessel_rh, include_zmaxwellian)
 
       use mp, only: proc0
 
@@ -460,6 +461,7 @@ contains
       real, intent(out) :: imfac, refac
       logical, intent (out) :: init_wstar_rh
       logical, intent (out) :: bessel_rh
+      logical, intent (out) :: include_zmaxwellian
       !-------------------------------------------------------------------------
 
       if (.not. proc0) return
@@ -480,6 +482,7 @@ contains
          refac = 1.0
          init_wstar_rh = .false.
          bessel_rh = .false. 
+         include_zmaxwellian = .false. 
 
       end subroutine set_default_parameters_initialise_distribution_rh
 
@@ -489,7 +492,9 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac, init_wstar_rh, bessel_rh
+         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac, & 
+            init_wstar_rh, bessel_rh, include_zmaxwellian
+            
          in_file = input_unit_exist('initialise_distribution_rh', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 

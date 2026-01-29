@@ -8,7 +8,7 @@ import netCDF4 as nc4
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/giorgiaacton/Documents/runs/ALL_RH/RH_wstar_log_resolve_peak_noJ0/'
+input_directory = '/Users/giorgiaacton/Documents/runs/ALL_RH/RH_wstar_log_resolve_peak/'
 file_prefix = 'input'
 infile = input_directory + file_prefix + '.out.nc'
 outdir = input_directory
