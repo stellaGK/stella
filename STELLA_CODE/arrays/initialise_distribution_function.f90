@@ -564,7 +564,7 @@ contains
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) * ( spread(vpa, 2, nmu)**4 )   / abs(spec(is)%z) &
+         gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
             * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
             * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
