@@ -411,7 +411,10 @@ contains
       if (write_g2_vs_kxkyzs) then; allocate (g2_vs_vpamu(nvpa, nmu)); g2_vs_vpamu = 0.; end if
          allocate (g2_vs_ztube(-nzgrid:nzgrid, ntubes)); g2_vs_ztube = 0.
 
-      if (write_g_vs_zvpas_zonal) allocate (g_vs_zivmus_zonal(2, number_zonals_kxs, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g_vs_zivmus_zonal = 0.0
+      if (write_g_vs_zvpas_zonal .and. number_zonals_kxs > 0) then
+         allocate (g_vs_zivmus_zonal(2, number_zonals_kxs, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         g_vs_zivmus_zonal = 0.0
+      end if 
 
       ! We add contributions to <g2_vs_tzmus, g2_vs_zvpas, g2_vs_vpamus> so make sure they are zero first 
       if (write_g2_vs_zvpas) then; g2_vs_zvpas = 0.; g2nozonal_vs_zvpas = 0.; end if
@@ -515,11 +518,13 @@ contains
             do iz = -nzgrid, nzgrid
                izp = iz + nzgrid + 1
                if (write_g2_vs_zvpas) call integrate_mu(iz, g2_vs_ztubeivmus(iz, it, :), g2_vs_zvpas(it, izp, :, :))
-               do j = 1, 2
-                  do ikx = 1, number_zonals_kxs
-                     if (write_g_vs_zvpas_zonal) call integrate_mu(iz, g_vs_zivmus_zonal(j, ikx, iz, :), g_vs_zvpas_zonal(j, ikx, izp, :, :))
-                  end do 
-               end do
+               if (write_g_vs_zvpas_zonal) then 
+                  do j = 1, 2
+                     do ikx = 1, number_zonals_kxs
+                        call integrate_mu(iz, g_vs_zivmus_zonal(j, ikx, iz, :), g_vs_zvpas_zonal(j, ikx, izp, :, :))
+                     end do 
+                  end do
+               end if 
                if (write_g2_vs_zmus) call integrate_vpa(g2_vs_ztubeivmus(iz, it, :), g2_vs_tzmus(it, izp, :, :))
                if (write_g2_vs_zvpas) call integrate_mu(iz, g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_zvpas(it, izp, :, :))
                if (write_g2_vs_zmus) call integrate_vpa(g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_tzmus(it, izp, :, :))

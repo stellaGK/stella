@@ -727,7 +727,7 @@ contains
          write_g_vs_zvpas_zonal = .false.
          write_free_energy = .false.
          number_zonals_kxs = 0
-
+         
       end subroutine set_default_parameters_diagnostics_zonal
 
       !---------------------------- Read input file ----------------------------
@@ -746,16 +746,19 @@ contains
          in_file = input_unit_exist('diagnostics_zonal', dexist)
          if (dexist) read (unit=in_file, nml=diagnostics_zonal)
 
-         if (dexist) then
-            if (number_zonals_kxs > 0) then 
-               if(.not. allocated(zonal_ks)) then 
-                  allocate(zonal_ks(number_zonals_kxs)); zonal_ks = 0.0
-                  do j = 1, number_zonals_kxs
-                     zonal_ks(j) = zonal_kxs(j)
-                  end do
-               end if
-            end if 
-         end if
+         if (dexist .and. number_zonals_kxs > 0) then 
+            if(.not. allocated(zonal_ks)) then 
+               allocate(zonal_ks(number_zonals_kxs)); zonal_ks = 0.0
+               do j = 1, number_zonals_kxs
+                  zonal_ks(j) = zonal_kxs(j)
+               end do
+            end if
+         else
+            write_g_vs_zvpas_zonal = .false. 
+            number_zonals_kxs = 1
+            if(.not. allocated(zonal_ks)) allocate(zonal_ks(1))
+            zonal_ks(1) = 0.0
+         end if 
 
       end subroutine read_input_file_diagnostics_zonal
       
