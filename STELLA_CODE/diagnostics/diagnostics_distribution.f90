@@ -246,6 +246,8 @@ contains
          if (write_g2_vs_zvpas .and. proc0) call write_g2nozonal_vs_zvpas_nc(nout, g2nozonal_vs_zvpas)
          if (write_g2_vs_zmus .and. proc0) call write_g2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)
          if (write_g2_vs_zvpamus .and. proc0) call write_g2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
+
+         ! Zonals
          if (write_g_vs_zvpas_zonal .and. proc0) call write_g_vs_zvpas_zonal_nc(nout, g_vs_zvpas_zonal)
          if (write_free_energy) then 
             call g_to_h(gnew, phi, bpar, fphi)
@@ -279,8 +281,8 @@ contains
          if (write_g2_vs_zmus .and. proc0) call write_h2nozonal_vs_zmus_nc(nout, g2nozonal_vs_zmus)
          if (write_g2_vs_zvpamus .and. proc0) call write_h2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
-         call calculate_free_energy(gnew, free_energy_vs_kx)
-         if (proc0) call write_free_energy_nc(nout, free_energy_vs_kx)
+         if (write_free_energy) call calculate_free_energy(gnew, free_energy_vs_kx)
+         if (write_free_energy .and. proc0) call write_free_energy_nc(nout, free_energy_vs_kx)
 
          ! Switch back to g
          if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
