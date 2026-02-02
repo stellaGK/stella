@@ -337,7 +337,7 @@ contains
       call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="a_ref/v_ref")
       call neasyf_dim(file_id, "ri", dim_size=2, long_name="Complex components", units="(real, imaginary)")
 
-      call neasyf_dim(file_id, "zonal_ks", dim_size=number_zonals_kxs)
+      call neasyf_dim(file_id, "zonal_ks", values=zonal_ks)
 
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
@@ -960,9 +960,9 @@ contains
    subroutine write_g_vs_zvpas_zonal_nc (nout, g_vs_zvpas_zonal)
      implicit none
      integer, intent(in) :: nout
-     real, dimension(:, :, :, :, :), intent(in) :: g_vs_zvpas_zonal
+     real, dimension(:, :, :, :, :, :), intent(in) :: g_vs_zvpas_zonal
      call neasyf_write(ncid, "g_vs_zvpas_zonal", g_vs_zvpas_zonal, &
-          dim_names=[character(len=8)::"ri", "zonal_ks", "zed", "vpa", "species", "t"], start=[1, 1, 1, 1, 1, nout], &
+          dim_names=[character(len=8)::"ri", "zonal_ks", "tube", "zed", "vpa", "species", "t"], start=[1, 1, 1, 1, 1, 1, nout], &
           long_name="Guiding center Zonal distribution function for min kx, ky = 0, averaged over (mu)")
    end subroutine write_g_vs_zvpas_zonal_nc
 

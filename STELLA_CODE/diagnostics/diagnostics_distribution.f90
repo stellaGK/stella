@@ -193,7 +193,7 @@ contains
       real, dimension(:, :, :, :), allocatable :: g2_vs_zvpas, g2_vs_zmus, g2nozonal_vs_zvpas, g2nozonal_vs_zmus
 
       ! Zonals
-      real, dimension(:, :, :, :, :), allocatable :: g_vs_zvpas_zonal
+      real, dimension(:, :, :, :, :, :), allocatable :: g_vs_zvpas_zonal
       real, dimension(:), allocatable :: free_energy_vs_kx
 
       real, dimension(:, :, :, :, :), allocatable :: g2_vs_zkykxs, g2_vs_zvpamus, g2nozonal_vs_zvpamus
@@ -222,7 +222,7 @@ contains
       if (write_g2_vs_kxkyzs) allocate (g2_vs_zkykxs(ntubes, nztot, naky, nakx, nspec))
 
       ! Zonal diagnostics
-      if (write_g_vs_zvpas_zonal) allocate (g_vs_zvpas_zonal(2, number_zonals_kxs, nztot, nvpa, nspec))
+      if (write_g_vs_zvpas_zonal) allocate (g_vs_zvpas_zonal(2, number_zonals_kxs, ntubes, nztot, nvpa, nspec))
       if (write_free_energy) allocate (free_energy_vs_kx(nakx)) 
 
       ! Redistribute the data from <gnew>(ky,kx,z,tube,i[vpa,mu,s]) to <gvmu>(vpa,mu,i[kx,ky,z,s]) for |g|^2(z,kx,ky,s)
@@ -392,14 +392,14 @@ contains
       real, dimension(:, :, :), intent(out) :: g2_vs_vpamus, g2nozonal_vs_vpamus
       
       ! Zonals
-      real, dimension(:, :,  :, :, :), intent(out) :: g_vs_zvpas_zonal
+      real, dimension(:, :,  :, :, :, :), intent(out) :: g_vs_zvpas_zonal
 
       ! Arrays needed to perform calculations
       real, dimension(:, :, :), allocatable :: g2_vs_ztubeivmus, g2nozonal_vs_ztubeivmus 
       real, dimension(:, :), allocatable :: g2_vs_ztube, g2_vs_vpamu
 
       ! Zonals
-      real, dimension(:, :, :, :), allocatable :: g_vs_zivmus_zonal
+      real, dimension(:, :, :, :, :), allocatable :: g_vs_zivmus_zonal
 
       integer :: ivmus, ia, iz, it, ikx, iky, izp, is, iv, imu, ikxkyzs
       integer :: j, ikx_plot
@@ -415,7 +415,7 @@ contains
          allocate (g2_vs_ztube(-nzgrid:nzgrid, ntubes)); g2_vs_ztube = 0.
 
       if (write_g_vs_zvpas_zonal .and. number_zonals_kxs > 0) then
-         allocate (g_vs_zivmus_zonal(2, number_zonals_kxs, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (g_vs_zivmus_zonal(2, number_zonals_kxs, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_vs_zivmus_zonal = 0.0
       end if 
 
@@ -470,8 +470,8 @@ contains
                else
                   ikx_plot = 1
                end if
-               g_vs_zivmus_zonal(1, 1, :, ivmus) = real(g_vs_kykxztube(1, ikx_plot, :, 1, ivmus))
-               g_vs_zivmus_zonal(2, 1, :, ivmus) = aimag(g_vs_kykxztube(1, ikx_plot, :, 1, ivmus))
+               g_vs_zivmus_zonal(1, 1, :, :, ivmus) = real(g_vs_kykxztube(1, ikx_plot, :, :, ivmus))
+               g_vs_zivmus_zonal(2, 1, :, :, ivmus) = aimag(g_vs_kykxztube(1, ikx_plot, :, :, ivmus))
 
             else 
 
@@ -481,8 +481,8 @@ contains
                   if (any(zonal_iks == ikx)) then
                      ikx_plot = ikx_plot + 1
 
-                     g_vs_zivmus_zonal(1, ikx_plot, :, ivmus) = real(g_vs_kykxztube(1, ikx, :, 1, ivmus))
-                     g_vs_zivmus_zonal(2, ikx_plot, :, ivmus) = aimag(g_vs_kykxztube(1, ikx, :, 1, ivmus))
+                     g_vs_zivmus_zonal(1, ikx_plot, :, :, ivmus) = real(g_vs_kykxztube(1, ikx, :, :, ivmus))
+                     g_vs_zivmus_zonal(2, ikx_plot, :, :, ivmus) = aimag(g_vs_kykxztube(1, ikx, :, :, ivmus))
 
                   end if
                end do
@@ -517,7 +517,7 @@ contains
       ! The velocity parallel integration takes |g|^2(ivmus) and returns int dvpa |g|^2(ivmus) = |g|^2(mu,s)
       ! There is a sum_reduce() inside of the velocity integration, so <g2_vs_tzmus> holds the total sum
       if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::write_g2_vs_zvpas .or. write_g2_vs_zmus'
-      if (write_g2_vs_zvpas .or. write_g2_vs_zmus) then
+      if (write_g2_vs_zvpas .or. write_g2_vs_zmus .or. write_g_vs_zvpas_zonal) then
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                izp = iz + nzgrid + 1
@@ -525,7 +525,7 @@ contains
                if (write_g_vs_zvpas_zonal) then 
                   do ikx = 1, number_zonals_kxs
                      do j = 1, 2
-                        call integrate_mu(iz, g_vs_zivmus_zonal(j, ikx, iz, :), g_vs_zvpas_zonal(j, ikx, izp, :, :))
+                        call integrate_mu(iz, g_vs_zivmus_zonal(j, ikx, iz, it, :), g_vs_zvpas_zonal(j, ikx, it, izp, :, :))
                      end do 
                   end do
                end if 
