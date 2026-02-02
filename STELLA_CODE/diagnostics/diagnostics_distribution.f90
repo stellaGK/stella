@@ -249,7 +249,6 @@ contains
 
          ! Zonals
          if (write_g_vs_zvpas_zonal .and. proc0) then 
-            write(*,*) 'size(g_vs_zvpas_zonal)', size(g_vs_zvpas_zonal, dim=2)
             call write_g_vs_zvpas_zonal_nc(nout, g_vs_zvpas_zonal)
          end if 
 
@@ -480,7 +479,6 @@ contains
 
                do ikx = 1, nakx
                   if (any(zonal_iks == ikx)) then
-                     write(*,*) 'ikx=', ikx, akx(ikx), ikx_plot
                      ikx_plot = ikx_plot + 1
 
                      g_vs_zivmus_zonal(1, ikx_plot, :, ivmus) = real(g_vs_kykxztube(1, ikx, :, 1, ivmus))
