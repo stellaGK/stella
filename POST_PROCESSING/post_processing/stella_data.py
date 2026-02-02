@@ -8,7 +8,7 @@ import netCDF4 as nc4
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/giorgiaacton/Documents/runs/ALL_RH/RH_wstar_log_resolve_peak/'
+input_directory = '/Users/giorgiaacton/Documents/runs/ALL_RH/test_diag/'
 file_prefix = 'input'
 infile = input_directory + file_prefix + '.out.nc'
 outdir = input_directory
@@ -26,11 +26,9 @@ naky = len(ncfile.dimensions['ky'])
 # this is the index of the first negative value of kx
 # note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
 nakx_mid = nakx//2+1
-kx = kx_stella[::-1]#np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
+kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
 
-print('kx_stella=', kx_stella) 
-print('kx====', kx)
-
+print('nakx=', nakx)
 # get zed grid
 zed = np.copy(ncfile.variables['zed'][:])
 nzed = zed.size
@@ -78,7 +76,7 @@ phi2_vs_kxky_stella, phi2_vs_kxky_present \
     = read_stella_float('phi2_vs_kxky')
 if (phi2_vs_kxky_present):
     phi2_vs_kxky_stella[:,0,0] = 0.0
-    phi2_vs_kxky = phi2_vs_kxky_stella[:,::-1,:] #np.concatenate((phi2_vs_kxky_stella[:,nakx_mid:,:],phi2_vs_kxky_stella[:,:nakx_mid,:]),axis=1)
+    phi2_vs_kxky = np.concatenate((phi2_vs_kxky_stella[:,nakx_mid:,:],phi2_vs_kxky_stella[:,:nakx_mid,:]),axis=1)
 # electrostatic potential as a function of (z,kx,ky,t)
 phi_vs_t, phi_vs_t_present \
     = read_stella_float('phi_vs_t')

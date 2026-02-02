@@ -248,7 +248,11 @@ contains
          if (write_g2_vs_zvpamus .and. proc0) call write_g2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
          ! Zonals
-         if (write_g_vs_zvpas_zonal .and. proc0) call write_g_vs_zvpas_zonal_nc(nout, g_vs_zvpas_zonal)
+         if (write_g_vs_zvpas_zonal .and. proc0) then 
+            write(*,*) 'size(g_vs_zvpas_zonal)', size(g_vs_zvpas_zonal, dim=2)
+            call write_g_vs_zvpas_zonal_nc(nout, g_vs_zvpas_zonal)
+         end if 
+
          if (write_free_energy) then 
             call g_to_h(gnew, phi, bpar, fphi)
             call calculate_free_energy(gnew, free_energy_vs_kx)
@@ -476,6 +480,7 @@ contains
 
                do ikx = 1, nakx
                   if (any(zonal_iks == ikx)) then
+                     write(*,*) 'ikx=', ikx, akx(ikx), ikx_plot
                      ikx_plot = ikx_plot + 1
 
                      g_vs_zivmus_zonal(1, ikx_plot, :, ivmus) = real(g_vs_kykxztube(1, ikx, :, 1, ivmus))
@@ -484,6 +489,7 @@ contains
                   end if
                end do
             end if 
+
          end if 
 
       end do
@@ -519,8 +525,8 @@ contains
                izp = iz + nzgrid + 1
                if (write_g2_vs_zvpas) call integrate_mu(iz, g2_vs_ztubeivmus(iz, it, :), g2_vs_zvpas(it, izp, :, :))
                if (write_g_vs_zvpas_zonal) then 
-                  do j = 1, 2
-                     do ikx = 1, number_zonals_kxs
+                  do ikx = 1, number_zonals_kxs
+                     do j = 1, 2
                         call integrate_mu(iz, g_vs_zivmus_zonal(j, ikx, iz, :), g_vs_zvpas_zonal(j, ikx, izp, :, :))
                      end do 
                   end do
