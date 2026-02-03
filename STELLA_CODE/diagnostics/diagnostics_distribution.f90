@@ -128,7 +128,7 @@ contains
       ! Dimensions
       use grids_kxky, only: nakx, naky
       use grids_velocity, only: nvpa, nmu
-      use grids_z, only: nztot, ntubes
+      use grids_z, only: nztot, ntubes, nzgrid
       use grids_species, only: nspec
 
       ! Write to netcdf file
@@ -176,7 +176,6 @@ contains
 
       use parameters_diagnostics, only: write_g_vs_zvpas_zonal
       use parameters_diagnostics, only: write_free_energy
-      use parameters_diagnostics, only: number_zonals_kxs, zonal_iks
       
       ! Calculations
       use calculations_tofrom_ghf, only: g_to_f, g_to_h
@@ -193,7 +192,7 @@ contains
       real, dimension(:, :, :, :), allocatable :: g2_vs_zvpas, g2_vs_zmus, g2nozonal_vs_zvpas, g2nozonal_vs_zmus
 
       ! Zonals
-      real, dimension(:, :, :, :, :, :), allocatable :: g_vs_zvpas_zonal
+      complex, dimension(:, :, :, :, :), allocatable :: g_vs_zvpas_zonal
       real, dimension(:), allocatable :: free_energy_vs_kx
 
       real, dimension(:, :, :, :, :), allocatable :: g2_vs_zkykxs, g2_vs_zvpamus, g2nozonal_vs_zvpamus
@@ -222,7 +221,7 @@ contains
       if (write_g2_vs_kxkyzs) allocate (g2_vs_zkykxs(ntubes, nztot, naky, nakx, nspec))
 
       ! Zonal diagnostics
-      if (write_g_vs_zvpas_zonal) allocate (g_vs_zvpas_zonal(2, number_zonals_kxs, ntubes, nztot, nvpa, nspec))
+      if (write_g_vs_zvpas_zonal) allocate (g_vs_zvpas_zonal(nakx, -nzgrid:nzgrid, ntubes, nvpa, nspec))
       if (write_free_energy) allocate (free_energy_vs_kx(nakx)) 
 
       ! Redistribute the data from <gnew>(ky,kx,z,tube,i[vpa,mu,s]) to <gvmu>(vpa,mu,i[kx,ky,z,s]) for |g|^2(z,kx,ky,s)
@@ -248,9 +247,7 @@ contains
          if (write_g2_vs_zvpamus .and. proc0) call write_g2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
          ! Zonals
-         if (write_g_vs_zvpas_zonal .and. proc0) then 
-            call write_g_vs_zvpas_zonal_nc(nout, g_vs_zvpas_zonal)
-         end if 
+         if (write_g_vs_zvpas_zonal .and. proc0) call write_g_vs_zvpas_zonal_nc(nout, g_vs_zvpas_zonal)
 
          if (write_free_energy) then 
             call g_to_h(gnew, phi, bpar, fphi)
@@ -380,7 +377,6 @@ contains
       use parameters_diagnostics, only: write_g2_vs_zvpamus
 
       use parameters_diagnostics, only: write_g_vs_zvpas_zonal
-      use parameters_diagnostics, only: number_zonals_kxs, zonal_iks
 
       implicit none
 
@@ -392,14 +388,14 @@ contains
       real, dimension(:, :, :), intent(out) :: g2_vs_vpamus, g2nozonal_vs_vpamus
       
       ! Zonals
-      real, dimension(:, :,  :, :, :, :), intent(out) :: g_vs_zvpas_zonal
+      complex, dimension(:, -nzgrid:, :, :, :), intent(out) :: g_vs_zvpas_zonal
 
       ! Arrays needed to perform calculations
       real, dimension(:, :, :), allocatable :: g2_vs_ztubeivmus, g2nozonal_vs_ztubeivmus 
       real, dimension(:, :), allocatable :: g2_vs_ztube, g2_vs_vpamu
 
       ! Zonals
-      real, dimension(:, :, :, :, :), allocatable :: g_vs_zivmus_zonal
+      complex, dimension(:, :, :, :), allocatable :: g_vs_zivmus_zonal
 
       integer :: ivmus, ia, iz, it, ikx, iky, izp, is, iv, imu, ikxkyzs
       integer :: j, ikx_plot
@@ -414,8 +410,8 @@ contains
       if (write_g2_vs_kxkyzs) then; allocate (g2_vs_vpamu(nvpa, nmu)); g2_vs_vpamu = 0.; end if
          allocate (g2_vs_ztube(-nzgrid:nzgrid, ntubes)); g2_vs_ztube = 0.
 
-      if (write_g_vs_zvpas_zonal .and. number_zonals_kxs > 0) then
-         allocate (g_vs_zivmus_zonal(2, number_zonals_kxs, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (write_g_vs_zvpas_zonal) then
+         allocate (g_vs_zivmus_zonal(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_vs_zivmus_zonal = 0.0
       end if 
 
@@ -464,28 +460,19 @@ contains
 
          ! Zonals
          if (write_g_vs_zvpas_zonal) then
-            if (number_zonals_kxs == 1) then 
+            if (nakx == 1) then 
                if (abs(akx(1)) < epsilon(0.)) then
                   ikx_plot = 2
                else
                   ikx_plot = 1
                end if
-               g_vs_zivmus_zonal(1, 1, :, :, ivmus) = real(g_vs_kykxztube(1, ikx_plot, :, :, ivmus))
-               g_vs_zivmus_zonal(2, 1, :, :, ivmus) = aimag(g_vs_kykxztube(1, ikx_plot, :, :, ivmus))
+               g_vs_zivmus_zonal(1, :, :, ivmus) = g_vs_kykxztube(1, ikx_plot, :, :, ivmus)
 
             else 
 
                ikx_plot = 0
 
-               do ikx = 1, nakx
-                  if (any(zonal_iks == ikx)) then
-                     ikx_plot = ikx_plot + 1
-
-                     g_vs_zivmus_zonal(1, ikx_plot, :, :, ivmus) = real(g_vs_kykxztube(1, ikx, :, :, ivmus))
-                     g_vs_zivmus_zonal(2, ikx_plot, :, :, ivmus) = aimag(g_vs_kykxztube(1, ikx, :, :, ivmus))
-
-                  end if
-               end do
+               g_vs_zivmus_zonal(:, :, :, ivmus) = g_vs_kykxztube(1, :, :, :, ivmus)
             end if 
 
          end if 
@@ -517,24 +504,27 @@ contains
       ! The velocity parallel integration takes |g|^2(ivmus) and returns int dvpa |g|^2(ivmus) = |g|^2(mu,s)
       ! There is a sum_reduce() inside of the velocity integration, so <g2_vs_tzmus> holds the total sum
       if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::write_g2_vs_zvpas .or. write_g2_vs_zmus'
-      if (write_g2_vs_zvpas .or. write_g2_vs_zmus .or. write_g_vs_zvpas_zonal) then
+      if (write_g2_vs_zvpas .or. write_g2_vs_zmus) then
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                izp = iz + nzgrid + 1
                if (write_g2_vs_zvpas) call integrate_mu(iz, g2_vs_ztubeivmus(iz, it, :), g2_vs_zvpas(it, izp, :, :))
-               if (write_g_vs_zvpas_zonal) then 
-                  do ikx = 1, number_zonals_kxs
-                     do j = 1, 2
-                        call integrate_mu(iz, g_vs_zivmus_zonal(j, ikx, iz, it, :), g_vs_zvpas_zonal(j, ikx, it, izp, :, :))
-                     end do 
-                  end do
-               end if 
                if (write_g2_vs_zmus) call integrate_vpa(g2_vs_ztubeivmus(iz, it, :), g2_vs_tzmus(it, izp, :, :))
                if (write_g2_vs_zvpas) call integrate_mu(iz, g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_zvpas(it, izp, :, :))
                if (write_g2_vs_zmus) call integrate_vpa(g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_tzmus(it, izp, :, :))
             end do
          end do
       end if
+
+      if (write_g_vs_zvpas_zonal) then
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  call integrate_mu(iz, g_vs_zivmus_zonal(ikx, iz, it, :), g_vs_zvpas_zonal(ikx, iz, it, :, :))
+               end do
+            end do
+         end do
+      end if 
 
       ! For the field line average normalise to account for contributions from multiple flux tubes
       ! in a flux tube train, and sum the values on all processors and to send them to <proc0>
@@ -551,6 +541,10 @@ contains
       if (write_g2_vs_kxkyzs) then
          if (nproc > 1) call sum_reduce(g2_vs_zkykxs, 0)
       end if
+
+      if (write_g_vs_zvpas_zonal) then
+         if (nproc > 1) call sum_reduce(g_vs_zvpas_zonal, 0) 
+      end if 
 
       ! Deallocate local arrays
       if (write_g2_vs_zvpas) deallocate (g2nozonal_vs_ztubeivmus)

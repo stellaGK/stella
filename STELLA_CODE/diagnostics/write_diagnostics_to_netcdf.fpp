@@ -305,7 +305,6 @@ contains
       use grids_z, only: nzgrid, ntubes, zed
       use grids_velocity, only: nvpa, vpa, nmu, mu
       use grids_species, only: nspec
-      use parameters_diagnostics, only: number_zonals_kxs, zonal_ks
       ! Geometry
       use parameters_physics, only: rhostar
       use geometry, only: geo_surf, dxdpsi, q_as_x
@@ -319,7 +318,6 @@ contains
       ! Local variables
       integer :: ix
       real :: nmesh  ! Total number of mesh points
-
 
       !-------------------------------------------------------------------------
       !                                DIMENSIONS                               
@@ -336,8 +334,6 @@ contains
       call neasyf_dim(file_id, "species", dim_size=nspec)
       call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="a_ref/v_ref")
       call neasyf_dim(file_id, "ri", dim_size=2, long_name="Complex components", units="(real, imaginary)")
-
-      call neasyf_dim(file_id, "zonal_ks", values=zonal_ks)
 
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
@@ -958,12 +954,18 @@ contains
    end subroutine write_g2_vs_zvpas_nc
 
    subroutine write_g_vs_zvpas_zonal_nc (nout, g_vs_zvpas_zonal)
-     implicit none
-     integer, intent(in) :: nout
-     real, dimension(:, :, :, :, :, :), intent(in) :: g_vs_zvpas_zonal
-     call neasyf_write(ncid, "g_vs_zvpas_zonal", g_vs_zvpas_zonal, &
-          dim_names=[character(len=8)::"ri", "zonal_ks", "tube", "zed", "vpa", "species", "t"], start=[1, 1, 1, 1, 1, 1, nout], &
+      implicit none
+      integer, intent(in) :: nout
+      complex, dimension(:, :, :, :, :), intent(in) :: g_vs_zvpas_zonal
+#ifdef NETCDF
+      character(*), dimension(*), parameter :: dims = [character(7)::"ri", "kx", "zed", "tube", "vpa", "species", "t"]
+      integer, dimension(7) :: start
+      start = [1, 1, 1, 1, 1, 1, nout]
+
+      call netcdf_write_complex(ncid, "g_vs_zvpas_zonal", g_vs_zvpas_zonal, &
+          dim_names=dims, start=start, &
           long_name="Guiding center Zonal distribution function for min kx, ky = 0, averaged over (mu)")
+#endif
    end subroutine write_g_vs_zvpas_zonal_nc
 
       subroutine write_free_energy_nc(nout, free_energy_vs_kx)

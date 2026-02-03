@@ -269,9 +269,8 @@ contains
          
          call broadcast(write_g_vs_zvpas_zonal)
          call broadcast(write_free_energy)
-         call broadcast(number_zonals_kxs)
-         call broadcast(number_zonals_kxs)
-         
+         call broadcast(number_zonals_kxs) 
+
          call broadcast(write_radial_fluxes)
          call broadcast(write_radial_moments)
          call broadcast(write_fluxes_kxkyz)

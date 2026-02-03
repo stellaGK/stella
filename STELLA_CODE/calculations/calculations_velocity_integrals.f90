@@ -58,6 +58,7 @@ module calculations_velocity_integrals
    interface integrate_mu
       module procedure integrate_mu_local
       module procedure integrate_mu_nonlocal
+      module procedure integrate_mu_nonlocal_complex
    end interface
 
    ! Integrations over the parallel velocity
@@ -145,6 +146,49 @@ contains
       if (nproc > 1) call sum_reduce(total, 0)
 
    end subroutine integrate_mu_nonlocal
+
+
+   !---------------- Each processor has a number of ivmu points ----------------
+   subroutine integrate_mu_nonlocal_complex(iz, g, total)
+
+      use mp, only: nproc, sum_allreduce
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, imu_idx, iv_idx
+
+      implicit none
+
+      ! Arguments
+      integer, intent(in) :: iz
+      complex, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :), intent(out) :: total
+
+      ! Local variables
+      integer :: is, imu, iv, ivmu, ia
+      
+      !-------------------------------------------------------------------------
+
+      ! Initialise sum
+      total = 0.
+      ! Assume we only have a single flux tube
+      ia = 1
+      
+      ! Iterate over the i[vpa, mu, s] points
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      
+         ! Obtain the [ivpa, imu, is] indices from [ivmus]
+         is = is_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         iv = iv_idx(vmu_lo, ivmu)
+         
+         ! Integrate over mu
+         total(iv, is) = total(iv, is) + wgts_mu(ia, iz, imu) * g(ivmu)
+         
+      end do
+
+      ! Each processor has a few [ivmu] points, so sum all calculations
+      call sum_allreduce(total)
+
+   end subroutine integrate_mu_nonlocal_complex
  
 !###############################################################################
 !############################## INTEGRALS OVER VPA #############################
@@ -291,7 +335,6 @@ contains
             total(:, :, iz, :, is) = total(:, :, iz, :, is) + &
                wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, iz, :, ivmu) * weights(is)
          end do
-         
       end do
 
       ! Each processor has a few [ivmu] points, so sum all calculations

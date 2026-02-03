@@ -737,7 +737,7 @@ contains
          implicit none
          integer :: ios
          integer, parameter :: max_kxs = 100
-         real(kind=8) :: zonal_kxs(max_kxs)
+         real :: zonal_kxs(max_kxs)
          integer :: j
 
          namelist /diagnostics_zonal/ write_g_vs_zvpas_zonal, write_free_energy, &

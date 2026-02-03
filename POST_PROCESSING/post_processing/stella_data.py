@@ -27,7 +27,6 @@ naky = len(ncfile.dimensions['ky'])
 # note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
 nakx_mid = nakx//2+1
 kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
-
 print('nakx=', nakx)
 # get zed grid
 zed = np.copy(ncfile.variables['zed'][:])

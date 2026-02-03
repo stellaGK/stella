@@ -83,8 +83,8 @@ def movie_2d(z, xin, yin, zmin, zmax, nframes, outfile,
         z_even = np.sign(np.real(z_even_full)) * np.abs(z_even_full)
         z_odd  = np.sign(np.real(z_odd_full)) * np.abs(z_odd_full)
     else:
-        z_even = np.real(z_even_full)#0.5*(z + np.flip(z, axis=1)))
-        z_odd  = np.real(z_odd_full) #0.5*(z - np.flip(z, axis=1)))
+        z_even = np.real(z_even_full)
+        z_odd  = np.real(z_odd_full) 
 
     # Ensure frames list respects step
     frames = list(range(0, nframes, step))

@@ -1395,4 +1395,5 @@ $(OBJ_DIR)/write_diagnostics_to_netcdf.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/neasyf.o \
 	 $(OBJ_DIR)/netcdf_utils.o \
+	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_physics.o 
