@@ -54,12 +54,12 @@ contains
       ! use neoclassical_terms, only: init_neoclassical_terms
       
       ! For NEO's neoclassical corrections. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
       use gk_neo_chi_terms, only: init_neo_chi_terms    
       use gk_neo_apar_terms, only: init_neo_apar_terms
       use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
       use gk_neo_drive, only: init_wstar1, init_wpol
-      use gk_neo_drifts, only: init_neo_curv_drift !, init_neo_mag_drift
+      use gk_neo_drifts, only: init_neo_curv_drift
                                                                                    
       implicit none
 
@@ -75,14 +75,6 @@ contains
       ! if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
       !     call init_neoclassical_terms
       ! end if      
-
-      ! Set up neoclassical corrections to the equilibrium Maxwellian. This is only
-      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation or steep gradient regimes.                          
-      ! This option should only be computed if NEO is selected as the neoclassical option (neo_option_switch = 2).
-      if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
-      if (neoclassical_is_enabled()) then
-          call init_neoclassical_terms_neo                                        
-      end if 
  
       ! Calculate the term multiplying dg/dvpa in the mirror term and set up either the
       ! semi-Lagrange machinery or the tridiagonal matrix to be inverted if solving implicitly
@@ -122,7 +114,6 @@ contains
           call init_wpol
 
           ! Allocate and calculate the neoclassical magnetic and curvature drift corrections. 
-          ! call init_neo_mag_drift
           call init_neo_curv_drift
       end if
       
@@ -187,7 +178,7 @@ contains
       use gk_neo_apar_terms, only: finish_neo_apar_terms
       use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
       use gk_neo_drive, only: finish_wstar1, finish_wpol
-      use gk_neo_drifts, only: finish_neo_curv_drift !, finish_neo_mag_drift
+      use gk_neo_drifts, only: finish_neo_curv_drift
 
       implicit none
 
@@ -210,7 +201,6 @@ contains
           call finish_neo_chi_terms
 
           ! If apar is included, deallocate the apar neoclassical terms.  
-
           if (include_apar) then
               call finish_neo_apar_terms
           end if 
@@ -218,7 +208,6 @@ contains
           call finish_neo_dchidz_terms
           call finish_wstar1
           call finish_wpol
-          ! call finish_neo_mag_drift
           call finish_neo_curv_drift
       end if
 

@@ -22,8 +22,9 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
-    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_dvpa, dneo_h_dmu           ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
+    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_dvpa, dneo_h_dmu           ! Will represent NEO's distribution and its derivatives in real space and velocity space.  
     public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
+    public :: neo_h_global
 
     public :: initialised_neoclassical_terms_neo
 
@@ -37,7 +38,8 @@ module neoclassical_terms_neo
     integer :: iz, unit
     character(len=128) :: filename
 
-    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz  
+    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
+    real, dimension(:, :, :, :, :), allocatable :: neo_h_global  
     real, dimension(:, :), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
     real, dimension(:, :, :), allocatable :: dneo_h_dvpa, dneo_h_dmu
     
@@ -87,14 +89,19 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine init_neoclassical_terms_neo
+        !MP.
         use mp, only: proc0, broadcast
-        use iso_fortran_env, only: output_unit
+
+        ! Parallelisation. 
         use parallelisation_layouts, only: vmu_lo
+
+        ! Grids. 
         use grids_z, only: nzgrid
         use grids_velocity, only: nvpa, nmu 
         use grids_species, only: nspec
+        
+        ! For NEO's data. 
         use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi, neo_grid_data, neo_version_data        
-        use neoclassical_diagnostics, only: write_dneo_h_dz_diagnostic, write_dneo_phi_dz_diagnostic
 
         implicit none
 
@@ -106,14 +113,15 @@ contains
         real, dimension(:, :), allocatable :: neo_phi_right, neo_phi_left                                                 ! Holds NEO ϕ^1_0 data evaluated on the stella z grid.
 
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids. Since ϕ^1_0 is independent of velocity variables, there are no accompanying arrays for ϕ^1_0 here.
-        real, dimension(:, :, :, :, :), allocatable :: neo_h_local, neo_h_local_right, neo_h_local_left
+        real, dimension(:, :, :, :, :), allocatable :: neo_h_global_right, neo_h_global_left
 
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
         real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
 
         integer :: iz
         integer :: surface_index
-        integer :: ierr      
+        integer :: ierr     
+        integer :: output_unit 
 
         type(neo_grid_data) :: neo_grid
         type(neo_version_data) :: neo_version
@@ -145,6 +153,7 @@ contains
         ! Allocate all of the arrays that will be used in the higher order corrections. 
 
         if (.not. allocated(neo_h)) allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(neo_h_global)) allocate(neo_h_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_phi)) allocate(neo_phi(-nzgrid:nzgrid, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dpsi)) allocate(dneo_h_dpsi(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(dneo_phi_dpsi)) allocate(dneo_phi_dpsi(-nzgrid:nzgrid, neo_grid%n_radial))
@@ -179,16 +188,16 @@ contains
         call get_neo_phi_on_stella_z_grid(neo_phi_right_in, neo_grid, 1, neo_phi_right, .false.)       ! Repeat for the right surface.
         call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left, .false.)         ! Repeat for the left surface. 
 
-        call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_local)                ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
-        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_local_right)                                             
-        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_local_left)      
+        call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_global)                ! Now reconstruct H_1 on stellas v∥​ and μ grids for central surface.
+        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_global_right)                                             
+        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_global_left)      
 
         ! Now compact distribution into 3 indices for use in the GK equation and also for calculating the derivatives.  
 
         do iz = -nzgrid, nzgrid
-            call distribute_vmus_over_procs(neo_h_local(iz, :, :, :, 1), neo_h(iz, :, 1))      
-            call distribute_vmus_over_procs(neo_h_local_right(iz, :, :, :, 1), neo_h_right(iz, :, 1))
-            call distribute_vmus_over_procs(neo_h_local_left(iz, :, :, :, 1), neo_h_left(iz, :, 1))
+            call distribute_vmus_over_procs(neo_h_global(iz, :, :, :, 1), neo_h(iz, :, 1))      
+            call distribute_vmus_over_procs(neo_h_global_right(iz, :, :, :, 1), neo_h_right(iz, :, 1))
+            call distribute_vmus_over_procs(neo_h_global_left(iz, :, :, :, 1), neo_h_left(iz, :, 1))
         end do        
 
         ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed.
@@ -197,15 +206,15 @@ contains
         dneo_h_dpsi = (neo_h_right - neo_h_left) / (2 * drho)
         dneo_phi_dpsi = (neo_phi_right - neo_phi_left) / (2 * drho) 
 
-        ! z derivatives can be obtained via the derivative option of the interpolation routine. 
+        ! z derivatives can also be obtained via a finite difference method. 
 
         call get_dneo_h_dz(neo_h, 1, dneo_h_dz)
         call get_dneo_phi_dz(neo_phi, 1, dneo_phi_dz)
 
-        ! Finally we need the derivatives of the distribution with respect to stellas velocity variables.
+        ! We will need the derivatives of the distribution with respect to stellas velocity variables.
 
         call get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, dneo_h_dvpa, dneo_h_dmu)
-   
+             
         ! Finally, deallocate all temporary arrays.
         call deallocate_temp_arrays
 
@@ -239,9 +248,8 @@ contains
         if (.not. allocated(neo_phi_left)) allocate(neo_phi_left(-nzgrid:nzgrid, neo_grid%n_radial))    
 
         ! Allocate the NEO H_1 5D arrays on stellas z and velocity grids.
-        if (.not. allocated(neo_h_local)) allocate(neo_h_local(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))   
-        if (.not. allocated(neo_h_local_right)) allocate(neo_h_local_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        if (.not. allocated(neo_h_local_left)) allocate(neo_h_local_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_h_global_right)) allocate(neo_h_global_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_h_global_left)) allocate(neo_h_global_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
 
         ! Allocate the NEO H_1 3D arrays (for left and right flux surfaces) on stellas z and velocity grids.
         if (.not. allocated(neo_h_right)) allocate(neo_h_right(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial)) 
@@ -267,10 +275,9 @@ contains
         if (allocated(neo_h_hat_right_z_grid)) deallocate(neo_h_hat_right_z_grid)    
         if (allocated(neo_h_hat_left_z_grid)) deallocate(neo_h_hat_left_z_grid)   
         if (allocated(neo_phi_right)) deallocate(neo_phi_right) 
-        if (allocated(neo_phi_left)) deallocate(neo_phi_left)
-        if (allocated(neo_h_local)) deallocate(neo_h_local)       
-        if (allocated(neo_h_local_right)) deallocate(neo_h_local_right)
-        if (allocated(neo_h_local_left)) deallocate(neo_h_local_left)
+        if (allocated(neo_phi_left)) deallocate(neo_phi_left)       
+        if (allocated(neo_h_global_right)) deallocate(neo_h_global_right)
+        if (allocated(neo_h_global_left)) deallocate(neo_h_global_left)
         if (allocated(neo_h_right)) deallocate(neo_h_right)   
         if (allocated(neo_h_left)) deallocate(neo_h_left)  
 
@@ -288,6 +295,7 @@ contains
         implicit none
 
         if (allocated(neo_h)) deallocate(neo_h)
+        if (allocated(neo_h_global)) deallocate(neo_h_global)
         if (allocated(neo_phi)) deallocate(neo_phi)
         if (allocated(dneo_h_dpsi)) deallocate(dneo_h_dpsi)
         if (allocated(dneo_phi_dpsi)) deallocate(dneo_phi_dpsi)
@@ -653,14 +661,6 @@ contains
         real, allocatable :: dneo_h_dvpa_global(:, :, :, :, :)
         real, allocatable :: dneo_h_dmu_global(:, :, :, :, :)
 
-        ! FOR DEBUGGING: 
-    
-        real :: dvpa_min, dvpa_max
-        real :: dmu_min,  dmu_max
-        logical :: bad_data
-
-        bad_data = .false.
-
         allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
 
@@ -699,23 +699,6 @@ contains
 
         deallocate(dneo_h_dvpa_global)
         deallocate(dneo_h_dmu_global)
-
-        ! FOR DEBUGGING:
-
-        dvpa_min = minval(dneo_h_dvpa)
-        dvpa_max = maxval(dneo_h_dvpa)
-        dmu_min  = minval(dneo_h_dmu)
-        dmu_max  = maxval(dneo_h_dmu)
-
-        if (any(.not. ieee_is_finite(dneo_h_dvpa))) bad_data = .true.
-        if (any(.not. ieee_is_finite(dneo_h_dmu)))  bad_data = .true.
-
-        if (bad_data) then
-            write(*,*) 'NEO velocity-derivative diagnostic failure'
-            write(*,*) 'dvpa min/max = ', dvpa_min, dvpa_max
-            write(*,*) 'dmu  min/max = ', dmu_min,  dmu_max
-            error stop 'Non-finite values detected in NEO velocity derivatives'
-        end if
 
     end subroutine get_neo_h_velocity_derivs_on_stella_grids
 

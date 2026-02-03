@@ -27,7 +27,6 @@ module arrays
    public :: initialised_neo_dchidz_terms
    public :: initialised_wstar1
    public :: initialised_wpol
-   ! public :: initialised_neo_mag_drift
    public :: initialised_neo_curv_drift
    
    !----------------------------------------------------------------------------
@@ -74,8 +73,6 @@ module arrays
    public :: neo_dchidz_coeff
    public :: wstar1
    public :: wpol
-   ! public :: neomagx
-   ! public :: neomagy
    public :: neocurvx
    public :: neocurvy
 
@@ -86,6 +83,8 @@ module arrays
    ! Arrays used to calculate the fields for electrostatic simulations
    public :: denominator_fields
    public :: denominator_fields_h
+   ! For NEO's higher order corrections. 
+   public :: denominator_fields_neo_adiab
    
    ! Arrays used to calculate the fields for electrostatic simulations
    ! considering a Modified Boltzmann Response for the electrons
@@ -120,7 +119,6 @@ module arrays
    logical :: initialised_neo_dchidz_terms
    logical :: initialised_wstar1
    logical :: initialised_wpol
-   ! logical :: initialised_neo_mag_drift
    logical :: initialised_neo_curv_drift
 
    !----------------------------------------------------------------------------
@@ -160,7 +158,6 @@ module arrays
    real, dimension(:, :, :), allocatable :: neo_apar_coeff
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
    real, dimension(:, :, :), allocatable :: wstar1, wpol
-   ! real, dimension(:, :, :), allocatable :: neomagx, neomagy
    real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
 
    !----------------------------------------------------------------------------
@@ -173,6 +170,9 @@ module arrays
    real :: denominator_fields_h
    real :: denominator_fields_MBR_h
    real :: efac, efacp
+   ! For NEO's higher order corrections.
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_adiab
+
    
    ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_inv11

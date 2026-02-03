@@ -273,9 +273,8 @@ contains
       ! Parse collision variables to read_parameters_species to avoid circular dependencies
       use dissipation_and_collisions, only: vnew_ref
 
-      ! Read in neoclassical inputs.
-      
-      use neoclassical_terms_neo, only: read_parameters_neoclassical                ! <============ Addition for reading neoclassical input.
+      ! Read in neoclassical inputs.      
+      use neoclassical_terms_neo, only: read_parameters_neoclassical    
       
       implicit none
       
@@ -400,6 +399,9 @@ contains
       use gk_sources, only: init_sources
       use field_equations, only: init_field_equations
       
+      ! NEO data.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo
+
       implicit none
       
       ! Arguments
@@ -434,6 +436,13 @@ contains
       ! Initialise sources
       if (debug) write (6, *) 'stella::init_stella::init_sources'
       call init_sources
+
+      ! If NEO's neoclassical terms are enabled, we calculate the various pieces of information 
+      ! needed for higher order corrections.
+      if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
+      if (neoclassical_is_enabled()) then
+          call init_neoclassical_terms_neo
+      end if
       
       ! Allocate and initialise time-independent arrays needed to
       ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)

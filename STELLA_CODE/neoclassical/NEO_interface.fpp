@@ -246,23 +246,23 @@ contains
 
     function get_neo_species_data(basename, grid) result(species)
         implicit none
-    
         character(len=*), parameter :: suffix = ".species"
         character(len=*), intent(in) :: basename
-        type(neo_grid_data), intent(in) :: grid ! Needed for grid%n_species
+        type(neo_grid_data), intent(in) :: grid
         type(neo_species_data) :: species
         integer :: unit, is
         character(len=:), allocatable :: filename
-    
         filename = basename // suffix
 
         if ( file_exists(filename) ) then
             open(newunit = unit, file = filename, status="old", action="read")
-        
             allocate(species%mass(grid%n_species))
             allocate(species%charge(grid%n_species))
 
-            read(unit, *) (species%mass(is), species%charge(is), is = 1, grid%n_species)
+            do is = 1, grid%n_species
+                read(unit, '(e16.8)', advance='no') species%mass(is)
+                read(unit, '(e16.8)', advance='no') species%charge(is)
+            end do
 
             close(unit)
         end if

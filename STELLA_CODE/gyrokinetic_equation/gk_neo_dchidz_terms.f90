@@ -4,11 +4,11 @@
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( ∂H_1/∂v∥|_μ - 2v∥ * ( H_1 - e * ϕ₀¹ ) ) * ∂<Χ_k>/∂z            
+! = - 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( (v∥/B₀) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * ∂<Χ_k>/∂z            
 !         
 ! Define the neoclassical ∂<Χ_k>/∂z coefficient as: 
 ! 
-! <neo_dchidz_coeff> = 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( ∂H_1/∂v∥|_μ - 2v∥ * ( H_1 - e * ϕ₀¹ ) ) * code_dt
+! <neo_dchidz_coeff> = - 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( (v∥/B₀) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * code_dt
 !
 ! This must be multiplied by ∂<Χ_k>/∂z and then added to the RHS of the GKE.
 ! 
@@ -24,7 +24,7 @@ module gk_neo_dchidz_terms
    ! Make routines available to other modules. 
    public :: initialised_neo_dchidz_terms
    public :: init_neo_dchidz_terms, finish_neo_dchidz_terms
-   public :: advance_neo_dchidz_terms_explicit, advance_neo_dchidz_terms_implicit 
+   public :: advance_neo_dchidz_terms_explicit
 
    private
    
@@ -42,6 +42,7 @@ contains
         use mp, only: mp_abort
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
+        ! Grids.
         use grids_time, only: code_dt
         use grids_species, only: spec, nspec
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -49,16 +50,18 @@ contains
         use grids_z, only: nzgrid, nztot
         use grids_kxky, only: nalpha
 
+        ! Geometry.
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
+        ! NEO data.
+        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
-        use parameters_physics, only: include_apar
-
+        ! Arrays.
         use arrays, only: neo_dchidz_coeff, initialised_neo_dchidz_terms
 
         implicit none
 
+        ! Local variables. 
         integer :: iz, iv, is, imu, ivmu
 
         ! Only intialise once.
@@ -79,15 +82,14 @@ contains
             ! Calculate neo_dchidz_coeff at each grid point. Calculation is broken up for ease of reading.  
             do iz = -nzgrid, nzgrid
                 ! First compute the magnetic geometry prefactor. 
-                neo_dchidz_coeff(:, iz, ivmu) = 0.5 * b_dot_gradz(:, iz) 
+                neo_dchidz_coeff(:, iz, ivmu) = - 0.5 * b_dot_gradz(:, iz) 
 
                 ! Multiply by the species dependent prefactor. 
                 neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * (spec(is)%z / spec(is)%temp) * maxwell_vpa(iv, is) &
                 * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * spec(is)%stm_psi0
 
                 ! Multiply by the neoclassical distribution prefactor. 
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) &
-                * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) ) 
+                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( (vpa(iv) / bmag(:, iz) ) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) ) 
 
                 ! Finally, multiply by code_dt. 
                 neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * code_dt 
@@ -188,15 +190,6 @@ contains
 
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------------- Advance the terms implicitly. ------------------------------------------------------------------------- ! 
-! ================================================================================================================================================================================= !
-
-    subroutine advance_neo_dchidz_terms_implicit
-        implicit none
-    end subroutine advance_neo_dchidz_terms_implicit
-
-
-! ================================================================================================================================================================================= !
 ! ------------------------------------------------------------------------------- Finish the terms. ------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
@@ -210,10 +203,6 @@ contains
 
     end subroutine finish_neo_dchidz_terms
 
-
-! ================================================================================================================================================================================= !
-! ---------------------------------------------------------------------------------- Utilities. ----------------------------------------------------------------------------------- ! 
-! ================================================================================================================================================================================= !
 
 ! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 

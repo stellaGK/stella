@@ -107,8 +107,8 @@ contains
         ! Allocate the temporary arrays. 
 
         allocate (energy(nalpha, -nzgrid:nzgrid))        
-        allocate (wstar1psi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))      
-        allocate (wstar1z(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (wstar1psi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1psi = 0.0      
+        allocate (wstar1z(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1z = 0.0
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -117,7 +117,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu). 
-            energy(:, :) = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
+            energy  = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
  
             ! Mutliply by the magnetic geometry prefactor.
             wstar1psi(:, :, ivmu) = - (0.5/clebsch_factor) * dydalpha * drhodpsi 
@@ -128,7 +128,7 @@ contains
             do iz = -nzgrid, nzgrid
                 ! Multiply by the neolcassical distribution factor. 
                 wstar1psi(:, iz, ivmu) = wstar1psi(:, iz, ivmu) * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz, 1) &
-                + ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1)) * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) )
+                + ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) )
             end do
       end do
 

@@ -14,17 +14,7 @@
 !
 ! This must be multiplied by <Χ_k> and then added to the RHS of the GKE.
 !
-! Neoclassical corrections proportional to <Χ_k> and the magnetic/curvature drifts are handled in a seperate module called gk_neo_drifts.f90, for easier interpretation.   
-! 
-! There is one last NEO <Χ_k> correction on the RHS:
-!
-! - 1/2B₀ * Z/T * exp(-v²) * ∂F_1/∂μ|_v∥ * ∂<Χ_k>/∂t
-!
-! This is handled by adding a source term to this module: 
-! 
-! + 1/2B₀ * Z/T * exp(-v²) * ∂F_1/∂μ|_v∥ * <Χ_k>
-!
-! and transforming the distribution to gbarneo when advancing this term. See calculations_tofrom_ghf.f90 for more details on gbarneo.
+! Neoclassical corrections proportional to <Χ_k> and the magnetic curvature drift are handled in a seperate module called gk_neo_drifts.f90, for easier interpretation.   
 !
 ! ================================================================================================================================================================================= !
 
@@ -49,7 +39,7 @@ module gk_neo_chi_terms
 contains
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------ Initialise the neoclassical Χ_k terms. ----------------------------------------------------------------------- ! 
+! -------------------------------------------------------------------- Initialise the neoclassical Χ_k terms. --------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
     subroutine init_neo_chi_terms
@@ -68,17 +58,11 @@ contains
 
         use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
-        use parameters_physics, only: include_apar
-
         use arrays, only: neo_chi_coeff, initialised_neo_chi_terms
 
         implicit none
 
         integer :: iz, iv, is, imu, ivmu
-
-        ! Only intialise once.
-        if (initialised_neo_chi_terms) return
-        initialised_neo_chi_terms = .true.
 
         ! Allocate neo chi_coeff = neo_chi_coeff[ialpha, iz, i[mu,vpa,s]].
         if (.not. allocated(neo_chi_coeff)) then
@@ -109,6 +93,7 @@ contains
         end do
 
     end subroutine init_neo_chi_terms
+
 
 ! ================================================================================================================================================================================= !
 ! ------------------------------------------------------------------------- Advance the terms explicitly. ------------------------------------------------------------------------- ! 
