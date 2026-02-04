@@ -262,6 +262,12 @@ else()
 endif()
 
 if (STELLA_ENABLE_NETCDF)
+
+  # As the netcdf installed in the Mac GitHub runners itself depends on HDF5
+  # and HDF5 needs to check for the existence of threads, we need to enable a basic systems language like C/C++
+  # These lines are only needed for Mac systems on Github since January 2025
+  # For some reason CMake could not find the hdf5 libraries anymore after a Github update
+  enable_language(C)
   find_package(netCDFFortran REQUIRED)
   add_subdirectory(../EXTERNALS/neasyf ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/neasyf)
   target_link_libraries(libstella PUBLIC netCDF::netcdff neasyf::neasyf)
@@ -306,13 +312,6 @@ target_compile_definitions(libstella PRIVATE
   $<$<Fortran_COMPILER_ID:Cray>:FCOMPILER=_CRAY_>
   )
 
-
-# Find hdf5 packages (their CMake file needs the C language)
-# These lines are only needed for Mac systems on Github since January 2025
-# For some reason CMake could not find the hdf5 libraries anymore after a Github update
-ENABLE_LANGUAGE(C)
-find_package(HDF5 REQUIRED)
-target_link_libraries(libstella PUBLIC ${HDF5_LIBRARIES}) 
 
 ############################################################
 # Add some extra flags for Debug configs
