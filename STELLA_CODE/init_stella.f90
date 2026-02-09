@@ -477,12 +477,12 @@ contains
       !----------------------------------------------------------------------
 
       ! If initializing from restart file, set the initial time step size appropriately
-      if (restarted .and. delt_option_switch == delt_option_auto) then
-         delt_saved = delt
-         if (debug) write (6, *) "stella::init_stella::init_dt"
-         call init_dt(delt_saved, istatus)
-         if (istatus == 0) delt = delt_saved
-      end if
+      !if (restarted .and. delt_option_switch == delt_option_auto) then
+      !   delt_saved = delt
+      !   if (debug) write (6, *) "stella::init_stella::init_dt"
+      !   call init_dt(delt_saved, istatus)
+      !   if (istatus == 0) delt = delt_saved
+      !end if
       
       ! Set the internal time step size variable code_dt from the input variable delt
       if (debug) write (6, *) "stella::init_stella::init_delt"

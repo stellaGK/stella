@@ -234,8 +234,8 @@ contains
          write (unit, '(A)') '&species_options'
          write (unit, '(A, I0)') '  nspec = ', nspec
          write (unit, '(A, A, A)') '  species_option = "', trim(species_option), '"'
-         write (unit, '(A, L0)') '  read_profile_variation = ', read_profile_variation
-         write (unit, '(A, L0)') '  write_profile_variation = ', write_profile_variation
+         write (unit, '(A, L1)') '  read_profile_variation = ', read_profile_variation
+         write (unit, '(A, L1)') '  write_profile_variation = ', write_profile_variation
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -621,12 +621,18 @@ contains
       ! Variables that are read from the input file
       integer, intent(out) :: nradii
       character(*), intent(out) :: data_file
-      
+
+      ! Local fixed-length variable for namelist compatibility
+      integer, parameter :: data_file_len = 1024
+      character(len=data_file_len) :: data_file_nml      
       !-------------------------------------------------------------------------
       
       if (.not. proc0) return
       call set_default_euterpe_parameters
       call read_input_file_euterpe_parameters
+
+      ! Copy back from fixed-length namelist variable
+      data_file = trim(data_file_nml)
    
    contains
    
@@ -647,7 +653,7 @@ contains
 
          implicit none
 
-         namelist /euterpe_parameters/ nradii, data_file
+         namelist /euterpe_parameters/ nradii, data_file_nml
          in_file = input_unit_exist('euterpe_parameters', dexist)
          if (dexist) read (unit=in_file, nml=euterpe_parameters)
 

@@ -103,7 +103,14 @@
 !   - |f_nozonal|^2(t, z, mu, s)       -->   f2nozonal_vs_zmus
 !   - |f_nozonal|^2(t, kx, ky, z, s)   -->   f2nozonal_vs_zkykxs
 !   - |f_nozonal|^2(t, z, vpa, mu, s)  -->   f2nozonal_vs_zvpamus
-! 
+!
+!   The nonlinear turbulent fluxes are written to netCDF file:
+!   - QN[{phi, h}]  --> phi_stress_zkx
+!   - QN[{apar, h}] --> apar_stress_zkx
+!   - QN[{bpar, h}] --> bpar_stress_zkx, where QN is the quasineutrality operator
+!   - QN[g] --> gint_zkx
+!  
+!
 ! TODO-GA: Print input parameters to netcdf file
 ! 
 !###############################################################################
@@ -169,6 +176,7 @@ module write_diagnostics_to_netcdf
    public :: write_radial_moments_nc
    public :: write_fluxes_kxkyzs_nc
    public :: write_fluxes_kxkys_nc
+   public :: write_stresses_nc
    public :: get_nout
    public :: sync_nc
 
@@ -924,6 +932,35 @@ contains
 
 #endif
    end subroutine write_radial_moments_nc
+
+   !============================================================================
+   !============================NONLINEAR STRESSES =============================
+   !============================================================================
+
+   subroutine write_stresses_nc(nout, phi_h_nonlin_kx, apar_h_nonlin_kx, bpar_h_nonlin_kx, gint)
+      use grids_z, only: nzgrid
+      implicit none
+      integer, intent(in) :: nout
+      complex, dimension(:,-nzgrid:), intent(in) :: phi_h_nonlin_kx, apar_h_nonlin_kx, bpar_h_nonlin_kx, gint
+#ifdef NETCDF      
+      call netcdf_write_complex(ncid, "phi_stress_zkx", phi_h_nonlin_kx, &
+         dim_names=[character(len=4)::"ri", "kx", "zed", "t"], start=[1, 1, 1, nout], &
+         units=" ", &
+         long_name="Reynolds stress as a function of t, zed and kx")
+      call netcdf_write_complex(ncid, "apar_stress_zkx", apar_h_nonlin_kx, &
+         dim_names=[character(len=4)::"ri", "kx", "zed", "t"], start=[1, 1, 1, nout], &
+         units=" ", &
+         long_name="Maxwell stress as a function of t, zed and kx")
+      call netcdf_write_complex(ncid, "bpar_stress_zkx", bpar_h_nonlin_kx, &
+         dim_names=[character(len=4)::"ri", "kx", "zed", "t"], start=[1, 1, 1, nout], &
+         units=" ", &
+         long_name="Bpar stress as a function of t, zed and kx")
+      call netcdf_write_complex(ncid, "gint_zkx", gint, &
+         dim_names=[character(len=4)::"ri", "kx", "zed", "t"], start=[1, 1, 1, nout], &
+         units=" ", &
+         long_name="ky = 0 component of v-integral of <g>_r as a function of t, zed and kx")      
+#endif
+   end subroutine write_stresses_nc
 
    !============================================================================
    !=============================== DISTRIBUTION ===============================

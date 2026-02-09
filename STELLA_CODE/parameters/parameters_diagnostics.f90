@@ -49,6 +49,9 @@ module parameters_diagnostics
    public :: write_radial_moments
    public :: write_moments  
 
+   ! Write stresses in <diagnostics_stresses>
+   public :: write_stresses
+
    private
 
    ! Variables used to write diagnostics
@@ -105,6 +108,9 @@ module parameters_diagnostics
    ! Write moments in <diagnostics_moments>
    logical :: write_radial_moments
    logical :: write_moments     
+   
+   ! Write stresses in <diagnostics_stresses>
+   logical :: write_stresses
 
 contains
 
@@ -140,7 +146,8 @@ contains
          use namelist_diagnostics, only: &
             read_namelist_diagnostics, read_namelist_diagnostics_potential, &
             read_namelist_diagnostics_omega, read_namelist_diagnostics_distribution, &
-            read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments
+            read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments, &
+            read_namelist_diagnostics_stresses
 
          use parameters_numerical, only: autostop
 
@@ -190,7 +197,10 @@ contains
 
          call read_namelist_diagnostics_moments (write_all_moments, &
                         write_moments, write_radial_moments)
-            
+
+         
+         call read_namelist_diagnostics_stresses (write_stresses) 
+  
          !-------------------------------------------------------------------
          
          ! If <save_for_restart> = False then we need <nsave> = -1
@@ -254,6 +264,7 @@ contains
          call broadcast(write_radial_moments)
          call broadcast(write_fluxes_kxkyz)
          call broadcast(write_fluxes_kxky)
+         call broadcast(write_stresses)
          
       end subroutine broadcast_parameters
 
