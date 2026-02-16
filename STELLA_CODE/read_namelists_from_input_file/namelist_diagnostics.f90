@@ -215,17 +215,17 @@ contains
          write (unit, '(A, I0)') '  nsave = ', nsave
          write (unit, '(A, I0)') '  nwrite = ', nwrite
          write (unit, '(A, I0)') '  nc_mult = ', nc_mult
-         write (unit, '(A, L0)') '  save_for_restart = ', save_for_restart
-         write (unit, '(A, L0)') '  write_all = ', write_all
-         write (unit, '(A, L0)') '  write_all_time_traces = ', write_all_time_traces
-         write (unit, '(A, L0)') '  write_all_spectra_kxkyz = ', write_all_spectra_kxkyz
-         write (unit, '(A, L0)') '  write_all_spectra_kxky = ', write_all_spectra_kxky
-         write (unit, '(A, L0)') '  write_all_velocity_space = ', write_all_velocity_space
-         write (unit, '(A, L0)') '  write_all_potential = ', write_all_potential
-         write (unit, '(A, L0)') '  write_all_omega = ', write_all_omega
-         write (unit, '(A, L0)') '  write_all_distribution = ', write_all_distribution
-         write (unit, '(A, L0)') '  write_all_fluxes = ', write_all_fluxes
-         write (unit, '(A, L0)') '  write_all_moments = ', write_all_moments
+         write (unit, '(A, L1)') '  save_for_restart = ', save_for_restart
+         write (unit, '(A, L1)') '  write_all = ', write_all
+         write (unit, '(A, L1)') '  write_all_time_traces = ', write_all_time_traces
+         write (unit, '(A, L1)') '  write_all_spectra_kxkyz = ', write_all_spectra_kxkyz
+         write (unit, '(A, L1)') '  write_all_spectra_kxky = ', write_all_spectra_kxky
+         write (unit, '(A, L1)') '  write_all_velocity_space = ', write_all_velocity_space
+         write (unit, '(A, L1)') '  write_all_potential = ', write_all_potential
+         write (unit, '(A, L1)') '  write_all_omega = ', write_all_omega
+         write (unit, '(A, L1)') '  write_all_distribution = ', write_all_distribution
+         write (unit, '(A, L1)') '  write_all_fluxes = ', write_all_fluxes
+         write (unit, '(A, L1)') '  write_all_moments = ', write_all_moments
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

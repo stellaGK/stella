@@ -169,11 +169,11 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&dissipation_and_collisions_options'
-         write (unit, '(A, L0)') '  hyper_dissipation = ', hyper_dissipation
-         write (unit, '(A, L0)') '  include_collisions = ', include_collisions
+         write (unit, '(A, L1)') '  hyper_dissipation = ', hyper_dissipation
+         write (unit, '(A, L1)') '  include_collisions = ', include_collisions
          write (unit, '(A, A, A)') '  collision_model = "', trim(collision_model),'"'
-         write (unit, '(A, L0)') '  collisions_implicit = ', collisions_implicit
-         write (unit, '(A, L0)') '  ecoll_zeff = ', ecoll_zeff
+         write (unit, '(A, L1)') '  collisions_implicit = ', collisions_implicit
+         write (unit, '(A, L1)') '  ecoll_zeff = ', ecoll_zeff
          write (unit, '(A, ES0.4)') '  zeff = ', zeff
          write (unit, '(A, ES0.4)') '  vnew_ref = ', vnew_ref
          write (unit, '(A)') '/'
@@ -240,10 +240,10 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&collisions_dougherty'
-         write (unit, '(A, L0)') '  momentum_conservation = ', momentum_conservation
-         write (unit, '(A, L0)') '  energy_conservation = ', energy_conservation
-         write (unit, '(A, L0)') '  vpa_operator = ', vpa_operator
-         write (unit, '(A, L0)') '  mu_operator = ', mu_operator
+         write (unit, '(A, L1)') '  momentum_conservation = ', momentum_conservation
+         write (unit, '(A, L1)') '  energy_conservation = ', energy_conservation
+         write (unit, '(A, L1)') '  vpa_operator = ', vpa_operator
+         write (unit, '(A, L1)') '  mu_operator = ', mu_operator
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
          
@@ -359,23 +359,23 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&collisions_fokker_planck'
-         write (unit, '(A, L0)') '  fieldpart = ', fieldpart
-         write (unit, '(A, L0)') '  testpart = ', testpart
-         write (unit, '(A, L0)') '  interspec = ', interspec
-         write (unit, '(A, L0)') '  intraspec = ', intraspec
-         write (unit, '(A, L0)') '  eimassr_approx = ', eimassr_approx
-         write (unit, '(A, L0)') '  advfield_coll = ', advfield_coll
-         write (unit, '(A, L0)') '  spitzer_problem = ', spitzer_problem
-         write (unit, '(A, L0)') '  density_conservation = ', density_conservation
-         write (unit, '(A, L0)') '  density_conservation_field = ', density_conservation_field
-         write (unit, '(A, L0)') '  density_conservation_tp = ', density_conservation_tp
-         write (unit, '(A, L0)') '  exact_conservation_tp = ', exact_conservation_tp
-         write (unit, '(A, L0)') '  exact_conservation = ', exact_conservation
-         write (unit, '(A, L0)') '  vpa_operator = ', vpa_operator
-         write (unit, '(A, L0)') '  mu_operator = ', mu_operator
-         write (unit, '(A, L0)') '  no_j1l1 = ', no_j1l1
-         write (unit, '(A, L0)') '  no_j1l2 = ', no_j1l2
-         write (unit, '(A, L0)') '  no_j0l2 = ', no_j0l2
+         write (unit, '(A, L1)') '  fieldpart = ', fieldpart
+         write (unit, '(A, L1)') '  testpart = ', testpart
+         write (unit, '(A, L1)') '  interspec = ', interspec
+         write (unit, '(A, L1)') '  intraspec = ', intraspec
+         write (unit, '(A, L1)') '  eimassr_approx = ', eimassr_approx
+         write (unit, '(A, L1)') '  advfield_coll = ', advfield_coll
+         write (unit, '(A, L1)') '  spitzer_problem = ', spitzer_problem
+         write (unit, '(A, L1)') '  density_conservation = ', density_conservation
+         write (unit, '(A, L1)') '  density_conservation_field = ', density_conservation_field
+         write (unit, '(A, L1)') '  density_conservation_tp = ', density_conservation_tp
+         write (unit, '(A, L1)') '  exact_conservation_tp = ', exact_conservation_tp
+         write (unit, '(A, L1)') '  exact_conservation = ', exact_conservation
+         write (unit, '(A, L1)') '  vpa_operator = ', vpa_operator
+         write (unit, '(A, L1)') '  mu_operator = ', mu_operator
+         write (unit, '(A, L1)') '  no_j1l1 = ', no_j1l1
+         write (unit, '(A, L1)') '  no_j1l2 = ', no_j1l2
+         write (unit, '(A, L1)') '  no_j0l2 = ', no_j0l2
          write (unit, '(A, I0)') '  jmax = ', jmax
          write (unit, '(A, I0)') '  lmax = ', lmax
          write (unit, '(A, I0)') '  nvel_local = ', nvel_local
@@ -477,10 +477,10 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&hyper_dissipation'
-         write (unit, '(A, L0)') '  use_physical_ksqr = ', use_physical_ksqr
-         write (unit, '(A, L0)') '  scale_to_outboard = ', scale_to_outboard
-         write (unit, '(A, L0)') '  hyp_vpa = ', hyp_vpa
-         write (unit, '(A, L0)') '  hyp_zed = ', hyp_zed
+         write (unit, '(A, L1)') '  use_physical_ksqr = ', use_physical_ksqr
+         write (unit, '(A, L1)') '  scale_to_outboard = ', scale_to_outboard
+         write (unit, '(A, L1)') '  hyp_vpa = ', hyp_vpa
+         write (unit, '(A, L1)') '  hyp_zed = ', hyp_zed
          write (unit, '(A, ES0.4)') '  D_hyper = ', D_hyper
          write (unit, '(A, ES0.4)') '  D_zed = ', D_zed
          write (unit, '(A, ES0.4)') '  D_vpa = ', D_vpa
