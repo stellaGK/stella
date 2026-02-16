@@ -620,7 +620,8 @@ contains
 
       ! Variables that are read from the input file
       integer, intent(out) :: nradii
-      character(*), intent(out) :: data_file
+      ! Local fixed-length string for the namelist
+      character(len=256), intent(out) :: data_file
       
       !-------------------------------------------------------------------------
       
