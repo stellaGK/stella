@@ -140,7 +140,7 @@ contains
 
          write (unit, '(A)') '&neoclassical_input'
          write (unit, '(A, A, A)') '  neo_option = "', trim(neo_option),'"'
-         write (unit, '(A, L0)') '  include_neoclassical_terms = ', include_neoclassical_terms
+         write (unit, '(A, L1)') '  include_neoclassical_terms = ', include_neoclassical_terms
          write (unit, '(A, I0)') '  nradii = ', nradii
          write (unit, '(A, ES0.4)') '  drho = ', drho
          write (unit, '(A)') '/'
