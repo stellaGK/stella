@@ -33,7 +33,7 @@
 !   - beta, q, shat, drhodpsi, jtwist, d2psidr2, d2qrd2,
 !   - B_times_gradB_dot_grady, bmag, B_times_gradB_dot_gradx, B_times_kappa_dot_grady, 
 !   - B_times_kappa_dot_gradx, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, 
-!   - grho, jacob, djacdrho, b_dot_gradz
+!   - grho, jacob, djacdrho, b_dot_gradz, theta_vmec, zeta
 !   - b_dot_gradz_avg, kperp2
 ! 
 ! The fields are written to the NetCDF file:
@@ -610,7 +610,7 @@ contains
       use geometry, only: bmag, b_dot_gradz_avg, B_times_gradB_dot_grady, B_times_gradB_dot_gradx
       use geometry, only: B_times_kappa_dot_grady, B_times_kappa_dot_gradx
       use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
-      use geometry, only: grho, jacob
+      use geometry, only: grho, jacob, theta_vmec, zeta
       use geometry, only: drhodpsi, djacdrho, b_dot_gradz, geo_surf
       use parameters_physics, only: beta
       use arrays, only: kperp2
@@ -639,6 +639,8 @@ contains
       call neasyf_write(file_id, "b_dot_gradz_avg", b_dot_gradz_avg, dim_names=["zed"], long_name="Parallel derivative multiplier")
 
       ! Vectors on the flux surface
+      call neasyf_write(file_id, "theta_vmec", theta_vmec, dim_names=flux_surface_dim, long_name="The conventional theta coordinate used in VMEC")
+      call neasyf_write(file_id, "zeta", zeta, dim_names=flux_surface_dim, long_name="The zeta = q*theta straight-field-line coordinate.")
       call neasyf_write(file_id, "B_times_gradB_dot_grady", B_times_gradB_dot_grady, dim_names=flux_surface_dim, long_name="Magnetic gradient drift")
       call neasyf_write(file_id, "bmag", bmag, dim_names=flux_surface_dim, long_name="Magnitude of magnetic field", units="B_0")
       call neasyf_write(file_id, "B_times_gradB_dot_gradx", B_times_gradB_dot_gradx, dim_names=flux_surface_dim)
