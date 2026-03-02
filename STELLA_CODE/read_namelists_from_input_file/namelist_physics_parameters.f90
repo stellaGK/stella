@@ -426,7 +426,7 @@ contains
 
          implicit none
 
-         rhostar = -1.0
+         rhostar = 0.0
 
       end subroutine set_default_parameters_physics_inputs
 
