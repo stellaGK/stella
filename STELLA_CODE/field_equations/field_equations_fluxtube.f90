@@ -628,7 +628,7 @@ contains
       use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use parallelisation_layouts, only: iv_idx, imu_idx
       ! Arrays
-      use arrays, only: denominator_fields, denominator_fields_neo_adiab, denominator_fields_MBR
+      use arrays, only: denominator_fields, denominator_fields_MBR
       use arrays, only: denominator_fields_h, denominator_fields_MBR_h, efac, efacp
       use arrays_gyro_averages, only: aj0v
 
@@ -659,15 +659,15 @@ contains
       ! NEO data for higher order corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use neoclassical_terms_neo, only: neo_phi, neo_h, neo_phi, dneo_h_dmu
+      use neoclassical_terms_neo, only: neo_dens 
 
       implicit none
 
       ! Local variables
       integer :: ikxkyz, iz, it, ikx, iky, ia, iv, imu, ivmu
       integer :: is, is_inner, is_outer
-      real :: tmp, tmp_neo_adiab, wgt
+      real :: tmp, wgt
       real, dimension(:, :), allocatable :: g0
-      real, dimension(:, :), allocatable :: g0_neo_adiab
       
       !-------------------------------------------------------------------------
 
@@ -696,9 +696,9 @@ contains
          ! ============================================================================================================= !
          !
          ! If NEO's corrections are enabled, the denominator for phi calculations picks up a correction. 
-         ! This is given by: 
+         ! This is given by: ... 
          !
-         ! sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ] 
+         ! 
          !
          !
          ! ============================================================================================================= !         
@@ -724,7 +724,7 @@ contains
                     imu = imu_idx(vmu_lo, ivmu)
                     iv = iv_idx(vmu_lo, ivmu)
 
-                    g0(iv, imu) = g0(iv, imu) * ( 1 + neo_h(iz, ivmu, 1) - spec(is_inner)%z * neo_phi(iz, 1) - ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) )
+                    g0(iv, imu) = g0(iv, imu) * ( 1 + neo_h(iz, ivmu, 1) - spec(is_inner)%z * neo_phi(iz) - ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) )
                 end do
             end if
 
@@ -892,56 +892,26 @@ contains
 
             ! If NEO's corrections are enabled, compute the higher order correction to the denominator. 
             if(neoclassical_is_enabled()) then 
-                allocate(g0_neo_adiab(nvpa, nmu))
-                allocate(denominator_fields_neo_adiab(nakx, naky, -nzgrid:nzgrid))
-                denominator_fields_neo_adiab = 0.0
+                ! Calculate the approproate denominators for g and h in the presence of the higher order equilibrium.
+                do iz = -nzgrid, nzgrid 
+                    efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
 
-                 do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                     it = it_idx(kxkyz_lo, ikxkyz)
-                     if (it /= 1) cycle
-                     iky = iky_idx(kxkyz_lo, ikxkyz)
-                     ikx = ikx_idx(kxkyz_lo, ikxkyz)
-                     iz = iz_idx(kxkyz_lo, ikxkyz)
-                     is_outer = is_idx(kxkyz_lo, ikxkyz)
-                     if (is_outer /= 2) cycle
-                 
-                     ! Calculate exp(v²) for each (kx,ky,z).
-                     g0_neo_adiab = spread(maxwell_vpa(:, is_outer), 2, nmu) * spread(maxwell_mu(ia, iz, :, is_outer), 1, nvpa) * maxwell_fac(is_outer)
-
-                     ! Iterate over velocity space.
-                     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                         is_inner = is_idx(vmu_lo, ivmu)
-                         if (is_inner /= is_outer) cycle
-                         imu = imu_idx(vmu_lo, ivmu)
-                         iv = iv_idx(vmu_lo, ivmu)
-
-                         g0_neo_adiab(iv, imu) = g0_neo_adiab(iv, imu) * ( neo_h(iz, ivmu, 1) - spec(is_inner)%z * neo_phi(iz, 1) )
-                     end do
-
-                     ! Calculate denominator_fields_neo_adiab[iky,ikz,iz].
-                     call integrate_vmu(g0_neo_adiab, iz, tmp_neo_adiab)
-                     denominator_fields_neo_adiab(ikx, iky, iz) = denominator_fields_neo_adiab(ikx, iky, iz) + tmp_neo_adiab
-                 end do
-
-                 ! Sum the values on all processors and send them to <proc0>.
-                 call sum_allreduce(denominator_fields_neo_adiab)
-
-                 ! Calculate the approproate denominators for g and h in the presence of the higher order equilibriu. 
-                 denominator_fields = denominator_fields + efac * ( 1 + denominator_fields_neo_adiab ) 
-                 ! denominator_fields_h = denominator_fields_h + efac * ( 1 + denominator_fields_neo_adiab )
-             else 
-                 ! Otherwise, calculate the approporiate denominators for g and h in the presence of the Maxwellian equilbirium. 
-                 efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
+                    denominator_fields(:, :, iz) = denominator_fields(:, :, iz) + efac * ( 1 + neo_dens(iz, 2) )
+                    ! denominator_fields_h(:, :, iz) = denominator_fields_h(:, :, iz) + efac * ( 1 + neo_dens(iz, 2) )
+                end do
+            else 
+                ! Otherwise, calculate the approporiate denominators for g and h in the presence of the Maxwellian equilbirium. 
+                efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
             
-                 ! Add the contribution of adiabatic electrons to <denominator_fields>
-                 ! Calculate denominator_fields = sum_(s not e) (Z_s² n_s/T_s) (1 - Gamma0) + (n_e/T_e)
-                 ! This is the factor that multiplies phi in the final expression. 
-                 denominator_fields = denominator_fields + efac
+                ! Add the contribution of adiabatic electrons to <denominator_fields>
+                ! Calculate denominator_fields = sum_(s not e) (Z_s² n_s/T_s) (1 - Gamma0) + (n_e/T_e)
+                ! This is the factor that multiplies phi in the final expression. 
+                denominator_fields = denominator_fields + efac
             
-                 ! Add the contribution of adiabatic electrons to <denominator_fields_h>
-                 ! Calculate denominator_fields_h = sum_(s not e) (Z_s² n_s/T_s) + (n_e/T_e)
-                 denominator_fields_h = denominator_fields_h + efac
-             end if
+                ! Add the contribution of adiabatic electrons to <denominator_fields_h>
+                ! Calculate denominator_fields_h = sum_(s not e) (Z_s² n_s/T_s) + (n_e/T_e)
+                denominator_fields_h = denominator_fields_h + efac
+            end if
 
             !---------------------------------------------------------------------
             !                 Modified Boltzmann Response (MBR)
@@ -978,8 +948,6 @@ contains
 
          ! Deallocate temporary arrays.
          if (allocated(g0)) deallocate (g0)
-         if (allocated(g0_neo_adiab)) deallocate (g0_neo_adiab)
-
       end if
 
    end subroutine init_field_equations_fluxtube

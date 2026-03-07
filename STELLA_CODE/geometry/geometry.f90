@@ -86,6 +86,9 @@ module geometry
    public :: aref, bref, twist_and_shift_geo_fac
    public :: q_as_x, get_x_to_rho, gfac
    public :: dVolume, grad_x_grad_y_end
+
+   ! For NEO's neoclassical calculations, we need b_dot_gradtheta. 
+   public :: b_dot_gradtheta
    
    ! Flux tube only needs b_dot_gradz_avg(z)
    public :: b_dot_gradz_avg
@@ -142,6 +145,9 @@ module geometry
    ! Geometric quantities for full flux surface
    real, dimension(:, :), allocatable :: b_dot_gradz
    
+   ! Geometric quantites for NEO's higher order corrections. 
+   real, dimension(:, :), allocatable :: b_dot_gradtheta
+
    ! Geometric quantities for the momentum flux
    real, dimension(:, :), allocatable :: gradzeta_gradx_R2overB2
    real, dimension(:, :), allocatable :: gradzeta_grady_R2overB2
@@ -401,6 +407,9 @@ contains
       real, dimension(:, :), allocatable :: gds25_alphapsit, gds26_alphapsit
       real, dimension(:, :), allocatable :: grad_x_grad_x, grad_y_grad_y, grad_y_grad_x
       real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2
+
+      ! For NEO's neoclassical corrections. 
+      real, dimension(:, :), allocatable :: b_dot_gradtheta_arr
 
       ! Local variables
       real :: rho, shat, iota, field_period_ratio
@@ -1448,6 +1457,9 @@ contains
       if (allocated(gradzeta_gradx_R2overB2)) deallocate (gradzeta_gradx_R2overB2)
       if (allocated(gradzeta_grady_R2overB2)) deallocate (gradzeta_grady_R2overB2)
       if (allocated(b_dot_gradzeta_RR)) deallocate (b_dot_gradzeta_RR)
+
+      ! Needed for NEO's higher order corrections.
+      ! if (allocated(b_dot_gradtheta_arr)) deallocate (b_dot_gradtheta_arr)
 
       ! Only initialise once
       initialised_geometry = .false.

@@ -8,7 +8,7 @@
 !         
 ! Define the neoclassical ∂<Χ_k>/∂z coefficient as: 
 ! 
-! <neo_dchidz_coeff> = - 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( (v∥/B₀) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * code_dt
+! <neo_dchidz_coeff> = - 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( (v∥/B₀) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * code_dt = - 1/2 * Z/T * v_{th,s} * b.∇z * neo_fac
 !
 ! This must be multiplied by ∂<Χ_k>/∂z and then added to the RHS of the GKE.
 ! 
@@ -54,7 +54,7 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! NEO data.
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
+        use neoclassical_terms_neo, only: neo_fac
 
         ! Arrays.
         use arrays, only: neo_dchidz_coeff, initialised_neo_dchidz_terms
@@ -72,27 +72,23 @@ contains
         if (.not. allocated(neo_dchidz_coeff)) then
             allocate (neo_dchidz_coeff(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_dchidz_coeff = 0.0
         end if
-        
+
+        ! Calculate neo_dchidz_coeff. Start with the constant factor.
+        neo_dchidz_coeff = - 0.5 * code_dt      
+
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
-         
-            ! Calculate neo_dchidz_coeff at each grid point. Calculation is broken up for ease of reading.  
-            do iz = -nzgrid, nzgrid
-                ! First compute the magnetic geometry prefactor. 
-                neo_dchidz_coeff(:, iz, ivmu) = - 0.5 * b_dot_gradz(:, iz) 
+           
+            ! Add the species dependent factor.
+            neo_dchidz_coeff(:, :, ivmu) = neo_dchidz_coeff(:, :, ivmu) * spec(is)%zt * spec(is)%stm 
 
-                ! Multiply by the species dependent prefactor. 
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * (spec(is)%z / spec(is)%temp) * maxwell_vpa(iv, is) &
-                * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * spec(is)%stm_psi0
-
-                ! Multiply by the neoclassical distribution prefactor. 
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( (vpa(iv) / bmag(:, iz) ) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) ) 
-
-                ! Finally, multiply by code_dt. 
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * code_dt 
+            ! Multiply by the z-dependent factor.
+            do iz = -nzgrid, nzgrid 
+                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( 1 / bmag(:, iz) ) * b_dot_gradz(:, iz) * neo_fac(iz, ivmu) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do 
         end do
 

@@ -45,6 +45,7 @@ contains
       use sfincs_interface, only: get_neo_from_sfincs
 
       use namelist_neoclassical_input, only: read_namelist_neoclassical_input
+
       implicit none
 
       real, dimension(:, :, :, :, :, :), allocatable :: f_neoclassical

@@ -846,13 +846,16 @@ contains
             ! Calculate the phi contribution to gyoraveraged fields.
          
             field = fphi * facchi * spec(is)%zt * phi(iky, ikx, iz, it) * spread(maxwell_vpa(:, is), 2, nmu) &
-               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) 
+               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
             
             ! If apar is present, we must account for this.
             if (include_apar) then 
                 field = field - 2.0 * facchi * spec(is)%zt * apar(iky, ikx, iz, it) * spread(vpa, 2, nmu) * spread(maxwell_vpa(:, is), 2, nmu) &
-                * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spec(is)%stm_psi0 
+                * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spec(is)%stm_psi0 
             end if
+
+            ! Multiply by the neoclassical distribution factor. 
+            ! field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
 
             ! Gyroaverage.
             call gyro_average(field, ikxkyz, gyro_averaged_field)
@@ -872,8 +875,11 @@ contains
                 is = is_idx(kxkyz_lo, ikxkyz)
             
                 field = 4.0 * facchi * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) * spread(maxwell_vpa(:, is), 2, nmu) &
-                * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+                * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
                    
+                ! Multiply by the neoclassical distribution factor. 
+                ! field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+
                 ! Gyroaverage the J_1 contribution.
                 call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
        
@@ -975,7 +981,8 @@ contains
                ! First calculate the gyroaveraged field being used, <>. 
                ! Calculate the phi contribution to gyoraveraged fields.
          
-               field = spec(is)%zt * facchi * phi (:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+               field = spec(is)%zt * facchi * phi (:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
+               * maxwell_fac(is)
 
                ! If apar is present, we must account for this.
                if (include_apar) then 
@@ -985,8 +992,7 @@ contains
  
                ! Mutliply by the neoclassical distribution factor. 
 
-               field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) )
-
+               field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
                ! Gyroaverage the J₀ contribution.
                call gyro_average(field, iz, ivmu, gyro_averaged_field)
             
@@ -1002,8 +1008,11 @@ contains
            do it = 1, ntubes
                do iz = -nzgrid, nzgrid
  
-                   field = 4.0 * facchi * mu(imu) * bpar(:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                   field = 4.0 * facchi * mu(imu) * bpar(:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
+                   * maxwell_fac(is)
                
+                    field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+
                    ! Gyroaverage the J_1 contribution.
                    call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
               

@@ -69,7 +69,7 @@ contains
         ! Geometry. 
         use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi
         use geometry, only: bmag, gradx_dot_grady
-        use geometry, only: geo_surf
+        use geometry, only: geo_surf, Rmajor
 
         ! NEO data.
         use neoclassical_terms_neo, only: neo_h, neo_phi             
@@ -105,10 +105,12 @@ contains
         end if
 
         ! Allocate the temporary arrays. 
-
-        allocate (energy(nalpha, -nzgrid:nzgrid))        
+        allocate (energy(nalpha, -nzgrid:nzgrid)); energy = 0.0        
         allocate (wstar1psi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1psi = 0.0      
         allocate (wstar1z(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1z = 0.0
+
+        ! Mutliply by the magnetic geometry prefactor.
+        wstar1psi = ( 0.5 / clebsch_factor ) * dydalpha * drhodpsi * code_dt
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -116,19 +118,14 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
 
-            ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu). 
-            energy  = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
- 
-            ! Mutliply by the magnetic geometry prefactor.
-            wstar1psi(:, :, ivmu) = - (0.5/clebsch_factor) * dydalpha * drhodpsi 
-
-            ! Mutliply by the species dependent prefactor.
-            wstar1psi(:, :, ivmu) = wstar1psi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-
+            ! Multiply by the neolcassical distribution factor.
             do iz = -nzgrid, nzgrid
-                ! Multiply by the neolcassical distribution factor. 
-                wstar1psi(:, iz, ivmu) = wstar1psi(:, iz, ivmu) * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz, 1) &
-                + ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz, 1) ) * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) )
+                ! Calculate the energy.  
+                energy(:, iz) = vpa(iv) ** 2 + vperp2(:, iz, imu)   
+
+                wstar1psi(:, iz, ivmu) = wstar1psi(:, iz, ivmu) * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz) &
+                - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) * ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) ) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) 
             end do
       end do
 
@@ -136,32 +133,32 @@ contains
       deallocate(energy)
 
       ! We must add the remaining corrections to wstar1, namely those proportinal to the z derivative of F₁.
+      ! Calculate the constant factor.
+      wstar1z = - ( 0.5 / clebsch_factor ) * code_dt
+ 
       ! Iterate over velocity space.
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
           is = is_idx(vmu_lo, ivmu)
           imu = imu_idx(vmu_lo, ivmu)
           iv = iv_idx(vmu_lo, ivmu)
 
-          ! Mutliply by the species dependent prefactor.
-          wstar1z(:, :, ivmu) = maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+          do iz = -nzgrid, nzgrid 
+              ! Multiply by the neoclassical distribution factor.
+              wstar1z(:, iz, ivmu) = wstar1z(:, iz, ivmu) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) ) &
+              * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
 
-          do iz = -nzgrid, nzgrid
-              ! Multiply by the neolcassical distribution factor. 
-              wstar1z(:, iz, ivmu) = wstar1z(:, iz, ivmu) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz, 1) )
-
-              ! Mutliply by the magnetic geometry prefactor.
-              wstar1z(:, iz, ivmu) = wstar1z(:, iz, ivmu) * (0.5/clebsch_factor) * ( gradx_dot_grady(:, iz)/( dxdpsi * geo_surf%qinp &
-              * ( bmag(:, iz) * geo_surf%rmaj )**2 ) + (geo_surf%shat/geo_surf%rhoc) * drhodpsi * dydalpha * zed(iz) )
+              ! Mutliply by the magnetic geometry factor.
+              wstar1z(:, iz, ivmu) = wstar1z(:, iz, ivmu) * ( gradx_dot_grady(:, iz)/( dxdpsi * geo_surf%qinp &
+              * ( bmag(:, iz) * Rmajor(iz) )**2 ) + (geo_surf%shat/geo_surf%rhoc) * drhodpsi * dydalpha * zed(iz) )
           end do
       end do
 
       ! Finally, calculate wstar1 = wstar1psi + wstar1z.
-      wstar1 = ( wstar1psi + wstar1z ) * code_dt
+      wstar1 = wstar1psi + wstar1z 
 
       ! Deallocate the remaining temporary arrays. 
       deallocate(wstar1psi)
       deallocate(wstar1z)
-
     end subroutine init_wstar1
 
 
@@ -185,7 +182,7 @@ contains
         ! Geometry.
         use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi
         use geometry, only: bmag, gradx_dot_gradx
-        use geometry, only: geo_surf
+        use geometry, only: geo_surf, Rmajor
    
         ! NEO data.
         use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
@@ -210,27 +207,21 @@ contains
             allocate (wpol(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wpol = 0.0
         end if
   
+        ! Multiply by the constant factor. 
+        wpol = ( 0.5 / ( clebsch_factor * geo_surf%qinp ) ) * code_dt
+
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
-          
-            ! Multiply by the species dependent factor.
-            wpol(:, :, ivmu) = maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
 
-            ! Multiply by the magnetic geometry factor. 
-            wpol(:, :, ivmu) = ( 0.5 / ( clebsch_factor * geo_surf%qinp ) ) * ( gradx_dot_gradx(:, :)/( dxdpsi * ( bmag(:, :) * geo_surf%rmaj )**2 )  - dxdpsi )
-
-            ! Multiply by the neoclassical coeffecient. 
             do iz = -nzgrid, nzgrid
-                wpol(:, iz, ivmu) = wpol(:, iz, ivmu) * (dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz, 1))
+                ! Multiply by the magnetic geometry factor. 
+                wpol(:, iz, ivmu) = wpol(:, iz, ivmu) * ( dxdpsi - gradx_dot_gradx(:, iz)/( dxdpsi * ( bmag(:, iz) * Rmajor(iz) ) **2 ) ) &
+                * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) ) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do  
-
-            ! Finally multipy by code_dt.
-            wpol(:, :, ivmu) =  wpol(:, :, ivmu) * code_dt
         end do
-
     end subroutine init_wpol               
 
 

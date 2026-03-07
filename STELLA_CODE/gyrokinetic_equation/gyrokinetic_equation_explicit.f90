@@ -222,7 +222,7 @@ contains
       use gk_neo_apar_terms, only: advance_neo_apar_terms_explicit
       use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
       use gk_neo_drive, only: advance_wstar1_explicit, advance_wpol_explicit
-      use gk_neo_drifts, only: advance_neo_curv_drift_explicit
+      use gk_neo_drifts, only: advance_neo_curv_drift_explicit, advance_neo_mag_drift_explicit
  
       implicit none
 
@@ -265,35 +265,21 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_fields'
 
       ! ================================================================================================ !
-      
-      ! If advancing apar, then gbar is evolved in time rather than g
-      if (include_apar .and. neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(pdf, phi, apar, bpar, -1.0)
 
+      ! If NEO's higher order corrections are included, convert from gbarneo to g or gbar for the field advance.
+      ! All terms execpt for the time derivative will expect g and not gbarneo. 
+      if (neoclassical_is_enabled()) then
+          call g_or_gbar_to_gbarneo(pdf, phi, apar, bpar, -1.0)
+      end if
+
+      ! If advancing apar, then gbar is evolved in time rather than g
+      if (include_apar) then  
           call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
           ! Convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar),
           ! as all terms on RHS of GKE use g rather than gbar
           call gbar_to_g(pdf, apar, 1.0)
-      end if
-
-      if (.not. include_apar .and. neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(pdf, phi, apar, bpar, -1.0)
-
-          call advance_fields(pdf, phi, apar, bpar, dist='g')
-      end if
-
-
-      ! If advancing apar, then gbar is evolved in time rather than g
-      if (include_apar .and. .not. neoclassical_is_enabled()) then  
-          call advance_fields(pdf, phi, apar, bpar, dist='gbar')
-
-          ! Convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar),
-          ! as all terms on RHS of GKE use g rather than gbar
-          call gbar_to_g(pdf, apar, 1.0)
-      end if
-
-      if (.not. include_apar .and. .not. neoclassical_is_enabled()) then
+      else
           call advance_fields(pdf, phi, apar, bpar, dist='g')
       end if
 
@@ -374,6 +360,7 @@ contains
 
              ! Advance the neoclassical magnetic and curvature drift terms.
              call advance_neo_curv_drift_explicit(phi, rhs)
+             call advance_neo_mag_drift_explicit(phi, rhs)
          end if
            
          ! ============================================================================ !
@@ -419,12 +406,13 @@ contains
 
       end if
 
-      ! if advancing apar, need to convert input pdf back from g to gbar
-      if (include_apar) call gbar_to_g(pdf, apar, -1.0)
-  
+      ! If NEO's higher order corrections are included, convert from g or gbar back to gbarneo.             
       if (neoclassical_is_enabled()) then
           call g_or_gbar_to_gbarneo(pdf, phi, apar, bpar, 1.0)
       end if
+
+      ! if advancing apar, need to convert input pdf back from g to gbar
+      if (include_apar) call gbar_to_g(pdf, apar, -1.0)
 
       fields_updated = .false.
 

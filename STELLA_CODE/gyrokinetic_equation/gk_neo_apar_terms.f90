@@ -67,33 +67,34 @@ contains
         if (.not. allocated(neo_apar_coeff)) then
             allocate (neo_apar_coeff(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_apar_coeff = 0.0
         end if
-        
+
+        ! Calculate neo_apar_coeff at each grid point. Calculation is broken up for ease of reading.
+        ! Multiply by the constant code_dt.         
+        neo_apar_coeff(:, iz, ivmu) = - code_dt
+ 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
-         
-            ! Calculate neo_apar_coeff at each grid point. Calculation is broken up for ease of reading.  
-            do iz = -nzgrid, nzgrid
-                ! First compute the magnetic geometry prefactor. 
-                neo_apar_coeff(:, iz, ivmu) = - b_dot_gradz(:, iz) * dbdzed(:, iz)
+           
+            ! First compute the magnetic geometry factor.
+            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * b_dot_gradz(:, :) * dbdzed(:, :)
+ 
+            ! Multiply by the species dependent prefactor.
+            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * spec(is)%z/spec(is)%mass
 
-                ! Multiply by the species dependent prefactor. 
-                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * spec(is)%z/spec(is)%mass &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+            ! Multiply by the μ grid point and divide by the v∥ grid point.
+            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * mu(imu) / vpa(iv)
 
-                ! Multiply by the μ grid point and divide by the v∥ grid point.
-                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * ( mu(imu)/vpa(iv) )
-
+            do iz = -nzgrid, nzgrid  
                 ! Multiply by the neoclassical distribution prefactor. 
                 neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * ( ( vpa(iv) / bmag(:, iz) ) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) )
-
-                ! Finally, multiply by code_dt. 
-                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * code_dt
             end do 
         end do
 
+        ! Finally multiply by the Maxwellian. 
+        neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
     end subroutine init_neo_apar_terms
 
 ! ================================================================================================================================================================================= !

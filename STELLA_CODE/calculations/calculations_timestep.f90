@@ -64,6 +64,7 @@ contains
       use arrays, only: neo_chi_coeff, neo_apar_coeff, neo_dchidz_coeff
       use arrays, only: wstar1, wpol
       use arrays, only: neocurvx, neocurvy
+      use arrays, only: neomagx, neomagy
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
@@ -90,10 +91,11 @@ contains
       real :: cfl_dt_neo_chi_coeff, cfl_dt_neo_apar_coeff, cfl_dt_neo_dchidz_coeff
       real :: cfl_dt_wstar1, cfl_dt_wpol
       real :: cfl_dt_neocurvx, cfl_dt_neocurvy
+      real :: cfl_dt_neomagx, cfl_dt_neomagy
       real :: neo_chi_coeff_max, neo_apar_coeff_max, neo_dchidz_coeff_max
       real :: wstar1_max, wpol_max
       real :: neocurvx_max, neocurvy_max      
-
+      real :: neomagx_max, neomagy_max
 
       !-------------------------------------------------------------------------
 
@@ -236,7 +238,7 @@ contains
 
       ! Check that the introduction of the neoclassical wpol drive doesn't break the CFL condition.
       if (neoclassical_is_enabled()) then
-         !  Only calculate the CFL constaint if there are non-zero akx present. 
+         ! Only calculate the CFL constaint if there are non-zero akx present. 
           if (maxval(abs(akx)) > epsilon(0.0)) then
               wpol_max = maxval(abs(wpol))
               if (nproc > 1) then
@@ -273,6 +275,33 @@ contains
           end if
       end if
 
+
+      ! Check that the introduction of the neoclassical neomagy doesn't break the CFL condition.
+      if (neoclassical_is_enabled()) then
+          neomagy_max = maxval(abs(neomagy))
+          if (nproc > 1) then
+              call max_allreduce(neomagy_max)
+          end if
+
+          cfl_dt_neomagy = abs(code_dt) / max(maxval(abs(aky)) * neomagy_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neomagy)
+      end if
+
+      ! Check that the introduction of the neoclassical neocurvx drive doesn't break the CFL condition.
+      if (neoclassical_is_enabled()) then
+          ! Only calculate the CFL constaint if there are non-zero akx present. 
+          if (maxval(abs(akx)) > epsilon(0.0)) then
+              neomagx_max = maxval(abs(neomagx))
+              if (nproc > 1) then
+                  call max_allreduce(neomagx_max)
+              end if
+
+              cfl_dt_neomagx = abs(code_dt) / max(maxval(abs(akx)) * neomagx_max, zero)
+              cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neomagx)
+          end if
+      end if
+
+
       ! Get the minimum value of <cfl_dt_linear> on all processors
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
       call min_allreduce(cfl_dt_linear)
@@ -295,7 +324,9 @@ contains
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wstar1: ', cfl_dt_wstar1
          if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'wpol: ', cfl_dt_wpol
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neocurvy: ', cfl_dt_neocurvy
-         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neocurvx: ', cfl_dt_neocurvx 
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neocurvx: ', cfl_dt_neocurvx
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neomagy: ', cfl_dt_neomagy
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neomagx: ', cfl_dt_neomagx 
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *)
       end if
