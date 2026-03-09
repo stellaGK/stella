@@ -8,7 +8,8 @@ import netCDF4 as nc4
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/giorgiaacton/Documents/runs/ALL_RH/test_diag/'
+#input_directory = '/pitagora_work/FUPA1_STELTURB/gacton00/Paul/linear_60_higherres/'
+input_directory = '/pitagora_scratch/userexternal/gacton00/RH_noj0_higherres/'
 file_prefix = 'input'
 infile = input_directory + file_prefix + '.out.nc'
 outdir = input_directory
@@ -193,8 +194,8 @@ upar, upar_present = \
 temperature, temperature_present = \
     read_stella_float('temperature')
 
-entropy_vs_kx, entropy_vs_kx_present = \
-    read_stella_float('entropy_vs_kx')
+free_energy_vs_kx, free_energy_vs_kx_present = \
+    read_stella_float('free_energy_vs_kx')
 
 ncfile.close()
 

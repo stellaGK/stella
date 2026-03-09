@@ -48,49 +48,7 @@ for iky in range(naky):
 #f2out.write('#ky0: '+str(ky0)+' ky1: '+str(ky1)+'\n')
 f2out.close()
 
-#fig=plt.figure(figsize=(12,8))
-fig, axs = plt.subplots(ncols=2, layout='constrained', sharex='col', figsize=(12,8))
-
-# distinguish between zonal
-for ikx in range(nakx):
-    axs[0].semilogy(time,phi2[:,ikx,0])
-    print('phi2(t=0), kx=', np.sqrt(phi2[0,ikx,0])/kx[ikx]**2 )
-    axs[1].scatter(kx[ikx], np.sqrt(phi2[-1, ikx,0]/phi2[0,ikx,0]))
-    print('ratio =', np.sqrt(phi2[-1, ikx,0]/phi2[0,ikx,0]), 'kx=',kx[ikx])
-    
-axs[1].set_xscale('log')
-axs[0].set_xlabel('$t (v_{t}/a)$')
-axs[1].set_label('$k_x \rho_i$') 
-axs[0].set_xlim([time[0],time[ntime-1]])
-axs[1].set_xlim(0,2.1 )
-plt.title('$\Phi(k_x,k_y=0)$')
-
-file = outdir+file_prefix+'.stella_kspectra_zonal.pdf'
-pdf = PdfPages(file)
-for i in plt.get_fignums():
-    pdf.savefig(i)
-pdf.close()
-plt.close('all')
-
-
 fig=plt.figure(figsize=(12,8))
-
-for ikx in range(1, nakx):
-    plt.semilogy(time, entropy_vs_kx[:,ikx])
-
-plt.semilogy(time, np.sum(entropy_vs_kx[:,:], axis=1), '--') 
-plt.xlabel('$t (v_{t}/a)$')
-plt.ylabel('Free energy')
-file = outdir+file_prefix+'.stella_free_energy.pdf'
-pdf = PdfPages(file)
-for i in plt.get_fignums():
-    pdf.savefig(i)
-pdf.close()
-plt.close('all')
-
-
-fig=plt.figure(figsize=(12,8))
-
 # distinguish between zonal/nonzonal modes
 for ikx in range(phi2.shape[1]-1):
     plt.semilogy(time,phi2[:,ikx+1,0],'--')

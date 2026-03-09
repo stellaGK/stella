@@ -51,7 +51,9 @@ def logyplot_1d(x,y,xlab,title='',ylab=''):
         plt.title(title)
     return fig
 
-def plot_2d(z,xin,yin,zmin,zmax,xlab='',ylab='',title='',cmp='RdBu'):
+def plot_2d(z,xin,yin,zmin,zmax,xlab='',ylab='',title='',cmp='RdBu', outfile=''):
+
+    z = np.real(z)
 
     fig = plt.figure(figsize=(12,8))
     x,y = np.meshgrid(xin,yin)
@@ -63,8 +65,9 @@ def plot_2d(z,xin,yin,zmin,zmax,xlab='',ylab='',title='',cmp='RdBu'):
     plt.xlabel(xlab)
     plt.ylabel(ylab)
     plt.title(title)
-    return fig
-
+    plt.savefig(outfile)
+    plt.close(fig)
+    
 def movie_2d(z, xin, yin, zmin, zmax, nframes, outfile,
              xlab='', ylab='', title='', step=1, cmp='RdBu',
              fps=10, interval=50, abs_flag=True):
@@ -80,8 +83,11 @@ def movie_2d(z, xin, yin, zmin, zmax, nframes, outfile,
     
     if abs_flag == True :
         print('abs flag is True')
-        z_even = np.sign(np.real(z_even_full)) * np.abs(z_even_full)
-        z_odd  = np.sign(np.real(z_odd_full)) * np.abs(z_odd_full)
+        #z_even = np.sign(np.real(z_even_full)) * np.abs(z_even_full)
+        #z_odd  = np.sign(np.real(z_odd_full)) * np.abs(z_odd_full)
+        z_even = np.abs(z_even_full)
+        z_odd  = np.abs(z_odd_full)
+        zmin[:] = 0.0
     else:
         z_even = np.real(z_even_full)
         z_odd  = np.real(z_odd_full) 
@@ -104,9 +110,9 @@ def movie_2d(z, xin, yin, zmin, zmax, nframes, outfile,
     # Create initial images once (frame 0)
     i0 = frames[0]
     im1 = ax1.imshow(z_even[i0], origin='lower', aspect='auto',
-                     extent=extent, cmap='RdBu', animated=False)
+                     extent=extent, cmap=cmp, animated=False)
     im2 = ax2.imshow(z_odd[i0], origin='lower', aspect='auto',
-                     extent=extent, cmap='RdBu', animated=False)
+                     extent=extent, cmap=cmp, animated=False)
 
     # Set initial clim from provided arrays/scalars:
     try:
