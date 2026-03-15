@@ -26,7 +26,7 @@ module neoclassical_terms_neo
     public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
 
     public :: neo_dens                                                         ! Holds moments of the NEO H_1 distribution. neo_dens is the zeroeth order moment. 
-    public :: neo_fac 
+    public :: neo_fac
 
     public :: initialised_neoclassical_terms_neo
 
@@ -233,9 +233,9 @@ contains
         ! end if
 
         ! We also require the first order moment for the distribution for testing purposes. Construct the moments from the global data rather than the local data. 
-        call get_neo_moment(neo_h_global, neo_phi, neo_grid, "first", neo_u_par)
-        call get_neo_moment(neo_h_global_right, neo_phi_right, neo_grid, "first", neo_u_par_right)
-        call get_neo_moment(neo_h_global_left, neo_phi_left, neo_grid, "first", neo_u_par_left)
+        ! call get_neo_moment(neo_h_global, neo_phi, neo_grid, "first", neo_u_par)
+        ! call get_neo_moment(neo_h_global_right, neo_phi_right, neo_grid, "first", neo_u_par_right)
+        ! call get_neo_moment(neo_h_global_left, neo_phi_left, neo_grid, "first", neo_u_par_left)
 
         ! Write out the parallel flow arrays to output files.  
         ! if (proc0) then
@@ -296,9 +296,6 @@ contains
             call distribute_vmus_over_procs(dneo_h_dvpa_global(iz, :, :, :, 1), dneo_h_dvpa(iz, :, 1))
             call distribute_vmus_over_procs(dneo_h_dmu_global(iz, :, :, :, 1), dneo_h_dmu(iz, :, 1))
         end do
-
-        ! With the velocity derivatives, calculate neo_fac. 
-        call get_neo_fac(dneo_h_dvpa, dneo_h_dmu, neo_fac) 
              
         ! For testing purposes, we also take the moments of the vpa and mu derivatives of neo_h. This is done with the global neo_h data. 
         ! call get_neo_h_velocity_derivative_moment(dneo_h_dvpa_global, neo_h_global, neo_phi, neo_grid, "vpa", neo_dens_vpa_deriv)
@@ -309,6 +306,13 @@ contains
             ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_mu_deriv, "neo_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
         ! end if
 
+        ! Check for Nan's in NEO data being passed to the GKE. 
+        ! call check_real_nans_r3(neo_h, "neo_h")
+        ! call check_real_nans_r3(dneo_h_dpsi, "dneo_h_dpsi")
+        ! call check_real_nans_r3(dneo_h_dz, "dneo_h_dz")
+        ! call check_real_nans_r3(dneo_h_dvpa, "dneo_h_dvpa")
+        ! call check_real_nans_r3(dneo_h_dmu, "dneo_h_dmu")
+        
         ! Finally, deallocate all temporary arrays.
         call deallocate_temp_arrays
 
@@ -851,47 +855,6 @@ contains
 
 
 ! ================================================================================================================================================================================= !
-! - Calculate neo_fac, a combination of NEO terms that is found in several of the higher order corrections. Calculate this once here rather than calculating individually in each - ! 
-! ----------------------------------------- of the gyrokinetic terms modules. This is given by: neo_fac = v∥/B * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ. --------------------------------------- !
-! ================================================================================================================================================================================= !
-
-    subroutine get_neo_fac(dneo_h_dvpa, dneo_h_dmu, neo_fac)
-        ! Parallelisation.
-        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-
-        ! Grids.
-        use grids_z, only: nzgrid
-        use grids_velocity, only: maxwell_vpa, maxwell_mu
-        use grids_velocity, only: vpa
-
-        ! Geometry. 
-        use geometry, only: bmag
-
-        implicit none 
-
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in) :: dneo_h_dvpa
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in) :: dneo_h_dmu
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(out)   :: neo_fac
-
-        ! Local variables.
-        integer :: is, imu, iv, ivmu, iz
-        
-        ! Calculate neo_fac.  
-        ! Iterate over velocity space.
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
-                        
-            do iz = -nzgrid, nzgrid
-                neo_fac(iz, ivmu) = ( vpa(iv) * dneo_h_dmu(iz, ivmu, 1) / bmag(1, iz) - dneo_h_dvpa(iz, ivmu, 1) ) 
-            end do
-        end do
-
-    end subroutine get_neo_fac 
-
-
-! ================================================================================================================================================================================= !
 ! ---------------------------------- Calculate the zeroeth order moment of H_1. This is used in the field equations and also for testing purposes. -------------------------------- !
 ! ================================================================================================================================================================================= !
 
@@ -953,6 +916,47 @@ contains
         ! Deallocate the temporary array.
         deallocate(tmp)
     end subroutine get_neo_moment
+
+
+! ================================================================================================================================================================================= !
+! - Calculate neo_fac, a combination of NEO terms that is found in several of the higher order corrections. Calculate this once here rather than calculating individually in each - ! 
+! ----------------------------------------- of the gyrokinetic terms modules. This is given by: neo_fac = v∥/B * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ. --------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    subroutine get_neo_fac(dneo_h_dvpa, dneo_h_dmu, neo_fac)
+        ! Parallelisation.
+        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+        ! Grids.
+        use grids_z, only: nzgrid
+        use grids_velocity, only: maxwell_vpa, maxwell_mu
+        use grids_velocity, only: vpa
+
+        ! Geometry. 
+        use geometry, only: bmag
+
+        implicit none 
+
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in) :: dneo_h_dvpa
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in) :: dneo_h_dmu
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(out)   :: neo_fac
+
+        ! Local variables.
+        integer :: is, imu, iv, ivmu, iz
+        
+        ! Calculate neo_fac.  
+        ! Iterate over velocity space.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+                        
+            do iz = -nzgrid, nzgrid
+                neo_fac(iz, ivmu) = ( vpa(iv) * dneo_h_dmu(iz, ivmu, 1) / bmag(1, iz) - dneo_h_dvpa(iz, ivmu, 1) ) 
+            end do
+        end do
+
+    end subroutine get_neo_fac 
 
 
 ! ================================================================================================================================================================================= !
@@ -1074,6 +1078,35 @@ contains
                  
         close(unit)
    end subroutine get_bootstrap_current
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------------------------------------------ Check for Nan's. --------------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    subroutine check_real_nans_r3(array, name)
+        use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+      
+        implicit none
+    
+        ! Strictly Rank 3 real array
+        real, dimension(:, :, :), intent(in) :: array 
+        character(len=*), intent(in)         :: name
+    
+        logical :: is_bad
+    
+        ! Modern compilers can now easily map this to the elemental intrinsic
+        is_bad = any(.not. ieee_is_finite(array))
+    
+        if (is_bad) then
+            write(*,'(A,A,A)') ">>> MATH ERROR: NaN or Inf detected in [", name, "] <<<"
+            ! Optional: Print the location of the first NaN to help debugging
+            ! error stop "Execution halted: Invalid real number found in Rank 3 array."
+        else
+            write(*,'(A,A,A)') "Check Passed: All values are finite in [", name, "]"
+        end if
+    
+end subroutine check_real_nans_r3
 
 
 ! ================================================================================================================================================================================= !

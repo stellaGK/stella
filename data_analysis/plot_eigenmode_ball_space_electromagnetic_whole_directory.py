@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-base_dir="/users/rjs659/NEO_stella/NEO_stella_CBC_aky_2.0_beta_0.015_rhostar_scan_neoclassics"
+base_dir="/users/rjs659/NEO_stella/NEO_stella_CBC_aky_0.3_akx_0.1_electrostatic_rhostar_scan_no_neoclassics_adiabatic_e"
 
 def plot_phi_eigenmode(sim_dir):
     input_file = os.path.join(sim_dir, "CBC.final_fields")
@@ -19,8 +19,8 @@ def plot_phi_eigenmode(sim_dir):
     phi_imag = data[:, 5]    
     apar_real = data[:, 6]    
     apar_imag = data[:, 7]    
-    bpar_real = data[:, 8]    
-    bpar_imag = data[:, 9]    
+    # bpar_real = data[:, 8]    
+    # bpar_imag = data[:, 9]    
 
     # Normalize all datasets to the peak of Phi' (either real or imaginary parts, whichever is largest).
     phi_max = max(np.max(np.abs(phi_real)), np.max(np.abs(phi_imag)))
@@ -28,15 +28,15 @@ def plot_phi_eigenmode(sim_dir):
     phi_imag_norm = phi_imag / phi_max
     apar_real_norm = apar_real / phi_max
     apar_imag_norm = apar_imag / phi_max
-    bpar_real_norm = bpar_real / phi_max
-    bpar_imag_norm = bpar_imag / phi_max
+    # bpar_real_norm = bpar_real / phi_max
+    # bpar_imag_norm = bpar_imag / phi_max
 
     # Create side-by-side subplots.
     fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharex=True)
     fields = [
         (phi_real_norm, phi_imag_norm, r"$\phi'$", "tab:blue", "tab:orange"),
         (apar_real_norm, apar_imag_norm, r"$A_\parallel$", "tab:blue", "tab:orange"),
-        (bpar_real_norm, bpar_imag_norm, r"$B_\parallel$", "tab:blue", "tab:orange"),
+        # (bpar_real_norm, bpar_imag_norm, r"$B_\parallel$", "tab:blue", "tab:orange"),
     ]
 
     # Plot each field in its own subplot.

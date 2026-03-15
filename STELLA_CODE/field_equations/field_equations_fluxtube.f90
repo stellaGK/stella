@@ -732,8 +732,7 @@ contains
             ! with (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J_0(a_k)²) exp(v²)
             wgt = spec(is_outer)%z * spec(is_outer)%z * spec(is_outer)%dens_psi0 / spec(is_outer)%temp
             call integrate_vmu(g0, iz, tmp)
-            denominator_fields(iky, ikx, iz) = denominator_fields(iky, ikx, iz) + tmp * wgt
-            
+            denominator_fields(iky, ikx, iz) = denominator_fields(iky, ikx, iz) + tmp * wgt            
          end do
 
          ! Sum the values on all processors and send them to <proc0>
@@ -755,7 +754,6 @@ contains
          !----------------------------------------------------------------------
          denominator_fields_h = sum(spec%z * spec%z * spec%dens / spec%temp)
          
-
          !**********************************************************************
          !                             Adiabatic electrons 
          !**********************************************************************
@@ -897,7 +895,7 @@ contains
                     efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
 
                     denominator_fields(:, :, iz) = denominator_fields(:, :, iz) + efac * ( 1 + neo_dens(iz, 2) )
-                    ! denominator_fields_h(:, :, iz) = denominator_fields_h(:, :, iz) + efac * ( 1 + neo_dens(iz, 2) )
+                    denominator_fields_h = denominator_fields_h + efac
                 end do
             else 
                 ! Otherwise, calculate the approporiate denominators for g and h in the presence of the Maxwellian equilbirium. 
@@ -930,22 +928,35 @@ contains
                if (zonal_mode(1)) then
                   ! denominator_fields_MBR_h = n_e/T_e / sum_(s not e) (Z_s² n_s/T_s)
                   denominator_fields_MBR_h = efac / (sum(spec%zt * spec%z * spec%dens))
-                  do ikx = 1, nakx
-                     ! tmp = T_e / n_e - int (dl/B)/(sum_(s not e) (Z_s² n_s/T_s) * (1- Gamma0))
-                     tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
-                     ! denominator_fields_MBR = 1/ (T_e/n_e - <1/denominator_field>_FSA )
-                     denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
-                  end do
+               
+                  if(neoclassical_is_enabled()) then
+                      do ikx = 1, nakx
+                          ! tmp = T_e / n_e - int (dl/B)/(sum_(s not e) (Z_s² n_s/T_s) * (1- Gamma0))
+                          tmp = 1./efac - sum(dl_over_b(ia, :) * ( 1 + neo_dens(iz, 2) ) / denominator_fields(1, ikx, :) )
+                          ! denominator_fields_MBR = 1/ (T_e/n_e - <1/denominator_field>_FSA )
+                          denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
+                      end do
+
+                      ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway.
+                      if (akx(1) < epsilon(0.)) then
+                          denominator_fields_MBR(1, :) = 0.0
+                      end if
+                  else
+                      do ikx = 1, nakx
+                          ! tmp = T_e / n_e - int (dl/B)/(sum_(s not e) (Z_s² n_s/T_s) * (1- Gamma0))
+                          tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
+                          ! denominator_fields_MBR = 1/ (T_e/n_e - <1/denominator_field>_FSA )
+                          denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
+                      end do
                   
-                  ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway.
-                  if (akx(1) < epsilon(0.)) then
-                     denominator_fields_MBR(1, :) = 0.0
+                      ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway.
+                      if (akx(1) < epsilon(0.)) then
+                          denominator_fields_MBR(1, :) = 0.0
+                      end if
                   end if
                end if
             end if
-
          end if
-
          ! Deallocate temporary arrays.
          if (allocated(g0)) deallocate (g0)
       end if

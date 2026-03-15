@@ -23,7 +23,8 @@ USE_LOCAL_SPFUNC ?=        # Use local special functions (bin)
 USE_NAGLIB ?=              # Use nag libraray (spfunc,undefined)
 USE_SFINCS ?=              # Link to sfincs library at compilation
 USE_LAPACK ?= on           # Use LAPACK, needed for test particle collisions
-HAS_ISO_C_BINDING ?= on    # Does the compiler support the iso_c_binding features of Fortran? (needed for local parallel LU decomposition) 
+HAS_ISO_C_BINDING ?= on    # Does the compiler support the iso_c_binding features of Fortran? (needed for local parallel LU decomposition)
+SPLIT_BY_NUMA ?=
 
 # Which FFT library to use (fftw, fftw3, mkl_fftw, undefined)
 # We can't have any spaces behind 'fftw3' so we can't put the comment behind it
@@ -143,6 +144,11 @@ $(warning Be sure that nonlinear run makes no sense)
 $(warning      )
 endif
 
+# Add the MPI version to the preprocessor flags
+ifdef SPLIT_BY_NUMA
+CPPFLAGS += -DSPLIT_BY_NUMA
+endif
+
 ifdef HAS_ISO_C_BINDING
 	CPPFLAGS += -DISO_C_BINDING
 endif
@@ -151,7 +157,7 @@ FC = $(MPIFC)
 CC = $(MPICC)
 CPPFLAGS += -DMPI
 
-# Flags for <USE_FFT> are (fftw,fftw3,mkl_fftw,undefined)
+# Flags for <USE_FFT> are (fftw, fftw3, mkl_fftw, undefined)
 ifeq ($(USE_FFT),fftw)
 	CPPFLAGS += -DFFT=_FFTW_
 	ifeq ($(FFT_LIB),)

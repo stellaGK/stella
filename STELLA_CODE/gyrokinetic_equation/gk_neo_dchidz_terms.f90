@@ -54,7 +54,7 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_fac
+        use neoclassical_terms_neo, only: neo_h, neo_phi, dneo_h_dvpa
 
         ! Arrays.
         use arrays, only: neo_dchidz_coeff, initialised_neo_dchidz_terms
@@ -74,7 +74,7 @@ contains
         end if
 
         ! Calculate neo_dchidz_coeff. Start with the constant factor.
-        neo_dchidz_coeff = - 0.5 * code_dt      
+        neo_dchidz_coeff = 0.5 * code_dt      
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -87,7 +87,8 @@ contains
 
             ! Multiply by the z-dependent factor.
             do iz = -nzgrid, nzgrid 
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( 1 / bmag(:, iz) ) * b_dot_gradz(:, iz) * neo_fac(iz, ivmu) &
+                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * b_dot_gradz(:, iz) &
+                * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do 
         end do

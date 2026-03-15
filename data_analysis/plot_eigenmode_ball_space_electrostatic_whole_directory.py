@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-base_dir="/users/rjs659/stella-v1.0/stella_electrostatic_CBC_aky_0.2_2.0_collisionless"
+base_dir="/users/rjs659/NEO_stella/explicit_vs_implicit_testing_GOOD_RESULTS/NEO_stella_CBC_aky_0.3_electrostatic_rhostar_scan_neoclassics_adiabatic_e_explicit"
 
 def plot_phi_eigenmode(sim_dir):
     input_file = os.path.join(sim_dir, "CBC.final_fields")

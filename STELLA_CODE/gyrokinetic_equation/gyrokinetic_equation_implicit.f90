@@ -70,6 +70,12 @@ contains
       use gk_mirror, only: advance_mirror_implicit
       use gk_flow_shear, only: advance_perp_flow_shear
 
+      ! For NEO's neoclassical corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
+      ! Calculations
+      use calculations_tofrom_ghf, only: gbar_to_g, g_or_gbar_to_gbarneo
+
       implicit none
 
       ! Arguments
@@ -109,9 +115,17 @@ contains
             fields_updated = .false.
          end if
 
-         if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g, apar)
-            fields_updated = .false.
+         if (mirror_implicit .and. include_mirror) then     
+             if (neoclassical_is_enabled()) then
+                 call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
+             end if
+     
+             call advance_mirror_implicit(collisions_implicit, g, apar)
+             fields_updated = .false.
+
+             if (neoclassical_is_enabled()) then
+                 call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
+             end if
          end if
 
          ! If the distribution function has been updated due to the addition
@@ -119,18 +133,18 @@ contains
          ! quasi-neutrality condition to update the fields <phi>, <apar> and <bpar>
          call advance_fields(g, phi, apar, bpar, dist='g')
          fields_updated = .true. 
-         
+
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
-            call advance_implicit_terms(g, phi, apar, bpar)
-            fields_updated = .false.
+             call advance_implicit_terms(g, phi, apar, bpar)
+             fields_updated = .false.
          end if
 
          ! Update the fields if not already updated
          call advance_fields(g, phi, apar, bpar, dist='g')
          fields_updated = .true. 
-         
+                  
       else
 
          ! Get updated fields corresponding to advanced g
@@ -143,12 +157,20 @@ contains
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar, bpar)
-            fields_updated = .false.            
+            fields_updated = .false. 
          end if
 
          if (mirror_implicit .and. include_mirror) then
+            if (neoclassical_is_enabled()) then
+                call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
+            end if    
+
             call advance_mirror_implicit(collisions_implicit, g, apar)
             fields_updated = .false.
+
+            if (neoclassical_is_enabled()) then
+                call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
+            end if
          end if
 
          if (collisions_implicit .and. include_collisions) then

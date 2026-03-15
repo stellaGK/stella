@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --job-name=stella                              # Job name
+#SBATCH --partition=nodes                              # What partition the job should run on
+#SBATCH --time=0-08:00:00                              # Time limit (DD-HH:MM:SS)
+#SBATCH --ntasks=96                                    # Number of MPI tasks to request
+#SBATCH --cpus-per-task=1                              # Number of CPU cores per MPI task
+#SBATCH --account=pet-gspt-2019                        # Project account to use
+#SBATCH --mail-type=NONE                               # Mail events (NONE, BEGIN, END, FAIL, ALL)
+#SBATCH --mail-user=rjs659@york.ac.uk                  # Where to send mail
+#SBATCH --output=%x-%j.log                             # Standard output log
+#SBATCH --error=%x-%j.err                              # Standard error log
+
+# Purge any previously loaded modules
+module purge
+
+# Load modules
+module load gompi/2022b OpenMPI/4.1.4-GCC-12.2.0 netCDF-Fortran/4.6.0-gompi-2022b FFTW/3.3.10-GCC-12.2.0 OpenBLAS/0.3.21-GCC-12.2.0 Python/3.10.8-GCCcore-12.2.0
+
+export PSM2_CUDA=0
+
+export GK_SYSTEM='viking'
+export MAKEFLAGS='-IMakefiles'
+export HDF5_USE_FILE_LOCKING=FALSE
+
+ulimit -s unlimited
+
+######################## ABove is in bashrc anyway
+
+export OMP_NUM_THREADS=1
+
+EXE=/users/rjs659/NEO_stella/stella
+INPUT=CBC.in
+OUTPUT=OUTPUT
+
+srun --hint=nomultithread --distribution=block:block -n 96 $EXE $INPUT | tee $OUTPUT

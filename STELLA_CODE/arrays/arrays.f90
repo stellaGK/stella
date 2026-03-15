@@ -21,14 +21,12 @@ module arrays
    public :: initialised_radial_variation
    
    ! For NEO's neoclassical corrections. 
- 
    public :: initialised_neo_chi_terms
    public :: initialised_neo_apar_terms
    public :: initialised_neo_dchidz_terms
    public :: initialised_wstar1
    public :: initialised_wpol
    public :: initialised_neo_curv_drift
-   public :: initialised_neo_mag_drift
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -76,8 +74,6 @@ module arrays
    public :: wpol
    public :: neocurvx
    public :: neocurvy
-   public :: neomagx
-   public :: neomagy
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -121,7 +117,6 @@ module arrays
    logical :: initialised_wstar1
    logical :: initialised_wpol
    logical :: initialised_neo_curv_drift
-   logical :: initialised_neo_mag_drift
 
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -161,7 +156,6 @@ module arrays
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
    real, dimension(:, :, :), allocatable :: wstar1, wpol
    real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
-   real, dimension(:, :, :), allocatable :: neomagx, neomagy
 
    !----------------------------------------------------------------------------
    ! For the Field Equations

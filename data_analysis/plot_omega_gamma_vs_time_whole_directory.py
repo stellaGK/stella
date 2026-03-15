@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-base_dir="/users/rjs659/NEO_stella/NEO_stella_CBC_aky_2.0_beta_0.015_rhostar_scan_no_neoclassics"
+base_dir="/users/rjs659/NEO_stella/NEO_stella_CBC_aky_0.3_akx_0.1_electrostatic_rhostar_scan_neoclassics_adiabatic_e_implicit"
 
 def plot_omega_gamma_vs_time(sim_dir):
     input_file = os.path.join(sim_dir, "CBC.omega")

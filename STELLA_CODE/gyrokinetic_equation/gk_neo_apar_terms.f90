@@ -4,11 +4,11 @@
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = - (Z * μ)/(m * v∥) * b.∇B₀ * J₀ * A∥_k * exp(-v²) * ( ( v∥ / B₀ ) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ )            
+! = 
 !         
 ! Define the neoclassical apar coefficient as: 
 ! 
-! <neo_apar_coeff> = - (Z * μ)/(m * v∥) * b.∇B₀ * exp(-v²) * ( ( v∥ / B₀ ) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ )  * code_dt
+! <neo_apar_coeff> =
 !
 ! This must be multiplied by <A∥_k> = J₀ * A∥_k and then added to the RHS of the GKE.
 ! 
@@ -51,7 +51,7 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
+        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
 
         use arrays, only: neo_apar_coeff, initialised_neo_apar_terms
 
@@ -70,7 +70,7 @@ contains
 
         ! Calculate neo_apar_coeff at each grid point. Calculation is broken up for ease of reading.
         ! Multiply by the constant code_dt.         
-        neo_apar_coeff(:, iz, ivmu) = - code_dt
+        neo_apar_coeff = code_dt
  
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -78,23 +78,18 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
            
-            ! First compute the magnetic geometry factor.
-            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * b_dot_gradz(:, :) * dbdzed(:, :)
- 
-            ! Multiply by the species dependent prefactor.
-            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * spec(is)%z/spec(is)%mass
+            ! Compute the z-independent factor.
+            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * mu(imu) * spec(is)%z * b_dot_gradz(:, :) * dbdzed(:, :) / ( vpa(iv) * spec(is)%mass )
 
-            ! Multiply by the μ grid point and divide by the v∥ grid point.
-            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * mu(imu) / vpa(iv)
+            ! Finally multiply by the Maxwellian. 
+            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
 
             do iz = -nzgrid, nzgrid  
                 ! Multiply by the neoclassical distribution prefactor. 
-                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * ( ( vpa(iv) / bmag(:, iz) ) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) )
+                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
             end do 
         end do
 
-        ! Finally multiply by the Maxwellian. 
-        neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
     end subroutine init_neo_apar_terms
 
 ! ================================================================================================================================================================================= !

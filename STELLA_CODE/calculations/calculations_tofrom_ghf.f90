@@ -78,7 +78,6 @@ module calculations_tofrom_ghf
    end interface g_to_f
 
    interface g_or_gbar_to_gbarneo
-      module procedure g_or_gbar_to_gbarneo_kxkyz
       module procedure g_or_gbar_to_gbarneo_vmu
       module procedure g_or_gbar_to_gbarneo_vmu_single
    end interface g_or_gbar_to_gbarneo
@@ -788,113 +787,6 @@ contains
 ! ================================================================================================================================================================================== !
 
 ! ================================================================================================================================================================================== !
-! ------------------------------------------------------------ Convert <g> or <gbar> to <gbarneo> using (mu,vpa,kxkyzs). ----------------------------------------------------------- !
-! ================================================================================================================================================================================== !
-
-    subroutine g_or_gbar_to_gbarneo_kxkyz(g0, phi, apar, bpar, facchi)
-        ! Parallelisation.
-        use parallelisation_layouts, only: kxkyz_lo
-        use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      
-        ! Calculations.
-        use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      
-        ! Grids.
-        use grids_species, only: spec
-        use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: naky, nakx
-        use grids_velocity, only: vpa, mu, nvpa, nmu
-        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-
-        ! Geometry. 
-        use geometry, only: bmag 
-      
-        ! Flags.
-        use parameters_physics, only: include_apar, include_bpar
-        use parameters_physics, only: fphi
-
-        ! NEO's Neoclassical information.
-        use neoclassical_terms_neo, only: dneo_h_dmu, neo_h, neo_phi
-
-        implicit none
-
-        ! Arguments.
-        complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g0
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
-        real, intent(in) :: facchi
-
-        ! Local variables.
-        integer :: ikxkyz, iz, it, iky, ikx, is, ia
-        complex, dimension(:, :), allocatable :: field, gyro_averaged_field
-      
-        ! Allocate local arrays.
-        allocate (field(nvpa, nmu))
-        allocate (gyro_averaged_field(nvpa, nmu))
-
-        ! Assume we only have one field line. 
-        ia = 1
-      
-        ! Iterate over the (kx,ky,z,mu,vpa,s) grid.
-        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)        
-
-            ! First calculate the gyroaveraged field being used, <>. 
-            ! Calculate the phi contribution to gyoraveraged fields.
-         
-            field = fphi * facchi * spec(is)%zt * phi(iky, ikx, iz, it) * spread(maxwell_vpa(:, is), 2, nmu) &
-               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
-            
-            ! If apar is present, we must account for this.
-            if (include_apar) then 
-                field = field - 2.0 * facchi * spec(is)%zt * apar(iky, ikx, iz, it) * spread(vpa, 2, nmu) * spread(maxwell_vpa(:, is), 2, nmu) &
-                * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spec(is)%stm_psi0 
-            end if
-
-            ! Multiply by the neoclassical distribution factor. 
-            ! field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
-
-            ! Gyroaverage.
-            call gyro_average(field, ikxkyz, gyro_averaged_field)
-         
-            ! Calculate the new distribution, gbarneo.
-            g0(:, :, ikxkyz) = g0(:, :, ikxkyz) + gyro_averaged_field   
-        end do
-
-        if (include_bpar) then
-            ! Iterate over the (it,iz) points
-         
-            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                iz = iz_idx(kxkyz_lo, ikxkyz)
-                it = it_idx(kxkyz_lo, ikxkyz)
-                ikx = ikx_idx(kxkyz_lo, ikxkyz)
-                iky = iky_idx(kxkyz_lo, ikxkyz)
-                is = is_idx(kxkyz_lo, ikxkyz)
-            
-                field = 4.0 * facchi * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) * spread(maxwell_vpa(:, is), 2, nmu) &
-                * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
-                   
-                ! Multiply by the neoclassical distribution factor. 
-                ! field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
-
-                ! Gyroaverage the J_1 contribution.
-                call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
-       
-                ! Now get the full gyroaveraged field. 
-                g0(:, :, ikxkyz) = g0(:, :, ikxkyz) + gyro_averaged_field
-            end do
-        end if
-
-        ! Deallocate local arrays.
-        deallocate (field, gyro_averaged_field)
-
-   end subroutine g_or_gbar_to_gbarneo_kxkyz
-
-
-! ================================================================================================================================================================================== !
 ! ----------------------------------------------------------- Convert <gbar> or <g> to <gbarneo> using (kx,ky,z,ivpamus). ---------------------------------------------------------- !
 ! ================================================================================================================================================================================== !
 
@@ -987,11 +879,10 @@ contains
                ! If apar is present, we must account for this.
                if (include_apar) then 
                    field = field - 2.0 * spec(is)%zt * facchi * apar(:, :, iz, it) * maxwell_vpa(iv, is) & 
-                   * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * vpa(iv) * spec(is)%stm_psi0 
+                   * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * vpa(iv) * spec(is)%stm 
                end if
  
-               ! Mutliply by the neoclassical distribution factor. 
-
+               ! Mutliply by the neoclassical distribution factor.  
                field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
                ! Gyroaverage the J₀ contribution.
                call gyro_average(field, iz, ivmu, gyro_averaged_field)
@@ -1008,7 +899,7 @@ contains
            do it = 1, ntubes
                do iz = -nzgrid, nzgrid
  
-                   field = 4.0 * facchi * mu(imu) * bpar(:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
+                   field = 4.0 * spec(is)%zt * facchi * mu(imu) * bpar(:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
                    * maxwell_fac(is)
                
                     field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )

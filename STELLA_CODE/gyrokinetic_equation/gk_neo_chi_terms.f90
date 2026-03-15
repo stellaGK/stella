@@ -28,7 +28,7 @@ module gk_neo_chi_terms
    ! Make routines available to other modules. 
    public :: initialised_neo_chi_terms
    public :: init_neo_chi_terms, finish_neo_chi_terms
-   public :: advance_neo_chi_terms_explicit, advance_neo_chi_terms_implicit 
+   public :: advance_neo_chi_terms_explicit
    public :: get_chi
 
    private
@@ -56,7 +56,7 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: neo_fac
+        use neoclassical_terms_neo, only: dneo_h_dmu, dneo_h_dvpa
 
         use arrays, only: neo_chi_coeff, initialised_neo_chi_terms
 
@@ -83,7 +83,8 @@ contains
 
             ! Multiply by the z-dependent factor. 
             do iz = -nzgrid, nzgrid
-                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * ( 1 / bmag(:, iz) )  * neo_fac(iz, ivmu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
+                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * ( 1 / bmag(:, iz) ) &
+                * ( vpa(iv) * dneo_h_dmu(iz, ivmu, 1) / bmag(1, iz) - dneo_h_dvpa(iz, ivmu, 1) )  * b_dot_gradz(:, iz) * dbdzed(:, iz) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do 
         end do
@@ -155,15 +156,6 @@ contains
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_chi_coeff advance')
 
     end subroutine advance_neo_chi_terms_explicit
-
-
-! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------------- Advance the terms implicitly. ------------------------------------------------------------------------- ! 
-! ================================================================================================================================================================================= !
-
-    subroutine advance_neo_chi_terms_implicit
-        implicit none
-    end subroutine advance_neo_chi_terms_implicit
 
 
 ! ================================================================================================================================================================================= !
