@@ -7,7 +7,7 @@ import numpy as np
 
 # Define values to scan. 
 
-fprim = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
+tprim = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
 
 # Read the default CBC.in file. 
 base_nml = f90nml.read('CBC.in')
@@ -19,32 +19,32 @@ def copy_file(filename):
     dst_dir = run_dir   # Destination Directory. 
     shutil.copy(src_file, dst_dir) # Copy file into the directory. 
   
-for i in range(len(fprim)):
+for i in range(len(tprim)):
     # Output directory for all runs.
-    output_dir = f'NEO_stella_CBC_aky_0.3_electrostatic_fprim_scan_neoclassics_kinetic_e_rhostar_1e-3'
+    output_dir = f'NEO_stella_CBC_aky_0.3_electrostatic_tprim_scan_neoclassics_kinetic_e_rhostar_1e-3'
     os.makedirs(output_dir, exist_ok=True)
-    run_name = f'fprim_{fprim[i]}'
+    run_name = f'tprim_{tprim[i]}'
     run_dir = os.path.join(output_dir, run_name)
     os.makedirs(run_dir, exist_ok=True)
     
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.equil')  
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.grid')
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.species')
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.version') # For metadata. 
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.equil')  
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.grid')
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.species')
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.version') # For metadata. 
 
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.f.left') # Left flux surface.
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.phi.left')
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.f.left') # Left flux surface.
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.phi.left')
    
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.f') # Central flux surface.
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.phi')
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.f') # Central flux surface.
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.phi')
     
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.f.right') # Right flux surface.
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNNDR_scan_RHO_STAR_1E-3/DLNNDR_{fprim[i]}/out.neo.phi.right')
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.f.right') # Right flux surface.
+    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/DLNTDR_scan_RHO_STAR_1E-3/DLNTDR_{tprim[i]}/out.neo.phi.right')
 
     # Modify the namelist.
     mod_nml = base_nml.copy()
-    mod_nml['species_parameters_1']['fprim'] = fprim[i]
-    mod_nml['species_parameters_2']['fprim'] = fprim[i]
+    mod_nml['species_parameters_1']['tprim'] = tprim[i]
+    mod_nml['species_parameters_2']['tprim'] = tprim[i]
     
     # Write new input.in
     input_path = os.path.join(run_dir, 'CBC.in')

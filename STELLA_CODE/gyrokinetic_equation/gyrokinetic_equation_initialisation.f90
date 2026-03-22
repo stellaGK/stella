@@ -60,6 +60,7 @@ contains
       use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
       use gk_neo_drive, only: init_wstar1, init_wpol
       use gk_neo_drifts, only: init_neo_curv_drift
+      use gk_neo_parallel_streaming, only: init_neo_stream
                                                                                    
       implicit none
 
@@ -96,7 +97,6 @@ contains
       call init_wstar
 
       ! If NEO's neoclassical corrections are enabled, then ...
-
       if (neoclassical_is_enabled()) then
           ! Allocate and calculate the coeffecient multiplying chi in NEO's neoclassical corrections. 
           call init_neo_chi_terms
@@ -115,6 +115,9 @@ contains
 
           ! Allocate and calculate the neoclassical curvature drift corrections. 
           call init_neo_curv_drift
+
+          ! Allocate and calculate the neoclassical parallel streaming correction. 
+          call init_neo_stream 
       end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
@@ -179,6 +182,7 @@ contains
       use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
       use gk_neo_drive, only: finish_wstar1, finish_wpol
       use gk_neo_drifts, only: finish_neo_curv_drift
+      use gk_neo_parallel_streaming, only: finish_neo_stream
 
       implicit none
 
@@ -195,7 +199,6 @@ contains
       call finish_mirror
     
       ! If NEO's neoclassical corrections are enabled, then ...
-
       if (neoclassical_is_enabled()) then
           call finish_neoclassical_terms_neo
           call finish_neo_chi_terms
@@ -209,6 +212,7 @@ contains
           call finish_wstar1
           call finish_wpol
           call finish_neo_curv_drift
+          call finish_neo_stream
       end if
 
       initialised_gyrokinetic_equation = .false.

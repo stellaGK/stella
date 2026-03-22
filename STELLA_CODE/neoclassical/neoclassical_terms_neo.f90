@@ -24,6 +24,7 @@ module neoclassical_terms_neo
 
     public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_dvpa, dneo_h_dmu           ! Will represent NEO's distribution and its derivatives in real space and velocity space.  
     public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
+    public :: d2neo_h_dzdmu, d2neo_h_dzdvpa
 
     public :: neo_dens                                                         ! Holds moments of the NEO H_1 distribution. neo_dens is the zeroeth order moment. 
     public :: neo_fac
@@ -42,7 +43,7 @@ module neoclassical_terms_neo
 
     real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
     real, dimension(:), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
-    real, dimension(:, :, :), allocatable :: dneo_h_dvpa, dneo_h_dmu
+    real, dimension(:, :, :), allocatable :: dneo_h_dvpa, dneo_h_dmu, d2neo_h_dzdmu, d2neo_h_dzdvpa
     real, dimension(:, :), allocatable :: neo_dens, neo_dens_right, neo_dens_left
     real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
     real, dimension(:, :), allocatable :: neo_fac
@@ -129,7 +130,7 @@ contains
         real, dimension(:, :, :, :, :), allocatable :: neo_h_global, neo_h_global_right, neo_h_global_left
 
         ! Holds NEO H_1 derivative data evaluated on the stella z, v∥​ and μ grids.
-        real, dimension(:, :, :, :, :), allocatable :: dneo_h_dvpa_global, dneo_h_dmu_global
+        real, dimension(:, :, :, :, :), allocatable :: dneo_h_dvpa_global, dneo_h_dmu_global, d2neo_h_dzdmu_global, d2neo_h_dzdvpa_global
 
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
         real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
@@ -166,7 +167,6 @@ contains
         call broadcast(neo_grid%radius)
        
         ! Allocate all of the arrays that will be used in the higher order corrections. 
-
         if (.not. allocated(neo_h)) allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_phi)) allocate(neo_phi(-nzgrid:nzgrid))
         if (.not. allocated(dneo_h_dpsi)) allocate(dneo_h_dpsi(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
@@ -175,6 +175,8 @@ contains
         if (.not. allocated(dneo_phi_dz)) allocate(dneo_phi_dz(-nzgrid:nzgrid))
         if (.not. allocated(dneo_h_dvpa)) allocate(dneo_h_dvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dmu)) allocate(dneo_h_dmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(d2neo_h_dzdmu)) allocate(d2neo_h_dzdmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(d2neo_h_dzdvpa)) allocate(d2neo_h_dzdvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, neo_grid%n_species))
         if (.not. allocated(neo_fac)) allocate(neo_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
 
@@ -285,6 +287,9 @@ contains
         ! We will need the derivatives of the distribution with respect to stellas velocity variables.
         call get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, dneo_h_dvpa_global, dneo_h_dmu_global)
 
+        ! We also need the mixed z and velocity derivatives. 
+        call get_neo_h_velocity_derivs_on_stella_grids(dneo_h_hat_dz_z_grid, neo_grid, 1, d2neo_h_dzdvpa_global, d2neo_h_dzdmu_global)
+
         ! DISTRIBUTION DIAGNOSTIC.
         ! if (proc0) then
             ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, dneo_h_dvpa_global, 1, "neo_h_vpa_deriv_on_stella_z_grid_central_surface")
@@ -295,6 +300,8 @@ contains
         do iz = -nzgrid, nzgrid
             call distribute_vmus_over_procs(dneo_h_dvpa_global(iz, :, :, :, 1), dneo_h_dvpa(iz, :, 1))
             call distribute_vmus_over_procs(dneo_h_dmu_global(iz, :, :, :, 1), dneo_h_dmu(iz, :, 1))
+            call distribute_vmus_over_procs(d2neo_h_dzdvpa_global(iz, :, :, :, 1), d2neo_h_dzdvpa(iz, :, 1))
+            call distribute_vmus_over_procs(d2neo_h_dzdmu_global(iz, :, :, :, 1), d2neo_h_dzdmu(iz, :, 1))
         end do
              
         ! For testing purposes, we also take the moments of the vpa and mu derivatives of neo_h. This is done with the global neo_h data. 
@@ -343,7 +350,9 @@ contains
         
         ! Allocate the z derivative of the NEO h_hat arrays on stellas z grid. Data will still be on NEOs velocity grids at this point.
         if (.not. allocated(dneo_h_hat_dz_z_grid)) allocate(dneo_h_hat_dz_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
-        if (.not. allocated(dneo_h_dz_global)) allocate(dneo_h_dz_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))      
+        if (.not. allocated(dneo_h_dz_global)) allocate(dneo_h_dz_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(d2neo_h_dzdmu_global)) allocate(d2neo_h_dzdmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(d2neo_h_dzdvpa_global)) allocate(d2neo_h_dzdvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))      
 
         ! Allocate the ϕ^1_0 arrays (for left and right flux surfaces) on stellas z grid.                                                                                                    
         if (.not. allocated(neo_phi_right)) allocate(neo_phi_right(-nzgrid:nzgrid)) 
@@ -394,7 +403,9 @@ contains
         if (allocated(neo_h_hat_right_z_grid)) deallocate(neo_h_hat_right_z_grid)    
         if (allocated(neo_h_hat_left_z_grid)) deallocate(neo_h_hat_left_z_grid)
         if (allocated(dneo_h_hat_dz_z_grid)) deallocate(dneo_h_hat_dz_z_grid)
-        if (allocated(dneo_h_dz_global)) deallocate(dneo_h_dz_global)   
+        if (allocated(dneo_h_dz_global)) deallocate(dneo_h_dz_global)
+        if (allocated(d2neo_h_dzdvpa_global)) deallocate(d2neo_h_dzdvpa_global)
+        if (allocated(d2neo_h_dzdmu_global)) deallocate(d2neo_h_dzdmu_global)   
         if (allocated(neo_phi_right)) deallocate(neo_phi_right) 
         if (allocated(neo_phi_left)) deallocate(neo_phi_left)
         if (allocated(neo_h_global)) deallocate(neo_h_global)       
@@ -432,6 +443,8 @@ contains
         if (allocated(dneo_phi_dz)) deallocate(dneo_phi_dz)
         if (allocated(dneo_h_dvpa)) deallocate(dneo_h_dvpa)
         if (allocated(dneo_h_dmu)) deallocate(dneo_h_dmu)
+        if (allocated(d2neo_h_dzdmu)) deallocate(d2neo_h_dzdmu)
+        if (allocated(d2neo_h_dzdvpa)) deallocate(d2neo_h_dzdvpa)
         if (allocated(neo_dens)) deallocate(neo_dens)
         if (allocated(neo_fac)) deallocate(neo_fac)
 

@@ -120,7 +120,7 @@ ax2.legend(fontsize=tick_fontsize)
 
 fig.suptitle(r'CBC, $\beta = 0.0\%$, $k_y = 0.3$, Kinetic Electrons', fontsize=label_fontsize + 2)
 
-output_filename = "/users/rjs659/NEO_stella/NEO_stella_CBC_aky_0.3_electrostatic_rhostar_scan_neoclassics_kinetic_e/omega_gamma_vs_rhostar_stella_and_gs2.png"
+output_filename = "/users/rjs659/NEO_stella/aky_0.3/kinetic_e/electrostatic/rhostar_scan_neoclassics/omega_gamma_vs_rhostar_stella_and_gs2.png"
 plt.savefig(output_filename, dpi=300, bbox_inches='tight')
 print(f"✅ Figure saved as '{output_filename}'")
 

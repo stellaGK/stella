@@ -27,6 +27,7 @@ module arrays
    public :: initialised_wstar1
    public :: initialised_wpol
    public :: initialised_neo_curv_drift
+   public :: initialised_neo_stream
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -70,6 +71,7 @@ module arrays
    public :: neo_chi_coeff
    public :: neo_apar_coeff
    public :: neo_dchidz_coeff
+   public :: neo_stream_coeff
    public :: wstar1
    public :: wpol
    public :: neocurvx
@@ -114,6 +116,7 @@ module arrays
    logical :: initialised_neo_chi_terms
    logical :: initialised_neo_apar_terms   
    logical :: initialised_neo_dchidz_terms
+   logical :: initialised_neo_stream
    logical :: initialised_wstar1
    logical :: initialised_wpol
    logical :: initialised_neo_curv_drift
@@ -154,6 +157,7 @@ module arrays
    real, dimension(:, :, :), allocatable :: neo_chi_coeff
    real, dimension(:, :, :), allocatable :: neo_apar_coeff
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
+   real, dimension(:, :, :), allocatable :: neo_stream_coeff
    real, dimension(:, :, :), allocatable :: wstar1, wpol
    real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
 

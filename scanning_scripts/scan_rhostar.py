@@ -21,7 +21,7 @@ def copy_file(filename):
   
 for i in range(len(rhostar)):
     # Output directory for all runs.
-    output_dir = f'/users/rjs659/NEO_stella/NEO_stella_CBC_aky_0.3_akx_0.1_electrostatic_rhostar_scan_neoclassics_adiabatic_e_implicit'
+    output_dir = f'/users/rjs659/NEO_stella/NEO_stella_CBC_aky_3.0_electrostatic_rhostar_scan_neoclassics_kinetic_e'
     os.makedirs(output_dir, exist_ok=True)
     run_name = f'rhostar_{rhostar[i]}'
     run_dir = os.path.join(output_dir, run_name)

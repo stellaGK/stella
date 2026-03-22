@@ -7,7 +7,7 @@ import numpy as np
 
 # Define values to scan. 
 
-aky = np.linspace(0.1, 1.0, 50)
+aky = np.logspace(-1, 1, 20)
 # aky = [0.3]
 
 # Read the default CBC.in file. 
@@ -22,25 +22,25 @@ def copy_file(filename):
   
 for i in range(len(aky)):
     # Output directory for all runs.
-    output_dir = f'/users/rjs659/NEO_stella/CBC_electromagnetic_beta_0_02_aky_scan_rhostar_0_01_no_neoclassics_adiabatic_e_explicit'
+    output_dir = f'/users/rjs659/NEO_stella/NEO_stella_CBC_electrostatic_aky_scan_akx_0.1_rhostar_0_01_no_neoclassics_kinetic_e'
     os.makedirs(output_dir, exist_ok=True)
     run_name = f'aky_{aky[i]}'
     run_dir = os.path.join(output_dir, run_name)
     os.makedirs(run_dir, exist_ok=True)
     
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.equil')  
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.grid')
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.species')
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.version') # For metadata. 
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.equil')  
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.grid')
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.species')
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.version') # For metadata. 
 
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.f.left') # Left flux surface.
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.phi.left')
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.f.left') # Left flux surface.
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.phi.left')
    
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.f') # Central flux surface.
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.phi')
-    
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.f.right') # Right flux surface.
-    copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.phi.right')
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.f') # Central flux surface.
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.phi')
+   
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.f.right') # Right flux surface.
+    # copy_file(f'/users/rjs659/NEO_stella/CBC_NEO_data/large_theta_grid_CBC_NEO_data_REAL_DATA/RHO_STAR_0.01/out.neo.phi.right')
 
     # Modify the namelist.
     mod_nml = base_nml.copy()

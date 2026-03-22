@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-base_dir="/users/rjs659/NEO_stella/explicit_vs_implicit_testing_GOOD_RESULTS/NEO_stella_CBC_aky_0.3_electrostatic_rhostar_scan_neoclassics_adiabatic_e_explicit"
+base_dir="/users/rjs659/NEO_stella/CBC_electrostatic_aky_scan_rhostar_0_01_no_neoclassics_adiabatic_e_implicit"
 
 def plot_phi_eigenmode(sim_dir):
     input_file = os.path.join(sim_dir, "CBC.final_fields")
@@ -17,27 +17,25 @@ def plot_phi_eigenmode(sim_dir):
     z_zed0 = data[:, 1]      
     phi_real = data[:, 4]    
     phi_imag = data[:, 5]    
+ 
+    # Calculate the absolute value (magnitude)
+    phi_abs = np.sqrt(phi_real**2 + phi_imag**2)
 
-    # Normalize all datasets to the peak of Phi' (either real or imaginary parts, whichever is largest).
-    phi_max = max(np.max(np.abs(phi_real)), np.max(np.abs(phi_imag)))
-    phi_real_norm = phi_real / phi_max
-    phi_imag_norm = phi_imag / phi_max
+    # Normalize the absolute value.
+    phi_abs_norm = phi_abs / np.max(phi_abs)
 
     # Create side-by-side subplots.
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharex=True)
-    fields = [(phi_real_norm, phi_imag_norm, r"$\phi'$", "tab:blue", "tab:orange")]
+    fig, ax = plt.subplots(figsize=(8, 5))
 
-    # Plot each field in its own subplot.
-    for ax, (real_part, imag_part, label, color_r, color_i) in zip(axes, fields):
-        ax.plot(z_zed0, real_part, 'o-', mfc='none', color=color_r, label=f"Re({label})")
-        ax.plot(z_zed0, imag_part, 'o-', mfc='none', color=color_i, label=f"Im({label})")
-        ax.set_xlabel(r'$z - z_0$', fontsize=13)
-        ax.set_ylabel(f"{label} / φ'_max", fontsize=13)
-        ax.legend(fontsize=10)
-        ax.grid(True)
+    # Plot.
+    ax.plot(z_zed0, phi_abs_norm, color='black', lw=2.5, label=r"$|\phi'|/|\phi'_{\text{max}}|$")
+    ax.set_xlabel(r'$z - z_0$ (Field Line Coordinate)', fontsize=13)
+    ax.set_ylabel(r"Normalized Potential $|\phi'|$", fontsize=13)
+    ax.set_ylim(0, 1.1) 
+    ax.grid(True, linestyle=':', alpha=0.6)
+    ax.legend(fontsize=11, loc='upper right')
 
-    # Overall title and layout
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout()
 
     # Save figure
     output_file = os.path.join(sim_dir, "electrostatic_eigenmode.png")

@@ -32,7 +32,7 @@ final_omegas = []
 final_gammas = []
 
 for rhostar in rhostar_vals:
-    output_dir = f"/users/rjs659/NEO_stella/NEO_stella_CBC_aky_0.3_electrostatic_rhostar_scan_no_neoclassics_kinetic_e/rhostar_{rhostar}"
+    output_dir = f"/users/rjs659/NEO_stella/NEO_stella_CBC_aky_3.0_electrostatic_rhostar_scan_no_neoclassics_kinetic_e/rhostar_{rhostar}"
     omega_f, gamma_f = get_final_omega_gamma(output_dir)
     if omega_f is not None:
         final_omegas.append(omega_f)
@@ -48,7 +48,7 @@ final_omegas_neo = []
 final_gammas_neo = []
 
 for rhostar in rhostar_vals:
-    output_dir = f"/users/rjs659/NEO_stella/NEO_stella_CBC_aky_0.3_electrostatic_rhostar_scan_neoclassics_kinetic_e/rhostar_{rhostar}"
+    output_dir = f"/users/rjs659/NEO_stella/NEO_stella_CBC_aky_3.0_electrostatic_rhostar_scan_neoclassics_kinetic_e/rhostar_{rhostar}"
     omega_f, gamma_f = get_final_omega_gamma(output_dir)
     if omega_f is not None:
         final_omegas_neo.append(omega_f)
@@ -168,9 +168,9 @@ ax2.grid(False, which='minor')
 ax2.legend(loc='lower center', bbox_to_anchor=(-0.1, 1.05), ncol=2, fontsize=11, frameon=True)
 plt.subplots_adjust(top=0.85)
 
-fig.suptitle(r'CBC, $\beta = 0.0\%$, $k_y = 0.3$, Kinetic Electrons', fontsize=label_fontsize + 2)
+fig.suptitle(r'CBC, $\beta = 0.0\%$, $k_y = 3.0$, Kinetic Electrons', fontsize=label_fontsize + 2)
 
-output_filename = "/users/rjs659/NEO_stella/NEO_stella_CBC_aky_0.3_electrostatic_rhostar_scan_neoclassics_kinetic_e/omega_gamma_vs_rhostar.png"
+output_filename = "/users/rjs659/NEO_stella/NEO_stella_CBC_aky_3.0_electrostatic_rhostar_scan_neoclassics_kinetic_e/omega_gamma_vs_rhostar.png"
 plt.savefig(output_filename, dpi=300, bbox_inches='tight')
 print(f"✅ Figure saved as '{output_filename}'")
 

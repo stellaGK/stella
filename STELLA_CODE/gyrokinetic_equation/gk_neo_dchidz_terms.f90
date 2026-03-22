@@ -4,11 +4,11 @@
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
-! = - 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( (v∥/B₀) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * ∂<Χ_k>/∂z            
+! =             
 !         
 ! Define the neoclassical ∂<Χ_k>/∂z coefficient as: 
 ! 
-! <neo_dchidz_coeff> = - 1/2 * Z/T * v_{th,s} * b.∇z * exp(-v²) * ( (v∥/B₀) * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * code_dt = - 1/2 * Z/T * v_{th,s} * b.∇z * neo_fac
+! <neo_dchidz_coeff> =
 !
 ! This must be multiplied by ∂<Χ_k>/∂z and then added to the RHS of the GKE.
 ! 
@@ -54,7 +54,7 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_h, neo_phi, dneo_h_dvpa
+        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
         ! Arrays.
         use arrays, only: neo_dchidz_coeff, initialised_neo_dchidz_terms
@@ -74,7 +74,7 @@ contains
         end if
 
         ! Calculate neo_dchidz_coeff. Start with the constant factor.
-        neo_dchidz_coeff = 0.5 * code_dt      
+        neo_dchidz_coeff = - 0.5 * code_dt      
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -88,7 +88,7 @@ contains
             ! Multiply by the z-dependent factor.
             do iz = -nzgrid, nzgrid 
                 neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * b_dot_gradz(:, iz) &
-                * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) &
+                * ( ( vpa(iv) / bmag(1, iz) ) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do 
         end do

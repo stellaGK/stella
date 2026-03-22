@@ -31,7 +31,7 @@
 /
 
 &physics_inputs
-    rhostar = 0.01
+    rhostar = 0.001
 /
 
 &electromagnetic
@@ -85,7 +85,7 @@
 /
 
 &species_options
-    nspec = 1
+    nspec = 2
     species_option = 'stella'
 /
 
@@ -122,8 +122,8 @@
     naky = 1
     aky_min = 0.3
     aky_max = 0.3
-    akx_min = 0.1
-    akx_max = 0.1
+    akx_min = 0.0
+    akx_max = 0.0
 /
 
 &z_grid

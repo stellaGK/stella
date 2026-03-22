@@ -222,6 +222,7 @@ contains
       use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
       use gk_neo_drive, only: advance_wstar1_explicit, advance_wpol_explicit
       use gk_neo_drifts, only: advance_neo_curv_drift_explicit
+      use gk_neo_parallel_streaming, only: advance_neo_stream_explicit
  
       implicit none
 
@@ -262,8 +263,6 @@ contains
       ! Start with g in k-space and (ky,kx,z) local
       ! obtain fields corresponding to g
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_fields'
-
-      ! ================================================================================================ !
 
       ! Convert from gbarneo for the field advance if neoclassics are enabled. 
       if (neoclassical_is_enabled()) then
@@ -365,9 +364,7 @@ contains
             call advance_hyper_explicit(pdf, rhs)
          end if
 
-         ! =========================================================================== !
          ! If NEO's corrections are included, then...
-
          if (neoclassical_is_enabled()) then
              ! Advance the neoclassical chi terms.
              call advance_neo_chi_terms_explicit(phi, rhs)
@@ -378,17 +375,18 @@ contains
              end if
 
              ! Advance the neoclassical dchi/dz terms.
-             ! call advance_neo_dchidz_terms_explicit(phi, rhs)
+             call advance_neo_dchidz_terms_explicit(phi, rhs)
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
              call advance_wstar1_explicit(phi, rhs)
              call advance_wpol_explicit(phi, rhs)
 
              ! Advance the neoclassical curvature drift terms.
-             ! call advance_neo_curv_drift_explicit(phi, rhs)
-         end if
+             call advance_neo_curv_drift_explicit(phi, rhs)
 
-         ! ============================================================================ !
+             ! Advance the neoclassical parallel streaming correction. 
+             call advance_neo_stream_explicit(phi, rhs)
+         end if
 
          ! If simulating a full flux surface (flux annulus), all terms to this point have been calculated
          ! in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
