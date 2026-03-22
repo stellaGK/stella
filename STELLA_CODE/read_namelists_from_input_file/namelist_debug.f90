@@ -30,7 +30,6 @@
 !      fluxes_debug = .false.
 !      geometry_debug = .false.
 !      const_alpha_geo = .false.
-!      parallelisation_debug = .false.
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
@@ -65,8 +64,8 @@ contains
       parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, response_matrix_debug, &
       time_advance_debug, extended_grid_debug, diagnostics_all_debug, diagnostics_parameters, &
       diagnostics_fluxes_fluxtube_debug, diagnostics_omega_debug, diagnostics_debug, dist_fn_debug, &
-      gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-      debug_test_gyro_average, calculations_debug, parallelisation_debug)
+      gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
+      debug_test_gyro_average, calculations_debug)
 
       use mp, only: proc0
 
@@ -80,7 +79,7 @@ contains
          diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
          diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-         debug_test_gyro_average, calculations_debug, parallelisation_debug
+         debug_test_gyro_average, calculations_debug
 
       !-------------------------------------------------------------------------
 
@@ -117,7 +116,6 @@ contains
          geometry_debug = .false.
          dist_fn_debug = .false.
          gyro_averages_debug = .false.
-         parallelisation_debug = .false.
 
          ! Diagnostics debug flags
          diagnostics_debug = .false.
@@ -150,8 +148,8 @@ contains
              response_matrix_debug, time_advance_debug, extended_grid_debug, &
              diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
              diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-             gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-             debug_test_gyro_average, calculations_debug, parallelisation_debug
+             gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
+             debug_test_gyro_average, calculations_debug
          
          !----------------------------------------------------------------------
 
@@ -186,7 +184,6 @@ contains
              geometry_debug = .true.
              print_extra_info_to_terminal = .true.
              calculations_debug = .true.
-             parallelisation_debug = .true.
          end if
 
          if (diagnostics_all_debug) then

@@ -389,7 +389,7 @@ contains
       real, dimension(-nzgrid:), intent(out) :: d_gradxdotgradx_drho_out, djac_drho_out
 
       ! Local variables - used for calculations
-      integer :: nr
+      integer :: nr, n
       integer :: i, j
       real :: rmin, dum
       real :: integral_jacrho_over_R2
@@ -620,7 +620,8 @@ contains
 
       ! Calculate <b_dot_gradtheta> = b . ∇θ (formerly <gradpar>)
       b_dot_gradtheta = dpsip_drho / (bmag * jacrho)
-      
+     
+
       ! Calculate <b_dot_gradB> = b . ∇B (formerly <gradparB>)
       b_dot_gradB = b_dot_gradtheta * dB_dtheta
 
@@ -798,7 +799,7 @@ contains
             call geo_spline(theta, d_gradxdotgrady_drho, zed_arc, d_gradxdotgrady_drho_out)
             call geo_spline(theta, d_gradxdotgradx_drho, zed_arc, d_gradxdotgradx_drho_out)
             call geo_spline(theta, djac_drho / dpsip_drho, zed_arc, djac_drho_out)
-
+            
             deallocate (zed_arc)
          else
             if (debug) write (*, *) 'geometry_miller::zed_equal_arc=.false.'
@@ -945,7 +946,7 @@ contains
       ! For the neoclassical terms
       allocate (gds23(-nz:nz)); gds23 = 0.0
       allocate (gds24(-nz:nz)); gds24 = 0.0
-      
+
       ! The R(r, θ) and Z(r, θ) positions of a Miller equilibrium
       ! Here we have nr = 3 for the radial derivatives
       allocate (Rr(nr, -nz:nz)); Rr = 0.0
@@ -1135,7 +1136,7 @@ contains
          if (allocated(delta_theta)) deallocate (delta_theta)
          if (allocated(bmag_psi0)) deallocate (bmag_psi0)
          if (allocated(gradrho_psi0)) deallocate (gradrho_psi0)
-         
+
       end subroutine deallocate_arrays
 
    end subroutine finish_miller_geometry

@@ -234,8 +234,8 @@ contains
          write (unit, '(A)') '&species_options'
          write (unit, '(A, I0)') '  nspec = ', nspec
          write (unit, '(A, A, A)') '  species_option = "', trim(species_option), '"'
-         write (unit, '(A, L1)') '  read_profile_variation = ', read_profile_variation
-         write (unit, '(A, L1)') '  write_profile_variation = ', write_profile_variation
+         write (unit, '(A, L0)') '  read_profile_variation = ', read_profile_variation
+         write (unit, '(A, L0)') '  write_profile_variation = ', write_profile_variation
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -620,8 +620,7 @@ contains
 
       ! Variables that are read from the input file
       integer, intent(out) :: nradii
-      ! Local fixed-length string for the namelist
-      character(len=256), intent(out) :: data_file
+      character(*), intent(out) :: data_file
       
       !-------------------------------------------------------------------------
       

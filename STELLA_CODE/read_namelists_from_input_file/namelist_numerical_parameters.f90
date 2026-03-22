@@ -32,7 +32,7 @@
 !     drifts_implicit = .false.
 !     fully_implicit = .false.
 !     fully_explicit = .false.
-!     split_parallel_dynamics = .true.
+!     split_parallel_dynamics = .false.
 !     maxwellian_inside_zed_derivative = .false.
 !     use_deltaphi_for_response_matrix = .false.
 !   
@@ -159,7 +159,7 @@ contains
          write (unit, '(A)') '&time_trace_options'
          write (unit, '(A, I0)') '  nstep = ', nstep
          write (unit, '(A, F0.4)') '  tend = ', tend
-         write (unit, '(A, L1)') '  autostop = ', autostop
+         write (unit, '(A, L0)') '  autostop = ', autostop
          write (unit, '(A, ES0.4)') '  avail_cpu_time = ', avail_cpu_time
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
@@ -318,7 +318,7 @@ contains
          fully_explicit = .false.
          maxwellian_inside_zed_derivative = .false.
          use_deltaphi_for_response_matrix = .false.
-         split_parallel_dynamics = .true.
+         split_parallel_dynamics = .false.
 
      end subroutine set_default_parameters_numerical_algorithms
 
@@ -371,20 +371,20 @@ contains
 
          write (unit, '(A)') '&numerical_algorithms'
          write (unit, '(A, A, A)') '  explicit_algorithm = "', trim(explicit_algorithm), '"'
-         write (unit, '(A, L1)') '  flip_flop = ', flip_flop
-         write (unit, '(A, L1)') '  stream_implicit = ', stream_implicit
-         write (unit, '(A, L1)') '  stream_iterative_implicit = ', stream_iterative_implicit
-         write (unit, '(A, L1)') '  stream_matrix_inversion = ', stream_matrix_inversion
-         write (unit, '(A, L1)') '  driftkinetic_implicit = ', driftkinetic_implicit
-         write (unit, '(A, L1)') '  mirror_implicit = ', mirror_implicit
-         write (unit, '(A, L1)') '  mirror_semi_lagrange = ', mirror_semi_lagrange
-         write (unit, '(A, L1)') '  mirror_linear_interp = ', mirror_linear_interp
-         write (unit, '(A, L1)') '  drifts_implicit = ', drifts_implicit
-         write (unit, '(A, L1)') '  fully_implicit = ', fully_implicit
-         write (unit, '(A, L1)') '  fully_explicit = ', fully_explicit
-         write (unit, '(A, L1)') '  maxwellian_inside_zed_derivative = ', maxwellian_inside_zed_derivative
-         write (unit, '(A, L1)') '  use_deltaphi_for_response_matrix = ', use_deltaphi_for_response_matrix
-         write (unit, '(A, L1)') '  split_parallel_dynamics = ', split_parallel_dynamics
+         write (unit, '(A, L0)') '  flip_flop = ', flip_flop
+         write (unit, '(A, L0)') '  stream_implicit = ', stream_implicit
+         write (unit, '(A, L0)') '  stream_iterative_implicit = ', stream_iterative_implicit
+         write (unit, '(A, L0)') '  stream_matrix_inversion = ', stream_matrix_inversion
+         write (unit, '(A, L0)') '  driftkinetic_implicit = ', driftkinetic_implicit
+         write (unit, '(A, L0)') '  mirror_implicit = ', mirror_implicit
+         write (unit, '(A, L0)') '  mirror_semi_lagrange = ', mirror_semi_lagrange
+         write (unit, '(A, L0)') '  mirror_linear_interp = ', mirror_linear_interp
+         write (unit, '(A, L0)') '  drifts_implicit = ', drifts_implicit
+         write (unit, '(A, L0)') '  fully_implicit = ', fully_implicit
+         write (unit, '(A, L0)') '  fully_explicit = ', fully_explicit
+         write (unit, '(A, L0)') '  maxwellian_inside_zed_derivative = ', maxwellian_inside_zed_derivative
+         write (unit, '(A, L0)') '  use_deltaphi_for_response_matrix = ', use_deltaphi_for_response_matrix
+         write (unit, '(A, L0)') '  split_parallel_dynamics = ', split_parallel_dynamics
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

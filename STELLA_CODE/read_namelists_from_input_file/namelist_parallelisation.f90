@@ -49,7 +49,7 @@ contains
    !                              PARALLELISATION                              !
    !****************************************************************************
    subroutine read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-      mat_gen, mat_read, lu_option_switch, fields_kxkyz, verbose)
+      mat_gen, mat_read, lu_option_switch, fields_kxkyz)
 
       use mp, only: proc0
 
@@ -59,7 +59,7 @@ contains
       character(len=4), intent (out) :: xyzs_layout
       character(len=3), intent (out) :: vms_layout
       character(len=5), intent (out) :: kymus_layout
-      logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read, verbose
+      logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read
       integer, intent (out)  :: lu_option_switch
 
       ! Local variable to set <lu_option_switch>
@@ -87,7 +87,6 @@ contains
          lu_option = 'default'
          mat_gen = .false.
          mat_read = .false.
-         verbose = .true.
 
       end subroutine set_default_parameters_parallelisation
 
@@ -108,7 +107,7 @@ contains
 
          ! Variables in the <parallelisation> namelist
          namelist /parallelisation/ xyzs_layout, vms_layout, kymus_layout, &
-             mat_gen, mat_read, lu_option, fields_kxkyz, verbose
+             mat_gen, mat_read, lu_option, fields_kxkyz
          
          !----------------------------------------------------------------------
 
@@ -163,9 +162,9 @@ contains
          write (unit, '(A, A, A)') '  xyzs_layout = "', trim(xyzs_layout), '"'
          write (unit, '(A, A, A)') '  vms_layout = "', trim(vms_layout), '"'
          write (unit, '(A, A, A)') '  kymus_layout = "', trim(kymus_layout), '"'
-         write (unit, '(A, L1)') '  fields_kxkyz = ', fields_kxkyz
-         write (unit, '(A, L1)') '  mat_gen = ', mat_gen
-         write (unit, '(A, L1)') '  mat_read = ', mat_read
+         write (unit, '(A, L0)') '  fields_kxkyz = ', fields_kxkyz
+         write (unit, '(A, L0)') '  mat_gen = ', mat_gen
+         write (unit, '(A, L0)') '  mat_read = ', mat_read
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

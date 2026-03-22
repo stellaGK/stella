@@ -77,6 +77,12 @@ contains
       use field_equations_fullfluxsurface, only: get_fields_source
       use field_equations, only: fields_updated
       use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
+ 
+      ! Calculations
+      use calculations_tofrom_ghf, only: gbar_to_g, g_or_gbar_to_gbarneo
+
+      ! For NEO's neoclassical corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
       
       implicit none
 
@@ -140,7 +146,7 @@ contains
       g2 = g
 
       ! =====================================================================
-      ! Advance fields and save phi as phi_old
+      ! Advance fields and save phi as phi_old.
       call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
       phi_old = phi
 

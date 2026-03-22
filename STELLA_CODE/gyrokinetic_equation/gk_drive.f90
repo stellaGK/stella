@@ -53,10 +53,13 @@
 !     wstar = - code_dt*omega_{*,k,s}/ky = - code_dt/(2C) <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho
 ! 
 !###############################################################################
+
+
 module gk_drive
 
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
+   use neoclassical_terms_neo, only: neoclassical_is_enabled
 
    implicit none
    
@@ -64,6 +67,10 @@ module gk_drive
    public :: init_wstar
    public :: finish_wstar
    public :: advance_wstar_explicit
+
+   integer :: neo_option_switch
+   integer, parameter :: neo_option_sfincs = 1
+   integer, parameter :: neo_option_NEO = 2
 
    private
 
@@ -81,13 +88,15 @@ contains
       ! Grids
       use grids_time, only: code_dt
       use grids_kxky, only: nalpha
-      use grids_z, only: nzgrid
+      use grids_z, only: nzgrid, zed
       use grids_species, only: spec
       use grids_velocity, only: vperp2, vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
+
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
+
       use arrays, only: wstar, initialised_wstar
 
       ! Rescale the drive term with <wstarknob>
@@ -96,7 +105,7 @@ contains
       implicit none
 
       ! Indices
-      integer :: is, imu, iv, ivmu
+      integer :: is, imu, iv, ivmu, iz
       
       ! To make the calculations easier to follow, we
       ! calculate <energy> = v_parallel² + 2 mu B for each velocity point
@@ -126,7 +135,8 @@ contains
          energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
          
          ! Calculate wstar = - code_dt*omega_{*,k,s}/ky = - code_dt * 0.5/C <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho 
-         !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²)
+         !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²). 
+         ! This block only computes when sfincs is chosen for the neoclassical option.
          if (include_neoclassical_terms) then
             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
@@ -137,16 +147,18 @@ contains
          end if
          
          wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         
       end do
 
       deallocate (energy)
 
    end subroutine init_wstar
 
+
    !*****************************************************************************
-   !                           ADVANCE DRIVE TERM
+   !                           ADVANCE DRIVE TERM(S)
    !*****************************************************************************
+
+   ! Advances the wstar term. 
    subroutine advance_wstar_explicit(phi, gout)
    
       ! Grids
@@ -170,7 +182,8 @@ contains
       end if
    
    end subroutine advance_wstar_explicit
-   
+
+
    !-------------------------------- Flux tube ---------------------------------
    subroutine advance_wstar_explicit_flux_tube(phi, gout)
 
@@ -221,12 +234,12 @@ contains
       ! Calculate <g0> = i ky J_0 ϕ_k = d<chi>_theta/dy
       if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
       call get_dchidy(phi, apar, bpar, g0)
-      
-      ! Add the drive term to the right-hand-side of the gyrokinetic equation
+
+      ! Add the drive term to the right-hand-side of the gyrokinetic equation. 
       if (debug) write (*, *) 'time_advance::solve_gke::add_wstar_term'
       call add_explicit_term(g0, wstar(1, :, :), gout)
 
-      ! Deallocate <g0> = i ky J_0 ϕ_k
+      ! Deallocate <g0> = i ky J_0 ϕ_k.
       deallocate (g0)
 
       ! Stop timing the time advance due to the driving gradients
@@ -282,7 +295,8 @@ contains
             call transform_ky2y(g0_swap, g0y(:, :, iz, it, ivmu))
          end do
       end do
-      
+  
+     
       ! multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
       call add_explicit_term_ffs(g0y, wstar, gout)
       
@@ -292,11 +306,11 @@ contains
 
       ! Stop timing the time advance due to the driving gradients
       if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
-
    end subroutine advance_wstar_explicit_ffs
 
+
    !*****************************************************************************
-   !                           FINALISE DRIVE TERM
+   !                           FINALISE DRIVE TERM(S)
    !*****************************************************************************
    subroutine finish_wstar
 
@@ -308,5 +322,6 @@ contains
       initialised_wstar = .false.
 
    end subroutine finish_wstar
-   
+
+
 end module gk_drive

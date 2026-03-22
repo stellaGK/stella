@@ -52,7 +52,6 @@ contains
       
       ! Init modules
       use parallelisation_layouts, only: init_dist_fn_layouts
-      use initialise_redistribute, only: init_redistribute
       use diagnostics, only: init_diagnostics
       
       ! Calculations
@@ -102,11 +101,6 @@ contains
       ! are distributed among the various processors according to different layouts.
       if (debug) write (6, *) "stella::init_stella::init_dist_fn_layouts"
       call init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-      
-      ! Sets up the mappings between different layouts, needed
-      ! to redistribute data when going from one layout to another
-      if (debug) write (6, *) "stella::init_stella::init_redistribute"
-      call init_redistribute
       
       ! Check whether Fourier transformations are needed (e.g., the nonlinear term
       ! requires it, radial variation requires it, ...) and if so, set up the FFTW plans
@@ -278,9 +272,9 @@ contains
       
       ! Parse collision variables to read_parameters_species to avoid circular dependencies
       use dissipation_and_collisions, only: vnew_ref
-      
-      ! Parse parallelisation variables to read_parameters_numerical to avoid circular dependencies
-      use parallelisation_layouts, only: fields_kxkyz
+
+      ! Read in neoclassical inputs.      
+      use neoclassical_terms_neo, only: read_parameters_neoclassical    
       
       implicit none
       
@@ -291,7 +285,7 @@ contains
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
       call read_parameters_physics
       if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
-      call read_parameters_numerical(fields_kxkyz)
+      call read_parameters_numerical
       
       ! Read the dissipation and collision variables, since <vnew_ref> is needed
       ! for the species parameters read from the EUTERPE code
@@ -319,6 +313,9 @@ contains
       call read_parameters_distribution_function
       if (debug) write (6, *) 'stella::init_stella::read_parameters_parallelisation_layouts'
       call read_parameters_parallelisation_layouts
+      
+      if (debug) write (6, *) 'stella::init_stella::read_parameters_neoclassical'
+      call read_parameters_neoclassical                                              ! <================= Read in neoclassical parameters.
       
    end subroutine read_parameters_from_input_file
    
@@ -397,10 +394,14 @@ contains
       ! Initialise other modules
       use initialise_distribution_function, only: init_distribution_function
       use calculations_volume_averages, only: init_volume_averages
+      use initialise_redistribute, only: init_redistribute
       use dissipation_and_collisions, only: init_dissipation
       use gk_sources, only: init_sources
       use field_equations, only: init_field_equations
       
+      ! NEO data.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo
+
       implicit none
       
       ! Arguments
@@ -422,6 +423,11 @@ contains
       call init_arrays_vperp_kperp
       call init_arrays_bessel_functions
       
+      ! Sets up the mappings between different layouts, needed
+      ! to redistribute data when going from one layout to another
+      if (debug) write (6, *) "stella::init_stella::init_redistribute"
+      call init_redistribute
+      
       ! Read dissipation namelist from the input file and print information
       ! about chosen options to stdout
       if (debug) write (6, *) 'stella::init_stella::init_dissipation'
@@ -430,6 +436,13 @@ contains
       ! Initialise sources
       if (debug) write (6, *) 'stella::init_stella::init_sources'
       call init_sources
+
+      ! If NEO's neoclassical terms are enabled, we calculate the various pieces of information 
+      ! needed for higher order corrections.
+      if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
+      if (neoclassical_is_enabled()) then
+          call init_neoclassical_terms_neo
+      end if
       
       ! Allocate and initialise time-independent arrays needed to
       ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
@@ -662,20 +675,23 @@ contains
    !****************************************************************************
    subroutine write_start_message()
    
-      use mp, only: proc0
+      use mp, only: proc0, nproc
       use debug_flags, only: print_extra_info_to_terminal
       use git_version, only: get_git_version, get_git_date
 
       implicit none
+      
+      !----------------------------------------------------------------------
 
       ! Stella version number and release date
       character(len=40) :: git_commit
       character(len=10) :: git_date
-      
-      !----------------------------------------------------------------------
+
+      ! Strings to format data
+      character(len=23) :: str
       
       ! Only print the header on the first processor
-      if (.not. proc0) return
+      if (.not. proc0) return 
       
       ! Get git data
       git_commit = get_git_version()
@@ -703,6 +719,19 @@ contains
          write (*, *) '                 University of Oxford'
          write (*, *) ' '
          write (*, *) ' '
+         write (*, '(A)') "############################################################"
+         write (*, '(A)') "                     PARALLEL COMPUTING"
+         write (*, '(A)') "############################################################"
+      end if
+      if (print_extra_info_to_terminal) then
+         if (nproc == 1) then
+            write (str, '(I10, A)') nproc, " processor."
+            write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+         else
+            write (str, '(I10, A)') nproc, " processors."
+            write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+         end if
+         write (*, *)
       end if
 
    end subroutine write_start_message
@@ -1081,7 +1110,7 @@ contains
          real, intent(in) :: timer_total
          character(*), intent(in) :: routine
          character(len=25) :: fmt_min = "(a24, f9.2, a4, f9.2, a1)"
-         character(len=25) :: fmt_sec = "(a24, f9.2, a4, f9.2, a1)"
+         character(len=25) :: fmt_sec = "(a24, f9.2, a4 f9.2, a1)"
          character(len=25) :: fmt_hours = "(a24, f9.2, a6, f9.2, a1)"
          
          !----------------------------------------------------------------------

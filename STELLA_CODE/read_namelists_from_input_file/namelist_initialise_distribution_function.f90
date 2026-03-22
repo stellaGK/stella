@@ -192,7 +192,7 @@ contains
          write (unit, '(A)') '&initialise_distribution'
          write (unit, '(A, A, A)') '  initialise_distribution_option = "', trim(initialise_distribution_option),'"'
          write (unit, '(A, ES0.4)') '  phiinit = ', phiinit
-         write (unit, '(A, L1)') '  scale_to_phiinit = ', scale_to_phiinit
+         write (unit, '(A, L0)') '  scale_to_phiinit = ', scale_to_phiinit
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       
@@ -268,10 +268,10 @@ contains
          write (unit, '(A, ES0.4)') '  width0 = ', width0
          write (unit, '(A, ES0.4)') '  den0 = ', den0
          write (unit, '(A, ES0.4)') '  upar0 = ', upar0
-         write (unit, '(A, L1)') '  oddparity = ', oddparity
-         write (unit, '(A, L1)') '  left = ', left
-         write (unit, '(A, L1)') '  chop_side = ', chop_side
-         write (unit, '(A, L1)') '  set_theta0_to_zero = ', set_theta0_to_zero
+         write (unit, '(A, L0)') '  oddparity = ', oddparity
+         write (unit, '(A, L0)') '  left = ', left
+         write (unit, '(A, L0)') '  chop_side = ', chop_side
+         write (unit, '(A, L0)') '  set_theta0_to_zero = ', set_theta0_to_zero
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       
@@ -342,8 +342,8 @@ contains
          write (unit, '(A)') '&initialise_distribution_noise'
          write (unit, '(A, ES0.4)') '  zf_init = ', zf_init
          write (unit, '(A, I0)') '  rng_seed = ', rng_seed
-         write (unit, '(A, L1)') '  left = ', left
-         write (unit, '(A, L1)') '  chop_side = ', chop_side
+         write (unit, '(A, L0)') '  left = ', left
+         write (unit, '(A, L0)') '  chop_side = ', chop_side
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       
@@ -442,8 +442,8 @@ contains
          write (unit, '(A, ES0.4)') '  upar2 = ', upar2
          write (unit, '(A, ES0.4)') '  tpar2 = ', tpar2
          write (unit, '(A, ES0.4)') '  tperp2 = ', tperp2
-         write (unit, '(A, L1)') '  left = ', left
-         write (unit, '(A, L1)') '  chop_side = ', chop_side
+         write (unit, '(A, L0)') '  left = ', left
+         write (unit, '(A, L0)') '  chop_side = ', chop_side
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       
@@ -586,7 +586,7 @@ contains
          write (unit, '(A, A, A)') '  restart_dir = "', trim(restart_dir),'"'
          write (unit, '(A, ES0.4)') '  tstart = ', tstart
          write (unit, '(A, ES0.4)') '  scale = ', scale
-         write (unit, '(A, L1)') '  save_many = ', save_many
+         write (unit, '(A, L0)') '  save_many = ', save_many
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
         

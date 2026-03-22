@@ -301,10 +301,10 @@ contains
          write (unit, '(A, I0)') '  jtwist = ', jtwist
          write (unit, '(A, ES0.4)') '  jtwistfac = ', jtwistfac
          write (unit, '(A, ES0.4)') '  phase_shift_angle = ', phase_shift_angle
-         write (unit, '(A, L1)') '  centered_in_rho = ', centered_in_rho
-         write (unit, '(A, L1)') '  periodic_variation = ', periodic_variation
-         write (unit, '(A, L1)') '  randomize_phase_shift = ', randomize_phase_shift
-         write (unit, '(A, L1)') '  periodic_variation = ', periodic_variation
+         write (unit, '(A, L0)') '  centered_in_rho = ', centered_in_rho
+         write (unit, '(A, L0)') '  periodic_variation = ', periodic_variation
+         write (unit, '(A, L0)') '  randomize_phase_shift = ', randomize_phase_shift
+         write (unit, '(A, L0)') '  periodic_variation = ', periodic_variation
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
          
@@ -313,7 +313,7 @@ contains
          write (unit, '(A, I0)') '  naky = ', naky
          write (unit, '(A, I0)') '  ikx_max = ', ikx_max
          write (unit, '(A, I0)') '  naky_all = ', naky_all
-         write (unit, '(A, L1)') '  reality = ', reality
+         write (unit, '(A, L0)') '  reality = ', reality
          write (unit, '(A, I0)') '  nalpha = ', nalpha
          write (unit, '(A)') '/'
          write (unit, '(A)') ''

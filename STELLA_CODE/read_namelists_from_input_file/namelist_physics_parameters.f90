@@ -194,17 +194,17 @@ contains
 
          write (unit, '(A)') '&gyrokinetic_terms'
          write (unit, '(A, A, A)') '  simulation_domain = "', trim(simulation_domain), '"'
-         write (unit, '(A, L1)') '  include_parallel_streaming = ', include_parallel_streaming
-         write (unit, '(A, L1)') '  include_mirror = ', include_mirror
-         write (unit, '(A, L1)') '  include_xdrift = ', include_xdrift
-         write (unit, '(A, L1)') '  include_ydrift = ', include_ydrift
-         write (unit, '(A, L1)') '  include_drive = ', include_drive
-         write (unit, '(A, L1)') '  include_nonlinear = ', include_nonlinear
-         write (unit, '(A, L1)') '  include_parallel_nonlinearity = ', include_parallel_nonlinearity
-         write (unit, '(A, L1)') '  include_electromagnetic = ', include_electromagnetic
-         write (unit, '(A, L1)') '  include_flow_shear = ', include_flow_shear
-         write (unit, '(A, L1)') '  include_full_flux_annulus = ', include_full_flux_annulus
-         write (unit, '(A, L1)') '  include_radial_variation = ', include_radial_variation
+         write (unit, '(A, L0)') '  include_parallel_streaming = ', include_parallel_streaming
+         write (unit, '(A, L0)') '  include_mirror = ', include_mirror
+         write (unit, '(A, L0)') '  include_xdrift = ', include_xdrift
+         write (unit, '(A, L0)') '  include_ydrift = ', include_ydrift
+         write (unit, '(A, L0)') '  include_drive = ', include_drive
+         write (unit, '(A, L0)') '  include_nonlinear = ', include_nonlinear
+         write (unit, '(A, L0)') '  include_parallel_nonlinearity = ', include_parallel_nonlinearity
+         write (unit, '(A, L0)') '  include_electromagnetic = ', include_electromagnetic
+         write (unit, '(A, L0)') '  include_flow_shear = ', include_flow_shear
+         write (unit, '(A, L0)') '  include_full_flux_annulus = ', include_full_flux_annulus
+         write (unit, '(A, L0)') '  include_radial_variation = ', include_radial_variation
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -300,7 +300,7 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&scale_gyrokinetic_terms'
-         write (unit, '(A, L1)') '  suppress_zonal_interaction = ', suppress_zonal_interaction
+         write (unit, '(A, L0)') '  suppress_zonal_interaction = ', suppress_zonal_interaction
          write (unit, '(A, F0.2)') '  xdriftknob = ', xdriftknob
          write (unit, '(A, F0.2)') '  ydriftknob = ', ydriftknob
          write (unit, '(A, F0.2)') '  wstarknob = ', wstarknob
@@ -390,8 +390,8 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&electromagnetic'
-         write (unit, '(A, L1)') '  include_apar = ', include_apar
-         write (unit, '(A, L1)') '  include_bpar = ', include_bpar
+         write (unit, '(A, L0)') '  include_apar = ', include_apar
+         write (unit, '(A, L0)') '  include_bpar = ', include_bpar
          write (unit, '(A, ES0.4)') '  beta = ', beta
          write (unit, '(A)') '/'
          write (unit, '(A)') ''

@@ -1,13 +1,11 @@
 !###############################################################################
 !                                 REDISTRIBUTE                                  
 !###############################################################################
-! This module initialises the redistribute routines. Before this can be done, the
-! parallelisation layouts need to be initialised using init_dist_fn_layouts().
+! This module initialises the redistribute routines
 !###############################################################################
 module initialise_redistribute
 
    use redistribute, only: redist_type
-   use debug_flags, only: debug => parallelisation_debug
 
    implicit none
 
@@ -23,15 +21,9 @@ module initialise_redistribute
 
    private
 
-   ! Redistribution information
+   type(redist_type) :: kxkyz2vmu
    type(redist_type) :: kxyz2vmu
    type(redist_type) :: xyz2vmu
-   
-   ! For the kxkyz_layout, the (mu, vpa) dimensions are local and the (kx, ky, z, tube, s) dimensions are parallelised.
-   ! For the vmu_layout, the (kx, ky, z, tube) dimensions are local and the (vpa, mu, s) dimensions are parallelised.
-   ! For the mirror term, we need the velocity data to be local (i.e. we need to go from the vmu_layout to the kxkyz_layout)
-   ! In other words, we go from  g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout) to gvmu(nvpa, nmu, kxkyz-layout)
-   type(redist_type) :: kxkyz2vmu
    
    ! this is a redist_type where we got from a layout with ky, mu and species parallelised
    ! and redistribute so that vpa, mu and species are parallelised
@@ -51,10 +43,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                   Initialise the redistribution routines                   
-   !****************************************************************************
-   ! Each individual processor needs to know which points of layout A correspond
-   ! to the same point on layout B, which is set in this module.
+   !                                      Title
    !****************************************************************************
    subroutine init_redistribute
 
@@ -74,15 +63,12 @@ contains
       call init_kxkyz_to_vmu_redistribute
       if (full_flux_surface) call init_kxyz_to_vmu_redistribute
       if (include_parallel_nonlinearity) call init_xyz_to_vmu_redistribute
-      if (.not. split_parallel_dynamics) call init_kymus_to_vmus_redistribute
+      if (.not.split_parallel_dynamics) call init_kymus_to_vmus_redistribute
 
    end subroutine init_redistribute
 
    !****************************************************************************
-   !                Redistribute from kxkyz-layout to vmu-layout                
-   !****************************************************************************
-   ! Redistribute the distribution function from gvmu(nvpa, nmu, kxkyz-layout) 
-   ! to g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout)
+   !                                      Title
    !****************************************************************************
    subroutine init_kxkyz_to_vmu_redistribute
 
@@ -101,8 +87,9 @@ contains
       integer, dimension(0:nproc - 1) :: nn_to, nn_from
       integer, dimension(3) :: from_low, from_high
       integer, dimension(5) :: to_high, to_low
-      integer :: ikxkyz, ivmu, ip
+      integer :: ikxkyz, ivmu
       integer :: iv, imu, iky, ikx, iz, it
+      integer :: ip, n
 
       !----------------------------------------------------------------------
 
@@ -111,108 +98,98 @@ contains
       initialized_kxkyz_to_vmu_redistribute = .true.
 
       ! Count number of elements to be redistributed to/from each processor
-      nn_to = 0; nn_from = 0
+      nn_to = 0
+      nn_from = 0
       do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
          do imu = 1, nmu
             do iv = 1, nvpa
                call kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
-               if (idx_local(kxkyz_lo, ikxkyz)) nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
-               if (idx_local(vmu_lo, ivmu)) nn_to(proc_id(kxkyz_lo, ikxkyz)) = nn_to(proc_id(kxkyz_lo, ikxkyz)) + 1
+               if (idx_local(kxkyz_lo, ikxkyz)) &
+                  nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
+               if (idx_local(vmu_lo, ivmu)) &
+                  nn_to(proc_id(kxkyz_lo, ikxkyz)) = nn_to(proc_id(kxkyz_lo, ikxkyz)) + 1
             end do
          end do
       end do
-      
-      ! Debug message
-      if (debug) then
-         write(*,*) ''; write(*,*) 'Initialise kxkyz_to_vmu_redistribute:'
-         do ip = 0, nproc - 1
-            write(*,'(A,I0,A,I0,A,I0)') '    kxkyz_to_vmu on proc ', ip, ': nn_from = ', nn_from(ip), ', nn_to = ', nn_to(ip)
-         end do
-      end if
 
-      ! We go from (nvpa, nmu, kxkyz-layout) to (nky, nkx, nz, ntubes, vmu-layout)
-      ! For each of the <nn_from> points which are local to the processor, we need
-      ! to tell it what (ivpa, imu, ikxkyz) point it is, similarly, for each <nn_to> 
-      ! point, we need to tell it what (iky, ikx, iz, itube, ivmu) point it is.
-      ! Here <from_list> and <to_list> will hold the indices of these points.
       do ip = 0, nproc - 1
          if (nn_from(ip) > 0) then
-            allocate (from_list(ip)%first(nn_from(ip)))     ! nvpa
-            allocate (from_list(ip)%second(nn_from(ip)))    ! nmu
-            allocate (from_list(ip)%third(nn_from(ip)))     ! kxkyz-layout
+            allocate (from_list(ip)%first(nn_from(ip)))
+            allocate (from_list(ip)%second(nn_from(ip)))
+            allocate (from_list(ip)%third(nn_from(ip)))
          end if
          if (nn_to(ip) > 0) then
-            allocate (to_list(ip)%first(nn_to(ip)))         ! nky
-            allocate (to_list(ip)%second(nn_to(ip)))        ! nkx
-            allocate (to_list(ip)%third(nn_to(ip)))         ! nz
-            allocate (to_list(ip)%fourth(nn_to(ip)))        ! ntubes
-            allocate (to_list(ip)%fifth(nn_to(ip)))         ! vmu-layout
+            allocate (to_list(ip)%first(nn_to(ip)))
+            allocate (to_list(ip)%second(nn_to(ip)))
+            allocate (to_list(ip)%third(nn_to(ip)))
+            allocate (to_list(ip)%fourth(nn_to(ip)))
+            allocate (to_list(ip)%fifth(nn_to(ip)))
          end if
       end do
 
       ! Get local indices of elements distributed to/from other processors
-      nn_to = 1
-      nn_from = 1
+      nn_to = 0
+      nn_from = 0
 
-      ! Loop over all (imu, ivpa, ikxkyz) indices
+      ! Loop over all vmu indices, find corresponding y indices
       do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
          do imu = 1, nmu
             do iv = 1, nvpa
             
-               ! Obtain corresponding (ky, kx, z, tube, ivmu) indices
+               ! Obtain corresponding y indices
                call kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
                
-               ! If the ikxkyz-point is local to this processor then it is one of
-               ! the <nn_from> points, and we will set its (vpa, mu, ikxkyz) indices
+               ! if vmu index local, set:
+               ! ip = corresponding y processor
+               ! from_list%first-third arrays = iv,imu,ikxkyz  (ie vmu indices)
+               ! later will send from_list to proc ip
                if (idx_local(kxkyz_lo, ikxkyz)) then
                   ip = proc_id(vmu_lo, ivmu)
-                  from_list(ip)%first(nn_from(ip)) = iv
-                  from_list(ip)%second(nn_from(ip)) = imu
-                  from_list(ip)%third(nn_from(ip)) = ikxkyz
-                  nn_from(ip) = nn_from(ip) + 1
+                  n = nn_from(ip) + 1
+                  nn_from(ip) = n
+                  from_list(ip)%first(n) = iv
+                  from_list(ip)%second(n) = imu
+                  from_list(ip)%third(n) = ikxkyz
                end if
                
-               ! If the ivmu-point is local to this processor then it is one of
-               ! the <nn_to> points, and we will set its (ky, kx, z, tube, ivmu) indices
+               ! if y index local, set ip to corresponding vmu processor
+               ! set to_list%first,second arrays = iky,iy  (ie y indices)
+               ! will receive to_list from ip
                if (idx_local(vmu_lo, ivmu)) then
                   ip = proc_id(kxkyz_lo, ikxkyz)
-                  to_list(ip)%first(nn_to(ip)) = iky
-                  to_list(ip)%second(nn_to(ip)) = ikx
-                  to_list(ip)%third(nn_to(ip)) = iz
-                  to_list(ip)%fourth(nn_to(ip)) = it
-                  to_list(ip)%fifth(nn_to(ip)) = ivmu
-                  nn_to(ip) = nn_to(ip) + 1
+                  n = nn_to(ip) + 1
+                  nn_to(ip) = n
+                  to_list(ip)%first(n) = iky
+                  to_list(ip)%second(n) = ikx
+                  to_list(ip)%third(n) = iz
+                  to_list(ip)%fourth(n) = it
+                  to_list(ip)%fifth(n) = ivmu
                end if
                
             end do
          end do
       end do
 
-      ! Redistribute the distribution function from gvmu(nvpa, nmu, kxkyz-layout) 
-      ! Here, we set the lower and upper limits of the dimensions
       from_low(1) = 1
       from_low(2) = 1
       from_low(3) = kxkyz_lo%llim_proc
-      
+
       from_high(1) = nvpa
       from_high(2) = nmu
       from_high(3) = kxkyz_lo%ulim_alloc
 
-      ! Redistribute the distribution function to g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout)
-      ! Here, we set the lower and upper limits of the dimensions
       to_low(1) = 1
       to_low(2) = 1
       to_low(3) = -nzgrid
       to_low(4) = 1
       to_low(5) = vmu_lo%llim_proc
-      
+
       to_high(1) = vmu_lo%naky
       to_high(2) = vmu_lo%nakx
       to_high(3) = vmu_lo%nzgrid
       to_high(4) = vmu_lo%ntubes
       to_high(5) = vmu_lo%ulim_alloc
 
-      ! Send <to_list>, <from_list> and its limits to each processor
       call set_redist_character_type(kxkyz2vmu, 'kxkyz2vmu')
       call init_redist(kxkyz2vmu, 'c', to_low, to_high, to_list, from_low, from_high, from_list)
       call delete_list(to_list)

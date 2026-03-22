@@ -38,7 +38,6 @@ module debug_flags
    public :: geometry_debug
    public :: dist_fn_debug
    public :: gyro_averages_debug
-   public :: parallelisation_debug
    public :: print_extra_info_to_terminal
 
    ! Extra debug flags used when developing new routines
@@ -56,7 +55,6 @@ module debug_flags
    logical :: debug_all
    logical :: dist_fn_debug
    logical :: gyro_averages_debug
-   logical :: parallelisation_debug
 
    ! Main stella file debug flag
    logical :: stella_debug
@@ -120,7 +118,7 @@ contains
          diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
          diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-         debug_test_gyro_average, calculations_debug, parallelisation_debug)
+         debug_test_gyro_average, calculations_debug)
 
       ! Broadcast the parameters to all processors
       call broadcast_parameters
@@ -130,7 +128,6 @@ contains
       !     - const_alpha_geo
       !     - debug_test_gyro_average
       !     - calculations_debug
-      !     - parallelisation_debug
       ! Turn off debug flags if not on proc0
       if (.not. proc0) then
          stella_debug = .false.
@@ -153,7 +150,6 @@ contains
          gyro_averages_debug = .false.
          fluxes_debug = .false. 
          geometry_debug = .false.
-         parallelisation_debug = .false.
          print_extra_info_to_terminal = .false.
       end if
    
@@ -184,16 +180,15 @@ contains
          call broadcast(diagnostics_debug)
          call broadcast(diagnostics_parameters)
          call broadcast(diagnostics_fluxes_fluxtube_debug)
-         call broadcast(diagnostics_omega_debug)
+         call broadcast(diagnostics_omega_debug) 
          call broadcast(dist_fn_debug)
          call broadcast(gyro_averages_debug)
-         call broadcast(fluxes_debug)
+         call broadcast(fluxes_debug) 
          call broadcast(geometry_debug)
          call broadcast(const_alpha_geo)
-         call broadcast(print_extra_info_to_terminal)
+         call broadcast(print_extra_info_to_terminal) 
          call broadcast(debug_test_gyro_average)
          call broadcast(calculations_debug)
-         call broadcast(parallelisation_debug)
 
       end subroutine broadcast_parameters
 

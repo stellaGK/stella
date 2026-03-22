@@ -107,8 +107,8 @@ contains
          write (unit, '(A, I0)') '  nmu = ', nmu
          write (unit, '(A, F0.2)') '  vpa_max = ', vpa_max
          write (unit, '(A, F0.2)') '  vperp_max = ', vperp_max
-         write (unit, '(A, L1)') '  equally_spaced_mu_grid = ', equally_spaced_mu_grid
-         write (unit, '(A, L1)') '  conservative_wgts_vpa = ', conservative_wgts_vpa
+         write (unit, '(A, L0)') '  equally_spaced_mu_grid = ', equally_spaced_mu_grid
+         write (unit, '(A, L0)') '  conservative_wgts_vpa = ', conservative_wgts_vpa
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

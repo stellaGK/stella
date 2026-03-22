@@ -45,6 +45,7 @@ contains
       use sfincs_interface, only: get_neo_from_sfincs
 
       use namelist_neoclassical_input, only: read_namelist_neoclassical_input
+
       implicit none
 
       real, dimension(:, :, :, :, :, :), allocatable :: f_neoclassical
@@ -53,8 +54,6 @@ contains
 
       integer :: iz, ialpha
 
-      !-------------------------------------------------------------------------
-   
       ! Only initialise once
       if (initialised_neoclassical_terms) return
       initialised_neoclassical_terms = .true.
@@ -139,8 +138,6 @@ contains
 
       integer :: ivmu, iv, imu, is
 
-      !-------------------------------------------------------------------------
-
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -171,8 +168,6 @@ contains
       integer :: ia, iz, imu, is
       real, dimension(:), allocatable :: tmp1, tmp2
       real, dimension(:, :, :, :, :), allocatable :: dfneo_local
-
-      !-------------------------------------------------------------------------
 
       allocate (tmp1(nvpa), tmp2(nvpa))
       allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
@@ -222,8 +217,6 @@ contains
       real, dimension(:), allocatable :: tmp1, tmp2
       real, dimension(:), allocatable :: dfneo_local(:, :, :, :, :)
 
-      !-------------------------------------------------------------------------
-
       allocate (tmp1(nztot), tmp2(nztot))
       allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
 
@@ -271,8 +264,6 @@ contains
       integer :: ia, iz, iv, imu, is
       real, dimension(:), allocatable :: tmp1, tmp2
       real, dimension(:, :, :, :, :), allocatable :: dfneo_local
-
-      !-------------------------------------------------------------------------
 
       allocate (tmp1(nradii), tmp2(nradii))
       allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
@@ -356,8 +347,6 @@ contains
       integer :: iz, ia
       real, dimension(:), allocatable :: tmp1, tmp2
 
-      !-------------------------------------------------------------------------
-
       allocate (tmp1(nradii), tmp2(nradii))
 
       do iz = -nzgrid, nzgrid
@@ -400,8 +389,6 @@ contains
       integer :: neo_unit
       integer :: irad, iz, ivmu, iv, imu, is, ia
       real, dimension(:, :), allocatable :: dfdv_local, dfdr_local, dfdz_local
-
-      !-------------------------------------------------------------------------
 
       allocate (dfdv_local(nalpha, -nzgrid:nzgrid))
       allocate (dfdr_local(nalpha, -nzgrid:nzgrid))

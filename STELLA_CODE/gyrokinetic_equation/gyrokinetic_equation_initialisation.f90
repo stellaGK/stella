@@ -30,10 +30,13 @@ contains
    subroutine init_gyrokinetic_equation
 
       ! Physics flags
+      use iso_fortran_env, only: output_unit
+      use mp, only: proc0
       use dissipation_and_collisions, only: include_collisions
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
-      
+      use parameters_physics, only: include_apar      
+
       ! Initialise the main terms of the gyrokinetic equation
       use calculations_timestep, only: init_cfl
       use gk_drive, only: init_wstar
@@ -47,9 +50,18 @@ contains
       use gk_radial_variation, only: init_radial_variation
       use gk_sources, only: init_quasineutrality_source
       use gk_sources, only: init_source_timeaverage
-      use gk_parallel_nonlinearity, only: init_parallel_nonlinearity
-      use neoclassical_terms, only: init_neoclassical_terms
-
+      use gk_nonlinearity, only: init_parallel_nonlinearity
+      ! use neoclassical_terms, only: init_neoclassical_terms
+      
+      ! For NEO's neoclassical corrections. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use gk_neo_chi_terms, only: init_neo_chi_terms    
+      use gk_neo_apar_terms, only: init_neo_apar_terms
+      use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
+      use gk_neo_drive, only: init_wstar1, init_wpol
+      use gk_neo_drifts, only: init_neo_curv_drift
+      use gk_neo_parallel_streaming, only: init_neo_stream
+                                                                                   
       implicit none
 
       !-------------------------------------------------------------------------
@@ -59,10 +71,12 @@ contains
       initialised_gyrokinetic_equation = .true.
       
       ! Set up neoclassical corrections to the equilibrium Maxwellian. This is only
-      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
-      if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
-      call init_neoclassical_terms
-      
+      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation.
+      ! This should only be computed if sfincs or NEO is selected as the neoclassical option.
+      ! if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
+      !     call init_neoclassical_terms
+      ! end if      
+ 
       ! Calculate the term multiplying dg/dvpa in the mirror term and set up either the
       ! semi-Lagrange machinery or the tridiagonal matrix to be inverted if solving implicitly
       if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
@@ -81,6 +95,30 @@ contains
       ! Allocate and calculate the factor multiplying dphi/dy in the gradient drive term
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wstar'
       call init_wstar
+
+      ! If NEO's neoclassical corrections are enabled, then ...
+      if (neoclassical_is_enabled()) then
+          ! Allocate and calculate the coeffecient multiplying chi in NEO's neoclassical corrections. 
+          call init_neo_chi_terms
+
+          ! If apar is included, allocate and calculate the coeffecient multiplying apar.
+          if (include_apar) then          
+              call init_neo_apar_terms
+          end if 
+
+          ! Allocate and calculate the coeffecient multiplying dchi/dz in NEO's neoclassical corrections.
+          call init_neo_dchidz_terms
+
+          ! Allocate and calculate the neoclassical counterpart to wstar and the poloidal gradient drive. 
+          call init_wstar1
+          call init_wpol
+
+          ! Allocate and calculate the neoclassical curvature drift corrections. 
+          call init_neo_curv_drift
+
+          ! Allocate and calculate the neoclassical parallel streaming correction. 
+          call init_neo_stream 
+      end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
       ! shear and save it as <prl_shear>. Calculate the arrays needed for the discrete 
@@ -125,17 +163,27 @@ contains
 
       use calculations_transforms, only: finish_transforms
       use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_apar
       use grids_extended_zgrid, only: finish_extended_zgrid
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear
       use gk_drive, only: finish_wstar
       use gk_magnetic_drift, only: finish_wdrift
-      use gk_parallel_nonlinearity, only: finish_parallel_nonlinearity
-      use gk_radial_variation, only: finish_radial_variation
-      use neoclassical_terms, only: finish_neoclassical_terms
+      use gk_nonlinearity, only: finish_parallel_nonlinearity
+      use gk_radial_variation, only: finish_radial_variation 
       use dissipation_and_collisions, only: finish_dissipation
       
+      ! For NEO's neoclassical corrections. 
+
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, finish_neoclassical_terms_neo
+      use gk_neo_chi_terms, only: finish_neo_chi_terms
+      use gk_neo_apar_terms, only: finish_neo_apar_terms
+      use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
+      use gk_neo_drive, only: finish_wstar1, finish_wpol
+      use gk_neo_drifts, only: finish_neo_curv_drift
+      use gk_neo_parallel_streaming, only: finish_neo_stream
+
       implicit none
 
       !-------------------------------------------------------------------------
@@ -149,7 +197,24 @@ contains
       call finish_parallel_streaming
       call finish_flow_shear
       call finish_mirror
-      call finish_neoclassical_terms
+    
+      ! If NEO's neoclassical corrections are enabled, then ...
+      if (neoclassical_is_enabled()) then
+          call finish_neoclassical_terms_neo
+          call finish_neo_chi_terms
+
+          ! If apar is included, deallocate the apar neoclassical terms.  
+          if (include_apar) then
+              call finish_neo_apar_terms
+          end if 
+
+          call finish_neo_dchidz_terms
+          call finish_wstar1
+          call finish_wpol
+          call finish_neo_curv_drift
+          call finish_neo_stream
+      end if
+
       initialised_gyrokinetic_equation = .false.
 
    end subroutine finish_gyrokinetic_equation

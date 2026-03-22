@@ -9,16 +9,12 @@ module splines
       real, dimension(:), pointer :: x, y, y2
    end type spline
 
-   type :: periodic_spline
-      integer :: n
-      real :: period
-      real, dimension(:), pointer :: x, y, y2
-   end type periodic_spline
 
    interface geo_spline
       module procedure geo_spline_real
       module procedure geo_spline_array
    end interface
+
 
 contains
 
@@ -4309,6 +4305,7 @@ contains
       deallocate (xp, yp)
 
    end subroutine linear_interp_periodic
+
 
 end module splines
 
