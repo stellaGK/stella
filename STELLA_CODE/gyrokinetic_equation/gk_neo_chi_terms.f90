@@ -78,7 +78,7 @@ contains
 
             ! Multiply by the z-dependent factor. 
             do iz = -nzgrid, nzgrid
-                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * ( vpa(iv) / bmag(:, iz) ) * ( 0.5/bmag(1, iz) - mu(imu) ) &
+                neo_chi_coeff(:, iz, ivmu) = - neo_chi_coeff(:, iz, ivmu) * ( vpa(iv) / bmag(:, iz) ) * mu(imu) &
                 * b_dot_gradz(:, iz) * dbdzed(:, iz) * ( dneo_h_dmu(iz, ivmu, 1)  - 2 * bmag(1, iz) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do 

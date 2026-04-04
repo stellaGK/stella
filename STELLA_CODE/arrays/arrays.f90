@@ -100,7 +100,10 @@ module arrays
    
    ! Arrays used to calculate the fields for radial variation simulations
    public :: denominator_fields_dr
-   
+
+   ! Arrays for calculating the fieds for simulations including the HO corrections. 
+   public :: denominator_fields_neo
+
    private
    
    !----------------------------------------------------------------------------
@@ -171,8 +174,9 @@ module arrays
    real :: denominator_fields_h
    real :: denominator_fields_MBR_h
    real :: efac, efacp
-   ! For NEO's higher order corrections.
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_adiab
+
+   ! For field equations when including HO corrections.
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo
 
    
    ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)

@@ -22,9 +22,11 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
-    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_dvpa, dneo_h_dmu           ! Will represent NEO's distribution and its derivatives in real space and velocity space.  
+    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_dvpa, dneo_h_dmu           ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
+    public :: neo_h_global, dneo_h_dvpa_global, dneo_h_dmu_global
+ 
     public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
-    public :: d2neo_h_dzdmu, d2neo_h_dzdvpa
+    public :: d2neo_h_dzdmu, d2neo_h_dzdvpa                                    ! < ========== NOT NEEDED IF PARALLEL STREAMING TAKE G_NEO. 
 
     public :: neo_dens                                                         ! Holds moments of the NEO H_1 distribution. neo_dens is the zeroeth order moment. 
     public :: neo_fac
@@ -44,11 +46,13 @@ module neoclassical_terms_neo
     real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
     real, dimension(:), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
     real, dimension(:, :, :), allocatable :: dneo_h_dvpa, dneo_h_dmu, d2neo_h_dzdmu, d2neo_h_dzdvpa
-    real, dimension(:, :), allocatable :: neo_dens, neo_dens_right, neo_dens_left
+    real, dimension(:, :, :, :, :), allocatable :: neo_h_global, dneo_h_dvpa_global, dneo_h_dmu_global
+    real, dimension(:, :), allocatable :: neo_dens
+    real, dimension(:, :), allocatable :: neo_fac ! NO LONGER NEEDED?
+
+    ! For diagnostics and testing. 
+    real, dimension(:, :), allocatable :: neo_dens_right, neo_dens_left
     real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
-    real, dimension(:, :), allocatable :: neo_fac
-    
-    ! For testing velocity derivatives.
     real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
     real, dimension(:, :), allocatable :: neo_dens_mu_deriv
 
@@ -127,10 +131,10 @@ contains
         real, dimension(:, :, :, :, :), allocatable :: dneo_h_hat_dz_z_grid, dneo_h_dz_global
 
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids. Since ϕ^1_0 is independent of velocity variables, there are no accompanying arrays for ϕ^1_0 here.
-        real, dimension(:, :, :, :, :), allocatable :: neo_h_global, neo_h_global_right, neo_h_global_left
+        real, dimension(:, :, :, :, :), allocatable :: neo_h_global_right, neo_h_global_left
 
         ! Holds NEO H_1 derivative data evaluated on the stella z, v∥​ and μ grids.
-        real, dimension(:, :, :, :, :), allocatable :: dneo_h_dvpa_global, dneo_h_dmu_global, d2neo_h_dzdmu_global, d2neo_h_dzdvpa_global
+        real, dimension(:, :, :, :, :), allocatable :: d2neo_h_dzdmu_global, d2neo_h_dzdvpa_global
 
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
         real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
@@ -167,12 +171,15 @@ contains
         call broadcast(neo_grid%radius)
        
         ! Allocate all of the arrays that will be used in the higher order corrections. 
+        if (.not. allocated(neo_h_global)) allocate(neo_h_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_h)) allocate(neo_h(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_phi)) allocate(neo_phi(-nzgrid:nzgrid))
         if (.not. allocated(dneo_h_dpsi)) allocate(dneo_h_dpsi(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(dneo_phi_dpsi)) allocate(dneo_phi_dpsi(-nzgrid:nzgrid))
         if (.not. allocated(dneo_h_dz)) allocate(dneo_h_dz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(dneo_phi_dz)) allocate(dneo_phi_dz(-nzgrid:nzgrid))
+        if (.not. allocated(dneo_h_dmu_global)) allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dvpa)) allocate(dneo_h_dvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dmu)) allocate(dneo_h_dmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(d2neo_h_dzdmu)) allocate(d2neo_h_dzdmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
@@ -312,13 +319,6 @@ contains
             ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_vpa_deriv, "neo_distribution_vpa_deriv_first_moment_on_stella_z_grid_central_surface") 
             ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_mu_deriv, "neo_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
         ! end if
-
-        ! Check for Nan's in NEO data being passed to the GKE. 
-        ! call check_real_nans_r3(neo_h, "neo_h")
-        ! call check_real_nans_r3(dneo_h_dpsi, "dneo_h_dpsi")
-        ! call check_real_nans_r3(dneo_h_dz, "dneo_h_dz")
-        ! call check_real_nans_r3(dneo_h_dvpa, "dneo_h_dvpa")
-        ! call check_real_nans_r3(dneo_h_dmu, "dneo_h_dmu")
         
         ! Finally, deallocate all temporary arrays.
         call deallocate_temp_arrays
@@ -359,7 +359,6 @@ contains
         if (.not. allocated(neo_phi_left)) allocate(neo_phi_left(-nzgrid:nzgrid))    
 
         ! Allocate the NEO H_1 5D arrays on stellas z and velocity grids.
-        if (.not. allocated(neo_h_global)) allocate(neo_h_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_h_global_right)) allocate(neo_h_global_right(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_h_global_left)) allocate(neo_h_global_left(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
 
@@ -377,9 +376,6 @@ contains
         if (.not. allocated(neo_u_par_left)) allocate(neo_u_par_left(-nzgrid:nzgrid, neo_grid%n_species))
 
         ! FOR TESTING PURPOSES.
-        if (.not. allocated(dneo_h_dmu_global)) allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-
         if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, neo_grid%n_species))
         if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, neo_grid%n_species))
 
@@ -408,7 +404,6 @@ contains
         if (allocated(d2neo_h_dzdmu_global)) deallocate(d2neo_h_dzdmu_global)   
         if (allocated(neo_phi_right)) deallocate(neo_phi_right) 
         if (allocated(neo_phi_left)) deallocate(neo_phi_left)
-        if (allocated(neo_h_global)) deallocate(neo_h_global)       
         if (allocated(neo_h_global_right)) deallocate(neo_h_global_right)
         if (allocated(neo_h_global_left)) deallocate(neo_h_global_left)
         if (allocated(neo_h_right)) deallocate(neo_h_right)   
@@ -418,7 +413,6 @@ contains
         if (allocated(neo_u_par)) deallocate(neo_u_par)
         if (allocated(neo_u_par_right)) deallocate(neo_u_par_right)
         if (allocated(neo_u_par_left)) deallocate(neo_u_par_left)
-        if (allocated(dneo_h_dvpa_global)) deallocate(dneo_h_dvpa_global)
         if (allocated(neo_dens_vpa_deriv)) deallocate(neo_dens_vpa_deriv)
         if (allocated(neo_dens_mu_deriv)) deallocate(neo_dens_mu_deriv) 
  
@@ -434,7 +428,8 @@ contains
 
     subroutine finish_neoclassical_terms_neo
         implicit none
-
+ 
+        if (allocated(neo_h_global)) deallocate(neo_h_global)
         if (allocated(neo_h)) deallocate(neo_h)
         if (allocated(neo_phi)) deallocate(neo_phi)
         if (allocated(dneo_h_dpsi)) deallocate(dneo_h_dpsi)
@@ -443,8 +438,10 @@ contains
         if (allocated(dneo_phi_dz)) deallocate(dneo_phi_dz)
         if (allocated(dneo_h_dvpa)) deallocate(dneo_h_dvpa)
         if (allocated(dneo_h_dmu)) deallocate(dneo_h_dmu)
-        if (allocated(d2neo_h_dzdmu)) deallocate(d2neo_h_dzdmu)
-        if (allocated(d2neo_h_dzdvpa)) deallocate(d2neo_h_dzdvpa)
+        if (allocated(dneo_h_dvpa_global)) deallocate(dneo_h_dvpa_global)
+        if (allocated(dneo_h_dmu_global)) deallocate(dneo_h_dmu_global)
+        if (allocated(d2neo_h_dzdmu)) deallocate(d2neo_h_dzdmu)     ! NO LONGER NEEDED IF PARALLEL STREAMING TAKES G_NEO? 
+        if (allocated(d2neo_h_dzdvpa)) deallocate(d2neo_h_dzdvpa)   ! NO LONGER NEEDED IF PARALLEL STREAMING TAKES G_NEO?
         if (allocated(neo_dens)) deallocate(neo_dens)
         if (allocated(neo_fac)) deallocate(neo_fac)
 

@@ -414,6 +414,9 @@ contains
       ! Geometry
       use geometry, only: dl_over_b
 
+      ! NEO's HO corrections. 
+      use arrays, only: denominator_fields_neo
+
       implicit none
 
       ! Arguments
@@ -421,8 +424,9 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
       logical, optional, intent(in) :: skip_fsa
       
-      ! Local variables
+      ! Local variables.
       real, dimension(:, :, :, :), allocatable :: denominator_fields_t
+      real, dimension(:, :, :, :), allocatable :: denominator_fields_t_neo
       integer :: ia, it, ikx
       complex :: tmp
       logical :: skip_fsa_local
@@ -478,7 +482,36 @@ contains
             phi = phi / denominator_fields_t
          end where
          deallocate (denominator_fields_t)
-         
+
+      ! ================================================================================================================================================= !
+      ! --------------------------------------------------- Using g_neo as the distribution function. --------------------------------------------------- !
+      ! ================================================================================================================================================= !
+      !                                                                                                                                                   !
+      ! If we are using the g_neo distribution, then:                                                                                                     ! 
+      !                                                                                                                                                   ! 
+      !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]                                                                                ! 
+      !     / [ sum_s (Z_s² n_s/T_s) (2B/sqrt(pi)) int dvpa int dmu exp(-v²) (1 - J_0^2) (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0)]                                 ! 
+      !                                                                                                                                                   ! 
+      ! denominator_fields_neo[iky,ikz,iz] = [ sum_s (Z_s² n_s/T_s) (2B/sqrt(pi)) int dvpa int dmu exp(-v²) (1 - J_0^2) (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0)]  ! 
+      !                                                                                                                                                   !
+      ! To avoid any issues with division by zero we set phi = 0.0 if the denominator is too small. Only thing that makes sense is to set phi = 0.0 if    !
+      ! the prefactor for phi in QN is also zero.                                                                                                         !
+      !                                                                                                                                                   !
+      ! ================================================================================================================================================= !     
+
+      else if (dist == 'gneo') then
+         if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::dist==gneo' 
+         allocate (denominator_fields_t_neo(naky, nakx, -nzgrid:nzgrid, ntubes))
+         denominator_fields_t_neo = spread(denominator_fields_neo, 4, ntubes)
+         where (denominator_fields_t_neo < epsilon(0.0))
+            phi = 0.0
+         elsewhere
+            phi = phi / denominator_fields_t_neo
+         end where
+         deallocate (denominator_fields_t_neo)
+       
+      ! ================================================================================================================================================= !      
+  
       ! ------------------------------------------------------------------------------------------
       !                             Other - for safety just abort
       ! ------------------------------------------------------------------------------------------
@@ -559,6 +592,21 @@ contains
                end do
             end do
 
+         ! ========================================================================================== !
+         ! ------------- Adiabatic electrons - Using gneo as the distribution function -------------- !
+         ! ========================================================================================== !
+         ! TO DO - Add the correct HO MBR response when using the gneo distribution! 
+ 
+         ! else if (dist == 'gneo') then
+            ! do ikx = 1, nakx
+               ! do it = 1, ntubes
+                  ! tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
+                  ! phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
+               ! end do
+            ! end do
+ 
+         ! ========================================================================================== !
+
          ! ---------------------------------------------------------------------------------------
          !                      Adiabatic electrons - Abort if unknown dist fn
          ! ---------------------------------------------------------------------------------------
@@ -624,9 +672,9 @@ contains
 
       ! Parallelisation
       use mp, only: sum_allreduce
-      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
-      use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      use parallelisation_layouts, only: iv_idx, imu_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      
       ! Arrays
       use arrays, only: denominator_fields, denominator_fields_MBR
       use arrays, only: denominator_fields_h, denominator_fields_MBR_h, efac, efacp
@@ -637,11 +685,10 @@ contains
       
       ! Grids
       use grids_velocity, only: nvpa, nmu
-      use grids_species, only: spec, nspec
+      use grids_species, only: spec
       use grids_kxky, only: zonal_mode, akx
-      use grids_kxky, only: nakx, naky
+      use grids_kxky, only: nakx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use grids_z, only: nzgrid
 
       ! Adiabatic electrons
       use grids_species, only: has_electron_species
@@ -654,18 +701,16 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       
       ! Geometry
-      use geometry, only: dl_over_b, bmag
+      use geometry, only: dl_over_b
 
-      ! NEO data for higher order corrections. 
+      ! NEO's HO corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_phi, neo_h, neo_phi, dneo_h_dmu
-      use neoclassical_terms_neo, only: neo_dens 
+      use field_equations_fluxtube_neoclassical, only: get_phi_neoclassical_correction
 
       implicit none
 
       ! Local variables
-      integer :: ikxkyz, iz, it, ikx, iky, ia, iv, imu, ivmu
-      integer :: is, is_inner, is_outer
+      integer :: ikxkyz, iz, it, ikx, iky, is, ia
       real :: tmp, wgt
       real, dimension(:, :), allocatable :: g0
       
@@ -692,49 +737,28 @@ contains
          !
          !     (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J_0(a_k)²) exp(v²)
          !----------------------------------------------------------------------
-
-         ! ============================================================================================================= !
-         !
-         ! If NEO's corrections are enabled, the denominator for phi calculations picks up a correction. 
-         ! This is given by: ... 
-         !
-         ! 
-         !
-         !
-         ! ============================================================================================================= !         
-
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            
             ! <denominator_fields> does not depend on flux tube index, so only compute for one flux tube index
             it = it_idx(kxkyz_lo, ikxkyz)
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
-            is_outer = is_idx(kxkyz_lo, ikxkyz)
-          
+            is = is_idx(kxkyz_lo, ikxkyz)
+
             ! Calculate (1 - J_0(a_k)²) exp(v²) for each (kx,ky,z)
-            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is_outer), 2, nmu) &
-               * spread(maxwell_mu(ia, iz, :, is_outer), 1, nvpa) * maxwell_fac(is_outer)
-
-            if (neoclassical_is_enabled()) then
-                ! Iterate over velocity space to calculate the neoclassical prefactor.
-                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                    is_inner = is_idx(vmu_lo, ivmu)
-                    if (is_inner /= is_outer) cycle
-                    imu = imu_idx(vmu_lo, ivmu)
-                    iv = iv_idx(vmu_lo, ivmu)
-
-                    g0(iv, imu) = g0(iv, imu) * ( 1 + neo_h(iz, ivmu, 1) - spec(is_inner)%z * neo_phi(iz) - ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) )
-                end do
-            end if
+            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) &
+               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
 
             ! Calculate denominator_fields[iky,ikz,iz] = sum_s (Z_s² n_s/T_s) (1 - Gamma0)
             ! with (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J_0(a_k)²) exp(v²)
-            wgt = spec(is_outer)%z * spec(is_outer)%z * spec(is_outer)%dens_psi0 / spec(is_outer)%temp
+            wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
             call integrate_vmu(g0, iz, tmp)
-            denominator_fields(iky, ikx, iz) = denominator_fields(iky, ikx, iz) + tmp * wgt            
+            denominator_fields(iky, ikx, iz) = denominator_fields(iky, ikx, iz) + tmp * wgt
+            
          end do
-
+         
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(denominator_fields)
          
@@ -754,6 +778,7 @@ contains
          !----------------------------------------------------------------------
          denominator_fields_h = sum(spec%z * spec%z * spec%dens / spec%temp)
          
+
          !**********************************************************************
          !                             Adiabatic electrons 
          !**********************************************************************
@@ -885,32 +910,17 @@ contains
             !---------------------------------------------------------------------
             ! Calculate <efac> = n_e/T_e = <tite> / <nine> * ni / Ti
             efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
-
-            ! =============================================================================================== !
-
-            ! If NEO's corrections are enabled, compute the higher order correction to the denominator. 
-            if(neoclassical_is_enabled()) then 
-                ! Calculate the approproate denominators for g and h in the presence of the higher order equilibrium.
-                do iz = -nzgrid, nzgrid 
-                    efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
-
-                    denominator_fields(:, :, iz) = denominator_fields(:, :, iz) + efac * ( 1 + neo_dens(iz, 2) )
-                    denominator_fields_h = denominator_fields_h + efac
-                end do
-            else 
-                ! Otherwise, calculate the approporiate denominators for g and h in the presence of the Maxwellian equilbirium. 
-                efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
+            efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
             
-                ! Add the contribution of adiabatic electrons to <denominator_fields>
-                ! Calculate denominator_fields = sum_(s not e) (Z_s² n_s/T_s) (1 - Gamma0) + (n_e/T_e)
-                ! This is the factor that multiplies phi in the final expression. 
-                denominator_fields = denominator_fields + efac
+            ! Add the contribution of adiabatic electrons to <denominator_fields>
+            ! Calculate denominator_fields = sum_(s not e) (Z_s² n_s/T_s) (1 - Gamma0) + (n_e/T_e)
+            ! This is the factor that multiplies phi in the final expression. 
+            denominator_fields = denominator_fields + efac
             
-                ! Add the contribution of adiabatic electrons to <denominator_fields_h>
-                ! Calculate denominator_fields_h = sum_(s not e) (Z_s² n_s/T_s) + (n_e/T_e)
-                denominator_fields_h = denominator_fields_h + efac
-            end if
-
+            ! Add the contribution of adiabatic electrons to <denominator_fields_h>
+            ! Calculate denominator_fields_h = sum_(s not e) (Z_s² n_s/T_s) + (n_e/T_e)
+            denominator_fields_h = denominator_fields_h + efac
+            
             !---------------------------------------------------------------------
             !                 Modified Boltzmann Response (MBR)
             !---------------------------------------------------------------------
@@ -928,38 +938,36 @@ contains
                if (zonal_mode(1)) then
                   ! denominator_fields_MBR_h = n_e/T_e / sum_(s not e) (Z_s² n_s/T_s)
                   denominator_fields_MBR_h = efac / (sum(spec%zt * spec%z * spec%dens))
-               
-                  if(neoclassical_is_enabled()) then
-                      do ikx = 1, nakx
-                          ! tmp = T_e / n_e - int (dl/B)/(sum_(s not e) (Z_s² n_s/T_s) * (1- Gamma0))
-                          tmp = 1./efac - sum(dl_over_b(ia, :) * ( 1 + neo_dens(iz, 2) ) / denominator_fields(1, ikx, :) )
-                          ! denominator_fields_MBR = 1/ (T_e/n_e - <1/denominator_field>_FSA )
-                          denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
-                      end do
-
-                      ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway.
-                      if (akx(1) < epsilon(0.)) then
-                          denominator_fields_MBR(1, :) = 0.0
-                      end if
-                  else
-                      do ikx = 1, nakx
-                          ! tmp = T_e / n_e - int (dl/B)/(sum_(s not e) (Z_s² n_s/T_s) * (1- Gamma0))
-                          tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
-                          ! denominator_fields_MBR = 1/ (T_e/n_e - <1/denominator_field>_FSA )
-                          denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
-                      end do
+                  do ikx = 1, nakx
+                     ! tmp = T_e / n_e - int (dl/B)/(sum_(s not e) (Z_s² n_s/T_s) * (1- Gamma0))
+                     tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
+                     ! denominator_fields_MBR = 1/ (T_e/n_e - <1/denominator_field>_FSA )
+                     denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
+                  end do
                   
-                      ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway.
-                      if (akx(1) < epsilon(0.)) then
-                          denominator_fields_MBR(1, :) = 0.0
-                      end if
+                  ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway
+                  if (akx(1) < epsilon(0.)) then
+                     denominator_fields_MBR(1, :) = 0.0
                   end if
                end if
             end if
+
          end if
-         ! Deallocate temporary arrays.
+
+         ! Deallocate temporary arrays
          if (allocated(g0)) deallocate (g0)
+
       end if
+
+      ! ======================================================================================================================== !
+      ! If NEO's HO corrections are enabled, calculate the denominator needed for finding phi in electrostatic simulations only. !
+      ! ======================================================================================================================== !
+ 
+      if (neoclassical_is_enabled()) then
+          call get_phi_neoclassical_correction
+      end if
+
+      ! ======================================================================================================================== !
 
    end subroutine init_field_equations_fluxtube
 

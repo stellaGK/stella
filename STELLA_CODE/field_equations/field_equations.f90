@@ -215,6 +215,10 @@ contains
       use grids_species, only: spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
+   
+      ! For the HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use arrays, only: denominator_fields_neo
       
       ! Time routines
       use timers, only: time_field_solve
@@ -237,6 +241,11 @@ contains
          end if
       end if
 
+      ! Allocate denominator_fields_neo only if the HO corrections are enabled.
+      if (neoclassical_is_enabled()) then
+          if (.not. allocated(denominator_fields_neo)) then; allocate (denominator_fields_neo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo = 0.; end if 
+      end if 
+
    end subroutine allocate_arrays
 
    !============================================================================
@@ -253,6 +262,10 @@ contains
       use field_equations_radialvariation, only: finish_field_equations_radialvariation
       use field_equations_electromagnetic, only: finish_field_equations_electromagnetic
       
+      ! For the HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use arrays, only: denominator_fields_neo
+
       implicit none
       
       !-------------------------------------------------------------------------
@@ -267,6 +280,11 @@ contains
       call finish_field_equations_electromagnetic
       if (full_flux_surface) call finish_field_equations_fullfluxsurface
       if (radial_variation) call finish_field_equations_radialvariation
+
+      ! Deallocate denominator_fields_neo only if the HO corrections are enabled.
+      if (neoclassical_is_enabled()) then
+          if (allocated(denominator_fields_neo)) deallocate(denominator_fields_neo)
+      end if
 
       ! The fields are no longer initialised
       initialised_fields = .false.
