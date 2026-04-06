@@ -97,6 +97,10 @@ contains
 
       if (rk_step) call mb_communicate(g)
 
+      if (neoclassical_is_enabled()) then
+          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
+      end if
+
       if (mod(istep, 2) == 1 .or. .not. flip_flop) then
 
          if (prp_shear_enabled) then
@@ -115,23 +119,19 @@ contains
             fields_updated = .false.
          end if
 
-         if (mirror_implicit .and. include_mirror) then     
-             if (neoclassical_is_enabled()) then
-                 call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
-             end if
-     
+         if (mirror_implicit .and. include_mirror) then       
              call advance_mirror_implicit(collisions_implicit, g, apar)
              fields_updated = .false.
-
-             if (neoclassical_is_enabled()) then
-                 call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
-             end if
          end if
 
          ! If the distribution function has been updated due to the addition
          ! of any implicit terms of the gyrokinetic equation, we need to use the 
-         ! quasi-neutrality condition to update the fields <phi>, <apar> and <bpar>
-         call advance_fields(g, phi, apar, bpar, dist='g')
+         ! quasi-neutrality condition to update the fields <phi>, <apar> and <bpar>.
+         if (neoclassical_is_enabled()) then
+             call advance_fields(g, phi, apar, bpar, dist='gneo')
+         else
+             call advance_fields(g, phi, apar, bpar, dist='g')
+         end if
          fields_updated = .true. 
 
          ! g^{**} is input
@@ -141,18 +141,26 @@ contains
              fields_updated = .false.
          end if
 
-         ! Update the fields if not already updated
-         call advance_fields(g, phi, apar, bpar, dist='g')
-         fields_updated = .true. 
-                  
+         ! Update the fields if not already updated.
+         if (neoclassical_is_enabled()) then
+             call advance_fields(g, phi, apar, bpar, dist='gneo')
+         else
+             call advance_fields(g, phi, apar, bpar, dist='g')
+         end if
+         fields_updated = .true.
+                           
       else
 
          ! Get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, bpar, dist='g')
-         fields_updated = .true. 
-
+         if (neoclassical_is_enabled()) then
+             call advance_fields(g, phi, apar, bpar, dist='gneo')
+         else
+             call advance_fields(g, phi, apar, bpar, dist='g')
+         end if
+         fields_updated = .true.
+         
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
@@ -161,16 +169,8 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-            if (neoclassical_is_enabled()) then
-                call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
-            end if    
-
             call advance_mirror_implicit(collisions_implicit, g, apar)
             fields_updated = .false.
-
-            if (neoclassical_is_enabled()) then
-                call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
-            end if
          end if
 
          if (collisions_implicit .and. include_collisions) then
@@ -189,6 +189,10 @@ contains
             fields_updated = .false.
          end if
 
+      end if
+
+      if (neoclassical_is_enabled()) then
+          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
       end if
 
       ! Stop the timer for the implict part of the solve
