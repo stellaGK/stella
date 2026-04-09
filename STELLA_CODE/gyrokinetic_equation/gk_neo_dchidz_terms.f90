@@ -54,7 +54,7 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! NEO data.
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
+        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
 
         ! Arrays.
         use arrays, only: neo_dchidz_coeff, initialised_neo_dchidz_terms
@@ -73,24 +73,24 @@ contains
             allocate (neo_dchidz_coeff(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_dchidz_coeff = 0.0
         end if
 
-        ! Calculate neo_dchidz_coeff. Start with the constant factor.
-        neo_dchidz_coeff = - 0.5 * code_dt      
+        ! Calculate neo_dchidz_coeff. Start with the constant factor
+        neo_dchidz_coeff = 0.5 * code_dt
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
-           
+
             ! Add the species dependent factor.
-            neo_dchidz_coeff(:, :, ivmu) = neo_dchidz_coeff(:, :, ivmu) * spec(is)%zt * spec(is)%stm 
+            neo_dchidz_coeff(:, :, ivmu) = neo_dchidz_coeff(:, :, ivmu) * spec(is)%zt * spec(is)%stm
 
             ! Multiply by the z-dependent factor.
-            do iz = -nzgrid, nzgrid 
+            do iz = -nzgrid, nzgrid
                 neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * b_dot_gradz(:, iz) &
-                * ( ( vpa(iv) / bmag(1, iz) ) * dneo_h_dmu(iz, ivmu, 1) - dneo_h_dvpa(iz, ivmu, 1) ) &
+                * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
-            end do 
+            end do
         end do
 
     end subroutine init_neo_dchidz_terms
@@ -113,7 +113,6 @@ contains
         use grids_kxky, only: naky, nakx
       
         ! For calculating <Χ_k> and ∂<Χ_k>/∂z. 
-
         use gk_neo_chi_terms, only: get_chi
         use gk_parallel_streaming, only: get_dgdz_centered
 

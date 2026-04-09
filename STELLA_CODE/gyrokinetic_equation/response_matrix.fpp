@@ -1445,6 +1445,10 @@ contains
          use grids_species, only: adiabatic_option_switch
          use grids_species, only: adiabatic_option_fieldlineavg
 
+         ! For HO corrections. 
+         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use arrays, only: denominator_fields_neo 
+
          implicit none
 
          ! Local variables
@@ -1500,7 +1504,11 @@ contains
 
             ! For the given value of ky, kx, store the appropriate denominator from 
             ! the Quasineutrality equation for this this segment. 
-            denominator_seg = denominator_fields(iky, ikx, :)
+            if (neoclassical_is_enabled()) then 
+                denominator_seg = denominator_fields_neo(iky, ikx, :)
+            else 
+                denominator_seg = denominator_fields(iky, ikx, :)
+            end if 
 
             ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
             ! iz is only cycling through the zed location within a given segment. 

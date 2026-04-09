@@ -222,7 +222,6 @@ contains
       use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
       use gk_neo_drive, only: advance_wstar1_explicit, advance_wpol_explicit
       use gk_neo_drifts, only: advance_neo_curv_drift_explicit
-      use gk_neo_parallel_streaming, only: advance_neo_stream_explicit
  
       implicit none
 
@@ -366,10 +365,7 @@ contains
              call advance_wpol_explicit(phi, rhs)
 
              ! Advance the neoclassical curvature drift terms.
-             call advance_neo_curv_drift_explicit(phi, rhs)
-
-             ! Advance the neoclassical parallel streaming correction. 
-             ! call advance_neo_stream_explicit(phi, rhs) < ========= NOT NEEDED IF WE PLAN TO PASS THE G_NEO FUNCTION TO PARALLEL STREAMING? 
+             call advance_neo_curv_drift_explicit(phi, rhs) 
          end if
 
          ! If simulating a full flux surface (flux annulus), all terms to this point have been calculated

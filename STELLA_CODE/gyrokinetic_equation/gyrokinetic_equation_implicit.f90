@@ -88,6 +88,10 @@ contains
       ! Start the timer for the implicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
 
+      if (neoclassical_is_enabled()) then
+          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
+      end if
+
       ! Reverse the order of operations every time step
       ! as part of alternating direction operator splitting
       ! this is needed to ensure 2nd order accuracy in time
@@ -96,10 +100,6 @@ contains
       ! get g^{**}, with g^{**}-g^{*} due to mirror term
 
       if (rk_step) call mb_communicate(g)
-
-      if (neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
-      end if
 
       if (mod(istep, 2) == 1 .or. .not. flip_flop) then
 

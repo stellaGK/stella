@@ -79,7 +79,7 @@ contains
       use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
  
       ! Calculations
-      use calculations_tofrom_ghf, only: gbar_to_g, g_or_gbar_to_gbarneo
+      use calculations_tofrom_ghf, only: gbar_to_g
 
       ! For NEO's neoclassical corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
@@ -139,8 +139,12 @@ contains
 
       ! dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       ! in parallel streaming or if the guiding center distribution (g = <f>) is evolved
-      dist_choice = 'g'
-      
+      if (neoclassical_is_enabled()) then
+          dist_choice = 'gneo'
+      else
+          dist_choice = 'g'
+      end if      
+
       ! Store g_n from pervious time step 
       g1 = g
       g2 = g
