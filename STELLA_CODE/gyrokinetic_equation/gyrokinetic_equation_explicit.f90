@@ -115,11 +115,6 @@ contains
          call advance_fields(g, phi, apar, bpar, dist='gbar')
       end if
 
-      ! We now switch back to g or gbar if we are using g_neo. 
-      if (neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
-      end if
-
       ! Later, the implicit solve will use <g> rather than <gbar> to advance the 
       ! distribution function in time. Therefore, convert <gbar> to <g> again
       if (include_apar) then
@@ -137,6 +132,11 @@ contains
             end do
          end if
       end do
+
+      ! We now switch back to g or gbar if we are using g_neo. 
+      if (neoclassical_is_enabled()) then
+          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
+      end if
 
       ! Stop the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')

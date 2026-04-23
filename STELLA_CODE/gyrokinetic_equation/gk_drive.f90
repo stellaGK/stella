@@ -97,6 +97,9 @@ contains
 
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
 
+      ! HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h, neo_phi
+
       use arrays, only: wstar, initialised_wstar
 
       ! Rescale the drive term with <wstarknob>
@@ -136,17 +139,17 @@ contains
          
          ! Calculate wstar = - code_dt*omega_{*,k,s}/ky = - code_dt * 0.5/C <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho 
          !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²). 
-         ! This block only computes when sfincs is chosen for the neoclassical option.
-         if (include_neoclassical_terms) then
-            wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) - dfneo_drho(:, :, ivmu))
+         if (neoclassical_is_enabled()) then 
+             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt * (spec(is)%fprim + spec(is)%tprim * ( energy - 1.5 ) ) 
+             
+             do iz = -nzgrid, nzgrid
+                 wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * ( 1.0 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) )
+             end do 
          else
-             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                  * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
-         end if
-         
-         wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt * (spec(is)%fprim + spec(is)%tprim * ( energy - 1.5 ) ) 
+         end if  
+ 
+         wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)         
       end do
 
       deallocate (energy)

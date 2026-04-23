@@ -95,10 +95,6 @@ contains
         if (.not. allocated(neocurvy)) then
             allocate (neocurvy(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neocurvy = 0.0
         end if
- 
-        ! Calculate neocurvx and neocurvy. Start with the constant factors.
-        neocurvx = 0.5 * code_dt
-        neocurvy = 0.5 * code_dt
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -107,13 +103,16 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
            
             do iz = -nzgrid, nzgrid            
-                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * ( vpa(iv) / ( bmag(:, iz) ** 2 ) ) * B_times_kappa_dot_gradx(:, iz) &
-                * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) & 
+                neocurvx(:, iz, ivmu) = 0.5 * code_dt * ( vpa(iv) / ( bmag(:, iz) ** 2 ) ) * B_times_kappa_dot_gradx(:, iz) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
                 
-                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * ( vpa(iv) / ( bmag(:, iz) ** 2 ) ) * B_times_kappa_dot_grady(:, iz) &
-                * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) &
+                neocurvy(:, iz, ivmu) = 0.5 * code_dt * ( vpa(iv) / ( bmag(:, iz) ** 2 ) ) * B_times_kappa_dot_grady(:, iz) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+
+                ! Multiply by the neoclassical distribution factor. 
+                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+
+                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
             end do
         end do
 

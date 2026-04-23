@@ -86,9 +86,6 @@ module geometry
    public :: aref, bref, twist_and_shift_geo_fac
    public :: q_as_x, get_x_to_rho, gfac
    public :: dVolume, grad_x_grad_y_end
-
-   ! For NEO's neoclassical calculations, we need b_dot_gradtheta. 
-   public :: b_dot_gradtheta
    
    ! Flux tube only needs b_dot_gradz_avg(z)
    public :: b_dot_gradz_avg
@@ -103,6 +100,9 @@ module geometry
    public :: gradzeta_gradx_R2overB2
    public :: gradzeta_grady_R2overB2
    public :: b_dot_gradzeta_RR
+
+   ! Needed for HO corrections.
+   public :: dthetadpsi, bpol2 
 
    ! Used in kt_grids.f90
    public :: geo_option_switch
@@ -145,14 +145,11 @@ module geometry
    ! Geometric quantities for full flux surface
    real, dimension(:, :), allocatable :: b_dot_gradz
    
-   ! Geometric quantites for NEO's higher order corrections. 
-   real, dimension(:, :), allocatable :: b_dot_gradtheta
 
    ! Geometric quantities for the momentum flux
    real, dimension(:, :), allocatable :: gradzeta_gradx_R2overB2
    real, dimension(:, :), allocatable :: gradzeta_grady_R2overB2
    real, dimension(:, :), allocatable :: b_dot_gradzeta_RR
-
  
    ! The geometric quantities can be read from an old geometry file
    logical :: overwrite_bmag, overwrite_b_dot_gradzeta, overwrite_geometry
@@ -160,6 +157,9 @@ module geometry
    logical :: overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady
    logical :: overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_gradx, q_as_x
    character(100) :: geometry_file
+
+   ! Needed for HO corrections.
+   real, dimension(:, :), allocatable :: dthetadpsi, bpol2
   
    ! Only initialise once
    logical :: initialised_geometry = .false.   
@@ -788,6 +788,12 @@ contains
          drhodpsi = 1/dqdrho
       end if
 
+      ! For the HO corrections we require the square of the poloidal field strength and dthetadpsi. 
+      bpol2(1, :) = bmag(1, :)**2 - btor(:)**2 
+
+      dthetadpsi(1, :) = - gradx_dot_grady(1, :)/( geo_surf%qinp * bpol2(1,:) * dxdpsi * dydalpha * (geo_surf%rmaj ** 2) ) &
+      - zed(:) * geo_surf%shat * drhodpsi/geo_surf%rhoc
+
       ! For Miller each field line <alpha> has the same geometry so
       ! ensure that all arrays are filled with the ialpha = 1 information
       if (debug) write (*, *) 'geometry::Miller::spread_geometry'
@@ -826,6 +832,10 @@ contains
       !                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
       b_dot_gradzeta_RR = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
       if (debug) write (*, *) 'geometry::Miller::get_geometry_arrays_from_Miller_finished'
+
+      ! For HO corrections. 
+      bpol2 = spread(bpol2(1, :), 1, nalpha)
+      dthetadpsi = spread(dthetadpsi(1, :), 1, nalpha)
 
    end subroutine get_geometry_arrays_from_Miller
 
@@ -1060,6 +1070,10 @@ contains
       if (.not. allocated(gradzeta_grady_R2overB2)) allocate (gradzeta_grady_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_grady_R2overB2 = 0.0
       if (.not. allocated(b_dot_gradzeta_RR)) allocate (b_dot_gradzeta_RR(nalpha, -nzgrid:nzgrid)); b_dot_gradzeta_RR = 0.0 
 
+      ! Needed for HO corrections. 
+      if (.not. allocated(dthetadpsi)) allocate (dthetadpsi(nalpha, -nzgrid:nzgrid)); dthetadpsi = 0.0
+      if (.not. allocated(bpol2)) allocate (bpol2(nalpha, -nzgrid:nzgrid)); bpol2 = 0.0
+
    end subroutine allocate_arrays
 
    !============================================================================
@@ -1165,6 +1179,10 @@ contains
       ! Reference quantities
       call broadcast(aref)
       call broadcast(bref)
+
+      ! For HO corrections. 
+      call broadcast(dthetadpsi)
+      call broadcast(bpol2)
 
    end subroutine broadcast_arrays
 
@@ -1458,8 +1476,9 @@ contains
       if (allocated(gradzeta_grady_R2overB2)) deallocate (gradzeta_grady_R2overB2)
       if (allocated(b_dot_gradzeta_RR)) deallocate (b_dot_gradzeta_RR)
 
-      ! Needed for NEO's higher order corrections.
-      ! if (allocated(b_dot_gradtheta_arr)) deallocate (b_dot_gradtheta_arr)
+      ! Needed for HO corrections. 
+      if (allocated(dthetadpsi)) deallocate (dthetadpsi)
+      if (allocated(bpol2)) deallocate (bpol2)
 
       ! Only initialise once
       initialised_geometry = .false.

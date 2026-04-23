@@ -99,8 +99,14 @@ module arrays
    ! Arrays used to calculate the fields for radial variation simulations
    public :: denominator_fields_dr
 
-   ! Arrays for calculating the fieds for simulations including the HO corrections. 
+   ! Arrays for calculating the fields for higher order electrostatic simulations. 
    public :: denominator_fields_neo
+
+   ! Arrays for calculating the fields for higher order electromagnetic simulations.
+   public :: denominator_fields_neo_inv11
+   public :: denominator_fields_neo_inv12
+   public :: denominator_fields_neo_inv21
+   public :: denominator_fields_neo_inv22
 
    private
    
@@ -152,8 +158,7 @@ module arrays
    ! For flow shear
    real, dimension(:), allocatable :: shift_state
 
-   ! For NEO's neoclassical corrections. 
-
+   ! For higher order corrections. 
    real, dimension(:, :, :), allocatable :: neo_chi_coeff
    real, dimension(:, :, :), allocatable :: neo_apar_coeff
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
@@ -171,10 +176,9 @@ module arrays
    real :: denominator_fields_MBR_h
    real :: efac, efacp
 
-   ! For field equations when including HO corrections.
+   ! Arrays for calculating the fields for higher order electrostatic simulations.
    real, dimension(:, :, :), allocatable :: denominator_fields_neo
 
-   
    ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_inv11
    real, dimension(:, :, :), allocatable :: denominator_fields_inv13
@@ -182,7 +186,20 @@ module arrays
    real, dimension(:, :, :), allocatable :: denominator_fields_inv33
    real, dimension(:, :, :), allocatable :: apar_denom
    
+   ! Arrays for calculating the fields for higher order electromagnetic simulations.
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv11
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv12
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv13
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv21
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv22
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv23
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv31
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv32
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv33
+
    ! For radial variation simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_dr
+
+   
 
 end module arrays

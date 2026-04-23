@@ -597,13 +597,13 @@ contains
          ! ========================================================================================== !
          ! TO DO - Add the correct HO MBR response when using the gneo distribution! 
  
-         ! else if (dist == 'gneo') then
-            ! do ikx = 1, nakx
-               ! do it = 1, ntubes
-                  ! tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
-                  ! phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
-               ! end do
-            ! end do
+         else if (dist == 'gneo') then
+            do ikx = 1, nakx
+               do it = 1, ntubes
+                  tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
+                  phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
+               end do
+            end do
  
          ! ========================================================================================== !
 

@@ -147,6 +147,10 @@ contains
       ! Routines from other quasineutrality modules
       use field_equations_radialvariation, only: add_radial_correction_int_species
 
+      ! For HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: get_phi_and_apar_neoclassical_corrections      
+
       implicit none
 
       ! Arguments
@@ -204,8 +208,7 @@ contains
       apar = 0.
       
       ! Evolve the apar field
-      if (include_apar) then
-      
+      if (include_apar) then      
          ! Start timer
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::include_apar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -229,11 +232,15 @@ contains
          ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          
-         ! Divide the apar obtained above by the appropriate Apar pre-factor;
-         ! this is just kperp2 if g = <f> is used or apar_denom = (kperp2 + ...)
-         ! if gbar = g + <vpa*apar/c> * Ze/T * F_0 is used
-         call get_apar(apar, dist)
-         
+         if (neoclassical_is_enabled() .and. .not. include_bpar) then 
+             ! If HO corrections are enabled, phi and apar couple to one another in the field equations. 
+             ! This is accounted for in the get_phi_and_apar_neoclassical_corrections subroutine. 
+             call get_phi_and_apar_neoclassical_corrections(phi, apar, dist)    
+         else
+             ! Divide the apar obtained above by the appropriate Apar pre-factor;
+             ! This is just kperp2 if g = <f> is used or apar_denom = (kperp2 + ...) if gbar = g + <vpa*apar/c> * Ze/T * F_0 is used. 
+             call get_apar(apar, dist)
+         end if 
       end if
 
    end subroutine advance_fields_electromagnetic_vmulo
@@ -269,6 +276,10 @@ contains
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use calculations_velocity_integrals, only: integrate_vmu
+
+      ! For HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: get_phi_and_apar_neoclassical_corrections
 
       implicit none
 
@@ -366,18 +377,24 @@ contains
          
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(apar)
-         
-         ! Depending on the distribution function used the denominator is modified. 
-         if (dist == 'h') then
-            apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
-         else if (dist == 'gbar') then
-            apar = apar / spread(apar_denom, 4, ntubes)
-         else if (dist == 'gstar') then
-            write (*, *) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
-            call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
-         else
-            if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
-            call mp_abort('unknown dist option in get_fields. aborting')
+
+         if (neoclassical_is_enabled() .and. .not. include_bpar) then
+             ! If HO corrections are enabled, phi and apar couple to one another in the field equations. 
+             ! This is accounted for in the get_phi_and_apar_neoclassical_corrections subroutine. 
+             call get_phi_and_apar_neoclassical_corrections(phi, apar, dist)
+         else         
+             ! Depending on the distribution function used the denominator is modified. 
+             if (dist == 'h') then
+                 apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+             else if (dist == 'gbar') then
+                 apar = apar / spread(apar_denom, 4, ntubes)
+             else if (dist == 'gstar') then
+                 write (*, *) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
+                 call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
+             else
+                 if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
+                 call mp_abort('unknown dist option in get_fields. aborting')
+             end if
          end if
          
          ! Deallocate temporary arrays

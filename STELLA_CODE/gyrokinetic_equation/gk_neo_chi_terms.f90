@@ -72,15 +72,13 @@ contains
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
-         
-            ! Calcualte the species dependent factor. 
-            neo_chi_coeff(:, :, ivmu) = spec(is)%stm * spec(is)%zt 
-
-            ! Multiply by the z-dependent factor. 
+ 
             do iz = -nzgrid, nzgrid
-                neo_chi_coeff(:, iz, ivmu) = - neo_chi_coeff(:, iz, ivmu) * ( vpa(iv) / bmag(:, iz) ) * mu(imu) &
-                * b_dot_gradz(:, iz) * dbdzed(:, iz) * ( dneo_h_dmu(iz, ivmu, 1)  - 2 * bmag(1, iz) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+                neo_chi_coeff(:, iz, ivmu) = - mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
+                * vpa(iv) * spec(is)%stm * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * code_dt / bmag(:, iz)
+
+                ! Multiply by the neoclassical factor.
+                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * ( dneo_h_dmu(iz, ivmu, 1)  - 2.0 * bmag(1, iz) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
             end do 
         end do
 

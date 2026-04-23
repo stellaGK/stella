@@ -73,23 +73,18 @@ contains
             allocate (neo_dchidz_coeff(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_dchidz_coeff = 0.0
         end if
 
-        ! Calculate neo_dchidz_coeff. Start with the constant factor
-        neo_dchidz_coeff = 0.5 * code_dt
-
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
 
-            ! Add the species dependent factor.
-            neo_dchidz_coeff(:, :, ivmu) = neo_dchidz_coeff(:, :, ivmu) * spec(is)%zt * spec(is)%stm
-
-            ! Multiply by the z-dependent factor.
             do iz = -nzgrid, nzgrid
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * b_dot_gradz(:, iz) &
-                * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) &
+                neo_dchidz_coeff(:, iz, ivmu) = 0.5 * code_dt * spec(is)%zt * spec(is)%stm * b_dot_gradz(:, iz) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+
+                ! Multiply by the neoclassical factor.
+                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
             end do
         end do
 
