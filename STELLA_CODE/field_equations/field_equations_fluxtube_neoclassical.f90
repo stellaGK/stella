@@ -211,7 +211,7 @@ contains
                             antot2 = apar(iky,ikx,iz,it)
 
                             phi(iky,ikx,iz,it) = denominator_fields_neo_inv11(iky,ikx,iz)*antot1 + denominator_fields_neo_inv12(iky,ikx,iz)*antot2
-                            apar(iky,ikx,iz,it) = - denominator_fields_neo_inv21(iky,ikx,iz)*antot1 + denominator_fields_neo_inv22(iky,ikx,iz)*antot2
+                            apar(iky,ikx,iz,it) = denominator_fields_neo_inv21(iky,ikx,iz)*antot1 + denominator_fields_neo_inv22(iky,ikx,iz)*antot2
                         end do
                     end do
                 end do
@@ -242,7 +242,7 @@ contains
 
 ! =================================================================================================================================================================================== !
 
-    subroutine init_field_equations_electromagnetic_neo
+    subroutine init_field_equations_electromagnetic_neo(nfields)
         ! Parallelisation.
         use mp, only: sum_allreduce
         use parallelisation_layouts, only: kxkyz_lo
@@ -264,23 +264,29 @@ contains
         use grids_velocity, only: vpa, mu, nvpa, nmu
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
+        ! Geometry.
+        use geometry, only: bmag
+    
         ! Calculations.
         use calculations_velocity_integrals, only: integrate_vmu
         use arrays_gyro_averages, only: aj0v, aj1v
 
+        ! Neoclassical data.
+        use neoclassical_terms_neo, only: neo_h_global, neo_phi, dneo_h_dmu_global, dneo_h_dvpa_global
+
         implicit none
 
+        integer, intent (inout) :: nfields
         ! Local variables.
         integer :: ikxkyz, iz, it, ikx, iky, is, ia
         real :: tmp, wgt, denom_tmp
         real, dimension(:, :), allocatable :: g0
-        real, dimension(:, :, :), allocatable :: denominator_fields_neo_11, denominator_fields_neo_12
+        real, dimension(:, :, :), allocatable :: denominator_fields_neo_12
         real, dimension(:, :, :), allocatable :: denominator_fields_neo_21, denominator_fields_neo_22 
         
         if (.not. (include_apar .or. include_bpar)) return
 
         ! Allocate the temporary arrays needed to get the inverse matrix elements. 
-        allocate (denominator_fields_neo_11(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_11 = 0.0
         allocate (denominator_fields_neo_12(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12 = 0.0
         allocate (denominator_fields_neo_21(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_21 = 0.0
         allocate (denominator_fields_neo_22(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_22 = 0.0
@@ -290,14 +296,108 @@ contains
 
         ia = 1
 
-        ! TO DO - first compute the temporarary arrays: denominator_fields_neo_11, denominator_fields_neo_12, denominator_fields_neo_21 and denominator_fields_neo_22
+        ! First compute the temporarary arrays: denominator_fields_neo_11, denominator_fields_neo_12, denominator_fields_neo_21 and denominator_fields_neo_22.
+        ! Note that denominator_fields_neo_11 has already been calculated in the previous subroutine as denominator_fields_neo. 
+
+        ! ======================================================================================================================================================== ! 
+        ! Begin by calculating denominator_fields_neo_12 = DOCUMENTATION: TO DO  
+        !
+        ! ======================================================================================================================================================== !
+
+        ! Begin with denominator_fields_neo_12.
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+
+            ! Calculate exp(v²) * vpa(iv) for each (kx,ky,z).
+            g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa(:), 2, nmu)
+
+            ! Multiply this by (1 - J_0(a_k)²) * (dH_1/dμ|_v∥ / 2B_0 - F_1) + (F_1 - dH_1/dv∥|_μ / 2v∥) for each (kx,ky,z). 
+            g0 = g0 * ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * ( 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) &
+            - neo_h_global(iz, :, :, is, 1) + spec(is)%z * neo_phi(iz) ) & 
+            + neo_h_global(iz, :, :, is, 1) - spec(is)%z * neo_phi(iz) - 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / spread(vpa(:), 2, nmu) )
+
+            ! Calculate denominator_fields_neo_12[iky,ikz,iz].
+            wgt = 2.0 * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
+            call integrate_vmu(g0, iz, tmp)
+            denominator_fields_neo_12(iky, ikx, iz) = denominator_fields_neo_12(iky, ikx, iz) + tmp * wgt
+        end do
+
+        ! Sum the values on all processors and send them to <proc0>.
+        call sum_allreduce(denominator_fields_neo_12)
+
+        ! ======================================================================================================================================================== ! 
+        ! Now we move on to denominator_fields_neo_21 = DOCUMENTATION: TO DO
+        !
+        ! ======================================================================================================================================================== !
+ 
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+
+            ! Calculate (1 - J_0(a_k)²) * exp(v²) * vpa(iv) for each (kx,ky,z).
+            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) &
+            * spread(vpa(:), 2, nmu)
+
+            ! Multiply this by (F_1 - dH_1/dμ|_v∥ / 2B_0) for each (kx,ky,z). 
+            g0 = g0 * ( neo_h_global(iz, :, :, is, 1) - spec(is)%z * neo_phi(iz) - 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) )
+
+            ! Calculate denominator_fields_neo_21[iky,ikz,iz].
+            wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
+            call integrate_vmu(g0, iz, tmp)
+            denominator_fields_neo_21(iky, ikx, iz) = denominator_fields_neo_21(iky, ikx, iz) + tmp * wgt
+        end do
+
+        ! Sum the values on all processors and send them to <proc0>.
+        call sum_allreduce(denominator_fields_neo_21)
+
+        ! ======================================================================================================================================================== ! 
+        ! Finally calculate denominator_fields_neo_22 = DOCUMENTATION: TO DO 
+        !
+        ! ======================================================================================================================================================== !
+
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+
+            ! Calculate exp(v²) * vpa(iv)² for each (kx,ky,z).
+            g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa(:), 2, nmu) * spread(vpa(:), 2, nmu)
+
+            ! Multiply this by (1 - J_0(a_k)²) * (dH_1/dμ|_v∥ / 2B_0 - F_1) + (F_1 - dH_1/dv∥|_μ / 2v∥) for each (kx,ky,z). 
+            g0 = g0 * ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * ( 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) &
+            - neo_h_global(iz, :, :, is, 1) + spec(is)%z * neo_phi(iz) ) &
+            + neo_h_global(iz, :, :, is, 1) - spec(is)%z * neo_phi(iz) - 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / spread(vpa(:), 2, nmu) )
+
+            ! Calculate denominator_fields_neo_22[iky,ikz,iz].
+            wgt = 2.0 * beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm * spec(is)%stm / spec(is)%temp
+            call integrate_vmu(g0, iz, tmp)
+            denominator_fields_neo_22(iky, ikx, iz) = denominator_fields_neo_22(iky, ikx, iz) + tmp * wgt
+
+            ! Add the kperp2 factor.
+            denominator_fields_neo_22(iky, ikx, iz) = denominator_fields_neo_22(iky, ikx, iz) + kperp2(iky, ikx, ia, iz)
+        end do
+
+        ! Sum the values on all processors and send them to <proc0>.
+        call sum_allreduce(denominator_fields_neo_22)
 
         ! Now compute the inverse matrix elements. These are the factors that are actually needed in the field solve.
         if (fphi > epsilon(0.0) .and. include_apar) then
             do iz = -nzgrid,nzgrid 
                 do ikx = 1, nakx
                     do iky = 1, naky 
-                        denom_tmp = denominator_fields_neo_11(iky,ikx,iz)*denominator_fields_neo_22(iky,ikx,iz) &
+                        denom_tmp = denominator_fields_neo(iky,ikx,iz)*denominator_fields_neo_22(iky,ikx,iz) &
                         - denominator_fields_neo_12(iky,ikx,iz)*denominator_fields_neo_21(iky,ikx,iz)
                         if (denom_tmp < epsilon(0.0)) then
                             denominator_fields_neo_inv11(iky,ikx,iz) = 0.0
@@ -308,7 +408,7 @@ contains
                             denominator_fields_neo_inv11(iky,ikx,iz) = denominator_fields_neo_22(iky,ikx,iz)/denom_tmp  
                             denominator_fields_neo_inv12(iky,ikx,iz) = -denominator_fields_neo_12(iky,ikx,iz)/denom_tmp
                             denominator_fields_neo_inv21(iky,ikx,iz) = -denominator_fields_neo_21(iky,ikx,iz)/denom_tmp
-                            denominator_fields_neo_inv22(iky,ikx,iz) = denominator_fields_neo_11(iky,ikx,iz)/denom_tmp
+                            denominator_fields_neo_inv22(iky,ikx,iz) = denominator_fields_neo(iky,ikx,iz)/denom_tmp
                         end if
                     end do
                 end do
@@ -316,11 +416,9 @@ contains
         end if
        
         ! Deallocate the temporary arrays now that we have the inverse matrix elements.
-        deallocate(denominator_fields_neo_11)
         deallocate(denominator_fields_neo_12)
         deallocate(denominator_fields_neo_21)
-        deallocate(denominator_fields_neo_22)
-        
+        deallocate(denominator_fields_neo_22)        
     end subroutine init_field_equations_electromagnetic_neo
 
 

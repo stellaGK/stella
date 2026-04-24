@@ -156,6 +156,10 @@ contains
       use field_equations_fluxtube, only: init_field_equations_fluxtube
       use field_equations_fullfluxsurface, only: init_field_equations_fullfluxsurface
 
+      ! For HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: init_field_equations_electromagnetic_neo
+
       implicit none
       
       !-------------------------------------------------------------------------
@@ -189,7 +193,11 @@ contains
 
          ! Electromagnetic flux tube
          if (debug) write (*, *) 'field_equations::init::electromagnetic'
-         call init_field_equations_electromagnetic(nfields)
+         if (neoclassical_is_enabled()) then 
+             call init_field_equations_electromagnetic_neo(nfields)
+         else
+             call init_field_equations_electromagnetic(nfields)
+         end if 
 
          ! Radial Variation effects
          if (radial_variation) then
