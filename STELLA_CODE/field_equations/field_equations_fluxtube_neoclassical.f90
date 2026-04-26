@@ -217,8 +217,8 @@ contains
                 end do
             end do
         else
-            if (proc0) write (*, *) 'Unknown dist option in get_fields. Aborting.'
-            call mp_abort('Unknown dist option in get_fields. Aborting.')
+            if (proc0) write (*, *) 'Unknown dist option in get_phi_and_apar_neoclassical_corrections. Aborting.'
+            call mp_abort('Unknown dist option in get_phi_and_apar_neoclassical_corrections. Aborting.')
             return
         end if
 
@@ -242,7 +242,7 @@ contains
 
 ! =================================================================================================================================================================================== !
 
-    subroutine init_field_equations_electromagnetic_neo(nfields)
+    subroutine init_field_equations_electromagnetic_neo
         ! Parallelisation.
         use mp, only: sum_allreduce
         use parallelisation_layouts, only: kxkyz_lo
@@ -276,23 +276,22 @@ contains
 
         implicit none
 
-        integer, intent (inout) :: nfields
         ! Local variables.
         integer :: ikxkyz, iz, it, ikx, iky, is, ia
         real :: tmp, wgt, denom_tmp
         real, dimension(:, :), allocatable :: g0
         real, dimension(:, :, :), allocatable :: denominator_fields_neo_12
         real, dimension(:, :, :), allocatable :: denominator_fields_neo_21, denominator_fields_neo_22 
-        
+
+        ! Allocate the arrays needed for higher order electromagnetic field solve calculations.
+        call allocate_field_equations_electromagnetic_neo
+
         if (.not. (include_apar .or. include_bpar)) return
 
         ! Allocate the temporary arrays needed to get the inverse matrix elements. 
         allocate (denominator_fields_neo_12(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12 = 0.0
         allocate (denominator_fields_neo_21(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_21 = 0.0
         allocate (denominator_fields_neo_22(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_22 = 0.0
-
-        ! Allocate the arrays needed for higher order electromagnetic field solve calculations.
-        call allocate_field_equations_electromagnetic_neo
 
         ia = 1
 
@@ -436,6 +435,7 @@ contains
 
         ! Arrays. 
         use arrays_fields, only: apar, apar_old
+        use arrays, only: apar_denom
         use arrays, only: denominator_fields_neo_inv11, denominator_fields_neo_inv12
         use arrays, only: denominator_fields_neo_inv21, denominator_fields_neo_inv22
 
@@ -447,13 +447,23 @@ contains
         if (include_apar) then
             if (.not. allocated(apar)) then; allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0. ; end if
             if (.not. allocated(apar_old)) then; allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0. ; end if
+            if (.not. allocated(apar_denom)) then; allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0. ; end if
             if (.not. allocated(denominator_fields_neo_inv11)) then; allocate (denominator_fields_neo_inv11(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_inv11 = 0. ; end if
             if (.not. allocated(denominator_fields_neo_inv12)) then; allocate (denominator_fields_neo_inv12(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_inv12 = 0. ; end if
             if (.not. allocated(denominator_fields_neo_inv21)) then; allocate (denominator_fields_neo_inv21(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_inv21 = 0. ; end if 
             if (.not. allocated(denominator_fields_neo_inv22)) then; allocate (denominator_fields_neo_inv22(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_inv22 = 0. ; end if 
             ! Don't think there is any physical motivation to run simulations with finite beta and bpar but no apar included.
             ! Therefore do not need to consider this scenario in setting up the field solver? 
-        end if        
+        else
+            if (.not. allocated(apar)) then; allocate (apar(1, 1, 1, 1)); apar = 0. ; end if
+            if (.not. allocated(apar_old)) then; allocate (apar_old(1, 1, 1, 1)); apar_old = 0. ; end if
+            if (.not. allocated(apar_denom)) then; allocate (apar_denom(1, 1, 1)); apar_denom = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_inv11)) then; allocate (denominator_fields_neo_inv11(1, 1, 1)); denominator_fields_neo_inv11 = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_inv12)) then; allocate (denominator_fields_neo_inv12(1, 1, 1)); denominator_fields_neo_inv12 = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_inv21)) then; allocate (denominator_fields_neo_inv21(1, 1, 1)); denominator_fields_neo_inv21 = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_inv22)) then; allocate (denominator_fields_neo_inv22(1, 1, 1)); denominator_fields_neo_inv22 = 0. ; end if
+        end if
+              
    
     end subroutine allocate_field_equations_electromagnetic_neo
 

@@ -114,7 +114,12 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, bpar, dist='g')
+            if (neoclassical_is_enabled()) then
+                call advance_fields(g, phi, apar, bpar, dist='gneo')
+            else 
+                call advance_fields(g, phi, apar, bpar, dist='g')
+            end if
+
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
@@ -174,7 +179,12 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, bpar, dist='g')
+            if (neoclassical_is_enabled()) then
+                call advance_fields(g, phi, apar, bpar, dist='gneo')
+            else
+                call advance_fields(g, phi, apar, bpar, dist='g')
+            end if
+
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if

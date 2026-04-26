@@ -193,11 +193,11 @@ contains
 
          ! Electromagnetic flux tube
          if (debug) write (*, *) 'field_equations::init::electromagnetic'
+         call init_field_equations_electromagnetic(nfields)
+
          if (neoclassical_is_enabled()) then 
-             call init_field_equations_electromagnetic_neo(nfields)
-         else
-             call init_field_equations_electromagnetic(nfields)
-         end if 
+             call init_field_equations_electromagnetic_neo
+         end if
 
          ! Radial Variation effects
          if (radial_variation) then
@@ -227,6 +227,7 @@ contains
       ! For the HO corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use arrays, only: denominator_fields_neo
+      use arrays, only: 
       
       ! Time routines
       use timers, only: time_field_solve

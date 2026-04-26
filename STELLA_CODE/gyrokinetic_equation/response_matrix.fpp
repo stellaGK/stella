@@ -1078,6 +1078,8 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
       implicit none
 
       ! Arguments
@@ -1111,12 +1113,20 @@ contains
       ! zed grid, so much of these routines are about mapping the prefactors onto 
       ! the extended zed domain.
       ! ------------------------------------------------------------------------
-      if (include_bpar) then
-         call calculate_phi_and_bpar_for_response_matrix
+      if (neoclassical_is_enabled()) then 
+          if (include_apar) then
+               call calculate_phi_and_apar_for_response_matrix_neo
+          else  
+              call calculate_phi_for_response_matrix
+          end if 
       else
-         call calculate_phi_for_response_matrix
-      end if
-      if (include_apar) call get_apar_for_response_matrix
+          if (include_bpar) then
+              call calculate_phi_and_bpar_for_response_matrix
+          else
+              call calculate_phi_for_response_matrix
+          end if
+          if (include_apar) call get_apar_for_response_matrix
+      end if 
       ! ------------------------------------------------------------------------
 
    contains
@@ -1763,6 +1773,121 @@ contains
          deallocate (denominator)
 
       end subroutine get_apar_for_response_matrix
+
+      ! ================================================================================================================================================================== !
+      ! ---------------------------------------------- Get the correct factors for the coupled phi and apar for HO simulations. ------------------------------------------ ! 
+      ! ================================================================================================================================================================== !
+
+      subroutine calculate_phi_and_apar_for_response_matrix_neo
+          ! MP. 
+          use mp, only: mp_abort
+
+          ! Grids. 
+          use grids_z, only: nzgrid
+          use grids_kxky, only: zonal_mode, akx
+          use grids_species, only: has_electron_species
+          use grids_extended_zgrid, only: iz_low, iz_up
+          use grids_extended_zgrid, only: ikxmod
+          use grids_extended_zgrid, only: nsegments
+          use grids_extended_zgrid, only: periodic, phase_shift
+          use grids_species, only: spec
+       
+          ! Arrays. 
+          use arrays, only: denominator_fields_neo_inv11, denominator_fields_neo_inv12
+          use arrays, only: denominator_fields_neo_inv21, denominator_fields_neo_inv22
+
+          implicit none
+
+          ! Local variables.
+          integer :: idx, iseg, ikx, iz, ia
+          integer :: izl_offset, izup
+          complex :: antot1, antot2
+          real, dimension(:), allocatable :: gammainv11, gammainv12, gammainv21, gammainv22
+
+          ! =================================================================================== !
+
+          ia = 1
+
+          allocate (gammainv11(-nzgrid:nzgrid))
+          allocate (gammainv12(-nzgrid:nzgrid))
+          allocate (gammainv21(-nzgrid:nzgrid))
+          allocate (gammainv22(-nzgrid:nzgrid))
+
+          idx = 0
+          izl_offset = 0
+
+          ! ===================================================================== !
+          ! -------------------------- iky = ikx = 0 mode. ---------------------- !
+          ! ===================================================================== !
+          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this  !
+          ! mode and make sure it is set to zero.                                 ! 
+          ! ===================================================================== !
+
+          ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
+          ! <ikx> value on the local domain given our position on the extended domain.
+          iseg = 1
+          ikx = ikxmod(iseg, ie, iky)
+          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
+              phi(:) = 0.0
+              apar(:) = 0.0
+          return
+          end if
+
+          ! ===================================================================== !
+          ! ----------------- Divide by the correct field factor. --------------- !
+          ! ===================================================================== !
+       
+          ! Loop over all connected segments in a chain.
+          do iseg = 1, nsegments(ie, iky)
+              ! Make sure the boundary points are being treated correctly depending
+              ! on whether the mode is periodic or not. Here, define <izup> as the 
+              ! upper zed value within a segment. If the mode is periodic, then 
+              ! reduce the upper bound by one, as this is a repeated point so it is 
+              ! obtained using the periodicity condition. This avoids and double-counting.
+              if (periodic(iky)) then
+                  izup = iz_up(iseg) - 1
+              else
+                  izup = iz_up(iseg)
+              end if
+
+              ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
+              ! <ikx> value on the local domain given our position on the extended domain.
+              ikx = ikxmod(iseg, ie, iky)
+
+              ! For the given value of ky, kx, store the appropriate denominators from 
+              ! the field equations (Quasineutrality and perpendicular Amperes law) for 
+              ! this this segment. 
+              gammainv11 = denominator_fields_neo_inv11(iky, ikx, :)
+              gammainv12 = denominator_fields_neo_inv12(iky, ikx, :)
+              gammainv21 = denominator_fields_neo_inv21(iky, ikx, :)
+              gammainv22 = denominator_fields_neo_inv22(iky, ikx, :)
+
+              ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
+              ! iz is only cycling through the zed location within a given segment. 
+              do iz = iz_low(iseg) + izl_offset, izup
+                  idx = idx + 1
+                  antot1 = phi(idx)
+                  antot2 = apar(idx)
+                  phi(idx) = antot1 * gammainv11(iz) + antot2 * gammainv12(iz)
+                  apar(idx) = antot1 * gammainv21(iz) + antot2 * gammainv22(iz)
+              end do
+
+              ! Treat the periodic point correct by dividing by the phase shift.
+              if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
+              if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
+            
+              ! Set the offset to 1 - all other connected segments need to start one point
+              ! displaced as they share a point with the previous segment. 
+              if (izl_offset == 0) izl_offset = 1
+          end do
+
+          deallocate (gammainv11, gammainv12, gammainv21, gammainv22)
+
+      end subroutine calculate_phi_and_apar_for_response_matrix_neo
+
+      ! ================================================================================================================================================================== !
+      ! ------------------------------------- TO DO - Get the correct factors for the coupled phi, apar and bpar for HO simulations. ------------------------------------- ! 
+      ! ================================================================================================================================================================== !
 
    end subroutine solve_field_equations_using_pdf_response
 
