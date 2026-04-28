@@ -93,6 +93,10 @@ contains
       ! Grids
       use grids_z, only: nzgrid
 
+      ! For HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: advance_fields_fluxtube_using_neo_field_equations
+
       implicit none
 
       ! Arguments
@@ -108,7 +112,11 @@ contains
 
          ! This will call advance_fields_fluxtube_using_field_equations_vmulo
          if (debug) write (*, *) 'field_equations_fluxtube::advance_fields_fluxtube::vmulo'
-         call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist, skip_fsa)
+         if (neoclassical_is_enabled()) then
+             call advance_fields_fluxtube_using_neo_field_equations(g, phi, apar, bpar, dist, skip_fsa)
+         else
+             call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist, skip_fsa)
+         end if
 
       ! This is the less common option where fields_kxkyz = T  
       ! Note that to use this option it has to be specified by the user
@@ -124,8 +132,11 @@ contains
          ! Given gvmu with vpa and mu local, calculate the corresponding fields
          ! This will call advance_fields_fluxtube_using_field_equations_kxkyzlo
          if (debug) write (*, *) 'field_equations_fluxtube::advance_fields_fluxtube::kxkyzlo'
-         call advance_fields_fluxtube_using_field_equations(gvmu, phi, apar, bpar, dist, skip_fsa)
-         
+         if (neoclassical_is_enabled()) then
+             call advance_fields_fluxtube_using_neo_field_equations(gvmu, phi, apar, bpar, dist, skip_fsa)
+         else
+             call advance_fields_fluxtube_using_field_equations(gvmu, phi, apar, bpar, dist, skip_fsa)
+         end if
       end if
 
    end subroutine advance_fields_fluxtube
@@ -414,9 +425,6 @@ contains
       ! Geometry
       use geometry, only: dl_over_b
 
-      ! NEO's HO corrections. 
-      use arrays, only: denominator_fields_neo
-
       implicit none
 
       ! Arguments
@@ -426,7 +434,6 @@ contains
       
       ! Local variables.
       real, dimension(:, :, :, :), allocatable :: denominator_fields_t
-      real, dimension(:, :, :, :), allocatable :: denominator_fields_t_neo
       integer :: ia, it, ikx
       complex :: tmp
       logical :: skip_fsa_local
@@ -483,35 +490,6 @@ contains
          end where
          deallocate (denominator_fields_t)
 
-      ! ================================================================================================================================================= !
-      ! --------------------------------------------------- Using g_neo as the distribution function. --------------------------------------------------- !
-      ! ================================================================================================================================================= !
-      !                                                                                                                                                   !
-      ! If we are using the g_neo distribution, then:                                                                                                     ! 
-      !                                                                                                                                                   ! 
-      !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]                                                                                ! 
-      !     / [ sum_s (Z_s² n_s/T_s) (2B/sqrt(pi)) int dvpa int dmu exp(-v²) (1 - J_0^2) (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0)]                                 ! 
-      !                                                                                                                                                   ! 
-      ! denominator_fields_neo[iky,ikz,iz] = [ sum_s (Z_s² n_s/T_s) (2B/sqrt(pi)) int dvpa int dmu exp(-v²) (1 - J_0^2) (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0)]  ! 
-      !                                                                                                                                                   !
-      ! To avoid any issues with division by zero we set phi = 0.0 if the denominator is too small. Only thing that makes sense is to set phi = 0.0 if    !
-      ! the prefactor for phi in QN is also zero.                                                                                                         !
-      !                                                                                                                                                   !
-      ! ================================================================================================================================================= !     
-
-      else if (dist == 'gneo') then
-         if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::dist==gneo' 
-         allocate (denominator_fields_t_neo(naky, nakx, -nzgrid:nzgrid, ntubes))
-         denominator_fields_t_neo = spread(denominator_fields_neo, 4, ntubes)
-         where (denominator_fields_t_neo < epsilon(0.0))
-            phi = 0.0
-         elsewhere
-            phi = phi / denominator_fields_t_neo
-         end where
-         deallocate (denominator_fields_t_neo)
-       
-      ! ================================================================================================================================================= !      
-  
       ! ------------------------------------------------------------------------------------------
       !                             Other - for safety just abort
       ! ------------------------------------------------------------------------------------------
@@ -591,21 +569,6 @@ contains
                   phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
                end do
             end do
-
-         ! ========================================================================================== !
-         ! ------------- Adiabatic electrons - Using gneo as the distribution function -------------- !
-         ! ========================================================================================== !
-         ! TO DO - Add the correct HO MBR response when using the gneo distribution! 
- 
-         else if (dist == 'gneo') then
-            do ikx = 1, nakx
-               do it = 1, ntubes
-                  tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
-                  phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
-               end do
-            end do
- 
-         ! ========================================================================================== !
 
          ! ---------------------------------------------------------------------------------------
          !                      Adiabatic electrons - Abort if unknown dist fn
@@ -702,10 +665,6 @@ contains
       
       ! Geometry
       use geometry, only: dl_over_b
-
-      ! NEO's HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use field_equations_fluxtube_neoclassical, only: get_phi_neoclassical_correction
 
       implicit none
 
@@ -958,17 +917,6 @@ contains
          if (allocated(g0)) deallocate (g0)
 
       end if
-
-      ! ======================================================================================================================== !
-      ! If NEO's HO corrections are enabled, calculate the denominator needed for finding phi in electrostatic simulations only. !
-      ! ======================================================================================================================== !
- 
-      if (neoclassical_is_enabled()) then
-          call get_phi_neoclassical_correction
-      end if
-
-      ! ======================================================================================================================== !
-
    end subroutine init_field_equations_fluxtube
 
 end module field_equations_fluxtube

@@ -166,6 +166,9 @@ contains
       use diagnostics_distribution, only: write_distribution_to_netcdf_file
       use write_diagnostics_to_netcdf, only: sync_nc
 
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
       implicit none
 
       ! The current time step
@@ -202,7 +205,11 @@ contains
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false.
-      call advance_fields(gnew, phi, apar, bpar, dist='g')
+      if (neoclassical_is_enabled()) then 
+          call advance_fields(gnew, phi, apar, bpar, dist='gneo')
+      else
+          call advance_fields(gnew, phi, apar, bpar, dist='g')
+      end if 
 
       ! First write data that also has ascii files (do potential first since it will update the fields)
       call write_potential_to_netcdf_file(istep, nout, time_individual_diagnostics(:, 2), write_to_netcdf_file)

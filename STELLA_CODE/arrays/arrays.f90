@@ -105,9 +105,14 @@ module arrays
    ! Arrays for calculating the fields for higher order electromagnetic simulations.
    public :: denominator_fields_neo_inv11
    public :: denominator_fields_neo_inv12
+   public :: denominator_fields_neo_inv13
    public :: denominator_fields_neo_inv21
    public :: denominator_fields_neo_inv22
-
+   public :: denominator_fields_neo_inv23
+   public :: denominator_fields_neo_inv31
+   public :: denominator_fields_neo_inv32
+   public :: denominator_fields_neo_inv33
+   
    private
    
    !----------------------------------------------------------------------------

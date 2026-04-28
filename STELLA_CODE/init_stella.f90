@@ -315,7 +315,7 @@ contains
       call read_parameters_parallelisation_layouts
       
       if (debug) write (6, *) 'stella::init_stella::read_parameters_neoclassical'
-      call read_parameters_neoclassical                                              ! <================= Read in neoclassical parameters.
+      call read_parameters_neoclassical                          
       
    end subroutine read_parameters_from_input_file
    
@@ -541,13 +541,13 @@ contains
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
       use field_equations_radialvariation, only: get_radial_correction
-
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
       
       ! Parallelisation
       use mp, only: job
       
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
       implicit none
       
       ! Arguments
@@ -563,8 +563,8 @@ contains
           call advance_fields(gnew, phi, apar, bpar, dist='gneo')
       else
           call advance_fields(gnew, phi, apar, bpar, dist='g')
-      end if 
-      
+      end if       
+
       ! Add the radial variation correction to the fields
       if (radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::get_radial_correction'

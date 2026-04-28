@@ -156,9 +156,9 @@ contains
       use field_equations_fluxtube, only: init_field_equations_fluxtube
       use field_equations_fullfluxsurface, only: init_field_equations_fullfluxsurface
 
-      ! For HO simulations.
+      ! HO simulations. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use field_equations_fluxtube_neoclassical, only: init_field_equations_electromagnetic_neo
+      use field_equations_fluxtube_neoclassical, only: init_neo_electrostatic_fields, init_neo_electromagnetic_fields
 
       implicit none
       
@@ -195,14 +195,16 @@ contains
          if (debug) write (*, *) 'field_equations::init::electromagnetic'
          call init_field_equations_electromagnetic(nfields)
 
-         if (neoclassical_is_enabled()) then 
-             call init_field_equations_electromagnetic_neo
-         end if
-
          ! Radial Variation effects
          if (radial_variation) then
             if (debug) write (*, *) 'field_equations::init::radial_variation'
             call init_field_equations_radialvariation
+         end if
+
+         ! HO flux tube. 
+         if (neoclassical_is_enabled()) then
+             call init_neo_electrostatic_fields             
+             call init_neo_electromagnetic_fields
          end if
          
       end if
@@ -223,11 +225,6 @@ contains
       use grids_species, only: spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
-   
-      ! For the HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use arrays, only: denominator_fields_neo
-      use arrays, only: 
       
       ! Time routines
       use timers, only: time_field_solve
@@ -250,11 +247,7 @@ contains
          end if
       end if
 
-      ! Allocate denominator_fields_neo only if the HO corrections are enabled.
-      if (neoclassical_is_enabled()) then
-          if (.not. allocated(denominator_fields_neo)) then; allocate (denominator_fields_neo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo = 0.; end if 
-      end if 
-
+      
    end subroutine allocate_arrays
 
    !============================================================================
@@ -270,11 +263,11 @@ contains
       use field_equations_fullfluxsurface, only: finish_field_equations_fullfluxsurface
       use field_equations_radialvariation, only: finish_field_equations_radialvariation
       use field_equations_electromagnetic, only: finish_field_equations_electromagnetic
-      
-      ! For the HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use arrays, only: denominator_fields_neo
 
+      ! HO simulations. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: finish_neo_electrostatic_fields, finish_neo_electromagnetic_fields
+      
       implicit none
       
       !-------------------------------------------------------------------------
@@ -290,11 +283,12 @@ contains
       if (full_flux_surface) call finish_field_equations_fullfluxsurface
       if (radial_variation) call finish_field_equations_radialvariation
 
-      ! Deallocate denominator_fields_neo only if the HO corrections are enabled.
+      ! HO flux tube. 
       if (neoclassical_is_enabled()) then
-          if (allocated(denominator_fields_neo)) deallocate(denominator_fields_neo)
+          call finish_neo_electrostatic_fields
+          call finish_neo_electromagnetic_fields
       end if
-
+  
       ! The fields are no longer initialised
       initialised_fields = .false.
 

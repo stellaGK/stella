@@ -79,18 +79,18 @@ contains
       ! Start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
-      ! If NEO's higher order corrections are included,  convert from g to g_neo, as gbarneo appears in the operators of the HO theory. 
+      ! If NEO's higher order corrections are included,  convert from g or g_bar to g_neo, as gbarneo appears in the time derivative of the HO theory. 
       if (neoclassical_is_enabled()) then
           call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
       end if
       
-      ! If the fields are not already updated, then update them.
+      ! If the fields are not already updated, then update them
       if (include_apar) then
-          if (neoclassical_is_enabled()) then
-              call advance_fields(g, phi, apar, bpar, dist='gneo')
-          else
-              call advance_fields(g, phi, apar, bpar, dist='g')
-          end if 
+         if (neoclassical_is_enabled()) then
+             call advance_fields(g, phi, apar, bpar, dist='gneo')
+         else
+             call advance_fields(g, phi, apar, bpar, dist='g')
+         end if
       end if
 
       ! Incoming distribution function is g = h - (Z F0/T) (J0 phi + 4 mu (T/Z) (J1/gamma) bpar)
@@ -116,16 +116,17 @@ contains
 
       ! If the fields are not already updated, then update them.
       if (include_apar) then
-          if (neoclassical_is_enabled()) then
-              ! Later, the implicit solve will use <g> rather than <gbar> to advance the distribution function in time. Therefore, convert <gbar> to <g> again.
-              call gbar_to_g(g, apar, 1.0)
-              
-              call advance_fields(g, phi, apar, bpar, dist='gneo')
-          else
-              call advance_fields(g, phi, apar, bpar, dist='gbar')
+         if (neoclassical_is_enabled()) then
+             ! Later, the implicit solve will use <g> rather than <gbar> to advance the 
+             ! distribution function in time. Therefore, convert <gbar> to <g> again.
+             call gbar_to_g(g, apar, 1.0)
 
-              call gbar_to_g(g, apar, 1.0)
-          end if 
+             call advance_fields(g, phi, apar, bpar, dist='gneo')
+         else
+             call advance_fields(g, phi, apar, bpar, dist='gbar')
+         
+             call gbar_to_g(g, apar, 1.0)
+         end if
       end if
 
       ! Enforce periodicity for periodic (including zonal) modes
@@ -270,14 +271,13 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_fields'
 
       ! If advancing apar, then gbar is evolved in time rather than g
-      if (include_apar) then            
-          if (neoclassical_is_enabled()) then
-              ! Convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar),
-              ! as all terms on RHS of GKE use g rather than gbar
+      if (include_apar) then    
+          if (neoclassical_is_enabled()) then 
+              ! Convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar), as all terms on RHS of GKE use g rather than gbar.
               call gbar_to_g(pdf, apar, 1.0)
 
               call advance_fields(pdf, phi, apar, bpar, dist='gneo')
-          else
+          else        
               call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
               call gbar_to_g(pdf, apar, 1.0)

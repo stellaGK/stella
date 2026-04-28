@@ -199,6 +199,9 @@ contains
       use parameters_numerical, only: flip_flop
       use parameters_numerical, only: fully_explicit
       use parameters_numerical, only: fully_implicit
+    
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       implicit none
 
@@ -238,7 +241,11 @@ contains
 
          ! Ensure fields are consistent with gnew.
          ! Use the quasi-neutrality equation to advance the fields in time
-         call advance_fields(gnew, phi, apar, bpar, dist='g')
+         if (neoclassical_is_enabled()) then 
+             call advance_fields(gnew, phi, apar, bpar, dist='gneo')
+         else
+             call advance_fields(gnew, phi, apar, bpar, dist='g')
+         end if 
 
          ! Keep track whether any routine wants to modify the time step
          restart_time_step = .false.
