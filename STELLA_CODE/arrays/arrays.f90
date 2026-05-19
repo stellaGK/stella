@@ -103,15 +103,15 @@ module arrays
    public :: denominator_fields_neo
 
    ! Arrays for calculating the fields for higher order electromagnetic simulations.
-   public :: denominator_fields_neo_inv11
-   public :: denominator_fields_neo_inv12
-   public :: denominator_fields_neo_inv13
-   public :: denominator_fields_neo_inv21
-   public :: denominator_fields_neo_inv22
-   public :: denominator_fields_neo_inv23
-   public :: denominator_fields_neo_inv31
-   public :: denominator_fields_neo_inv32
-   public :: denominator_fields_neo_inv33
+   public :: denominator_fields_neo_12
+   public :: denominator_fields_neo_13
+   public :: denominator_fields_neo_21
+   public :: denominator_fields_neo_22_g
+   public :: denominator_fields_neo_22_gbar
+   public :: denominator_fields_neo_23
+   public :: denominator_fields_neo_31
+   public :: denominator_fields_neo_32
+   public :: denominator_fields_neo_33
    
    private
    
@@ -192,19 +192,18 @@ module arrays
    real, dimension(:, :, :), allocatable :: apar_denom
    
    ! Arrays for calculating the fields for higher order electromagnetic simulations.
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv11
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv12
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv13
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv21
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv22
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv23
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv31
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv32
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_inv33
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_12
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_13
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_21
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_g
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_gbar
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_23
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_31
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_32
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_33
 
    ! For radial variation simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_dr
 
-   
-
+  
 end module arrays

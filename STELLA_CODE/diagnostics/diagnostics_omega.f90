@@ -250,7 +250,7 @@ contains
             equal = .true.
             do i = 1, navg
                max_difference = maxval(abs(omega_vs_tkykx(i,:,:) - omega_vs_tkykx(1,:,:))) 
-               if (max_difference > 0.000001) then
+               if (max_difference > 0.0001) then ! 0.000001
                   equal = .false.; exit
                end if
             end do

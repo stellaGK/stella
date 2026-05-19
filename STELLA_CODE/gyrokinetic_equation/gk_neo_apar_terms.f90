@@ -51,7 +51,7 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
+        use neoclassical_terms_neo, only: neo_vpa_fac
 
         use arrays, only: neo_apar_coeff, initialised_neo_apar_terms
 
@@ -86,7 +86,7 @@ contains
 
             do iz = -nzgrid, nzgrid  
                 ! Multiply by the neoclassical distribution prefactor. 
-                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
             end do 
         end do
 

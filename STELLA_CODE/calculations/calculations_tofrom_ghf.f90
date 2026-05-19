@@ -35,17 +35,15 @@
 ! ================================================================================================================================================================================== !
 ! --------------------------------------------------------------------------- For NEO's higher order corrections. ------------------------------------------------------------------ ! 
 ! ================================================================================================================================================================================== !
-!
-! When NEO's neoclassical corrections are included, we define a new distribution function, gbarneo:
-!
-! gbarneo = gbar + (Z/T) * <Χ_k> * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - e * Φ₀¹ ) )
-!
-! This expression is valid for electromagnetic simulations. For electrostatic, this expression reduces to: 
-!
-! gbarneo = g + (Z/T) * J₀ * ϕ_k * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - e * Φ₀¹ ) )
-!
-! These routines will be called when explicitly evolving the neoclassical <Χ_k> terms. 
-!
+!                                                                                                                                                                                    !  
+! When NEO's neoclassical corrections are included, we define a new distribution function, g_neo:                                                                                    !                                                                          
+!                                                                                                                                                                                    !
+! g_neo = g + (Z/T) * <Χ_k> * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - Ze * Φ₀¹ ) )                                                                                                !
+!                                                                                                                                                                                    !
+! This expression is valid for electromagnetic simulations. For electrostatic, this expression reduces to:                                                                           !
+!                                                                                                                                                                                    !
+! g_neo = g + (Z/T) * J₀ * ϕ_k * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - Ze * Φ₀¹ ) )                                                                                             !
+!                                                                                                                                                                                    !
 ! ================================================================================================================================================================================== !
 
 
@@ -55,7 +53,7 @@ module calculations_tofrom_ghf
    public :: gbar_to_g
    public :: g_to_h
    public :: g_to_f
-   public :: g_or_gbar_to_gbarneo
+   public :: g_to_gneo
 
    private
 
@@ -77,10 +75,11 @@ module calculations_tofrom_ghf
       module procedure g_to_f_vmu
    end interface g_to_f
 
-   interface g_or_gbar_to_gbarneo
-      module procedure g_or_gbar_to_gbarneo_vmu
-      module procedure g_or_gbar_to_gbarneo_vmu_single
-   end interface g_or_gbar_to_gbarneo
+   interface g_to_gneo
+      module procedure g_to_gneo_kxkyz
+      module procedure g_to_gneo_vmu
+      module procedure g_to_gneo_vmu_single
+   end interface g_to_gneo
 
 contains
 
@@ -783,15 +782,121 @@ contains
 
 
 ! ================================================================================================================================================================================== !
-! ---------------------------------------------------------------------- Convert <g> or <gbar> to <gbarneo>. ----------------------------------------------------------------------- !
+! ------------------------------------------------------------------------------- Convert <g> to <gneo>. --------------------------------------------------------------------------- !
 ! ================================================================================================================================================================================== !
 
 ! ================================================================================================================================================================================== !
-! ----------------------------------------------------------- Convert <gbar> or <g> to <gbarneo> using (kx,ky,z,ivpamus). ---------------------------------------------------------- !
+! ------------------------------------------------------------------- Convert <g> to <gneo> using (kx,ky,z,ivpamus). --------------------------------------------------------------- !
 ! ================================================================================================================================================================================== !
 
-    subroutine g_or_gbar_to_gbarneo_vmu(g, phi, apar, bpar, facchi)
+   subroutine g_to_gneo_kxkyz(g, phi, apar, bpar, facchi)
+      ! Parallelisation.
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      
+      ! Calculations.
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+
+      ! Geometry.
+      use geometry, only: bmag
+      
+      ! Grids.
+      use grids_species, only: spec
+      use grids_z, only: nzgrid
+      use grids_velocity, only: mu, vpa, nvpa, nmu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+       
+      ! Flags.
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: fphi
+
+      ! NEO data.
+      use neoclassical_terms_neo, only: neo_mu_fac_global
+
+      implicit none
+
+      ! Arguments.
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      real, intent(in) :: facchi
+
+      ! Local variables.
+      integer :: ikxkyz, iz, it, iky, ikx, is, ia
+      complex, dimension(:, :), allocatable :: field, gyro_averaged_field
+      
+      ! =================================================================================== !
+
+      ! Allocate local arrays.
+      allocate (field(nvpa, nmu))
+      allocate (gyro_averaged_field(nvpa, nmu))
+
+      ! Assume we only have one field line.
+      ia = 1
+      
+      ! Iterate over the (kx,ky,z,mu,vpa,s) grid
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo, ikxkyz)
+          it = it_idx(kxkyz_lo, ikxkyz)
+          ikx = ikx_idx(kxkyz_lo, ikxkyz)
+          iky = iky_idx(kxkyz_lo, ikxkyz)
+          is = is_idx(kxkyz_lo, ikxkyz)
+         
+          field = spec(is)%zt * facchi * fphi * phi (iky, ikx, iz, it) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+
+          ! If apar is present, we must account for this.
+          if (include_apar) then
+              field = - 2.0 * facchi * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu) &
+              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+          end if
+
+          ! Mutliply by the neoclassical distribution factor.  
+          field = field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+
+          ! Gyroaverage.
+          call gyro_average(field, ikxkyz, gyro_averaged_field)
+         
+          ! Transform the distribution.
+          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
+      end do
+
+      ! If bpar is present, we must account for this too.
+      if (include_bpar) then
+          ! Iterate over the (kx,ky,z,mu,vpa,s) grid
+          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+              iz = iz_idx(kxkyz_lo, ikxkyz)
+              it = it_idx(kxkyz_lo, ikxkyz)
+              ikx = ikx_idx(kxkyz_lo, ikxkyz)
+              iky = iky_idx(kxkyz_lo, ikxkyz)
+              is = is_idx(kxkyz_lo, ikxkyz)
+
+              field = 4.0 * facchi * spread(mu, 1, nvpa) * bpar(:, :, iz, it) &
+              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+
+              field = field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+
+              ! Gyroaverage.
+              call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
+         
+              ! Transform the distribution.
+              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
+          end do
+      end if
+
+      ! Deallocate local arrays.
+      deallocate (field, gyro_averaged_field)
+      
+   end subroutine g_to_gneo_kxkyz
+
+
+! ================================================================================================================================================================================== !
+! ------------------------------------------------------------------- Convert <g> to <gneo> using (kx,ky,z,ivpamus). --------------------------------------------------------------- !
+! ================================================================================================================================================================================== !
+
+    subroutine g_to_gneo_vmu(g, phi, apar, bpar, facchi)
+        ! Grids. 
         use grids_z, only: nzgrid
+
+        ! Parallelisation.
         use parallelisation_layouts, only: vmu_lo
 
         implicit none
@@ -804,19 +909,19 @@ contains
         ! Local variables.
         integer :: ivmu
 
-        ! Convert <gbar> to <g> for each ivpamus point.
+        ! Convert <g> for each ivpamus point.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call g_or_gbar_to_gbarneo_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, apar, bpar, facchi)
+            call g_to_gneo_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, apar, bpar, facchi)
         end do
 
-    end subroutine g_or_gbar_to_gbarneo_vmu
+    end subroutine g_to_gneo_vmu
 
 
 ! ================================================================================================================================================================================== !
-! --------------------------------------------- Convert <gbar> or <g> to <gbarneo> using (kx,ky,z,ivpamus) for a specific ivpamus point. ------------------------------------------- !
+! ------------------------------------------------------ Convert <g> to <gneo> using (kx,ky,z,ivpamus) for a specific ivpamus point. ----------------------------------------------- !
 ! ================================================================================================================================================================================== !
 
-    subroutine g_or_gbar_to_gbarneo_vmu_single(ivmu, g0, phi, apar, bpar, facchi)
+    subroutine g_to_gneo_vmu_single(ivmu, g0, phi, apar, bpar, facchi)
         ! Parallelisation.
         use parallelisation_layouts, only: vmu_lo
         use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
@@ -840,7 +945,7 @@ contains
         use parameters_physics, only: fphi
 
         ! NEO's Neoclassical information.
-        use neoclassical_terms_neo, only: dneo_h_dmu, neo_h, neo_phi
+        use neoclassical_terms_neo, only: neo_mu_fac
 
         implicit none
 
@@ -873,7 +978,7 @@ contains
                ! First calculate the gyroaveraged field being used, <>. 
                ! Calculate the phi contribution to gyoraveraged fields.
          
-               field = spec(is)%zt * facchi * phi (:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
+               field = spec(is)%zt * fphi * facchi * phi (:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
                * maxwell_fac(is)
 
                ! If apar is present, we must account for this.
@@ -883,7 +988,7 @@ contains
                end if
  
                ! Mutliply by the neoclassical distribution factor.  
-               field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+               field = field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
                ! Gyroaverage the J₀ contribution.
                call gyro_average(field, iz, ivmu, gyro_averaged_field)
             
@@ -894,15 +999,13 @@ contains
 
        ! If bpar is present, we must account for this too.
        if (include_bpar) then
-
            ! Iterate over the (it,iz) points. 
            do it = 1, ntubes
                do iz = -nzgrid, nzgrid
  
-                   field = 4.0 * spec(is)%zt * facchi * mu(imu) * bpar(:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
-                   * maxwell_fac(is)
+                   field = 4.0 * facchi * mu(imu) * bpar(:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                
-                    field = field * ( ( 0.5/bmag(ia, iz) ) * dneo_h_dmu(iz, ivmu, 1) - ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                    field = field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
 
                    ! Gyroaverage the J_1 contribution.
                    call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
@@ -916,7 +1019,7 @@ contains
        ! Deallocate local arrays.
        deallocate (field, gyro_averaged_field)
 
-   end subroutine g_or_gbar_to_gbarneo_vmu_single
+   end subroutine g_to_gneo_vmu_single
 
 
 ! ================================================================================================================================================================================== !

@@ -52,7 +52,7 @@ contains
       use gk_parallel_streaming, only: stream_sign
       
       ! Calculations
-      use calculations_tofrom_ghf, only: gbar_to_g, g_or_gbar_to_gbarneo
+      use calculations_tofrom_ghf, only: gbar_to_g, g_to_gneo
       
       ! Numerical time advance schemes
       use parameters_numerical, only: explicit_algorithm_switch
@@ -81,7 +81,7 @@ contains
 
       ! If NEO's higher order corrections are included,  convert from g or g_bar to g_neo, as gbarneo appears in the time derivative of the HO theory. 
       if (neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
+          call g_to_gneo(g, phi, apar, bpar, 1.0)
       end if
       
       ! If the fields are not already updated, then update them
@@ -117,11 +117,12 @@ contains
       ! If the fields are not already updated, then update them.
       if (include_apar) then
          if (neoclassical_is_enabled()) then
+             call advance_fields(g, phi, apar, bpar, dist='gbarneo')
+
              ! Later, the implicit solve will use <g> rather than <gbar> to advance the 
              ! distribution function in time. Therefore, convert <gbar> to <g> again.
              call gbar_to_g(g, apar, 1.0)
 
-             call advance_fields(g, phi, apar, bpar, dist='gneo')
          else
              call advance_fields(g, phi, apar, bpar, dist='gbar')
          
@@ -143,7 +144,7 @@ contains
 
       ! We now switch back to g if we are using g_neo. 
       if (neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
+          call g_to_gneo(g, phi, apar, bpar, -1.0)
       end if
 
       ! Stop the timer for the explicit part of the solve
@@ -177,7 +178,7 @@ contains
       use arrays_gyro_averages, only: j0_ffs
       use calculations_gyro_averages, only: gyro_average
       use calculations_kxky, only: swap_kxky_back
-      use calculations_tofrom_ghf, only: gbar_to_g, g_or_gbar_to_gbarneo
+      use calculations_tofrom_ghf, only: gbar_to_g, g_to_gneo
 
       ! Physics flags
       use parameters_physics, only: include_parallel_nonlinearity
@@ -273,10 +274,10 @@ contains
       ! If advancing apar, then gbar is evolved in time rather than g
       if (include_apar) then    
           if (neoclassical_is_enabled()) then 
+              call advance_fields(pdf, phi, apar, bpar, dist='gbarneo')
+
               ! Convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar), as all terms on RHS of GKE use g rather than gbar.
               call gbar_to_g(pdf, apar, 1.0)
-
-              call advance_fields(pdf, phi, apar, bpar, dist='gneo')
           else        
               call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 

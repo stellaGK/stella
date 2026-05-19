@@ -74,7 +74,7 @@ contains
       use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       ! Calculations
-      use calculations_tofrom_ghf, only: gbar_to_g, g_or_gbar_to_gbarneo
+      use calculations_tofrom_ghf, only: gbar_to_g, g_to_gneo
 
       implicit none
 
@@ -89,7 +89,7 @@ contains
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
 
       if (neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, 1.0)
+          call g_to_gneo(g, phi, apar, bpar, 1.0)
       end if
 
       ! Reverse the order of operations every time step
@@ -200,7 +200,7 @@ contains
       end if
 
       if (neoclassical_is_enabled()) then
-          call g_or_gbar_to_gbarneo(g, phi, apar, bpar, -1.0)
+          call g_to_gneo(g, phi, apar, bpar, -1.0)
       end if
 
       ! Stop the timer for the implict part of the solve

@@ -22,14 +22,16 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
-    public :: neo_h, dneo_h_dpsi, dneo_h_dz, dneo_h_dvpa, dneo_h_dmu           ! Will represent NEO's distribution and its derivatives in real space and velocity space. 
-    public :: neo_h_global, dneo_h_dvpa_global, dneo_h_dmu_global
+    ! Factors for the HO GKE. 
+    public :: neo_h, dneo_h_dpsi, dneo_h_dz                                    ! NEO's distribution and its derivatives in real space. 
+    public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space.    
  
-    public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz                              ! Will represents NEO's ϕ^1_0 and its derivatives in real space. 
-    public :: d2neo_h_dzdmu, d2neo_h_dzdvpa                                    ! < ========== NOT NEEDED IF PARALLEL STREAMING TAKE G_NEO. 
-
+    public :: neo_vpa_fac, neo_mu_fac                                          ! Velocity derivative factors appearing in the GKE. Makes more sense to calcuate each term here
+                                                                               ! rather than at every spot in the GKE that it appears. 
+    public :: neo_vpa_fac_global, neo_mu_fac_global                            ! Global versions of the velocity derivative factors. Primarily for use in the field equations
+                                                                               ! and distribution transformations. 
+ 
     public :: neo_dens                                                         ! Holds moments of the NEO H_1 distribution. neo_dens is the zeroeth order moment. 
-    public :: neo_fac
 
     public :: initialised_neoclassical_terms_neo
 
@@ -45,16 +47,17 @@ module neoclassical_terms_neo
 
     real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
     real, dimension(:), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
-    real, dimension(:, :, :), allocatable :: dneo_h_dvpa, dneo_h_dmu, d2neo_h_dzdmu, d2neo_h_dzdvpa
     real, dimension(:, :, :, :, :), allocatable :: neo_h_global, dneo_h_dvpa_global, dneo_h_dmu_global
     real, dimension(:, :), allocatable :: neo_dens
-    real, dimension(:, :), allocatable :: neo_fac ! NO LONGER NEEDED?
 
-    ! For diagnostics and testing. 
-    real, dimension(:, :), allocatable :: neo_dens_right, neo_dens_left
-    real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
-    real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
-    real, dimension(:, :), allocatable :: neo_dens_mu_deriv
+    real, dimension(:, :, :), allocatable :: neo_vpa_fac, neo_mu_fac
+    real, dimension(:, :, :, :, :), allocatable :: neo_vpa_fac_global, neo_mu_fac_global
+
+    ! FOR DIAGNOSTICS AND TESTING ONLY. 
+    ! real, dimension(:, :), allocatable :: neo_dens_right, neo_dens_left
+    ! real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
+    ! real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
+    ! real, dimension(:, :), allocatable :: neo_dens_mu_deriv
 
     logical :: initialised_neoclassical_terms_neo = .false.
 
@@ -133,9 +136,6 @@ contains
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids. Since ϕ^1_0 is independent of velocity variables, there are no accompanying arrays for ϕ^1_0 here.
         real, dimension(:, :, :, :, :), allocatable :: neo_h_global_right, neo_h_global_left
 
-        ! Holds NEO H_1 derivative data evaluated on the stella z, v∥​ and μ grids.
-        real, dimension(:, :, :, :, :), allocatable :: d2neo_h_dzdmu_global, d2neo_h_dzdvpa_global
-
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
         real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
 
@@ -180,12 +180,12 @@ contains
         if (.not. allocated(dneo_phi_dz)) allocate(dneo_phi_dz(-nzgrid:nzgrid))
         if (.not. allocated(dneo_h_dmu_global)) allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        if (.not. allocated(dneo_h_dvpa)) allocate(dneo_h_dvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        if (.not. allocated(dneo_h_dmu)) allocate(dneo_h_dmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        if (.not. allocated(d2neo_h_dzdmu)) allocate(d2neo_h_dzdmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
-        if (.not. allocated(d2neo_h_dzdvpa)) allocate(d2neo_h_dzdvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_fac)) allocate(neo_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
+
+        if (.not. allocated(neo_vpa_fac_global)) allocate(neo_vpa_fac_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_mu_fac_global)) allocate(neo_mu_fac_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_vpa_fac)) allocate(neo_vpa_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(neo_mu_fac)) allocate(neo_mu_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
 
         ! Allocate all temporary arrays needed for initilization. 
         call allocate_temp_arrays
@@ -228,7 +228,7 @@ contains
             ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, neo_h_global, 1, "neo_h_on_stella_z_grid_central_surface")
         ! end if
 
-        ! We also require the zeroeth order moment for the distribution for testing purposes. 
+        ! We also require the zeroeth order electron moment if we want to use an extended adiabatic response for the electrons. 
         ! The central surface data is also used in the QN condition. Construct the moments from the global data rather than the local data. 
         call get_neo_moment(neo_h_global, neo_phi, neo_grid, "zeroeth", neo_dens)
         ! call get_neo_moment(neo_h_global_right, neo_phi_right, neo_grid, "zeroeth", neo_dens_right)
@@ -294,22 +294,20 @@ contains
         ! We will need the derivatives of the distribution with respect to stellas velocity variables.
         call get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, dneo_h_dvpa_global, dneo_h_dmu_global)
 
-        ! We also need the mixed z and velocity derivatives. 
-        call get_neo_h_velocity_derivs_on_stella_grids(dneo_h_hat_dz_z_grid, neo_grid, 1, d2neo_h_dzdvpa_global, d2neo_h_dzdmu_global)
+        ! Calculate the velocity factors appearing in the GKE. 
+        call get_velocity_factors(dneo_h_dvpa_global, dneo_h_dmu_global, neo_h_global, neo_phi, neo_vpa_fac_global, neo_mu_fac_global, neo_grid)
+
+        ! Collapse derivative arrays into 3 dimensions for use in GKE. 
+        do iz = -nzgrid, nzgrid     
+            call distribute_vmus_over_procs(neo_vpa_fac_global(iz, :, :, :, 1), neo_vpa_fac(iz, :, 1))
+            call distribute_vmus_over_procs(neo_mu_fac_global(iz, :, :, :, 1), neo_mu_fac(iz, :, 1))
+        end do
 
         ! DISTRIBUTION DIAGNOSTIC.
         ! if (proc0) then
             ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, dneo_h_dvpa_global, 1, "neo_h_vpa_deriv_on_stella_z_grid_central_surface")
             ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, dneo_h_dmu_global, 1, "neo_h_mu_deriv_on_stella_z_grid_central_surface")
         ! end if
-
-       ! Collapse derivative arrays into 3 dimensions for use in GKE. 
-        do iz = -nzgrid, nzgrid
-            call distribute_vmus_over_procs(dneo_h_dvpa_global(iz, :, :, :, 1), dneo_h_dvpa(iz, :, 1))
-            call distribute_vmus_over_procs(dneo_h_dmu_global(iz, :, :, :, 1), dneo_h_dmu(iz, :, 1))
-            call distribute_vmus_over_procs(d2neo_h_dzdvpa_global(iz, :, :, :, 1), d2neo_h_dzdvpa(iz, :, 1))
-            call distribute_vmus_over_procs(d2neo_h_dzdmu_global(iz, :, :, :, 1), d2neo_h_dzdmu(iz, :, 1))
-        end do
              
         ! For testing purposes, we also take the moments of the vpa and mu derivatives of neo_h. This is done with the global neo_h data. 
         ! call get_neo_h_velocity_derivative_moment(dneo_h_dvpa_global, neo_h_global, neo_phi, neo_grid, "vpa", neo_dens_vpa_deriv)
@@ -351,8 +349,6 @@ contains
         ! Allocate the z derivative of the NEO h_hat arrays on stellas z grid. Data will still be on NEOs velocity grids at this point.
         if (.not. allocated(dneo_h_hat_dz_z_grid)) allocate(dneo_h_hat_dz_z_grid(-nzgrid:nzgrid, neo_grid%n_xi+1, neo_grid%n_energy+1, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dz_global)) allocate(dneo_h_dz_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        if (.not. allocated(d2neo_h_dzdmu_global)) allocate(d2neo_h_dzdmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        if (.not. allocated(d2neo_h_dzdvpa_global)) allocate(d2neo_h_dzdvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))      
 
         ! Allocate the ϕ^1_0 arrays (for left and right flux surfaces) on stellas z grid.                                                                                                    
         if (.not. allocated(neo_phi_right)) allocate(neo_phi_right(-nzgrid:nzgrid)) 
@@ -366,18 +362,21 @@ contains
         if (.not. allocated(neo_h_right)) allocate(neo_h_right(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial)) 
         if (.not. allocated(neo_h_left)) allocate(neo_h_left(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))   
 
-        ! Allocate the NEO zeroeth order moments, for testing purposes.
-        if (.not. allocated(neo_dens_right)) allocate(neo_dens_right(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_dens_left)) allocate(neo_dens_left(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(dneo_h_dmu_global)) allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
 
-        ! Allocate the NEO first order moments, for testing purposes.
-        if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_u_par_right)) allocate(neo_u_par_right(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_u_par_left)) allocate(neo_u_par_left(-nzgrid:nzgrid, neo_grid%n_species))
+        ! Allocate the NEO zeroeth order moments, FOR TESTING PURPOSES.
+        ! if (.not. allocated(neo_dens_right)) allocate(neo_dens_right(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_dens_left)) allocate(neo_dens_left(-nzgrid:nzgrid, neo_grid%n_species))
+
+        ! Allocate the NEO first order moments, FOR TESTING PURPOSES.
+        ! if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_u_par_right)) allocate(neo_u_par_right(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_u_par_left)) allocate(neo_u_par_left(-nzgrid:nzgrid, neo_grid%n_species))
 
         ! FOR TESTING PURPOSES.
-        if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, neo_grid%n_species))
+        !if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, neo_grid%n_species))
 
     end subroutine allocate_temp_arrays
     
@@ -400,22 +399,15 @@ contains
         if (allocated(neo_h_hat_left_z_grid)) deallocate(neo_h_hat_left_z_grid)
         if (allocated(dneo_h_hat_dz_z_grid)) deallocate(dneo_h_hat_dz_z_grid)
         if (allocated(dneo_h_dz_global)) deallocate(dneo_h_dz_global)
-        if (allocated(d2neo_h_dzdvpa_global)) deallocate(d2neo_h_dzdvpa_global)
-        if (allocated(d2neo_h_dzdmu_global)) deallocate(d2neo_h_dzdmu_global)   
         if (allocated(neo_phi_right)) deallocate(neo_phi_right) 
         if (allocated(neo_phi_left)) deallocate(neo_phi_left)
         if (allocated(neo_h_global_right)) deallocate(neo_h_global_right)
         if (allocated(neo_h_global_left)) deallocate(neo_h_global_left)
         if (allocated(neo_h_right)) deallocate(neo_h_right)   
         if (allocated(neo_h_left)) deallocate(neo_h_left)  
-        if (allocated(neo_dens_right)) deallocate(neo_dens_right)
-        if (allocated(neo_dens_left)) deallocate(neo_dens_left)
-        if (allocated(neo_u_par)) deallocate(neo_u_par)
-        if (allocated(neo_u_par_right)) deallocate(neo_u_par_right)
-        if (allocated(neo_u_par_left)) deallocate(neo_u_par_left)
-        if (allocated(neo_dens_vpa_deriv)) deallocate(neo_dens_vpa_deriv)
-        if (allocated(neo_dens_mu_deriv)) deallocate(neo_dens_mu_deriv) 
- 
+        if (allocated(dneo_h_dmu_global)) deallocate(dneo_h_dmu_global)
+        if (allocated(dneo_h_dvpa_global)) deallocate(dneo_h_dvpa_global)
+        
     end subroutine deallocate_temp_arrays
 
     
@@ -436,14 +428,14 @@ contains
         if (allocated(dneo_phi_dpsi)) deallocate(dneo_phi_dpsi)
         if (allocated(dneo_h_dz)) deallocate(dneo_h_dz)
         if (allocated(dneo_phi_dz)) deallocate(dneo_phi_dz)
-        if (allocated(dneo_h_dvpa)) deallocate(dneo_h_dvpa)
-        if (allocated(dneo_h_dmu)) deallocate(dneo_h_dmu)
-        if (allocated(dneo_h_dvpa_global)) deallocate(dneo_h_dvpa_global)
-        if (allocated(dneo_h_dmu_global)) deallocate(dneo_h_dmu_global)
-        if (allocated(d2neo_h_dzdmu)) deallocate(d2neo_h_dzdmu)     ! NO LONGER NEEDED IF PARALLEL STREAMING TAKES G_NEO? 
-        if (allocated(d2neo_h_dzdvpa)) deallocate(d2neo_h_dzdvpa)   ! NO LONGER NEEDED IF PARALLEL STREAMING TAKES G_NEO?
+
         if (allocated(neo_dens)) deallocate(neo_dens)
-        if (allocated(neo_fac)) deallocate(neo_fac)
+
+        if (allocated(neo_vpa_fac_global)) deallocate(neo_vpa_fac_global)
+        if (allocated(neo_mu_fac_global)) deallocate(neo_mu_fac_global)
+        if (allocated(neo_vpa_fac)) deallocate(neo_vpa_fac)
+        if (allocated(neo_mu_fac)) deallocate(neo_mu_fac)
+
 
         initialised_neoclassical_terms_neo = .false.
         
@@ -865,6 +857,61 @@ contains
 
 
 ! ================================================================================================================================================================================= !
+! ---------------------------------------------------------- Calculate the velocity factors appearing in the GKE. ----------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+!                                                                                                                                                                                   ! 
+!                                                                                                                                                                                   ! 
+!                                                                                                                                                                                   !
+! ================================================================================================================================================================================= !
+
+    subroutine get_velocity_factors(dneo_h_dvpa_global, dneo_h_dmu_global, neo_h_global, neo_phi, neo_vpa_fac_global, neo_mu_fac_global, neo_grid)
+        ! Grids.
+        use grids_z, only: nzgrid
+        use grids_velocity, only: vpa, nvpa, nmu
+        use grids_species, only: spec
+
+        ! Geometry. 
+        use geometry, only: bmag 
+
+        ! NEO data.
+        use NEO_interface, only: neo_grid_data
+
+        implicit none    
+
+        real, dimension(-nzgrid:, :, :, :, :), intent(in)  :: dneo_h_dvpa_global, dneo_h_dmu_global, neo_h_global
+        real, dimension(-nzgrid:)                          :: neo_phi
+        real, dimension(-nzgrid:, :, :, :, :), intent(out) :: neo_vpa_fac_global, neo_mu_fac_global
+        type(neo_grid_data), intent(in)                    :: neo_grid
+
+        ! Local variables. 
+        integer :: is, imu, iv, iz, ia
+
+        ! ================================================================================ ! 
+
+        ! Compute for ia = 1 only since each field line on our flux surface is identical in an axisymmetric geometry. 
+        ia = 1
+
+        do is = 1, neo_grid%n_species
+            do iv = 1, nvpa
+                do imu = 1, nmu
+                    do iz = -nzgrid, nzgrid
+                        ! Calculate the parallel velocity derivative factor.
+                        neo_vpa_fac_global(iz, iv, imu, is, 1) = dneo_h_dvpa_global(iz, iv, imu, is, 1) - 2.0 * vpa(iv) * neo_h_global(iz, iv, imu, is, 1) &
+                        + 2.0 * vpa(iv) * spec(is)%z * neo_phi(iz)
+
+                        ! Calculate the magnetic moment derivative factor.
+                        neo_mu_fac_global(iz, iv, imu, is, 1) = dneo_h_dmu_global(iz, iv, imu, is, 1) - 2.0 * bmag(ia, iv) * neo_h_global(iz, iv, imu, is, 1) &
+                        + 2.0 * bmag(ia, iv) * spec(is)%z * neo_phi(iz)
+                    end do
+                end do
+            end do
+        end do
+
+
+    end subroutine get_velocity_factors
+
+
+! ================================================================================================================================================================================= !
 ! ---------------------------------- Calculate the zeroeth order moment of H_1. This is used in the field equations and also for testing purposes. -------------------------------- !
 ! ================================================================================================================================================================================= !
 
@@ -926,47 +973,6 @@ contains
         ! Deallocate the temporary array.
         deallocate(tmp)
     end subroutine get_neo_moment
-
-
-! ================================================================================================================================================================================= !
-! - Calculate neo_fac, a combination of NEO terms that is found in several of the higher order corrections. Calculate this once here rather than calculating individually in each - ! 
-! ----------------------------------------- of the gyrokinetic terms modules. This is given by: neo_fac = v∥/B * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ. --------------------------------------- !
-! ================================================================================================================================================================================= !
-
-    subroutine get_neo_fac(dneo_h_dvpa, dneo_h_dmu, neo_fac)
-        ! Parallelisation.
-        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-
-        ! Grids.
-        use grids_z, only: nzgrid
-        use grids_velocity, only: maxwell_vpa, maxwell_mu
-        use grids_velocity, only: vpa
-
-        ! Geometry. 
-        use geometry, only: bmag
-
-        implicit none 
-
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in) :: dneo_h_dvpa
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in) :: dneo_h_dmu
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(out)   :: neo_fac
-
-        ! Local variables.
-        integer :: is, imu, iv, ivmu, iz
-        
-        ! Calculate neo_fac.  
-        ! Iterate over velocity space.
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
-                        
-            do iz = -nzgrid, nzgrid
-                neo_fac(iz, ivmu) = ( vpa(iv) * dneo_h_dmu(iz, ivmu, 1) / bmag(1, iz) - dneo_h_dvpa(iz, ivmu, 1) ) 
-            end do
-        end do
-
-    end subroutine get_neo_fac 
 
 
 ! ================================================================================================================================================================================= !
@@ -1038,85 +1044,6 @@ contains
         ! Deallocate the temporary array.
         deallocate(tmp)
     end subroutine get_neo_h_velocity_derivative_moment
-
-
-! ================================================================================================================================================================================= !
-! -------------------------------------------- Calculate the bootstrap current from the first order moment on a given flux surface. ----------------------------------------------- !
-! ================================================================================================================================================================================= !
-
-    subroutine get_bootstrap_current(neo_mom, file_tag)
-        ! Grids. 
-        use grids_z, only: nzgrid
-        use grids_species, only: spec
-      
-        ! Geometry.
-        use geometry, only: bmag, dl_over_b
-
-        implicit none
-
-        real, dimension(-nzgrid:, :), intent(in) :: neo_mom
-        character(len=*), intent(in)             :: file_tag
-
-        ! Local variables. 
-        integer :: it, iz, unit
-        real    :: avg, bootstrap
-        character(len=256) :: filename
-
-        bootstrap = 0.0
-        avg = 0.0 
-      
-        do iz = -nzgrid, nzgrid 
-            bootstrap = bootstrap + ( neo_mom(iz, 1) / ( sqrt(2.0) * spec(1)%stm ) - neo_mom(iz, 2) / ( sqrt(2.0) * spec(2)%stm ) ) * bmag(1, iz) * dl_over_b(1, iz)
-            avg = avg + dl_over_b(1, iz)
-        end do
-      
-        bootstrap = bootstrap / avg
-
-        ! Write out the bootstrap current to the output file. 
-        if (len_trim(file_tag) > 0) then
-            filename = trim(file_tag) // ".dat"
-        end if
-
-        unit = 99
-
-        open(newunit=unit, file=trim(filename), status='replace', action='write')
-
-        write(unit,'(A)') '# ================================================= #'
-        write(unit,'(A)') '#       Diagnostic output: Bootstrap Current        #'
-        write(unit,'(A)') '# ================================================= #'
-        write(unit,'(ES16.8)') bootstrap
-                 
-        close(unit)
-   end subroutine get_bootstrap_current
-
-
-! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------------------ Check for Nan's. --------------------------------------------------------------------------------- !
-! ================================================================================================================================================================================= !
-
-    subroutine check_real_nans_r3(array, name)
-        use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
-      
-        implicit none
-    
-        ! Strictly Rank 3 real array
-        real, dimension(:, :, :), intent(in) :: array 
-        character(len=*), intent(in)         :: name
-    
-        logical :: is_bad
-    
-        ! Modern compilers can now easily map this to the elemental intrinsic
-        is_bad = any(.not. ieee_is_finite(array))
-    
-        if (is_bad) then
-            write(*,'(A,A,A)') ">>> MATH ERROR: NaN or Inf detected in [", name, "] <<<"
-            ! Optional: Print the location of the first NaN to help debugging
-            ! error stop "Execution halted: Invalid real number found in Rank 3 array."
-        else
-            write(*,'(A,A,A)') "Check Passed: All values are finite in [", name, "]"
-        end if
-    
-end subroutine check_real_nans_r3
 
 
 ! ================================================================================================================================================================================= !

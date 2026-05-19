@@ -54,7 +54,7 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: dneo_h_dmu, neo_phi, neo_h
+        use neoclassical_terms_neo, only: neo_mu_fac
 
         use arrays, only: neo_chi_coeff, initialised_neo_chi_terms
 
@@ -78,12 +78,9 @@ contains
                 * vpa(iv) * spec(is)%stm * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * code_dt / bmag(:, iz)
 
                 ! Multiply by the neoclassical factor.
-                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * ( dneo_h_dmu(iz, ivmu, 1)  - 2.0 * bmag(1, iz) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * neo_mu_fac(:, ivmu, 1)
             end do 
         end do
-
-        neo_chi_coeff = neo_chi_coeff * code_dt
-
     end subroutine init_neo_chi_terms
 
 

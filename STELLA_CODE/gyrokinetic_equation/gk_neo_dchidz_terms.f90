@@ -54,7 +54,7 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! NEO data.
-        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
+        use neoclassical_terms_neo, only: neo_vpa_fac
 
         ! Arrays.
         use arrays, only: neo_dchidz_coeff, initialised_neo_dchidz_terms
@@ -84,7 +84,7 @@ contains
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
 
                 ! Multiply by the neoclassical factor.
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
             end do
         end do
 

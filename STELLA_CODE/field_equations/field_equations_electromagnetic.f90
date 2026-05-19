@@ -310,6 +310,7 @@ contains
             phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
             
             ! Integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar
+            ! TO DO - Is spec(is)%z supposed to be here?
             call gyro_average_j1(spread(mu, 1, nvpa) * g(:, :, ikxkyz), ikxkyz, g0)
             wgt = -2.0 * beta* spec(is)%z * spec(is)%dens_psi0 * spec(is)%temp_psi0
             call integrate_vmu(g0, iz, tmp)
@@ -347,6 +348,7 @@ contains
          
          ! Iterate over the (kx,ky,z,mu,vpa,s) points
          ! This gives: 2 β sum_s Z_s n_s vth J0 vpa g
+         ! TO DO - Is factor of 2.0 supposed to be here?
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)

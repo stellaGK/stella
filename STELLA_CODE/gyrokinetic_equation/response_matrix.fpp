@@ -1115,7 +1115,7 @@ contains
       ! ------------------------------------------------------------------------
       if (neoclassical_is_enabled()) then 
           if (include_apar) then
-               call calculate_phi_and_apar_for_response_matrix_neo
+              call calculate_phi_and_apar_for_response_matrix_neo
           else  
               call calculate_phi_for_response_matrix
           end if 
@@ -1780,7 +1780,7 @@ contains
 
       subroutine calculate_phi_and_apar_for_response_matrix_neo
           ! MP. 
-          use mp, only: mp_abort
+          use mp, only: mp_abort, proc0
 
           ! Grids. 
           use grids_z, only: nzgrid
@@ -1793,25 +1793,31 @@ contains
           use grids_species, only: spec
        
           ! Arrays. 
-          use arrays, only: denominator_fields_neo_inv11, denominator_fields_neo_inv12
-          use arrays, only: denominator_fields_neo_inv21, denominator_fields_neo_inv22
+          use arrays, only: denominator_fields_neo, denominator_fields_neo_12
+          use arrays, only: denominator_fields_neo_21, denominator_fields_neo_22_g
 
           implicit none
 
           ! Local variables.
           integer :: idx, iseg, ikx, iz, ia
           integer :: izl_offset, izup
-          complex :: antot1, antot2
-          real, dimension(:), allocatable :: gammainv11, gammainv12, gammainv21, gammainv22
+          real, dimension(:), allocatable :: gamma11, gamma12, gamma21, gamma22
+          
+          ! LAPACK Variables.
+          complex(4)  :: A_lapack(2,2)
+          complex(4)  :: B_lapack(2,1)
+          integer     :: ipiv(2)
+          integer     :: info
+          external cgesv
 
           ! =================================================================================== !
 
           ia = 1
 
-          allocate (gammainv11(-nzgrid:nzgrid))
-          allocate (gammainv12(-nzgrid:nzgrid))
-          allocate (gammainv21(-nzgrid:nzgrid))
-          allocate (gammainv22(-nzgrid:nzgrid))
+          allocate (gamma11(-nzgrid:nzgrid))
+          allocate (gamma12(-nzgrid:nzgrid))
+          allocate (gamma21(-nzgrid:nzgrid))
+          allocate (gamma22(-nzgrid:nzgrid))
 
           idx = 0
           izl_offset = 0
@@ -1854,22 +1860,37 @@ contains
               ! <ikx> value on the local domain given our position on the extended domain.
               ikx = ikxmod(iseg, ie, iky)
 
-              ! For the given value of ky, kx, store the appropriate denominators from 
-              ! the field equations (Quasineutrality and perpendicular Amperes law) for 
-              ! this this segment. 
-              gammainv11 = denominator_fields_neo_inv11(iky, ikx, :)
-              gammainv12 = denominator_fields_neo_inv12(iky, ikx, :)
-              gammainv21 = denominator_fields_neo_inv21(iky, ikx, :)
-              gammainv22 = denominator_fields_neo_inv22(iky, ikx, :)
+              ! For the given value of ky, kx, store the appropriate matrix elements from 
+              ! the field equations (Quasineutrality and parallel Amperes law) for this segment. 
+               
+              gamma11 = denominator_fields_neo(iky, ikx, :)
+              gamma12 = denominator_fields_neo_12(iky, ikx, :)
+              gamma21 = denominator_fields_neo_21(iky, ikx, :)
+              gamma22 = denominator_fields_neo_22_g(iky, ikx, :)
 
               ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
               ! iz is only cycling through the zed location within a given segment. 
               do iz = iz_low(iseg) + izl_offset, izup
                   idx = idx + 1
-                  antot1 = phi(idx)
-                  antot2 = apar(idx)
-                  phi(idx) = antot1 * gammainv11(iz) + antot2 * gammainv12(iz)
-                  apar(idx) = antot1 * gammainv21(iz) + antot2 * gammainv22(iz)
+                  
+                  A_lapack(1,1) = cmplx(gamma11(iz), 0.0)
+                  A_lapack(2,1) = cmplx(gamma21(iz), 0.0)
+                  A_lapack(1,2) = cmplx(gamma12(iz), 0.0)
+                  A_lapack(2,2) = cmplx(gamma22(iz), 0.0)
+
+                  B_lapack(1,1) = phi(idx)
+                  B_lapack(2,1) = apar(idx)
+
+                  call cgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                  if (info == 0) then
+                      phi(idx)  = B_lapack(1,1)
+                      apar(idx) = B_lapack(2,1)
+                  else
+                      if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_and_apar_for_response_matrix_neo at iz=', iz
+                      phi(idx)  = cmplx(0.0, 0.0)
+                      apar(idx) = cmplx(0.0, 0.0)
+                  end if
               end do
 
               ! Treat the periodic point correct by dividing by the phase shift.
@@ -1881,10 +1902,10 @@ contains
               if (izl_offset == 0) izl_offset = 1
           end do
 
-          deallocate (gammainv11, gammainv12, gammainv21, gammainv22)
-
+         deallocate (gamma11, gamma12, gamma21, gamma22)
       end subroutine calculate_phi_and_apar_for_response_matrix_neo
 
+   
       ! ================================================================================================================================================================== !
       ! ------------------------------------- TO DO - Get the correct factors for the coupled phi, apar and bpar for HO simulations. ------------------------------------- ! 
       ! ================================================================================================================================================================== !

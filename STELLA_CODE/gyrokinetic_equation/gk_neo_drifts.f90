@@ -75,7 +75,7 @@ contains
         use geometry, only: bmag, B_times_kappa_dot_gradx, B_times_kappa_dot_grady
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: dneo_h_dvpa, neo_h, neo_phi
+        use neoclassical_terms_neo, only: neo_vpa_fac
 
         ! Arrays. 
         use arrays, only: neocurvx, neocurvy, initialised_neo_curv_drift
@@ -110,9 +110,9 @@ contains
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
 
                 ! Multiply by the neoclassical distribution factor. 
-                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
 
-                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 2 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
             end do
         end do
 
