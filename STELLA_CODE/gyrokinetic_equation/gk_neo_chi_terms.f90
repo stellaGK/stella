@@ -78,7 +78,7 @@ contains
                 * vpa(iv) * spec(is)%stm * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * code_dt / bmag(:, iz)
 
                 ! Multiply by the neoclassical factor.
-                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * neo_mu_fac(:, ivmu, 1)
+                neo_chi_coeff(:, iz, ivmu) = neo_chi_coeff(:, iz, ivmu) * neo_mu_fac(iz, ivmu, 1)
             end do 
         end do
     end subroutine init_neo_chi_terms

@@ -110,9 +110,9 @@ contains
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
 
                 ! Multiply by the neoclassical distribution factor. 
-                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
+                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
 
-                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
+                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
             end do
         end do
 

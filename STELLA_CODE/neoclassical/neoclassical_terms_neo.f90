@@ -900,8 +900,8 @@ contains
                         + 2.0 * vpa(iv) * spec(is)%z * neo_phi(iz)
 
                         ! Calculate the magnetic moment derivative factor.
-                        neo_mu_fac_global(iz, iv, imu, is, 1) = dneo_h_dmu_global(iz, iv, imu, is, 1) - 2.0 * bmag(ia, iv) * neo_h_global(iz, iv, imu, is, 1) &
-                        + 2.0 * bmag(ia, iv) * spec(is)%z * neo_phi(iz)
+                        neo_mu_fac_global(iz, iv, imu, is, 1) = dneo_h_dmu_global(iz, iv, imu, is, 1) - 2.0 * bmag(ia, iz) * neo_h_global(iz, iv, imu, is, 1) &
+                        + 2.0 * bmag(ia, iz) * spec(is)%z * neo_phi(iz)
                     end do
                 end do
             end do

@@ -411,11 +411,11 @@ contains
         logical :: skip_fsa_local
 
         ! LAPACK Variables.
-        complex(4)  :: A_lapack(2,2)
-        complex(4)  :: B_lapack(2,1)
+        real(4)     :: A_lapack(2,2)
+        real(4)     :: B_lapack(2,2)
         integer     :: ipiv(2)
         integer     :: info
-        external cgesv
+        external sgesv
 
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of bpar, this reduces to a 2 x 2    !
@@ -436,23 +436,27 @@ contains
                 do iz = -nzgrid, nzgrid
                     do ikx = 1, nakx
                         do iky = 1, naky
-                            A_lapack(1,1) = cmplx(denominator_fields_neo(iky,ikx,iz), 0.0)
-                            A_lapack(2,1) = cmplx(denominator_fields_neo_21(iky,ikx,iz), 0.0)
-                            A_lapack(1,2) = cmplx(denominator_fields_neo_12(iky,ikx,iz), 0.0)
+                            A_lapack(1,1) = denominator_fields_neo(iky,ikx,iz)
+                            A_lapack(2,1) = denominator_fields_neo_21(iky,ikx,iz)
+                            A_lapack(1,2) = denominator_fields_neo_12(iky,ikx,iz)
                             if (dist == 'gneo') then
-                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_g(iky,ikx,iz), 0.0)
+                                A_lapack(2,2) = denominator_fields_neo_22_g(iky,ikx,iz)
                             else if (dist == 'gbarneo') then
-                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbar(iky,ikx,iz), 0.0)
+                                A_lapack(2,2) = denominator_fields_neo_22_gbar(iky,ikx,iz)
                             end if
 
-                            B_lapack(1,1) = phi(iky,ikx,iz,it)
-                            B_lapack(2,1) = apar(iky,ikx,iz,it)
+                            ! Pack real and imaginary parts of the fields as two RHS columns.
+                            B_lapack(1,1) = real(phi(iky,ikx,iz,it))
+                            B_lapack(2,1) = real(apar(iky,ikx,iz,it))
+                            B_lapack(1,2) = aimag(phi(iky,ikx,iz,it))
+                            B_lapack(2,2) = aimag(apar(iky,ikx,iz,it))
 
-                            call cgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+                            call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
 
                             if (info == 0) then
-                                phi(iky,ikx,iz,it)  = B_lapack(1,1)
-                                apar(iky,ikx,iz,it) = B_lapack(2,1)
+                                ! Reassemble complex fields from the solved real and imaginary parts.
+                                phi(iky,ikx,iz,it)  = cmplx(B_lapack(1,1), B_lapack(1,2))
+                                apar(iky,ikx,iz,it) = cmplx(B_lapack(2,1), B_lapack(2,2))                                
                             else
                                 if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
                                 phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
@@ -467,7 +471,6 @@ contains
             call mp_abort('Unknown dist option in calculate_neo_phi_and_apar. Aborting.')
             return
         end if
-
     end subroutine calculate_neo_phi_and_apar
 
 
@@ -550,7 +553,167 @@ contains
         complex, dimension(:, :), allocatable :: scratch
         complex, dimension(:, :, :, :), allocatable :: phi, bpar
 
+        ia = 1    
+
+        ! ==================================================================== !
+        
+        ! Allocate temporary arrays for the phi and bpar.
+        allocate(phi(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate(bpar(naky, nakx, -nzgrid:nzgrid, ntubes))      
+
+        ! Initialise the phi field.
+        phi = 0.
+
+        ! Calculate the phi if it is included.
+        if (fphi > epsilon(0.0)) then        
+            ! Allocate temporary array.
+            allocate (scratch(nvpa, nmu))
+          
+            ! Iterate over the (kx,ky,z,mu,vpa,s) points.
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                iz = iz_idx(kxkyz_lo, ikxkyz)
+                it = it_idx(kxkyz_lo, ikxkyz)
+                ikx = ikx_idx(kxkyz_lo, ikxkyz)
+                iky = iky_idx(kxkyz_lo, ikxkyz)
+                is = is_idx(kxkyz_lo, ikxkyz)
+            
+                ! Integrate g to get sum_s Z_s n_s J0 g and store in phi.
+                call gyro_average(g(:, :, ikxkyz), ikxkyz, scratch)
+                wgt = spec(is)%z * spec(is)%dens_psi0
+                call integrate_vmu(scratch, iz, tmp)
+                phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
+            end do
+         
+            ! Sum the values on all processors and send them to <proc0>
+            call sum_allreduce(phi)    
+
+            ! Deallocate temporary arrays.
+            deallocate (scratch)
+        end if
+
+        ! Initialise the apar field.
+        apar = 0.
+      
+        if (include_apar) then
+            ! Allocate temporary array.
+            allocate (scratch(nvpa, nmu))
+         
+            ! Iterate over the (kx,ky,z,mu,vpa,s) points.
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                iz = iz_idx(kxkyz_lo, ikxkyz)
+                it = it_idx(kxkyz_lo, ikxkyz)
+                ikx = ikx_idx(kxkyz_lo, ikxkyz)
+                iky = iky_idx(kxkyz_lo, ikxkyz)
+                is = is_idx(kxkyz_lo, ikxkyz)
+            
+                call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, scratch)
+                wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
+                call integrate_vmu(scratch, iz, tmp)
+                apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
+            end do
+         
+            ! Apar for different species may be spread over processors at this point, so broadcast to all procs and sum over species.
+            call sum_allreduce(apar)
+            
+            deallocate (scratch)
+        end if
+
+        bpar = 0.
+        ! TO DO - ADD BPAR.
+ 
+        call get_apar_neo(phi, apar, bpar, dist)
+
+        ! Deallocate temporary arrays for the phi and bpar.
+        if (allocated(phi)) deallocate(phi)
+        if (allocated(bpar)) deallocate(bpar)      
+
     end subroutine advance_apar_neo
+
+
+! ======================================================================================================================================================================================= !
+! --------------------------------------------------------------- Gets the correct apar given the fields included in the simuation ------------------------------------------------------ !
+! ======================================================================================================================================================================================= !
+
+    subroutine get_apar_neo(phi, apar, bpar, dist)
+        ! Parallelisation.
+        use mp, only: proc0, mp_abort
+      
+        ! Arrays.
+        use arrays, only: denominator_fields_neo, denominator_fields_neo_12, denominator_fields_neo_13
+        use arrays, only: denominator_fields_neo_21, denominator_fields_neo_22_g, denominator_fields_neo_23
+        use arrays, only: denominator_fields_neo_31, denominator_fields_neo_32, denominator_fields_neo_33
+
+        ! Parameters.
+        use parameters_physics, only: include_apar
+      
+        ! Grids
+        use grids_z, only: nzgrid, ntubes
+        use grids_kxky, only: nakx, naky 
+      
+        implicit none
+
+        ! Arguments.
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
+        complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
+        character(*), intent(in) :: dist
+
+        ! Local variables.
+        integer :: ia
+        integer :: ikxkyz, iky, ikx, iz, it, is      
+
+        ! LAPACK Variables.
+        real(4)     :: A_lapack(2,2)
+        real(4)     :: B_lapack(2,2)
+        real(4)     :: C_lapack(3,3)
+        real(4)     :: D_lapack(3,2)
+        integer     :: ipiv(2), jpiv(3)
+        integer     :: info
+        external sgesv
+
+        ! Assume we only have one field line
+        ia = 1
+
+        ! ================================================================================================================= !
+      
+        ! We have the sources that we need to get the associated field matrix for apar.
+        ! Note that the implicit mirror advance only uses gneo and so there is no gbarneo dist option here. 
+        if (include_apar) then 
+            if (dist == 'gneo') then
+                do it = 1, ntubes
+                    do iz = -nzgrid, nzgrid
+                        do ikx = 1, nakx
+                            do iky = 1, naky
+                                A_lapack(1,1) = denominator_fields_neo(iky,ikx,iz)
+                                A_lapack(2,1) = denominator_fields_neo_21(iky,ikx,iz)
+                                A_lapack(1,2) = denominator_fields_neo_12(iky,ikx,iz)
+                                A_lapack(2,2) = denominator_fields_neo_22_g(iky,ikx,iz)
+
+                                B_lapack(1,1) = real(phi(iky,ikx,iz,it))
+                                B_lapack(2,1) = real(apar(iky,ikx,iz,it))
+                                B_lapack(1,2) = imag(phi(iky,ikx,iz,it))
+                                B_lapack(2,2) = imag(apar(iky,ikx,iz,it))
+
+
+                                call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                                if (info == 0) then 
+                                    apar(iky,ikx,iz,it) = cmplx(B_lapack(2,1), B_lapack(2,2))
+                                else
+                                    if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
+                                    apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                                end if
+                            end do
+                        end do
+                    end do
+                end do
+            else  
+                if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
+                call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
+                return      
+            end if     
+        end if
+
+   end subroutine get_apar_neo
 
 
 ! ================================================================================================================================================================================ !
@@ -632,8 +795,7 @@ contains
             is = is_idx(kxkyz_lo, ikxkyz)
 
             ! Calculate (1 - J_0(a_k)²) exp(v²) for each (kx,ky,z).
-            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) &
-               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
 
             ! Multiply this by (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0) for each (kx,ky,z). 
             g0 = g0 * ( 1 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
@@ -664,7 +826,7 @@ contains
          ! ======================================================================================================================================================== !
 
          if (.not. has_electron_species(spec)) then
-             denominator_fields_neo(:, :, iz) = denominator_fields_neo(:, :, iz) + efac
+             denominator_fields_neo = denominator_fields_neo + efac
          end if
 
          ! Deallocate temporary arrays.
@@ -744,10 +906,11 @@ contains
                 is = is_idx(kxkyz_lo, ikxkyz)
 
                 ! Calculate the Maxwellian factor.
-                g0 = spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)                 
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
 
-                g0 = g0 * ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa(:), 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
-                - neo_vpa_fac_global(iz, :, :, is, 1) )
+                ! Multiply by the neoclassical factor.
+                 g0 = g0 * ( ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) &
+                 - neo_vpa_fac_global(iz, :, :, is, 1) )
 
                 ! Calculate denominator_fields_neo_12[iky,ikz,iz].
                 wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp 
@@ -774,11 +937,13 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)                 
 
-                g0 = spread(maxwell_vpa(:, is) * vpa(:), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-                * spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) *  neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+                ! Calculate Maxwellian x vpa factor.
+                g0 = spread(maxwell_vpa(:, is) * vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
+
+                g0 = - g0 * 0.5 * spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) *  neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
                 
                 ! Calculate denominator_fields_neo_21[iky,ikz,iz].
-                wgt = -0.5 * beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
+                wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_21(iky, ikx, iz) = denominator_fields_neo_21(iky, ikx, iz) + tmp * wgt
             end do
@@ -802,9 +967,10 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread(maxwell_vpa(:, is) * vpa(:), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-                * ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa(:), 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
-                - neo_vpa_fac_global(iz, :, :, is, 1) )
+                g0 = spread(maxwell_vpa(:, is)*vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
+
+                g0 = g0 * ( ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) &
+                - neo_vpa_fac_global(iz, :, :, is, 1)  )
 
                 ! Calculate denominator_fields_neo_22_g[iky,ikz,iz].
                 wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
@@ -816,6 +982,7 @@ contains
             call sum_allreduce(denominator_fields_neo_22_g)
 
             ! Add the kperp2 factor.
+            ! denominator_fields_neo_22_g = denominator_fields_neo_22_g + kperp2(:, :, ia, :)
             denominator_fields_neo_22_g = denominator_fields_neo_22_g + kperp2(:, :, ia, :)
 
             ! ======================================================================================================================================================== ! 
@@ -835,9 +1002,10 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread(maxwell_vpa(:, is) * vpa(:), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-                * ( spread(vpa(:), 2, nmu) * spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * neo_mu_fac_global(iz, :, :, is, 1)  / bmag(ia, iz) &
-                - neo_vpa_fac_global(iz, :, :, is, 1) + 2.0 * spread(vpa(:), 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
+                g0 = spread(maxwell_vpa(:, is)*vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
+
+                g0 = g0 * ( ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa(:), 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) &
+                - neo_vpa_fac_global(iz, :, :, is, 1) + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
 
                 ! Calculate denominator_fields_neo_22_gbar[iky,ikz,iz].            
                 wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
@@ -1037,7 +1205,6 @@ contains
         implicit none
 
         if (include_apar) then
-            if (.not. allocated(denominator_fields_neo)) then; allocate (denominator_fields_neo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo = 0. ; end if
             if (.not. allocated(denominator_fields_neo_12)) then; allocate (denominator_fields_neo_12(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12 = 0. ; end if
             if (.not. allocated(denominator_fields_neo_21)) then; allocate (denominator_fields_neo_21(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_21 = 0. ; end if 
             if (.not. allocated(denominator_fields_neo_22_g)) then; allocate (denominator_fields_neo_22_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_22_g = 0. ; end if

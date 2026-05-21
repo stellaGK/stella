@@ -1804,11 +1804,11 @@ contains
           real, dimension(:), allocatable :: gamma11, gamma12, gamma21, gamma22
           
           ! LAPACK Variables.
-          complex(4)  :: A_lapack(2,2)
-          complex(4)  :: B_lapack(2,1)
+          real(4)     :: A_lapack(2,2)
+          real(4)     :: B_lapack(2,2)
           integer     :: ipiv(2)
           integer     :: info
-          external cgesv
+          external sgesv
 
           ! =================================================================================== !
 
@@ -1873,19 +1873,21 @@ contains
               do iz = iz_low(iseg) + izl_offset, izup
                   idx = idx + 1
                   
-                  A_lapack(1,1) = cmplx(gamma11(iz), 0.0)
-                  A_lapack(2,1) = cmplx(gamma21(iz), 0.0)
-                  A_lapack(1,2) = cmplx(gamma12(iz), 0.0)
-                  A_lapack(2,2) = cmplx(gamma22(iz), 0.0)
+                  A_lapack(1,1) = gamma11(iz)
+                  A_lapack(2,1) = gamma21(iz)
+                  A_lapack(1,2) = gamma12(iz)
+                  A_lapack(2,2) = gamma22(iz)
 
-                  B_lapack(1,1) = phi(idx)
-                  B_lapack(2,1) = apar(idx)
+                  B_lapack(1,1) = real(phi(idx))
+                  B_lapack(2,1) = real(apar(idx))
+                  B_lapack(1,2) = imag(phi(idx))
+                  B_lapack(2,2) = imag(apar(idx))
 
-                  call cgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+                  call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
 
                   if (info == 0) then
-                      phi(idx)  = B_lapack(1,1)
-                      apar(idx) = B_lapack(2,1)
+                      phi(idx)  = cmplx(B_lapack(1,1), B_lapack(1,2))
+                      apar(idx) = cmplx(B_lapack(2,1), B_lapack(2,2))
                   else
                       if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_and_apar_for_response_matrix_neo at iz=', iz
                       phi(idx)  = cmplx(0.0, 0.0)

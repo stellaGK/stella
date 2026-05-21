@@ -333,6 +333,10 @@ contains
       use grids_kxky, only: naky, nakx
       use field_equations_electromagnetic, only: advance_apar
 
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: advance_apar_neo
+
       implicit none
 
       complex :: apar
@@ -363,8 +367,13 @@ contains
       end do
 
       ! Calculate the contribution to apar from mirror_response_g
-      dist = 'g'
-      call advance_apar(mirror_response_g, dist, response_apar_denom)
+      if (neoclassical_is_enabled()) then
+          dist = 'gneo'
+          call advance_apar_neo(mirror_response_g, dist, response_apar_denom)
+      else
+          dist = 'g'
+          call advance_apar(mirror_response_g, dist, response_apar_denom)
+      end if
 
       ! response_apar_denom is the thing that the inhomogeneous contribution to apar
       ! must be divided by to obtain the total apar; i.e., apar = apar_inh + apar_h,
@@ -678,6 +687,10 @@ contains
       use field_equations_electromagnetic, only: advance_apar
       use neoclassical_terms, only: include_neoclassical_terms
       
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: advance_apar_neo	
+
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -703,9 +716,13 @@ contains
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       tupwnd = (1.0 - time_upwind) * 0.5
-      ! incoming pdf is g = <f>
-      dist = 'g'
 
+      ! incoming pdf is g = <f>
+      if (neoclassical_is_enabled()) then
+          dist = 'gneo'
+      else
+          dist = 'g'
+      end if
 
       ! now that we have g^{*}, need to solve
       ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
@@ -735,7 +752,13 @@ contains
 
             ! If fields are not updated, then update apar before converting from g to gbar
             ! in get_mirror_rhs_g_contribution below
-            if (include_apar .and. .not. fields_updated) call advance_apar(gvmu, dist, apar)
+            if (include_apar .and. .not. fields_updated) then
+                if (neoclassical_is_enabled()) then
+                    call advance_apar_neo(gvmu, dist, apar)
+                else
+                    call advance_apar(gvmu, dist, apar)
+                end if 
+            end if
 
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -759,7 +782,11 @@ contains
             ! if advanceing apar, g0v contains the 'inhomogeneous' pdf, g_{inh}
             if (include_apar) then
                ! if advancing apar, need to calculate the contribution to apar from g0v, which is the solution to the 'inhomogenous' equation
-               call advance_apar(g0v, dist, apar)
+               if (neoclassical_is_enabled()) then
+                   call advance_apar_neo(g0v, dist, apar)
+               else
+                   call advance_apar(g0v, dist, apar)
+               end if
 
                ! the total apar is the above contribution from the 'inhomogeneous' apar / response_apar_denom,
                ! with the denominator pre-calculated using a response matrix approach; in this case,

@@ -84,7 +84,7 @@ contains
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
 
                 ! Multiply by the neoclassical factor.
-                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
+                neo_dchidz_coeff(:, iz, ivmu) = neo_dchidz_coeff(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
             end do
         end do
 

@@ -67,26 +67,19 @@ contains
         if (.not. allocated(neo_apar_coeff)) then
             allocate (neo_apar_coeff(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_apar_coeff = 0.0
         end if
-
-        ! Calculate neo_apar_coeff at each grid point. Calculation is broken up for ease of reading.
-        ! Multiply by the constant code_dt.         
-        neo_apar_coeff = code_dt
  
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
-           
-            ! Compute the z-independent factor.
-            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * mu(imu) * spec(is)%z * b_dot_gradz(:, :) * dbdzed(:, :) / ( vpa(iv) * spec(is)%mass )
-
-            ! Finally multiply by the Maxwellian. 
-            neo_apar_coeff(:, :, ivmu) = neo_apar_coeff(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
 
             do iz = -nzgrid, nzgrid  
+                neo_apar_coeff(:, iz, ivmu) = mu(imu) * spec(is)%z * b_dot_gradz(:, iz) * dbdzed(:, iz) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * code_dt / ( vpa(iv) * spec(is)%mass )
+
                 ! Multiply by the neoclassical distribution prefactor. 
-                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * neo_vpa_fac(:, ivmu, 1)
+                neo_apar_coeff(:, iz, ivmu) = neo_apar_coeff(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
             end do 
         end do
 
