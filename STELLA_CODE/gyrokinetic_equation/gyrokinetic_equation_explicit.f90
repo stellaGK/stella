@@ -130,6 +130,11 @@ contains
          end if
       end if
 
+      ! We now switch back to g if we are using g_neo. 
+      if (neoclassical_is_enabled()) then
+          call g_to_gneo(g, phi, apar, bpar, -1.0)
+      end if
+
       ! Enforce periodicity for periodic (including zonal) modes
       ! <stream_sign> > 0 corresponds to dz/dt < 0
       do iky = 1, naky
@@ -141,11 +146,6 @@ contains
             end do
          end if
       end do
-
-      ! We now switch back to g if we are using g_neo. 
-      if (neoclassical_is_enabled()) then
-          call g_to_gneo(g, phi, apar, bpar, -1.0)
-      end if
 
       ! Stop the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
