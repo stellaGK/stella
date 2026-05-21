@@ -1880,8 +1880,8 @@ contains
 
                   B_lapack(1,1) = real(phi(idx))
                   B_lapack(2,1) = real(apar(idx))
-                  B_lapack(1,2) = imag(phi(idx))
-                  B_lapack(2,2) = imag(apar(idx))
+                  B_lapack(1,2) = aimag(phi(idx))
+                  B_lapack(2,2) = aimag(apar(idx))
 
                   call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
 

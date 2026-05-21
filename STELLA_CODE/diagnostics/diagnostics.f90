@@ -168,6 +168,7 @@ contains
 
       ! HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use calculations_tofrom_ghf, only: g_to_gneo
 
       implicit none
 
@@ -206,7 +207,11 @@ contains
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false.
       if (neoclassical_is_enabled()) then 
+          call g_to_gneo(gnew, phi, apar, bpar, 1.0)
+
           call advance_fields(gnew, phi, apar, bpar, dist='gneo')
+
+          call g_to_gneo(gnew, phi, apar, bpar, -1.0)
       else
           call advance_fields(gnew, phi, apar, bpar, dist='g')
       end if 

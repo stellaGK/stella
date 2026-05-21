@@ -226,8 +226,7 @@ contains
           allocate (g0(nvpa, nmu))
          
           ! Iterate over the (kx,ky,z,mu,vpa,s) points
-          ! This gives: 2 β sum_s Z_s n_s vth J0 vpa g
-          ! TO DO - Is factor of 2.0 suppose to be here? 
+          ! This gives: 2 β sum_s Z_s n_s vth J_0 g 
           do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
               iz = iz_idx(kxkyz_lo, ikxkyz)
               it = it_idx(kxkyz_lo, ikxkyz)
@@ -236,7 +235,7 @@ contains
               is = is_idx(kxkyz_lo, ikxkyz)
             
               call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, g0)
-              wgt = beta * spec(is)%z * spec(is)%dens * spec(is)%stm
+              wgt = 2.0 * beta * spec(is)%z * spec(is)%dens * spec(is)%stm
               call integrate_vmu(g0, iz, tmp)
               apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
           end do
@@ -690,8 +689,8 @@ contains
 
                                 B_lapack(1,1) = real(phi(iky,ikx,iz,it))
                                 B_lapack(2,1) = real(apar(iky,ikx,iz,it))
-                                B_lapack(1,2) = imag(phi(iky,ikx,iz,it))
-                                B_lapack(2,2) = imag(apar(iky,ikx,iz,it))
+                                B_lapack(1,2) = aimag(phi(iky,ikx,iz,it))
+                                B_lapack(2,2) = aimag(apar(iky,ikx,iz,it))
 
 
                                 call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
@@ -798,7 +797,7 @@ contains
             g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
 
             ! Multiply this by (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0) for each (kx,ky,z). 
-            g0 = g0 * ( 1 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+            g0 = g0 * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
             
             ! Calculate denominator_fields_neo[iky,ikz,iz].
             wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
@@ -909,8 +908,8 @@ contains
                 g0 = spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
 
                 ! Multiply by the neoclassical factor.
-                 g0 = g0 * ( ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) &
-                 - neo_vpa_fac_global(iz, :, :, is, 1) )
+                g0 = g0 * ( ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) &
+                - neo_vpa_fac_global(iz, :, :, is, 1) )
 
                 ! Calculate denominator_fields_neo_12[iky,ikz,iz].
                 wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp 
@@ -982,7 +981,6 @@ contains
             call sum_allreduce(denominator_fields_neo_22_g)
 
             ! Add the kperp2 factor.
-            ! denominator_fields_neo_22_g = denominator_fields_neo_22_g + kperp2(:, :, ia, :)
             denominator_fields_neo_22_g = denominator_fields_neo_22_g + kperp2(:, :, ia, :)
 
             ! ======================================================================================================================================================== ! 

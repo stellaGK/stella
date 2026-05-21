@@ -547,6 +547,7 @@ contains
       
       ! HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use calculations_tofrom_ghf, only: g_to_gneo
 
       implicit none
       
@@ -560,7 +561,11 @@ contains
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       if (neoclassical_is_enabled()) then
+          call g_to_gneo(gnew, phi, apar, bpar, 1.0)
+
           call advance_fields(gnew, phi, apar, bpar, dist='gneo')
+
+          call g_to_gneo(gnew, phi, apar, bpar, -1.0)
       else
           call advance_fields(gnew, phi, apar, bpar, dist='g')
       end if       
