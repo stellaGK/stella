@@ -348,7 +348,6 @@ contains
          
          ! Iterate over the (kx,ky,z,mu,vpa,s) points
          ! This gives: 2 β sum_s Z_s n_s vth J0 vpa g
-         ! TO DO - Is factor of 2.0 supposed to be here?
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -435,7 +434,8 @@ contains
       ! Assume we only have one field line
       ia = 1
       
-      if (dist == 'gbar' .or. dist == 'g') then
+      ! OR FIELDS TEST
+      if (dist == 'gbar' .or. dist == 'g' .or. dist == 'gbarneo' .or. dist == 'gneo') then
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx

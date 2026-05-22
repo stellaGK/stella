@@ -478,7 +478,7 @@ contains
       ! denominator_fields[iky,ikz,iz] = sum_s (Z_s² n_s/T_s) (1 - Gamma0)
       !
       ! To avoid any issues with division by zero we set phi = 0.0 if the denominator is too small. Only thing
-      ! that makes sense is to set phi = 0.0 if the prefactor for phi in QN is also zero. 
+      ! that makes sense is to set phi = 0.0 if the prefactor for phi in QN is also zero.
       else if (dist == 'g' .or. dist == 'gbar') then
          if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::dist==gbar'
          allocate (denominator_fields_t(naky, nakx, -nzgrid:nzgrid, ntubes))

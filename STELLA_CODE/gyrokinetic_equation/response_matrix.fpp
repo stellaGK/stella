@@ -1113,6 +1113,7 @@ contains
       ! zed grid, so much of these routines are about mapping the prefactors onto 
       ! the extended zed domain.
       ! ------------------------------------------------------------------------
+      
       if (neoclassical_is_enabled()) then 
           if (include_apar) then
               call calculate_phi_and_apar_for_response_matrix_neo
@@ -1127,6 +1128,7 @@ contains
           end if
           if (include_apar) call get_apar_for_response_matrix
       end if 
+
       ! ------------------------------------------------------------------------
 
    contains
@@ -1804,11 +1806,11 @@ contains
           real, dimension(:), allocatable :: gamma11, gamma12, gamma21, gamma22
           
           ! LAPACK Variables.
-          real(4)     :: A_lapack(2,2)
-          real(4)     :: B_lapack(2,2)
-          integer     :: ipiv(2)
-          integer     :: info
-          external sgesv
+          complex(8)      :: A_lapack(2,2)
+          complex(8)      :: B_lapack(2,1)
+          integer         :: ipiv(2)
+          integer         :: info
+          external zgesv
 
           ! =================================================================================== !
 
@@ -1863,10 +1865,10 @@ contains
               ! For the given value of ky, kx, store the appropriate matrix elements from 
               ! the field equations (Quasineutrality and parallel Amperes law) for this segment. 
                
-              gamma11 = denominator_fields_neo(iky, ikx, :)
-              gamma12 = denominator_fields_neo_12(iky, ikx, :)
-              gamma21 = denominator_fields_neo_21(iky, ikx, :)
-              gamma22 = denominator_fields_neo_22_g(iky, ikx, :)
+              gamma11 = cmplx(denominator_fields_neo(iky, ikx, :), 0.0)
+              gamma12 = cmplx(denominator_fields_neo_12(iky, ikx, :), 0.0)
+              gamma21 = cmplx(denominator_fields_neo_21(iky, ikx, :), 0.0)
+              gamma22 = cmplx(denominator_fields_neo_22_g(iky, ikx, :), 0.0)
 
               ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
               ! iz is only cycling through the zed location within a given segment. 
@@ -1878,16 +1880,14 @@ contains
                   A_lapack(1,2) = gamma12(iz)
                   A_lapack(2,2) = gamma22(iz)
 
-                  B_lapack(1,1) = real(phi(idx))
-                  B_lapack(2,1) = real(apar(idx))
-                  B_lapack(1,2) = aimag(phi(idx))
-                  B_lapack(2,2) = aimag(apar(idx))
+                  B_lapack(1,1) = phi(idx)
+                  B_lapack(2,1) = apar(idx)
 
-                  call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
+                  call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
                   if (info == 0) then
-                      phi(idx)  = cmplx(B_lapack(1,1), B_lapack(1,2))
-                      apar(idx) = cmplx(B_lapack(2,1), B_lapack(2,2))
+                      phi(idx)  = B_lapack(1,1)
+                      apar(idx) = B_lapack(2,1)
                   else
                       if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_and_apar_for_response_matrix_neo at iz=', iz
                       phi(idx)  = cmplx(0.0, 0.0)

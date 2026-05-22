@@ -405,16 +405,15 @@ contains
 
         ! Local variables.
         integer :: ia, it, ikx, iky, iz
-        complex :: antot1, antot2
         logical, optional, intent(in) :: skip_fsa
         logical :: skip_fsa_local
 
         ! LAPACK Variables.
-        real(4)     :: A_lapack(2,2)
-        real(4)     :: B_lapack(2,2)
-        integer     :: ipiv(2)
-        integer     :: info
-        external sgesv
+        complex(8)        :: A_lapack(2,2)
+        complex(8)        :: B_lapack(2,1)
+        integer        :: ipiv(2)
+        integer        :: info
+        external zgesv
 
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of bpar, this reduces to a 2 x 2    !
@@ -435,27 +434,25 @@ contains
                 do iz = -nzgrid, nzgrid
                     do ikx = 1, nakx
                         do iky = 1, naky
-                            A_lapack(1,1) = denominator_fields_neo(iky,ikx,iz)
-                            A_lapack(2,1) = denominator_fields_neo_21(iky,ikx,iz)
-                            A_lapack(1,2) = denominator_fields_neo_12(iky,ikx,iz)
+                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
+                            A_lapack(1,1) = cmplx(denominator_fields_neo(iky,ikx,iz), 0.0)
+                            A_lapack(2,1) = cmplx(denominator_fields_neo_21(iky,ikx,iz), 0.0)
+                            A_lapack(1,2) = cmplx(denominator_fields_neo_12(iky,ikx,iz), 0.0)
                             if (dist == 'gneo') then
-                                A_lapack(2,2) = denominator_fields_neo_22_g(iky,ikx,iz)
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_g(iky,ikx,iz), 0.0)
                             else if (dist == 'gbarneo') then
-                                A_lapack(2,2) = denominator_fields_neo_22_gbar(iky,ikx,iz)
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbar(iky,ikx,iz), 0.0)
                             end if
 
-                            ! Pack real and imaginary parts of the fields as two RHS columns.
-                            B_lapack(1,1) = real(phi(iky,ikx,iz,it))
-                            B_lapack(2,1) = real(apar(iky,ikx,iz,it))
-                            B_lapack(1,2) = aimag(phi(iky,ikx,iz,it))
-                            B_lapack(2,2) = aimag(apar(iky,ikx,iz,it))
+                            B_lapack(1,1) = phi(iky,ikx,iz,it)
+                            B_lapack(2,1) = apar(iky,ikx,iz,it)
 
-                            call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
+                            call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
                             if (info == 0) then
-                                ! Reassemble complex fields from the solved real and imaginary parts.
-                                phi(iky,ikx,iz,it)  = cmplx(B_lapack(1,1), B_lapack(1,2))
-                                apar(iky,ikx,iz,it) = cmplx(B_lapack(2,1), B_lapack(2,2))                                
+                                ! Assign solutions to the fields. 
+                                phi(iky,ikx,iz,it)  = B_lapack(1,1)
+                                apar(iky,ikx,iz,it) = B_lapack(2,1)                                
                             else
                                 if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
                                 phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
@@ -661,13 +658,13 @@ contains
         integer :: ikxkyz, iky, ikx, iz, it, is      
 
         ! LAPACK Variables.
-        real(4)     :: A_lapack(2,2)
-        real(4)     :: B_lapack(2,2)
-        real(4)     :: C_lapack(3,3)
-        real(4)     :: D_lapack(3,2)
-        integer     :: ipiv(2), jpiv(3)
-        integer     :: info
-        external sgesv
+        complex(8)     :: A_lapack(2,2)
+        complex(8)     :: B_lapack(2,1)
+        complex(8)     :: C_lapack(3,3)
+        complex(8)     :: D_lapack(3,1)
+        integer        :: ipiv(2), jpiv(3)
+        integer        :: info
+        external zgesv
 
         ! Assume we only have one field line
         ia = 1
@@ -682,21 +679,18 @@ contains
                     do iz = -nzgrid, nzgrid
                         do ikx = 1, nakx
                             do iky = 1, naky
-                                A_lapack(1,1) = denominator_fields_neo(iky,ikx,iz)
-                                A_lapack(2,1) = denominator_fields_neo_21(iky,ikx,iz)
-                                A_lapack(1,2) = denominator_fields_neo_12(iky,ikx,iz)
-                                A_lapack(2,2) = denominator_fields_neo_22_g(iky,ikx,iz)
+                                A_lapack(1,1) = cmplx(denominator_fields_neo(iky,ikx,iz), 0.0)
+                                A_lapack(2,1) = cmplx(denominator_fields_neo_21(iky,ikx,iz), 0.0)
+                                A_lapack(1,2) = cmplx(denominator_fields_neo_12(iky,ikx,iz), 0.0)
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_g(iky,ikx,iz), 0.0)
 
-                                B_lapack(1,1) = real(phi(iky,ikx,iz,it))
-                                B_lapack(2,1) = real(apar(iky,ikx,iz,it))
-                                B_lapack(1,2) = aimag(phi(iky,ikx,iz,it))
-                                B_lapack(2,2) = aimag(apar(iky,ikx,iz,it))
-
-
-                                call sgesv(2, 2, A_lapack, 2, ipiv, B_lapack, 2, info)
+                                B_lapack(1,1) = phi(iky,ikx,iz,it)
+                                B_lapack(2,1) = apar(iky,ikx,iz,it)
+     
+                                call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
                                 if (info == 0) then 
-                                    apar(iky,ikx,iz,it) = cmplx(B_lapack(2,1), B_lapack(2,2))
+                                    apar(iky,ikx,iz,it) = B_lapack(2,1)
                                 else
                                     if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
