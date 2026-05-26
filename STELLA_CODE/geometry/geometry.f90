@@ -80,7 +80,7 @@ module geometry
    public :: jacob, djacdrho, drhodpsi, drhodpsip, drhodpsip_psi0
    public :: dl_over_b, d_dl_over_b_drho
    public :: dBdrho, d2Bdrdth, d_bdotgradz_drho, dIdrho
-   public :: geo_surf, Rmajor, dzetadz
+   public :: geo_surf, Rmajor, dzdzeta
    public :: theta_vmec, zeta, alpha 
    public :: dxdpsi, dydalpha, clebsch_factor
    public :: aref, bref, twist_and_shift_geo_fac
@@ -124,7 +124,7 @@ module geometry
    real :: dqdrho, dIdrho
    real :: drhodpsi, drhodpsip, drhodpsip_psi0, shat, qinp
    real :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
-   real :: b_dot_gradz_avg_eqarc, dzetadz
+   real :: b_dot_gradz_avg_eqarc, dzdzeta
    real :: twist_and_shift_geo_fac, gfac
    integer :: sign_torflux
    integer :: geo_option_switch
@@ -199,7 +199,7 @@ contains
       initialised_geometry = .true.
 
       ! Default is no re-scaling of zed
-      dzetadz = 1.0
+      dzdzeta = 1.0
       
       ! Track the code 
       if (debug) write (*, *) 'geometry::init_geometry'
@@ -489,7 +489,7 @@ contains
                gds23_alphapsit, gds24_alphapsit, gds25_alphapsit, gds26_alphapsit, & 
                B_times_gradB_dot_gradalpha, B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradalpha, B_times_kappa_dot_gradpsit, &
                gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_gradzeta_RR, &
-               sign_torflux, theta_vmec, dzetadz, aref, bref, alpha, zeta, &
+               sign_torflux, theta_vmec, dzdzeta, aref, bref, alpha, zeta, &
                field_period_ratio, psit_displacement_fac)
 
       ! Flux surface quantities that we need
@@ -1140,7 +1140,7 @@ contains
       ! Z-grid
       call broadcast(zeta)
       call broadcast(alpha)
-      call broadcast(dzetadz)
+      call broadcast(dzdzeta)
       call broadcast(twist_and_shift_geo_fac)
       call broadcast(grad_x_grad_y_end)
 

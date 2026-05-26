@@ -12,7 +12,7 @@
 !            gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
 !            gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
 !            B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, sign_torflux, &
-!            theta_vmec, dzetadz, aref, bref, alpha, zeta, &
+!            theta_vmec, dzdzeta, aref, bref, alpha, zeta, &
 !            field_period_ratio, psit_displacement_fac)
 ! 
 ! The VMEC module will calculate the geometric arrays with psi_t as the
@@ -113,7 +113,7 @@ contains
       gbdrift_alpha, B_times_gradB_dot_gradx_psi, &
       B_times_kappa_dot_grady_alpha, B_times_kappa_dot_gradx_psi, &
       gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_gradzeta_RR, &
-      sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
+      sign_torflux, theta_vmec, dzdzeta, L_reference, B_reference, alpha, zeta, &
       field_period_ratio, psit_displacement_fac)
 
       ! Parallelisation
@@ -148,7 +148,7 @@ contains
       integer, intent(out) :: sign_torflux
       type(flux_surface_type), intent(out) :: surf
       real, dimension(:), intent(out) :: alpha
-      real, intent(out) :: dzetadz, L_reference, B_reference, field_period_ratio
+      real, intent(out) :: dzdzeta, L_reference, B_reference, field_period_ratio
       real, dimension(-nzgrid:), intent(out) :: b_dot_gradz_avg
       real, dimension(:, -nzgrid:), intent(out) :: grho, bmag, b_dot_gradz
       real, dimension(:, -nzgrid:), intent(out) :: grad_alpha_grad_alpha, grad_alpha_grad_psit
@@ -398,13 +398,13 @@ contains
          B_sub_theta_vmec = B_sub_theta_vmec_mod ! JFP
          B_sub_zeta = B_sub_zeta_mod ! JFP
  
-         ! The parallel coordinate is zeta, but we want to use z = zeta/P so that z 
-         ! is compressed (or expanded) to the range [-pi,pi], hence dzeta/dz = P = nfp/nfield_periods
-         dzetadz = real(nfp) / nfield_periods  
-         b_dot_gradzeta_averaged = b_dot_gradzeta_averaged * dzetadz
-         b_dot_gradzeta = b_dot_gradzeta * dzetadz
-         gds23_psitalpha  = gds23_psitalpha  * dzetadz
-         gds24_psitalpha  = gds24_psitalpha  * dzetadz 
+         ! The parallel coordinate is zeta, but we want to use z = zeta*P so that z 
+         ! is compressed (or expanded) to the range [-pi,pi], hence dz/dzeta = P = nfp/nfield_periods
+         dzdzeta = real(nfp) / nfield_periods  
+         b_dot_gradzeta_averaged = b_dot_gradzeta_averaged * dzdzeta
+         b_dot_gradzeta = b_dot_gradzeta * dzdzeta
+         gds23_psitalpha  = gds23_psitalpha  * dzdzeta
+         gds24_psitalpha  = gds24_psitalpha  * dzdzeta 
 
       end if
       
@@ -469,8 +469,8 @@ contains
 
       ! Write the VMEC geometry arrays to a text file
       call open_output_file(tmpunit, '.vmec.geo')
-      write (tmpunit, '(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'dzetadz'
-      write (tmpunit, '(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, dzetadz
+      write (tmpunit, '(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'dzdzeta'
+      write (tmpunit, '(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, dzdzeta
       write (tmpunit, '(17a12)') '#    alpha', 'zeta', 'bmag', &
          'b_dot_gradz_avg', 'bdot_grad_z', 'grad_alpha2', &
          'gd_alph_psi', 'grad_psi2', 'gds23_psitalpha ', 'gds24_psitalpha ', &
