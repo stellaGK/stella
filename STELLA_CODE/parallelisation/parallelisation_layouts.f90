@@ -84,6 +84,7 @@ module parallelisation_layouts
    use common_types, only: kxyz_layout_type
    use common_types, only: xyz_layout_type
    use common_types, only: kymus_layout_type
+   use common_types, only: kxkyzt_layout_type
    
    implicit none
 
@@ -140,11 +141,20 @@ module parallelisation_layouts
    ! with ky, mu and species available to spread over processors
    public :: kymus_lo        ! Only used if split_parallel_dynamics = True
 
+   ! The (vpa, mu, species) dimensions are ALL local on each processor and
+   ! ONLY (kx, ky, zed, tubes) are parallelised. Therefore
+   ! (naky*nakx*nzed*ntubes - 1) grid points are divided over the processors.
+   ! Used by the implicit collision solve so that the LAPACK band solve over
+   ! the (vpa, mu) axes is local AND species-coupled accesses are local.
+   public :: kxkyzt_lo
+
    ! Find the equivalent points between different parallelisation layouts
    public :: kxkyzidx2vmuidx
    public :: kxyzidx2vmuidx
    public :: xyzidx2vmuidx
    public :: kymusidx2vmuidx
+   public :: kxkyztidx2vmuidx
+   public :: kxkyzidx2kxkyztidx
 
    ! Find the index of (kx,ky,z,s,mu,vpa) of <ikxkyzs>, <ivpamus>, ...
    public :: ikx_idx, iky_idx, iz_idx, is_idx, imu_idx, iv_idx
@@ -164,18 +174,20 @@ module parallelisation_layouts
    character(len=3) :: vms_layout
    character(len=5) :: kymus_layout
 
-   ! Define the 5 possible parallelisation Layouts
+   ! Define the 6 possible parallelisation Layouts
    type(kxkyz_layout_type) :: kxkyz_lo
    type(kxyz_layout_type) :: kxyz_lo
    type(xyz_layout_type) :: xyz_lo
    type(vmu_layout_type) :: vmu_lo
    type(kymus_layout_type) :: kymus_lo
+   type(kxkyzt_layout_type) :: kxkyzt_lo
 
    ! Find the index of the <tube> on <ikxkyzs>, <ivpamus>, ...
    interface it_idx
       module procedure it_idx_kxkyz
       module procedure it_idx_kxyz
       module procedure it_idx_xyz
+      module procedure it_idx_kxkyzt
    end interface
 
    ! Find the index of <z> on <ikxkyzs>, <ivpamus>, ...
@@ -183,6 +195,7 @@ module parallelisation_layouts
       module procedure iz_idx_kxkyz
       module procedure iz_idx_kxyz
       module procedure iz_idx_xyz
+      module procedure iz_idx_kxkyzt
    end interface
 
    ! Find the index of <vpa> on <ikxkyzs>, <ivpamus>, ...
@@ -194,6 +207,7 @@ module parallelisation_layouts
    interface iky_idx
       module procedure iky_idx_kxkyz
       module procedure iky_idx_kymus
+      module procedure iky_idx_kxkyzt
    end interface
 
    ! Find the index of <y> on <ikxkyzs>, <ivpamus>, ...
@@ -206,6 +220,7 @@ module parallelisation_layouts
    interface ikx_idx
       module procedure ikx_idx_kxkyz
       module procedure ikx_idx_kxyz
+      module procedure ikx_idx_kxkyzt
    end interface
 
    ! Find the index of <x> on <ikxkyzs>, <ivpamus>, ...
@@ -235,6 +250,7 @@ module parallelisation_layouts
       module procedure proc_id_xyz
       module procedure proc_id_vmu
       module procedure proc_id_kymus
+      module procedure proc_id_kxkyzt
    end interface
 
    ! Find the ID of the point on <ikxkyzs>, <ivpamus>, ...
@@ -244,6 +260,7 @@ module parallelisation_layouts
       module procedure idx_xyz
       module procedure idx_vmu
       module procedure idx_kymus
+      module procedure idx_kxkyzt
    end interface
 
    ! Find the ID of the point on <ikxkyzs>, <ivpamus>, ...
@@ -253,7 +270,8 @@ module parallelisation_layouts
       module procedure idx_local_xyz, iz_local_xyz
       module procedure idx_local_vmu, iz_local_vmu
       module procedure idx_local_kymus, iz_local_kymus
-   end interface 
+      module procedure idx_local_kxkyzt, iz_local_kxkyzt
+   end interface
    
    !------------------------------ Input variables -----------------------------
 
@@ -376,11 +394,12 @@ contains
 
       ! Initialise the parallelisation layouts
       call init_vmu_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-      call init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec) 
+      call init_kxkyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
       if (full_flux_surface) call init_kxyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
       if (include_parallel_nonlinearity) call init_xyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
       if (.not. split_parallel_dynamics) call init_kymus_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
-   
+      call init_kxkyzt_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
+
    contains
    
       !=========================================================================
@@ -1752,10 +1771,9 @@ contains
 
       iz_local_kymus = lo%iproc == proc_id(lo, iz)
    end function iz_local_kymus
-   
 
 !###############################################################################
-!                            SWITCH BETWEEN LAYOUTS                             
+!                            SWITCH BETWEEN LAYOUTS
 !###############################################################################
 ! The routines "kxkyzidx2vmuidx", "kxyzidx2vmuidx" and "xyzidx2vmuidx" allows us
 ! to find the correspondence between the points on the different layout types:
@@ -1836,12 +1854,12 @@ contains
    end subroutine xyzidx2vmuidx
 
    !****************************************************************************
-   !                            KYMUS IDX 2 VMU IDX                             
+   !                            KYMUS IDX 2 VMU IDX
    !****************************************************************************
    elemental subroutine kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
-   
+
       implicit none
-      
+
       integer, intent(in) :: iv, ikymus
       type(kymus_layout_type), intent(in) :: kymus_lo
       type(vmu_layout_type), intent(in) :: vmu_lo
@@ -1849,8 +1867,225 @@ contains
 
       iky = iky_idx(kymus_lo, ikymus)
       ivmu = idx(vmu_lo, iv, imu_idx(kymus_lo, ikymus), is_idx(kymus_lo, ikymus))
-      
+
    end subroutine kymusidx2vmuidx
+
+!###############################################################################
+!                                 KXKYZT LAYOUT
+!###############################################################################
+! Layout that parallelises only over (iky, ikx, iz, it). The (vpa, mu, species)
+! axes are local on each processor. The natural choice for the implicit
+! collision solve, since the LAPACK band solve over the flattened (vpa, mu)
+! axis stays local AND species-coupled accesses are local.
+!
+! Index ordering in the global index <i> is:
+!     i = (iky-1) + naky*((ikx-1) + nakx*((iz+nzgrid) + nzed*(it-1)))
+! i.e. iky changes fastest, then ikx, then iz, then it.
+!###############################################################################
+
+   !****************************************************************************
+   !                         INITIALISE KXKYZT LAYOUT
+   !****************************************************************************
+   subroutine init_kxkyzt_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
+
+      use mp, only: iproc, nproc
+
+      implicit none
+
+      integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec
+      logical, save :: kxkyzt_initialised = .false.
+
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (kxkyzt_initialised) return
+      kxkyzt_initialised = .true.
+
+      ! Tubes and species
+      kxkyzt_lo%nspec = nspec
+      kxkyzt_lo%ntubes = ntubes
+
+      ! Velocity grid (kept local — these fields are stored only for convenience)
+      kxkyzt_lo%nmu = nmu
+      kxkyzt_lo%nvgrid = nvgrid
+      kxkyzt_lo%nvpa = 2 * nvgrid
+
+      ! Parallel space grid
+      kxkyzt_lo%nzgrid = nzgrid
+      kxkyzt_lo%nzed = 2 * nzgrid + 1
+
+      ! Perpendicular space grid
+      kxkyzt_lo%naky = naky
+      kxkyzt_lo%nakx = nakx
+
+      ! The current processor
+      kxkyzt_lo%iproc = iproc
+
+      ! Number of points that need to be divided over the processors:
+      ! parallelise (kx, ky, zed, tubes) and keep (vpa, mu, species) local.
+      kxkyzt_lo%llim_world = 0
+      kxkyzt_lo%ulim_world = naky * nakx * kxkyzt_lo%nzed * ntubes - 1
+
+      ! Number of points per processor
+      kxkyzt_lo%blocksize = kxkyzt_lo%ulim_world / nproc + 1
+      kxkyzt_lo%llim_proc = kxkyzt_lo%blocksize * iproc
+      kxkyzt_lo%ulim_proc = min(kxkyzt_lo%ulim_world, kxkyzt_lo%llim_proc + kxkyzt_lo%blocksize - 1)
+      kxkyzt_lo%ulim_alloc = max(kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc)
+
+   end subroutine init_kxkyzt_layout
+
+   !----------------------------------------------------------------------------
+   ! Returns the ky index, in the range [1, ..., naky], of point i.
+   !----------------------------------------------------------------------------
+   elemental function iky_idx_kxkyzt(lo, i)
+      implicit none
+      integer :: iky_idx_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      iky_idx_kxkyzt = 1 + mod(i - lo%llim_world, lo%naky)
+   end function iky_idx_kxkyzt
+
+   !----------------------------------------------------------------------------
+   ! Returns the kx index, in the range [1, ..., nakx], of point i.
+   !----------------------------------------------------------------------------
+   elemental function ikx_idx_kxkyzt(lo, i)
+      implicit none
+      integer :: ikx_idx_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      ikx_idx_kxkyzt = 1 + mod((i - lo%llim_world) / lo%naky, lo%nakx)
+   end function ikx_idx_kxkyzt
+
+   !----------------------------------------------------------------------------
+   ! Returns the z index, in the range [-nzgrid, ..., nzgrid], of point i.
+   !----------------------------------------------------------------------------
+   elemental function iz_idx_kxkyzt(lo, i)
+      implicit none
+      integer :: iz_idx_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      iz_idx_kxkyzt = -lo%nzgrid + mod((i - lo%llim_world) / lo%naky / lo%nakx, lo%nzed)
+   end function iz_idx_kxkyzt
+
+   !----------------------------------------------------------------------------
+   ! Returns the tube index, in the range [1, ..., ntubes], of point i.
+   ! Note: tube is the slowest-changing index, so no further branching needed.
+   !----------------------------------------------------------------------------
+   elemental function it_idx_kxkyzt(lo, i)
+      implicit none
+      integer :: it_idx_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      it_idx_kxkyzt = 1 + mod((i - lo%llim_world) / lo%naky / lo%nakx / lo%nzed, lo%ntubes)
+   end function it_idx_kxkyzt
+
+   !----------------------------------------------------------------------------
+   ! Returns the processor index, in the range [0, ..., nproc-1], of point i.
+   !----------------------------------------------------------------------------
+   elemental function proc_id_kxkyzt(lo, i)
+      implicit none
+      integer :: proc_id_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      proc_id_kxkyzt = i / lo%blocksize
+   end function proc_id_kxkyzt
+
+   !----------------------------------------------------------------------------
+   ! Returns the global index <idx> of point (iky, ikx, iz, it).
+   !----------------------------------------------------------------------------
+   elemental function idx_kxkyzt(lo, iky, ikx, iz, it)
+      implicit none
+      integer :: idx_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: iky, ikx, iz, it
+
+      idx_kxkyzt = (iky - 1) + lo%naky * ((ikx - 1) &
+                 + lo%nakx * ((iz + lo%nzgrid) + lo%nzed * (it - 1)))
+   end function idx_kxkyzt
+
+   !----------------------------------------------------------------------------
+   ! Returns true if the point (iky, ikx, iz, it) lives on the current proc.
+   !----------------------------------------------------------------------------
+   elemental function idx_local_kxkyzt(lo, iky, ikx, iz, it)
+      implicit none
+      logical :: idx_local_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: iky, ikx, iz, it
+
+      idx_local_kxkyzt = lo%iproc == proc_id(lo, idx(lo, iky, ikx, iz, it))
+   end function idx_local_kxkyzt
+
+   !----------------------------------------------------------------------------
+   ! Returns true if the z slab indexed by iz is owned by the current proc.
+   !----------------------------------------------------------------------------
+   elemental function iz_local_kxkyzt(lo, iz)
+      implicit none
+      logical :: iz_local_kxkyzt
+      type(kxkyzt_layout_type), intent(in) :: lo
+      integer, intent(in) :: iz
+
+      iz_local_kxkyzt = lo%iproc == proc_id(lo, iz)
+   end function iz_local_kxkyzt
+
+   !****************************************************************************
+   !                          KXKYZT IDX 2 VMU IDX
+   !****************************************************************************
+   ! From the indices (iv, imu, is) and the kxkyzt-layout point <ikxkyzt> we can
+   ! return the corresponding (iky, ikx, iz, it) and the vmu-layout point <ivmu>.
+   ! In the kxkyzt-layout, (vpa, mu, species) are ALL local on each processor and
+   ! (kx, ky, zed, tubes) are parallelised.
+   !****************************************************************************
+   elemental subroutine kxkyztidx2vmuidx(iv, imu, is, ikxkyzt, kxkyzt_lo, vmu_lo, iky, ikx, iz, it, ivmu)
+
+      implicit none
+
+      integer, intent(in) :: iv, imu, is, ikxkyzt
+      type(kxkyzt_layout_type), intent(in) :: kxkyzt_lo
+      type(vmu_layout_type), intent(in) :: vmu_lo
+      integer, intent(out) :: iky, ikx, iz, it, ivmu
+
+      iky = iky_idx(kxkyzt_lo, ikxkyzt)
+      ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
+      iz = iz_idx(kxkyzt_lo, ikxkyzt)
+      it = it_idx(kxkyzt_lo, ikxkyzt)
+      ivmu = idx(vmu_lo, iv, imu, is)
+
+   end subroutine kxkyztidx2vmuidx
+
+   !****************************************************************************
+   !                          KXKYZ IDX 2 KXKYZT IDX
+   !****************************************************************************
+   ! From a kxkyz-layout point <ikxkyz> we recover the (iky, ikx, iz, it, is)
+   ! tuple it represents and return the corresponding kxkyzt-layout point
+   ! <ikxkyzt> together with the species index <is>.
+   ! In kxkyz_lo the species axis is parallelised; in kxkyzt_lo it is not.
+   ! This converter is used by the kxkyz2kxkyzt redistribute that moves the
+   ! distribution function between the two layouts.
+   !****************************************************************************
+   elemental subroutine kxkyzidx2kxkyztidx(ikxkyz, kxkyz_lo, kxkyzt_lo, ikxkyzt, is)
+
+      implicit none
+
+      integer, intent(in) :: ikxkyz
+      type(kxkyz_layout_type), intent(in) :: kxkyz_lo
+      type(kxkyzt_layout_type), intent(in) :: kxkyzt_lo
+      integer, intent(out) :: ikxkyzt, is
+
+      integer :: iky, ikx, iz, it
+
+      iky = iky_idx(kxkyz_lo, ikxkyz)
+      ikx = ikx_idx(kxkyz_lo, ikxkyz)
+      iz = iz_idx(kxkyz_lo, ikxkyz)
+      it = it_idx(kxkyz_lo, ikxkyz)
+      is = is_idx(kxkyz_lo, ikxkyz)
+      ikxkyzt = idx(kxkyzt_lo, iky, ikx, iz, it)
+
+   end subroutine kxkyzidx2kxkyztidx
 
 !###############################################################################
 !                              FINISH LAYOUTS

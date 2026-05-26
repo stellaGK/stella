@@ -20,29 +20,54 @@ module initialise_redistribute
    public :: kxyz2vmu
    public :: xyz2vmu
    public :: kymus2vmus
+   public :: kxkyzt2vmu
+   public :: kxkyz2kxkyzt
 
    private
 
    ! Redistribution information
    type(redist_type) :: kxyz2vmu
    type(redist_type) :: xyz2vmu
-   
+
    ! For the kxkyz_layout, the (mu, vpa) dimensions are local and the (kx, ky, z, tube, s) dimensions are parallelised.
    ! For the vmu_layout, the (kx, ky, z, tube) dimensions are local and the (vpa, mu, s) dimensions are parallelised.
    ! For the mirror term, we need the velocity data to be local (i.e. we need to go from the vmu_layout to the kxkyz_layout)
    ! In other words, we go from  g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout) to gvmu(nvpa, nmu, kxkyz-layout)
    type(redist_type) :: kxkyz2vmu
-   
+
    ! this is a redist_type where we got from a layout with ky, mu and species parallelised
    ! and redistribute so that vpa, mu and species are parallelised
    type(redist_type) :: kymus2vmus
-   
+
+   ! For the kxkyzt_layout, the (vpa, mu, species) dimensions are ALL local on each
+   ! processor and only (kx, ky, zed, tubes) are parallelised. This redistribution
+   ! goes between
+   !   g_kxkyzt(nvpa, nmu, nspec, kxkyzt-layout)
+   ! and
+   !   g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout)
+   ! It is the natural redistribute for the implicit collision operator: every
+   ! cross-species access (e.g. nu_D(isa,is)) and every full-(vpa,mu) band solve
+   ! lives entirely on a single rank.
+   type(redist_type) :: kxkyzt2vmu
+
+   ! Redistribute the (vpa, mu, kxkyz_lo) distribution function between the
+   ! kxkyz layout and the kxkyzt layout, moving the species axis from
+   ! "parallelised" (kxkyz_lo) to "local" (kxkyzt_lo).
+   !   g_kxkyz (nvpa, nmu, kxkyz-layout)              <-- 3D
+   !   g_kxkyzt(nvpa, nmu, kxkyzt-layout, nspec)      <-- 4D
+   ! Used by the implicit collision step so that the cdiffmat_band/ipiv solves
+   ! can be performed on whichever rank owns the (kxkyzt, is) point regardless
+   ! of how kxkyz_lo distributes species across ranks.
+   type(redist_type) :: kxkyz2kxkyzt
+
    ! Only initialise once
    logical :: initialised_redistribute = .false.
    logical :: initialized_kxkyz_to_vmu_redistribute = .false.
    logical :: initialized_kxyz_to_vmu_redistribute = .false.
    logical :: initialized_xyz_to_vmu_redistribute = .false.
    logical :: initialized_kymus_to_vmus_redistribute = .false.
+   logical :: initialized_kxkyzt_to_vmu_redistribute = .false.
+   logical :: initialized_kxkyz_to_kxkyzt_redistribute = .false.
 
 contains
 
@@ -75,6 +100,8 @@ contains
       if (full_flux_surface) call init_kxyz_to_vmu_redistribute
       if (include_parallel_nonlinearity) call init_xyz_to_vmu_redistribute
       if (.not. split_parallel_dynamics) call init_kymus_to_vmus_redistribute
+      call init_kxkyzt_to_vmu_redistribute
+      call init_kxkyz_to_kxkyzt_redistribute
 
    end subroutine init_redistribute
 
@@ -623,7 +650,306 @@ contains
 
    end subroutine init_kymus_to_vmus_redistribute
 
-   
+   !****************************************************************************
+   !               Redistribute from kxkyzt-layout to vmu-layout
+   !****************************************************************************
+   ! Redistribute the distribution function between
+   !   g_kxkyzt(nvpa, nmu, nspec, kxkyzt-layout)
+   ! and
+   !   g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout)
+   !
+   ! The kxkyzt layout keeps (vpa, mu, species) all local on every rank, so the
+   ! "from-side" of this redistribute carries 4 indices (iv, imu, is, ikxkyzt).
+   ! The "to-side" carries the usual 5-index vmu-layout shape (iky, ikx, iz, it,
+   ! ivmu).
+   !****************************************************************************
+   subroutine init_kxkyzt_to_vmu_redistribute
+
+      use mp, only: nproc
+      use parallelisation_layouts, only: kxkyzt_lo, vmu_lo
+      use parallelisation_layouts, only: kxkyztidx2vmuidx
+      use parallelisation_layouts, only: idx_local, proc_id
+      use redistribute, only: index_list_type, init_redist
+      use redistribute, only: delete_list, set_redist_character_type
+      use grids_velocity, only: nvpa, nmu
+      use grids_species, only: nspec
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      type(index_list_type), dimension(0:nproc - 1) :: to_list, from_list
+      integer, dimension(0:nproc - 1) :: nn_to, nn_from
+      integer, dimension(4) :: from_low, from_high
+      integer, dimension(5) :: to_high, to_low
+      integer :: ikxkyzt, ivmu, ip, n
+      integer :: iv, imu, is, iky, ikx, iz, it
+
+      !----------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialized_kxkyzt_to_vmu_redistribute) return
+      initialized_kxkyzt_to_vmu_redistribute = .true.
+
+      ! Count the number of elements to be redistributed to/from each processor.
+      ! The kxkyzt layout has (vpa, mu, species) all local, so we loop over
+      ! all four "fast" indices for every kxkyzt point.
+      nn_to = 0
+      nn_from = 0
+      do ikxkyzt = kxkyzt_lo%llim_world, kxkyzt_lo%ulim_world
+         do is = 1, nspec
+            do imu = 1, nmu
+               do iv = 1, nvpa
+                  call kxkyztidx2vmuidx(iv, imu, is, ikxkyzt, kxkyzt_lo, vmu_lo, &
+                                        iky, ikx, iz, it, ivmu)
+                  if (idx_local(kxkyzt_lo, ikxkyzt)) &
+                       nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
+                  if (idx_local(vmu_lo, ivmu)) &
+                       nn_to(proc_id(kxkyzt_lo, ikxkyzt)) = nn_to(proc_id(kxkyzt_lo, ikxkyzt)) + 1
+               end do
+            end do
+         end do
+      end do
+
+      ! Debug message
+      if (debug) then
+         write(*,*) ''; write(*,*) 'Initialise kxkyzt_to_vmu_redistribute:'
+         do ip = 0, nproc - 1
+            write(*,'(A,I0,A,I0,A,I0)') '    kxkyzt_to_vmu on proc ', ip, &
+                  ': nn_from = ', nn_from(ip), ', nn_to = ', nn_to(ip)
+         end do
+      end if
+
+      ! Allocate the index lists. The kxkyzt-side is 4D (iv, imu, is, ikxkyzt);
+      ! the vmu-side is 5D (iky, ikx, iz, it, ivmu).
+      do ip = 0, nproc - 1
+         if (nn_from(ip) > 0) then
+            allocate (from_list(ip)%first(nn_from(ip)))     ! nvpa
+            allocate (from_list(ip)%second(nn_from(ip)))    ! nmu
+            allocate (from_list(ip)%third(nn_from(ip)))     ! nspec
+            allocate (from_list(ip)%fourth(nn_from(ip)))    ! kxkyzt-layout
+         end if
+         if (nn_to(ip) > 0) then
+            allocate (to_list(ip)%first(nn_to(ip)))         ! naky
+            allocate (to_list(ip)%second(nn_to(ip)))        ! nakx
+            allocate (to_list(ip)%third(nn_to(ip)))         ! nz
+            allocate (to_list(ip)%fourth(nn_to(ip)))        ! ntubes
+            allocate (to_list(ip)%fifth(nn_to(ip)))         ! vmu-layout
+         end if
+      end do
+
+      ! Get local indices of elements distributed to/from other processors
+      nn_to = 0
+      nn_from = 0
+
+      do ikxkyzt = kxkyzt_lo%llim_world, kxkyzt_lo%ulim_world
+         do is = 1, nspec
+            do imu = 1, nmu
+               do iv = 1, nvpa
+
+                  call kxkyztidx2vmuidx(iv, imu, is, ikxkyzt, kxkyzt_lo, vmu_lo, &
+                                        iky, ikx, iz, it, ivmu)
+
+                  ! If the kxkyzt-point is local, store its (iv, imu, is, ikxkyzt)
+                  ! indices so it can be sent to the processor owning the
+                  ! corresponding ivmu-point.
+                  if (idx_local(kxkyzt_lo, ikxkyzt)) then
+                     ip = proc_id(vmu_lo, ivmu)
+                     n = nn_from(ip) + 1
+                     nn_from(ip) = n
+                     from_list(ip)%first(n) = iv
+                     from_list(ip)%second(n) = imu
+                     from_list(ip)%third(n) = is
+                     from_list(ip)%fourth(n) = ikxkyzt
+                  end if
+
+                  ! If the ivmu-point is local, store its (iky, ikx, iz, it, ivmu)
+                  ! indices so it can be received from the processor owning the
+                  ! corresponding kxkyzt-point.
+                  if (idx_local(vmu_lo, ivmu)) then
+                     ip = proc_id(kxkyzt_lo, ikxkyzt)
+                     n = nn_to(ip) + 1
+                     nn_to(ip) = n
+                     to_list(ip)%first(n) = iky
+                     to_list(ip)%second(n) = ikx
+                     to_list(ip)%third(n) = iz
+                     to_list(ip)%fourth(n) = it
+                     to_list(ip)%fifth(n) = ivmu
+                  end if
+
+               end do
+            end do
+         end do
+      end do
+
+      ! Lower and upper limits on the kxkyzt-side:
+      !   g_kxkyzt(nvpa, nmu, nspec, kxkyzt-layout)
+      from_low(1) = 1
+      from_low(2) = 1
+      from_low(3) = 1
+      from_low(4) = kxkyzt_lo%llim_proc
+
+      from_high(1) = nvpa
+      from_high(2) = nmu
+      from_high(3) = nspec
+      from_high(4) = kxkyzt_lo%ulim_alloc
+
+      ! Lower and upper limits on the vmu-side:
+      !   g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout)
+      to_low(1) = 1
+      to_low(2) = 1
+      to_low(3) = -nzgrid
+      to_low(4) = 1
+      to_low(5) = vmu_lo%llim_proc
+
+      to_high(1) = vmu_lo%naky
+      to_high(2) = vmu_lo%nakx
+      to_high(3) = vmu_lo%nzgrid
+      to_high(4) = vmu_lo%ntubes
+      to_high(5) = vmu_lo%ulim_alloc
+
+      ! Send <to_list>, <from_list> and their limits to each processor
+      call set_redist_character_type(kxkyzt2vmu, 'kxkyzt2vmu')
+      call init_redist(kxkyzt2vmu, 'c', to_low, to_high, to_list, from_low, from_high, from_list)
+      call delete_list(to_list)
+      call delete_list(from_list)
+
+   end subroutine init_kxkyzt_to_vmu_redistribute
+
+   !****************************************************************************
+   !            Redistribute from kxkyz-layout to kxkyzt-layout
+   !****************************************************************************
+   ! Redistribute the distribution function between
+   !   g_kxkyz (nvpa, nmu, kxkyz-layout)              -- species parallelised
+   ! and
+   !   g_kxkyzt(nvpa, nmu, kxkyzt-layout, nspec)      -- species local
+   !
+   ! From-side is 3D (iv, imu, ikxkyz); to-side is 4D (iv, imu, ikxkyzt, is).
+   ! Each kxkyz point (iky, ikx, iz, it, is) maps to exactly one (ikxkyzt, is)
+   ! pair, so the redistribute is bijective. Built on c_redist_34/c_redist_34_inv.
+   !****************************************************************************
+   subroutine init_kxkyz_to_kxkyzt_redistribute
+
+      use mp, only: nproc
+      use parallelisation_layouts, only: kxkyz_lo, kxkyzt_lo
+      use parallelisation_layouts, only: kxkyzidx2kxkyztidx
+      use parallelisation_layouts, only: idx_local, proc_id
+      use redistribute, only: index_list_type, init_redist
+      use redistribute, only: delete_list, set_redist_character_type
+      use grids_velocity, only: nvpa, nmu
+      use grids_species, only: nspec
+
+      implicit none
+
+      type(index_list_type), dimension(0:nproc - 1) :: to_list, from_list
+      integer, dimension(0:nproc - 1) :: nn_to, nn_from
+      integer, dimension(3) :: from_low, from_high
+      integer, dimension(4) :: to_high, to_low
+      integer :: ikxkyz, ikxkyzt, is, ip, n
+      integer :: iv, imu
+
+      !----------------------------------------------------------------------
+
+      if (initialized_kxkyz_to_kxkyzt_redistribute) return
+      initialized_kxkyz_to_kxkyzt_redistribute = .true.
+
+      ! Count the number of elements to be redistributed to/from each processor.
+      nn_to = 0
+      nn_from = 0
+      do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
+         call kxkyzidx2kxkyztidx(ikxkyz, kxkyz_lo, kxkyzt_lo, ikxkyzt, is)
+         do imu = 1, nmu
+            do iv = 1, nvpa
+               if (idx_local(kxkyz_lo, ikxkyz)) &
+                    nn_from(proc_id(kxkyzt_lo, ikxkyzt)) = nn_from(proc_id(kxkyzt_lo, ikxkyzt)) + 1
+               if (idx_local(kxkyzt_lo, ikxkyzt)) &
+                    nn_to(proc_id(kxkyz_lo, ikxkyz)) = nn_to(proc_id(kxkyz_lo, ikxkyz)) + 1
+            end do
+         end do
+      end do
+
+      ! Debug message
+      if (debug) then
+         write(*,*) ''; write(*,*) 'Initialise kxkyz_to_kxkyzt_redistribute:'
+         do ip = 0, nproc - 1
+            write(*,'(A,I0,A,I0,A,I0)') '    kxkyz_to_kxkyzt on proc ', ip, &
+                  ': nn_from = ', nn_from(ip), ', nn_to = ', nn_to(ip)
+         end do
+      end if
+
+      ! Allocate the index lists. The kxkyz-side is 3D (iv, imu, ikxkyz);
+      ! the kxkyzt-side is 4D (iv, imu, ikxkyzt, is).
+      do ip = 0, nproc - 1
+         if (nn_from(ip) > 0) then
+            allocate (from_list(ip)%first(nn_from(ip)))     ! nvpa
+            allocate (from_list(ip)%second(nn_from(ip)))    ! nmu
+            allocate (from_list(ip)%third(nn_from(ip)))     ! kxkyz-layout
+         end if
+         if (nn_to(ip) > 0) then
+            allocate (to_list(ip)%first(nn_to(ip)))         ! nvpa
+            allocate (to_list(ip)%second(nn_to(ip)))        ! nmu
+            allocate (to_list(ip)%third(nn_to(ip)))         ! kxkyzt-layout
+            allocate (to_list(ip)%fourth(nn_to(ip)))        ! nspec
+         end if
+      end do
+
+      ! Get local indices of elements distributed to/from other processors
+      nn_to = 0
+      nn_from = 0
+
+      do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
+         call kxkyzidx2kxkyztidx(ikxkyz, kxkyz_lo, kxkyzt_lo, ikxkyzt, is)
+         do imu = 1, nmu
+            do iv = 1, nvpa
+               if (idx_local(kxkyz_lo, ikxkyz)) then
+                  ip = proc_id(kxkyzt_lo, ikxkyzt)
+                  n = nn_from(ip) + 1
+                  nn_from(ip) = n
+                  from_list(ip)%first(n) = iv
+                  from_list(ip)%second(n) = imu
+                  from_list(ip)%third(n) = ikxkyz
+               end if
+               if (idx_local(kxkyzt_lo, ikxkyzt)) then
+                  ip = proc_id(kxkyz_lo, ikxkyz)
+                  n = nn_to(ip) + 1
+                  nn_to(ip) = n
+                  to_list(ip)%first(n) = iv
+                  to_list(ip)%second(n) = imu
+                  to_list(ip)%third(n) = ikxkyzt
+                  to_list(ip)%fourth(n) = is
+               end if
+            end do
+         end do
+      end do
+
+      ! Lower and upper limits on the kxkyz-side: g_kxkyz(nvpa, nmu, kxkyz-layout)
+      from_low(1) = 1
+      from_low(2) = 1
+      from_low(3) = kxkyz_lo%llim_proc
+
+      from_high(1) = nvpa
+      from_high(2) = nmu
+      from_high(3) = kxkyz_lo%ulim_alloc
+
+      ! Lower and upper limits on the kxkyzt-side: g_kxkyzt(nvpa, nmu, kxkyzt-layout, nspec)
+      to_low(1) = 1
+      to_low(2) = 1
+      to_low(3) = kxkyzt_lo%llim_proc
+      to_low(4) = 1
+
+      to_high(1) = nvpa
+      to_high(2) = nmu
+      to_high(3) = kxkyzt_lo%ulim_alloc
+      to_high(4) = nspec
+
+      ! Send <to_list>, <from_list> and their limits to each processor
+      call set_redist_character_type(kxkyz2kxkyzt, 'kxkyz2kxkyzt')
+      call init_redist(kxkyz2kxkyzt, 'c', to_low, to_high, to_list, from_low, from_high, from_list)
+      call delete_list(to_list)
+      call delete_list(from_list)
+
+   end subroutine init_kxkyz_to_kxkyzt_redistribute
+
+
 !###############################################################################
 !############################ FINISH REDISTRIBUTE ##############################
 !###############################################################################

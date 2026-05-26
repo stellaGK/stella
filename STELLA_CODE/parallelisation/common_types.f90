@@ -42,7 +42,19 @@ module common_types
       integer :: nzgrid, nzed, ntubes, naky, nakx, nvgrid, nvpa, nmu, nspec
       integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
    end type kymus_layout_type
-   
+
+   ! Layout that parallelises over (kx, ky, zed, tubes) ONLY and keeps
+   ! (vpa, mu, species) all local on each processor. Therefore
+   ! (naky*nakx*nzed*ntubes - 1) grid points are divided over the processors.
+   !
+   ! This is the layout for the implicit collision operator
+   type :: kxkyzt_layout_type
+      sequence
+      integer :: iproc
+      integer :: nzgrid, nzed, ntubes, naky, nakx, nvgrid, nvpa, nmu, nspec
+      integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
+   end type kxkyzt_layout_type
+
    type :: flux_surface_type
       real :: rmaj
       real :: rgeo

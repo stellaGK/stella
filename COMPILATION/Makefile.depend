@@ -1143,6 +1143,7 @@ $(OBJ_DIR)/initialise_redistribute.o: \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
