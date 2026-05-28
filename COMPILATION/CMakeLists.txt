@@ -95,6 +95,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/field_equations/field_equations_electromagnetic.f90
   ../STELLA_CODE/field_equations/field_equations_fluxtube.f90
   ../STELLA_CODE/field_equations/field_equations_fullfluxsurface.f90
+  ../STELLA_CODE/field_equations/field_equations_fluxtube_neoclassical.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_drive.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_flow_shear.f90
@@ -107,7 +108,14 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_explicit.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_implicit.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_initialisation.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_neo_apar_terms.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_neo_chi_terms.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_neo_dchidz_terms.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_neo_drifts.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_neo_drive.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
+  ../STELLA_CODE/neoclassical/neoclassical_terms_neo.f90
+  ../STELLA_CODE/neoclassical/neoclassical_diagnostics.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
   ../STELLA_CODE/parameters/parameters_multibox.f90

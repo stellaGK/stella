@@ -2,23 +2,22 @@
 ! --------------------------------------------------------------------------------- NEO INTERFACE -------------------------------------------------------------------------------- !
 ! ================================================================================================================================================================================ !
 !
-! This module reads in NEO output data associated with the first order neoclassical correction to the 
-! equilibrium distributuion, F_1. This is needed as input for second order simulations in stella.   
+! This module contains routines for reading in NEO output data, namely the first order non-adiabatic correction to the equilibrium distributuion, H_1, and the first order 
+! correction to the equilibrium electrostatic potential, ϕ^1_0. This is needed as input for higher order simulations in stella. The total first order equilibrium distribution
+! function, F_1, is given by:
+!
+! F_1 * F_0 = ( H_1 - Z * ϕ^1_0 ) * F_0
+!
+! where F_1, H_1 and ϕ^1_0 are dimensionless. 
 ! 
-! NEO output for the distribution correction, H_1, and the electrostatic potential 
-! correction, ϕ^1_0, is related to F_1 via
+!   - F_1: Total first-order correction to the equilibrium distribution function.
+!   - H_1: NEO's non-adiabatic equilibrium distribution function correction.
+!   - ϕ^1_0: NEO's equilibrium electrostatic potential correction.
+!   - F_0: The Maxwellian distribution.
+!   - e, Z, T: Elementary Charge, species charge number, and species temperature.
 !
-! F_1 = H_1 - (e * Z/T) * ϕ^1_0 * F_0
-!
-! where:
-!   - F_1: Total first-order correction to the distribution function.
-!   - H_1: NEO's non-adiabatic distribution function correction.
-!   - ϕ^1_0: NEO's electrostatic potential correction.
-!   - F_0: The leading order Maxwellian distribution.
-!   - e, Z, T: Elementary Charge, charge number, and temperature.
-!
-! stella requires output data from 3 seperate NEO runs (for 3 neighbouring flux surfaces). This is needed
-! to calculate the equilibrium gradient drive arising from F_1. Files to be read in are: 
+! stella requires output data from 3 seperate NEO runs for 3 neighbouring flux surfaces. The central surface is the surface of interest for the proceeding gyrokinetic simulation.
+! Data from left and right surfaces is  needed to calculate the equilibrium gradient drive arising from F_1. NEO Files to be read in are: 
 !
 ! out.neo.f
 ! out.neo.f.right
@@ -31,8 +30,7 @@
 ! out.neo.grid
 ! out.neo.version
 !
-! Files without a "left" or "right" suffix correspond to the central flux surface for which stella
-! simulations are to be run.
+! Files without a "left" or "right" suffix correspond to the central flux surface for which stella simulations are to be run.
 !
 ! ================================================================================================================================================================================ !
 
@@ -65,7 +63,7 @@ module NEO_interface
         integer :: n_energy = -1
         integer :: n_xi = -1
         integer :: n_theta = -1
-        real, dimension(:), allocatable :: theta ! Use double precision for floating point numbers. 
+        real, dimension(:), allocatable :: theta 
         integer :: n_radial = -1
         real, dimension(:), allocatable :: radius
     end type neo_grid_data
@@ -82,13 +80,13 @@ module NEO_interface
         real, dimension(:), allocatable :: rho_star
         real, dimension(:), allocatable :: major_radius
         real, dimension(:), allocatable :: angular_frequency
-        real, dimension(:), allocatable :: rotation_shear ! 1-dimensional arrays for radially varying quantities. 
+        real, dimension(:), allocatable :: rotation_shear  
      
         real, dimension(:, :), allocatable :: density
         real, dimension(:, :), allocatable :: temperature
         real, dimension(:, :), allocatable :: density_gradient
         real, dimension(:, :), allocatable :: temperature_gradient
-        real, dimension(:, :), allocatable :: collision_frequency ! 2-D arrays for radius and species dependent quantites. 
+        real, dimension(:, :), allocatable :: collision_frequency 
     end type neo_equil_data
 
 
@@ -138,14 +136,10 @@ contains
         line = ''
 
         do while (.true.)
-            ! Read the next chunk.
             read(unit, '(a)', iostat = err, advance='no', size = size_read) chars
 
-            ! Append read chars to line.
             line = line // chars(:size_read)
 
-            ! Now check if we've reached the end of the record or the end of the file. If so then exit 
-            ! the loop.
             if (is_iostat_eor(err) .or. is_iostat_end(err)) exit
         end do
     end function read_line
@@ -156,7 +150,7 @@ contains
 ! ================================================================================================================================================================================ !
 
     subroutine read_basic_neo_files(grid, version, equil, species, basename)
-        use optionals, only: get_option_with_default           ! Optionals logic imported from gs2 utils. 
+        use optionals, only: get_option_with_default       
      
         implicit none
    
@@ -318,8 +312,6 @@ contains
                     read(unit, '(e16.8)', advance='no') equil%collision_frequency(is, ir)
                 end do
 
-                ! Advance to the next record. Note we pass iostat here as we don't
-                ! care if we hit the end of file.
                 read(unit, '()', iostat=err)
             end do
 
@@ -354,7 +346,7 @@ contains
             open(newunit = unit, file = filename, status="old", action="read")
 
             do i = 1, expected_size
-                read(unit, *) raw_f(i) ! Using list-directed read
+                read(unit, *) raw_f(i) 
             end do
 
             close(unit)
@@ -393,7 +385,7 @@ contains
 
 
 ! ================================================================================================================================================================================ !
-! ------------------------------------------------------------------------- Get H_1 and ϕ for a single flux surface. ------------------------------------------------------------- !
+! ------------------------------------------------------------------------- Get H_1 and ϕ^1_0 for a single flux surface. ------------------------------------------------------------- !
 ! ================================================================================================================================================================================ !
 
     subroutine read_neo_f_and_phi(neo_f, neo_phi, grid, basename, suffix)
