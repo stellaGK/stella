@@ -13,6 +13,9 @@ set(STELLA_UTILS_SOURCES_f90
   mt19937.f90
   spl.f90
   text_options.f90
+  warning_helpers.f90
+  polynomials.f90
+  periodic_splines.f90 
   )
 
 # Source files that need preprocessing
@@ -26,6 +29,7 @@ set(STELLA_UTILS_SOURCES_fpp
   ran.fpp
   spfunc.fpp
   system_fortran.fpp
+  optionals.fpp
   )
 
 set_source_files_properties(
