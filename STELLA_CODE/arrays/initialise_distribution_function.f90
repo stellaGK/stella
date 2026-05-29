@@ -901,7 +901,7 @@ contains
 
          if (abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
             gvmu(:, :, ikxkyz) = spec(is)%z * 0.5 * phiinit * kperp2(iky, ikx, ia, iz) &
-                                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
          end if
       end do
 

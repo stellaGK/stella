@@ -227,7 +227,8 @@ contains
       use mp, only: proc0, broadcast
       use parameters_numerical, only: autostop
       use parameters_diagnostics, only: navg
-
+      use debug_flags, only: check_omega_convergence
+      
       implicit none
 
       integer, intent(in) :: istep
@@ -243,7 +244,7 @@ contains
       if (.not. autostop) return
 
       ! Check whether (omega, gamma) has saturated
-      if (proc0) then
+      if (proc0 .and. check_omega_convergence) then
          if (istep > navg+1) then
 
             ! Check whether all elements in <omega_vs_tkykx> are the same

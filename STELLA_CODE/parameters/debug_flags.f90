@@ -40,7 +40,7 @@ module debug_flags
    public :: gyro_averages_debug
    public :: parallelisation_debug
    public :: print_extra_info_to_terminal
-
+   public :: check_omega_convergence
    ! Extra debug flags used when developing new routines
    public :: debug_test_gyro_average
    public :: calculations_debug
@@ -94,6 +94,9 @@ module debug_flags
    ! Print extra information to command prompt
    logical :: print_extra_info_to_terminal
 
+   ! Check omega convergence in linear runs
+   logical :: check_omega_convergence
+
    ! Extra debug flags used when developing new routines
    logical :: debug_test_gyro_average
    logical :: calculations_debug
@@ -120,7 +123,7 @@ contains
          diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
          diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-         debug_test_gyro_average, calculations_debug, parallelisation_debug)
+         debug_test_gyro_average, calculations_debug, parallelisation_debug, check_omega_convergence)
 
       ! Broadcast the parameters to all processors
       call broadcast_parameters
@@ -191,6 +194,7 @@ contains
          call broadcast(geometry_debug)
          call broadcast(const_alpha_geo)
          call broadcast(print_extra_info_to_terminal)
+         call broadcast(check_omega_convergence)
          call broadcast(debug_test_gyro_average)
          call broadcast(calculations_debug)
          call broadcast(parallelisation_debug)

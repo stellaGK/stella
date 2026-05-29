@@ -389,7 +389,11 @@ contains
                      end if
                      theta0(j, :) = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
                   end do
-                  
+
+               else if (nakx == 1 .and. akx_min == 0) then
+                  aky = 0.0
+                  if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
+                  akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
                ! Construct the theta0 array for negative global magnetic shear (link theta0_max to akx_min)
                else
                   do j = 1, naky
@@ -406,7 +410,7 @@ contains
                   end do
                end if
                
-            else
+            else               
                call mp_abort('The choice ky=0 is inconsistent with akx_min different from akx_max. Aborting.')
             end if
          

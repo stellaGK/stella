@@ -31,6 +31,7 @@
 !      geometry_debug = .false.
 !      const_alpha_geo = .false.
 !      parallelisation_debug = .false.
+!      check_omega_convergence = .true.
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
@@ -66,7 +67,7 @@ contains
       time_advance_debug, extended_grid_debug, diagnostics_all_debug, diagnostics_parameters, &
       diagnostics_fluxes_fluxtube_debug, diagnostics_omega_debug, diagnostics_debug, dist_fn_debug, &
       gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-      debug_test_gyro_average, calculations_debug, parallelisation_debug)
+      debug_test_gyro_average, calculations_debug, parallelisation_debug, check_omega_convergence)
 
       use mp, only: proc0
 
@@ -80,7 +81,7 @@ contains
          diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
          diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-         debug_test_gyro_average, calculations_debug, parallelisation_debug
+         debug_test_gyro_average, calculations_debug, parallelisation_debug, check_omega_convergence
 
       !-------------------------------------------------------------------------
 
@@ -118,6 +119,7 @@ contains
          dist_fn_debug = .false.
          gyro_averages_debug = .false.
          parallelisation_debug = .false.
+         check_omega_convergence = .true. 
 
          ! Diagnostics debug flags
          diagnostics_debug = .false.
@@ -151,7 +153,7 @@ contains
              diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
              diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
              gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-             debug_test_gyro_average, calculations_debug, parallelisation_debug
+             debug_test_gyro_average, calculations_debug, parallelisation_debug, check_omega_convergence
          
          !----------------------------------------------------------------------
 
