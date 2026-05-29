@@ -158,6 +158,10 @@ clean:
 $(OBJ)/command_line.o: 
 $(OBJ)/constants.o: 
 $(OBJ)/convert.o: 
+$(OBJ)/optionals.o:
+$(OBJ)/warning_helpers.o: $(OBJ)/optionals.o
+$(OBJ)/polynomials.o: $(OBJ)/warning_helpers.o
+$(OBJ)/periodic_splines.o: $(OBJ)/mp.o $(OBJ)/optionals.o $(OBJ)/warning_helpers.o
 $(OBJ)/fft_work.o: $(OBJ)/mp.o $(OBJ)/constants.o
 $(OBJ)/file_units.o: $(OBJ_DIR)/file_utils.o
 $(OBJ)/file_utils.o: $(OBJ)/command_line.o 
