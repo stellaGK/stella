@@ -7,7 +7,7 @@
 !        - F^{-1}_k [ik_x J_0 ϕ_k] F^{-1}_k [ik_y g_{k,s} ] )
 ! 
 !###############################################################################
-module gk_nonlinearity
+module gk_ExB_nonlinearity
 
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
@@ -736,4 +736,4 @@ contains
 
    end subroutine finish_parallel_nonlinearity
 
-end module gk_nonlinearity
+end module gk_ExB_nonlinearity

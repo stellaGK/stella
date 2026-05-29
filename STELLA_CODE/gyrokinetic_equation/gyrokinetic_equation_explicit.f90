@@ -1,4 +1,4 @@
-!###############################################################################
+`!###############################################################################
 !################## EXPLICIT TERMS OF THE GYROKINETIC EQUATION #################
 !###############################################################################
 ! 
@@ -217,9 +217,9 @@ contains
       use gk_flow_shear, only: advance_parallel_flow_shear
       use gk_drive, only: advance_wstar_explicit
       use gk_magnetic_drift, only: advance_wdriftx_explicit, advance_wdrifty_explicit
-      use gk_nonlinearity, only: advance_parallel_nonlinearity
+      use gk_ExB_nonlinearity, only: advance_parallel_nonlinearity
       use gk_radial_variation, only: advance_radial_variation
-      use gk_nonlinearity, only: advance_ExB_nonlinearity
+      use gk_ExB_nonlinearity, only: advance_ExB_nonlinearity
       use field_equations_radialvariation, only: get_radial_correction
       use field_equations, only: advance_fields
       use field_equations, only: fields_updated
