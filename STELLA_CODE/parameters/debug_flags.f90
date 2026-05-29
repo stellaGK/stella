@@ -38,6 +38,7 @@ module debug_flags
    public :: geometry_debug
    public :: dist_fn_debug
    public :: gyro_averages_debug
+   public :: fac_zonal
    public :: print_extra_info_to_terminal
 
    ! Extra debug flags used when developing new routines
@@ -96,6 +97,7 @@ module debug_flags
    logical :: debug_test_gyro_average
    logical :: calculations_debug
 
+   real :: fac_zonal
 contains
 
    !======================================================================
@@ -118,7 +120,7 @@ contains
          diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
          diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-         debug_test_gyro_average, calculations_debug)
+         debug_test_gyro_average, calculations_debug, fac_zonal)
 
       ! Broadcast the parameters to all processors
       call broadcast_parameters
@@ -189,6 +191,7 @@ contains
          call broadcast(print_extra_info_to_terminal) 
          call broadcast(debug_test_gyro_average)
          call broadcast(calculations_debug)
+         call broadcast(fac_zonal)
 
       end subroutine broadcast_parameters
 

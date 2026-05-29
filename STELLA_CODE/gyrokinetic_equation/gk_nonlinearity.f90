@@ -120,7 +120,8 @@ contains
       use calculations_kxky_derivatives, only: get_dchidx, get_dchidy
       use calculations_transforms, only: transform_y2ky, transform_x2kx
       use calculations_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
-      
+
+      use parameters_physics, only: weakly_nonlinear
       use parameters_physics, only: fphi
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: suppress_zonal_interaction
@@ -302,13 +303,23 @@ contains
                   else
                      call transform_y2ky(g0kxy, g0k_swap)
                      call swap_kxky_back(g0k_swap, tmp)
-                     gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
+                     if(weakly_nonlinear) then 
+                        gout(1, :, iz, it, ivmu) = gout(1, :, iz, it, ivmu) + code_dt * tmp(1,:)
+                        gout(2:, :, iz, it, ivmu) = gout(2:, :, iz, it, ivmu)
+                     else
+                        gout(:, :, iz, it, ivmu) = gout(:,	:, iz, it, ivmu) + code_dt * tmp(:, :)
+                     end if
                   end if
                else
                   call transform_y2ky_xfirst(bracket, g0xky)
                   g0xky = g0xky / prefac
                   call transform_x2kx_xfirst(g0xky, tmp)
-                  gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
+                  if(weakly_nonlinear) then	
+                     gout(1, :, iz, it, ivmu) = gout(1, :, iz, it, ivmu) + code_dt * tmp(1,:)
+                     gout(2:, :, iz, it, ivmu) = gout(2:, :, iz, it, ivmu)
+                  else
+                     gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp(:, :)
+                  end if
                end if
                end do
          end do

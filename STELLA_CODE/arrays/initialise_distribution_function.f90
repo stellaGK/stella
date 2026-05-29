@@ -501,14 +501,16 @@ contains
       ! Read the following variables from the input file
       real :: width0, den0, upar0
       logical :: oddparity, left, chop_side, set_theta0_to_zero
-      
+
+      real :: zf_init
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_maxwellian> namelist
       if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, & 
-         left, chop_side, set_theta0_to_zero)
+         left, chop_side, set_theta0_to_zero, zf_init)
          
       ! Broadcast to all processors
+      call broadcast(zf_init)
       call broadcast(width0)
       call broadcast(den0)
       call broadcast(upar0)
@@ -550,6 +552,8 @@ contains
 
       if (zonal_mode(1)) then
          ! zero out kx = ky = 0 mode
+         phi(1, :, :) = phi(1, :, :) * zf_init
+         
          if (abs(akx(1)) < epsilon(0.0)) then
             phi(1, 1, :) = 0.0
          end if
@@ -954,17 +958,30 @@ contains
       use save_stella_for_restart, only: stella_restore
       use mp, only: proc0
       use file_units, only: unit_error_file
-      
+      use debug_flags, only: fac_zonal
+
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx
+      use grids_kxky, only: zonal_mode, aky
       implicit none
 
       integer :: istatus
-
+      integer :: ikxkyz
+      integer :: iky
       !-------------------------------------------------------------------------
 
       ! should really check if profile_variation=T here but need
       ! to move profile_variation to module that is accessible here
       call stella_restore(gvmu, scale, istatus)
 
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         if(aky(iky) == 0.0) then
+            gvmu(:,:,ikxkyz) = fac_zonal * gvmu(:,:,ikxkyz)
+         else
+            cycle
+         end if
+      end do
+      
       if (istatus /= 0) then
          if (proc0) write (unit_error_file, *) "Error reading file: ", trim(restart_file)
          gvmu = 0.

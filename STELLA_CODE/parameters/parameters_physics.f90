@@ -58,6 +58,7 @@ module parameters_physics
    ! Only initialise once
    public :: initialised_parameters_physics
 
+   public :: weakly_nonlinear
    private
 
    ! Gyrokinetic terms
@@ -91,6 +92,7 @@ module parameters_physics
    ! Only initialise once
    logical :: initialised_parameters_physics = .false.
 
+   logical :: weakly_nonlinear
 contains
 
    !*************************************************************************
@@ -119,7 +121,7 @@ contains
          full_flux_surface, radial_variation)
       call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
          include_parallel_streaming, include_mirror, xdriftknob, ydriftknob, wstarknob, streamknob, & 
-         mirrorknob, fphi, suppress_zonal_interaction)
+         mirrorknob, fphi, suppress_zonal_interaction, weakly_nonlinear)
       call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
       call read_namelist_physics_inputs(rhostar)
 
@@ -179,6 +181,7 @@ contains
          call broadcast(mirrorknob)
          call broadcast(fphi)
          call broadcast(suppress_zonal_interaction)
+         call broadcast(weakly_nonlinear)
 
          ! Electromagnetic effects
          call broadcast(include_apar)

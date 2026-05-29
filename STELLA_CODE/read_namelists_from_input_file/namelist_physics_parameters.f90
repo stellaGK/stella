@@ -23,7 +23,8 @@
 !     wstarknob = 1.0
 !     fphi = 1.0
 !     suppress_zonal_interaction = .false.
-! 
+!     weakly_nonlinear = .false.
+!
 !   electromagnetic
 !     include_apar = .false.
 !     include_bpar = .false.
@@ -217,7 +218,7 @@ contains
    !****************************************************************************
    subroutine read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
       include_parallel_streaming, include_mirror, xdriftknob, ydriftknob, wstarknob, &
-      streamknob, mirrorknob, fphi, suppress_zonal_interaction)
+      streamknob, mirrorknob, fphi, suppress_zonal_interaction, weakly_nonlinear)
 
       use mp, only: proc0
 
@@ -226,7 +227,7 @@ contains
       ! Variables that are read from the input file
       logical, intent (in) :: include_xdrift, include_ydrift, include_drive
       logical, intent (in) :: include_parallel_streaming, include_mirror
-      logical, intent (out) :: suppress_zonal_interaction
+      logical, intent (out) :: suppress_zonal_interaction, weakly_nonlinear
       real, intent (out) :: xdriftknob, ydriftknob, wstarknob 
       real, intent (out) :: streamknob, mirrorknob
       real, intent (out) :: fphi
@@ -258,6 +259,8 @@ contains
 
          ! The zonal modes can be set to zero at every time step to eliminate their effect
          suppress_zonal_interaction = .false.
+         ! Weakly nonlinear regime is false by default
+         weakly_nonlinear = .false.
 
       end subroutine set_default_parameters_scale_gyrokinetic_terms
 
@@ -269,7 +272,7 @@ contains
          implicit none
 
          namelist /scale_gyrokinetic_terms/ xdriftknob, ydriftknob, wstarknob, streamknob, mirrorknob, &
-            fphi, suppress_zonal_interaction
+            fphi, suppress_zonal_interaction, weakly_nonlinear
 
          in_file = input_unit_exist('scale_gyrokinetic_terms', dexist)
          if (dexist) read (unit=in_file, nml=scale_gyrokinetic_terms)

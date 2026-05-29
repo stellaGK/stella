@@ -403,8 +403,6 @@ contains
 
       subroutine check_inputs_diagnostics_omega
 
-         use parameters_physics, only: include_nonlinear
-
          implicit none
 
          if (write_all_omega) then

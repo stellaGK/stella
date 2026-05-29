@@ -204,7 +204,7 @@ contains
    !                      INITIALISE POTENTIAL: MAXWELLIAN                     !
    !****************************************************************************
    subroutine read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, & 
-      left, chop_side, set_theta0_to_zero)
+      left, chop_side, set_theta0_to_zero, zf_init)
 
       use mp, only: proc0
       
@@ -216,7 +216,7 @@ contains
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
       logical, intent(out) :: set_theta0_to_zero
-      
+      real, intent(out) :: zf_init
       !-------------------------------------------------------------------------
 
       if (.not. proc0) return
@@ -238,7 +238,8 @@ contains
          chop_side = .false.
          left = .true.
          set_theta0_to_zero = .false. 
-
+         zf_init = 1.0
+         
       end subroutine set_default_parameters_initialise_distribution_maxwellian
 
       !---------------------------- Read input file ----------------------------
@@ -249,7 +250,7 @@ contains
          implicit none
 
          namelist /initialise_distribution_maxwellian/ width0, den0, upar0, oddparity, & 
-               left, chop_side, set_theta0_to_zero
+               left, chop_side, set_theta0_to_zero, zf_init
          in_file = input_unit_exist('initialise_distribution_maxwellian', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_maxwellian) 
 
