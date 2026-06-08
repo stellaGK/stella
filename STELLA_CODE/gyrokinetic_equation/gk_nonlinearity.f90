@@ -8,6 +8,7 @@
 ! 
 !###############################################################################
 module gk_ExB_nonlinearity
+
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
 

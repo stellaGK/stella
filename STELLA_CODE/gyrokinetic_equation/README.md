@@ -55,7 +55,6 @@ The drift term is evolved in 'gk_drifts.f90'.
 
 The nonlinear term is evolved in 'gk_ExB_nonlinearity.f90'.
 
-
 It is common to turn off the nonlinear term to study the behaviour of individual
 (kx,ky) modes in so-called linear simulations.
 
