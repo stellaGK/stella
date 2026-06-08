@@ -113,6 +113,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gk_neo_dchidz_terms.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_neo_drifts.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_neo_drive.f90
+  ../STELLA_CODE/neoclassical/NEO_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms_neo.f90
   ../STELLA_CODE/neoclassical/neoclassical_diagnostics.f90

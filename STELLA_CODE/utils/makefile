@@ -175,7 +175,3 @@ $(OBJ)/spfunc.o: $(OBJ)/constants.o
 $(OBJ)/spl.o: $(OBJ)/constants.o
 $(OBJ)/system_fortran.o: 
 $(OBJ)/text_options.o: $(OBJ)/mp.o
-$(OBJ)/optionals.o: 
-$(OBJ)/warning_helpers.o: $(OBJ)/optionals.o
-$(OBJ)/polynomials.o: $(OBJ)/warning_helpers.o
-$(OBJ)/periodic_splines.o: $(OBJ)/mp.o $(OBJ)/optionals.o $(OBJ)/warning_helpers.o
