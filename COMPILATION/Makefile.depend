@@ -1226,7 +1226,6 @@ $(OBJ_DIR)/gyrokinetic_equation_initialisation.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
-	 $(OBJ_DIR)/gk_ExB_nonlinearity.o \
 	 $(OBJ_DIR)/gk_drive.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_magnetic_drift.o \
@@ -1236,6 +1235,7 @@ $(OBJ_DIR)/gyrokinetic_equation_initialisation.o: \
 	 $(OBJ_DIR)/gk_neo_dchidz_terms.o \
 	 $(OBJ_DIR)/gk_neo_drifts.o \
 	 $(OBJ_DIR)/gk_neo_drive.o \
+	 $(OBJ_DIR)/gk_parallel_nonlinearity.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
 	 $(OBJ_DIR)/gk_sources.o \

@@ -250,11 +250,6 @@ contains
             call distribute_vmus_over_procs(neo_h_global_left(iz, :, :, :, 1), neo_h_left(iz, :, 1))
         end do        
 
-        ! Now that we have H_1 (not normalised to the Maxwellian here) and ϕ^1_0 for the three flux surfaces, the radial, z, v∥​ and μ derivatives are needed.
-        ! Calculate the psi derivative arrays via a central difference method. 
-        dneo_h_dpsi = (neo_h_right - neo_h_left) / (2 * drho)
-        dneo_phi_dpsi = (neo_phi_right - neo_phi_left) / (2 * drho) 
-
         ! DIAGNOSTIC.
         ! if (proc0) then
             ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, dneo_phi_dpsi, "dneo_phi_drho_on_stella_z_grid_central_surface")
@@ -287,6 +282,9 @@ contains
             call distribute_vmus_over_procs(neo_vpa_fac_global(iz, :, :, :, 1), neo_vpa_fac(iz, :, 1))
             call distribute_vmus_over_procs(neo_mu_fac_global(iz, :, :, :, 1), neo_mu_fac(iz, :, 1))
         end do
+
+        ! Calculate the neo_h psi derivative on the central surface at fixed kinetic energy, E, and the neo_phi psi derivative on the central surface.  
+        call get_psi_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac, drho, dneo_h_dpsi, dneo_phi_dpsi)
 
         ! DIAGNOSTIC.
         ! if (proc0) then
@@ -895,6 +893,59 @@ contains
 
 
     end subroutine get_velocity_factors
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------------ Calculate the psi derivative of neo_h and neo_phi on the central flux surface. ----------------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    subroutine get_psi_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac, drho, dneo_h_dpsi, dneo_phi_dpsi)
+        ! Parallelisation.
+        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+        
+        ! Grids. 
+        use grids_z, only: nzgrid
+        use grids_velocity, only: vpa, mu
+
+        ! Geometry.
+        use geometry, only: dbdzed, b_dot_gradz
+
+        implicit none
+
+        real, intent(in) :: drho
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in) :: neo_h_right, neo_h_left, neo_vpa_fac
+        real, dimension(-nzgrid:), intent(in) :: neo_phi_right, neo_phi_left
+
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(out) :: dneo_h_dpsi
+        real, dimension(-nzgrid:), intent(out) :: dneo_phi_dpsi
+
+        ! Local variables. 
+        integer :: ivmu, is, imu, iv, iz, ia 
+
+        ! Assume one magnetic field line.
+        ia = 1
+
+        ! ================================================================================ ! 
+
+        ! The neo_phi derivative is trivial to calculate via a central difference algorithm.
+        dneo_phi_dpsi = (neo_phi_right - neo_phi_left) / (2.0 * drho)
+
+        ! In a similiar way we calculate the neo_h derivative, at fixed v_parallel and mu.
+        dneo_h_dpsi   = (neo_h_right - neo_h_left)  / (2.0 * drho)
+
+        ! We need the neo_h derivative at fixed energy.
+        ! Iterate over velocity space
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+
+            do iz = -nzgrid, nzgrid
+                dneo_h_dpsi(iz, ivmu, 1) = dneo_h_dpsi(iz, ivmu, 1) - mu(imu) * b_dot_gradz(ia, iz) * dbdzed(ia, iz) * neo_vpa_fac(iz, ivmu, 1) / vpa(iv)
+            end do
+        end do
+            
+    end subroutine get_psi_derivatives
 
 
 ! ================================================================================================================================================================================= !

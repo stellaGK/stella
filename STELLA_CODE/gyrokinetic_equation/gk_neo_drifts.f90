@@ -1,43 +1,13 @@
 ! ================================================================================================================================================================================= !
-! ---------------------------------------------------------- Evolves the neoclassical magnetic and curvature drift terms. --------------------------------------------------------- !​
+! ------------------------------------------------------------ Evolves the neoclassical grad-B and curvature drift terms. --------------------------------------------------------- !​
 ! ================================================================================================================================================================================= !
 !
-! This module evolves the neoclassical drift terms. There will be a magnetic drift (ω_d) term and a curvature drift (ω_κ) term. Each of these will have a contribution proportional
-! to kx and another one proportional to ky. The dimensionless magnetic drift term is given by
-!
-! - i * (μ/2B₀²) * exp(-v²) * ( b x ∇B₀ ) ⋅( kx * ∇x + ky * ∇y ) * ( ∂H_1/∂μ|_v∥ - 2B₀ * F_1 ) * <Χ_k> 
-!
-! This is equivalent to: 
-!
-! = i * ( kx * neomagx + ky * neomagy ) * <Χ_k>
-!
-! where: 
-!
-! neomagx = - (μ/2B₀²) * exp(-v²) * ( ∂H_1/∂μ|_v∥ - 2B₀ * F_1 ) * code_dt * ( b x ∇B₀ ) ⋅∇x 
-! neomagy = - (μ/2B₀²) * exp(-v²) * ( ∂H_1/∂μ|_v∥ - 2B₀ * F_1 ) * code_dt * ( b x ∇B₀ ) ⋅∇y 
-!
-! neomagx must be multiplied by i * kx * <Χ_k> = ∂<Χ_k>/∂x and added to the RHS of the GKE. Similarly neomagy must be multiplied by i * ky * <Χ_k> = ∂<Χ_k>/∂y  and added to the 
-! RHS of the GKE. 
-! 
-! In a similiar fashion the dimensionless curvature drift term is given by:
-!
-! - i * (v∥/2B₀) * exp(-v²) * ( b x κ ) ⋅( kx * ∇x + ky * ∇y ) * ( ∂H_1/∂v∥|_μ -v∥/B * ∂H_1/∂μ|_v∥ ) * <Χ_k>
-!
-! This is equivalent to:
-!
-! = i * (kx * neocurvx + ky * neocurvy ) * <Χ_k> 
-!
-! where: 
-! 
-! neocurvx = - (v∥/2B₀) * exp(-v²) * ( v∥/B * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * code_dt * ( b x κ ) ⋅∇x = - (v∥/2B₀) * neo_fac * ( b x κ ) ⋅∇x
-! neocurvy = - (v∥/2B₀) * exp(-v²) * ( v∥/B * ∂H_1/∂μ|_v∥ - ∂H_1/∂v∥|_μ ) * code_dt * ( b x κ ) ⋅∇y = - (v∥/2B₀) * neo_fac * ( b x κ ) ⋅∇y
+! This module evolves the neoclassical drift terms on the RHS of the GKE. There will be a magnetic drift (ω_d) term and a curvature drift (ω_κ) term. 
+! There will be a contribution proportional to kx and another one proportional to ky. The dimensionless magnetic drift terms are given by
 !
 ! ================================================================================================================================================================================= !
 
 module gk_neo_drifts
-
-   ! Load debug flags.
-   ! use debug_flags, only: debug => neo_drifts_debug
 
    implicit none
 
@@ -67,12 +37,14 @@ contains
         use grids_time, only: code_dt
         use grids_species, only: spec
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-        use grids_velocity, only: vpa
+        use grids_velocity, only: vpa, mu
         use grids_z, only: nzgrid
         use grids_kxky, only: nalpha
 
         ! Geometry. 
-        use geometry, only: bmag, B_times_kappa_dot_gradx, B_times_kappa_dot_grady
+        use geometry, only: bmag
+        use geometry, only: B_times_kappa_dot_gradx, B_times_kappa_dot_grady
+        use geometry, only: B_times_gradB_dot_gradx, B_times_gradB_dot_grady
 
         ! Neoclassical. 
         use neoclassical_terms_neo, only: neo_vpa_fac
@@ -103,16 +75,16 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
            
             do iz = -nzgrid, nzgrid            
-                neocurvx(:, iz, ivmu) = 0.5 * code_dt * ( vpa(iv) / ( bmag(:, iz) ** 2 ) ) * B_times_kappa_dot_gradx(:, iz) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+                neocurvx(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) / vpa(iv)
                 
-                neocurvy(:, iz, ivmu) = 0.5 * code_dt * ( vpa(iv) / ( bmag(:, iz) ** 2 ) ) * B_times_kappa_dot_grady(:, iz) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+                neocurvy(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz) / vpa(iv)
 
                 ! Multiply by the neoclassical distribution factor. 
-                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
+                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) & 
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
 
-                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
+                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
             end do
         end do
 
