@@ -135,23 +135,23 @@ def read_relevantInputParameters(input_file):
     del input_parameters['kxky_grid_range']
     
     # Remove other parameters that are allowed to differ
-    del input_parameters['time_step']['delt_option']
-    del input_parameters['time_step']['delt_max']
-    del input_parameters['time_step']['delt_min']
-    del input_parameters['parallelisation']['mat_gen']
-    del input_parameters['time_trace_options']['nstep']
-    del input_parameters['time_trace_options']['tend']
-    del input_parameters['time_trace_options']['avail_cpu_time']
-    del input_parameters['restart_options']['restart_file']
-    del input_parameters['restart_options']['restart_dir']
-    del input_parameters['initialise_distribution']['phiinit']
-    del input_parameters['initialise_distribution']['initialise_distribution_option']
-    del input_parameters['diagnostics']
-    del input_parameters['diagnostics_potential']
-    del input_parameters['diagnostics_omega']
-    del input_parameters['diagnostics_distribution']
-    del input_parameters['diagnostics_fluxes']
-    del input_parameters['diagnostics_moments']
+    input_parameters['time_step'].pop('delt_option', None)
+    input_parameters['time_step'].pop('delt_max', None)
+    input_parameters['time_step'].pop('delt_min', None)
+    input_parameters['parallelisation'].pop('mat_gen', None)
+    input_parameters['time_trace_options'].pop('nstep', None)
+    input_parameters['time_trace_options'].pop('tend', None)
+    input_parameters['time_trace_options'].pop('avail_cpu_time', None)
+    input_parameters['restart_options'].pop('restart_file', None)
+    input_parameters['restart_options'].pop('restart_dir', None)
+    input_parameters['initialise_distribution'].pop('phiinit', None)
+    input_parameters['initialise_distribution'].pop('initialise_distribution_option', None)
+    input_parameters.pop('diagnostics', None)
+    input_parameters.pop('diagnostics_potential', None)
+    input_parameters.pop('diagnostics_omega', None)
+    input_parameters.pop('diagnostics_distribution', None)
+    input_parameters.pop('diagnostics_fluxes', None)
+    input_parameters.pop('diagnostics_moments', None)
     return input_parameters, kxky_grid_range_parameters
 
 #--------------------------------------
