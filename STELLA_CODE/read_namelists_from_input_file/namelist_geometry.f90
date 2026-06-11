@@ -82,10 +82,11 @@ module namelist_geometry
    public :: read_namelist_geometry_from_txt
    public :: read_namelist_geometry_vmec
    public :: read_namelist_geometry_zpinch
+   public :: read_namelist_geometry_slab
 
    ! Parameters need to be public (geometry_option)
    public :: geo_option_local, geo_option_inputprof, geo_option_vmec
-   public :: geo_option_multibox, geo_option_zpinch
+   public :: geo_option_multibox, geo_option_zpinch, geo_option_slab
 
    ! Parameters need to be public (radial_coordinate)
    public :: radial_coordinate_sgnpsitpsit
@@ -100,6 +101,7 @@ module namelist_geometry
    integer, parameter :: geo_option_vmec = 3
    integer, parameter :: geo_option_multibox = 4
    integer, parameter :: geo_option_zpinch = 5
+   integer, parameter :: geo_option_slab = 6
 
    ! Create parameters for <radial_coordinate>
    integer, parameter :: radial_coordinate_sgnpsitpsit = 1
@@ -169,13 +171,14 @@ contains
          implicit none
          
          ! Link text options for <geometry_option> to an integer value
-         type(text_option), dimension(6), parameter :: geoopts = (/ &
+         type(text_option), dimension(7), parameter :: geoopts = (/ &
              text_option('default', geo_option_local), &
              text_option('miller', geo_option_local), &
              text_option('local', geo_option_local), &
              text_option('zpinch', geo_option_zpinch), &
              text_option('input.profiles', geo_option_inputprof), &
-             text_option('vmec', geo_option_vmec)/)
+             text_option('vmec', geo_option_vmec), &
+             text_option('slab', geo_option_slab)/)
 
          ! Variables in the <geometry_options> namelist
          namelist /geometry_options/ geometry_option, q_as_x
@@ -658,5 +661,88 @@ contains
       end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_geometry_zpinch
+
+   !****************************************************************************
+   !                          GEOMETRY OPTIONS: SLAB                           !
+   !****************************************************************************
+   subroutine read_namelist_geometry_slab(shat, qinp, rmaj, betaprim, curvy_slab)
+
+      use mp, only: proc0, mp_abort
+
+      implicit none
+
+      ! Variables that are read from the input file
+      real, intent(out) :: shat, qinp, rmaj, betaprim
+      logical, intent(out) :: curvy_slab
+
+      !-------------------------------------------------------------------------
+
+      if (.not. proc0) return
+      call set_default_geometry_slab
+      call read_input_file_geometry_slab
+      call check_namelist_geometry_slab
+      call write_parameters_to_input_file
+
+   contains
+
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_geometry_slab
+
+         implicit none
+
+         shat = 0.0
+         qinp = 1.4
+         rmaj = 3.0
+         betaprim = 0.0
+         curvy_slab = .false.
+
+      end subroutine set_default_geometry_slab
+
+      !------------------------ Read input file parameters -----------------------
+      subroutine read_input_file_geometry_slab
+
+         use file_utils, only: input_unit_exist
+
+         implicit none
+
+         namelist /geometry_slab/ shat, qinp, rmaj, betaprim, curvy_slab
+         in_file = input_unit_exist('geometry_slab', dexist)
+         if (dexist) read (unit=in_file, nml=geometry_slab)
+
+      end subroutine read_input_file_geometry_slab
+
+      !------------------------- Check input parameters ------------------------
+      subroutine check_namelist_geometry_slab
+
+         implicit none
+
+         if (qinp <= 0.0) then
+            call mp_abort('geometry_slab: qinp must be positive. Aborting.')
+         end if
+         if (rmaj <= 0.0) then
+            call mp_abort('geometry_slab: rmaj must be positive. Aborting.')
+         end if
+
+      end subroutine check_namelist_geometry_slab
+
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         write (unit, '(A)') '&geometry_slab'
+         write (unit, '(A, ES0.4)') '  shat = ', shat
+         write (unit, '(A, ES0.4)') '  qinp = ', qinp
+         write (unit, '(A, ES0.4)') '  rmaj = ', rmaj
+         write (unit, '(A, ES0.4)') '  betaprim = ', betaprim
+         write (unit, '(A, L1)') '  curvy_slab = ', curvy_slab
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
+
+   end subroutine read_namelist_geometry_slab
 
 end module namelist_geometry

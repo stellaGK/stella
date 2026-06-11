@@ -82,6 +82,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90
   ../STELLA_CODE/geometry/geometry_vmec.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
+  ../STELLA_CODE/geometry/geometry_slab.f90
   ../STELLA_CODE/geometry/geometry.f90
   ../STELLA_CODE/grids/grids_extended_zgrid.f90
   ../STELLA_CODE/grids/grids_kxky.f90

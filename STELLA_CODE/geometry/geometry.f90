@@ -62,6 +62,7 @@ module geometry
    use namelist_geometry, only: geo_option_vmec
    use namelist_geometry, only: geo_option_multibox
    use namelist_geometry, only: geo_option_zpinch
+   use namelist_geometry, only: geo_option_slab
 
    implicit none
 
@@ -222,8 +223,9 @@ contains
          if (geo_option_switch==geo_option_local)     call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_inputprof) call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_multibox)  call get_geometry_arrays_from_Miller(nalpha)
-         if (geo_option_switch==geo_option_vmec)      call get_geometry_arrays_from_VMEC(nalpha, naky) 
+         if (geo_option_switch==geo_option_vmec)      call get_geometry_arrays_from_VMEC(nalpha, naky)
          if (geo_option_switch==geo_option_zpinch)    call get_geometry_arrays_from_zpinch(nalpha)
+         if (geo_option_switch==geo_option_slab)      call get_geometry_arrays_from_slab(nalpha)
          
          ! Overwrite the selected geometric coefficients
          if (overwrite_geometry) call overwrite_selected_geometric_coefficients(nalpha)
@@ -933,7 +935,101 @@ contains
       zeta(1, :) = 0.0
      
    end subroutine get_geometry_arrays_from_zpinch
-   
+
+   !=========================================================================
+   !========================== SLAB EQUILIBRIUM  ============================
+   !=========================================================================
+   subroutine get_geometry_arrays_from_slab(nalpha)
+
+      use slab_geometry, only: get_slab_geometry_coefficients
+      use grids_z, only: nzgrid, zed
+      use constants, only: pi
+
+      implicit none
+
+      integer, intent(in) :: nalpha
+      real :: dpsipdrho, dpsipdrho_psi0
+      integer :: ialpha
+
+      !-------------------------------------------------------------------------
+
+      ! Allocate all geometry arrays
+      call allocate_arrays(nalpha, nzgrid)
+
+      ! Calculate the geometric coefficients for a sheared slab equilibrium
+      call get_slab_geometry_coefficients(nzgrid, zed, bmag(1, :), b_dot_gradz_avg, grho(1, :), geo_surf, &
+          grady_dot_grady(1, :), gradx_dot_grady(1, :), gradx_dot_gradx(1, :), &
+          B_times_gradB_dot_gradx(1, :), B_times_gradB_dot_grady(1, :), &
+          B_times_kappa_dot_gradx(1, :), B_times_kappa_dot_grady(1, :), btor, rmajor)
+
+      ! b_dot_gradz is the alpha-dependent b.grad z; for slab it is independent of alpha
+      b_dot_gradz(1, :) = b_dot_gradz_avg
+
+      ! Effectively choose psi = x (slab normalisation)
+      dpsipdrho = 1.0
+      dpsipdrho_psi0 = 1.0
+      bmag_psi0 = bmag
+
+      ! psi is a trivial radial coordinate in slab geometry
+      drhodpsi = 1.0 / dpsipdrho
+      drhodpsip = drhodpsi
+      drhodpsip_psi0 = 1.0 / dpsipdrho_psi0
+      dxdpsi = 1.0
+      dydalpha = 1.0
+      sign_torflux = -1
+      clebsch_factor = sign_torflux
+      grad_x = sqrt(gradx_dot_gradx)
+
+      ! Twist-and-shift boundary condition factor: Delta kx = 2 pi * shat * ky
+      twist_and_shift_geo_fac = 2.0 * pi * geo_surf%shat
+
+      ! Reference quantities: set to 1 (slab has no natural scale separation)
+      aref = 1.0; bref = 1.0
+
+      ! zeta(alpha, z) = z * q for the connection to toroidal angle
+      zeta(1, :) = zed * geo_surf%qinp
+
+      ! Spread alpha-independent quantities to all alpha indices
+      do ialpha = 2, nalpha
+         bmag(ialpha, :) = bmag(1, :)
+         b_dot_gradz(ialpha, :) = b_dot_gradz(1, :)
+         grho(ialpha, :) = grho(1, :)
+         grady_dot_grady(ialpha, :) = grady_dot_grady(1, :)
+         gradx_dot_grady(ialpha, :) = gradx_dot_grady(1, :)
+         gradx_dot_gradx(ialpha, :) = gradx_dot_gradx(1, :)
+         B_times_gradB_dot_gradx(ialpha, :) = B_times_gradB_dot_gradx(1, :)
+         B_times_gradB_dot_grady(ialpha, :) = B_times_gradB_dot_grady(1, :)
+         B_times_kappa_dot_gradx(ialpha, :) = B_times_kappa_dot_gradx(1, :)
+         B_times_kappa_dot_grady(ialpha, :) = B_times_kappa_dot_grady(1, :)
+         zeta(ialpha, :) = zeta(1, :)
+      end do
+
+      ! Radial-variation-related arrays: zero for uniform slab
+      djacdrho = 0.0
+      dBdrho = 0.0
+      d2Bdrdth = 0.0
+      d_bdotgradz_drho = 0.0
+      d_gradydotgrady_drho = 0.0
+      d_gradxdotgrady_drho = 0.0
+      d_gradxdotgradx_drho = 0.0
+      dgbdriftdrho = 0.0
+      dgbdrift0drho = 0.0
+      dcvdriftdrho = 0.0
+      dcvdrift0drho = 0.0
+
+      ! Off-diagonal metric elements gds23/24 not needed in simple slab
+      gds23 = 0.0
+      gds24 = 0.0
+      gds25 = 0.0
+      gds26 = 0.0
+
+      ! Momentum flux geometry arrays: not needed for slab
+      gradzeta_gradx_R2overB2 = 0.0
+      gradzeta_grady_R2overB2 = 0.0
+      b_dot_gradzeta_RR = 0.0
+
+   end subroutine get_geometry_arrays_from_slab
+
    !=========================================================================
    !================== OVERWRITE GEOMETRIC COEFFICIENTS  ====================
    !=========================================================================
