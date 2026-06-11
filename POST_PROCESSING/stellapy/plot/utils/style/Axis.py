@@ -64,9 +64,10 @@ class Axis:
             y = y[int(np.size(y)*self.percentage):]  
         
         # Calculate the limits
-        if not np.isnan(y).all(): 
+        if not np.isnan(y).all():
             if self.logx==True: x = abs(x[x != 0])
             if self.logy==True: y = abs(y[y != 0])
+            if len(x) == 0 or len(y) == 0: return
             xmin = self.overshoot_x*np.nanmin(x) if np.nanmin(x)<0 else np.nanmin(x)
             ymin = self.overshoot_y*np.nanmin(y) if np.nanmin(y)<0 else np.nanmin(y)
             xmax = self.overshoot_x*np.nanmax(x) if np.nanmax(x)>0 else np.nanmax(x)

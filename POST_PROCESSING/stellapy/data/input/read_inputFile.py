@@ -70,7 +70,8 @@ def read_inFile(path_input_file):
 
     # Overwrite the default values if they have been changed in the <path_input_file>
     for knob in input_parameters_read.keys():
-        input_parameters[knob].update(input_parameters_read[knob])
+        if knob in input_parameters:
+            input_parameters[knob].update(input_parameters_read[knob])
 
     # Close the input file
     return input_parameters
@@ -89,9 +90,12 @@ def read_iniFile(path_input_file):
     # Parse the ini data strings to int/float/bool
     for knob in input_parameters_read.keys():
         for parameter in input_parameters_read[knob].keys():
-            try: input_parameters_read[knob][parameter] = read_parameterFromIniFile(input_parameters_read[knob], parameter, input_parameters[knob][parameter])
-            except:
-                input_parameters_read[knob][parameter] = read_parameterFromIniFile(input_parameters_read[knob], parameter, input_parameters[knob][parameter])
+            try:
+                default_value = input_parameters[knob][parameter]
+                input_parameters_read[knob][parameter] = read_parameterFromIniFile(input_parameters_read[knob], parameter, default_value)
+            except KeyError:
+                # Parameter not in defaults (e.g. computed values like nakx/naky) — infer type from string
+                input_parameters_read[knob][parameter] = read_parameterFromString(input_parameters_read[knob][parameter])
                     
     # Add more default species if nspec>2
     if 'species_options' in input_parameters_read: input_parameters['species_options'].update(input_parameters_read['species_options'])
@@ -146,15 +150,24 @@ def read_extraInputParameters(input_parameters, path_input_file):
 #------------------------------------------------
 def calculate_stellaVariables(input_parameters):
 
-    # Calculate <nzgrid>
-    if input_parameters['z_grid']['nzgrid'] == 'nzed/2 + (nperiod-1)*nzed':
+    # Calculate <nzgrid> (no longer a default variable; always derived from nzed/nperiod)
+    if 'nzgrid' not in input_parameters['z_grid']:
         nzed = input_parameters['z_grid']['nzed']
         nperiod = input_parameters['z_grid']['nperiod']
         input_parameters['z_grid']['nzgrid'] = nzed/2 + (nperiod-1)*nzed
-    else: print('WARNING: <nzgrid> was set by the input file but it should be calculated indirectly through <nzed> and <nperiod>.')
+    elif input_parameters['z_grid']['nzgrid'] == 'nzed/2 + (nperiod-1)*nzed':
+        nzed = input_parameters['z_grid']['nzed']
+        nperiod = input_parameters['z_grid']['nperiod']
+        input_parameters['z_grid']['nzgrid'] = nzed/2 + (nperiod-1)*nzed
 
-    # Caclulate <nakx> and <naky> 
-    if input_parameters['kxky_grid_box']['naky'] == '(ny-1)/3 + 1':
+    # Calculate <nakx> and <naky> (no longer default variables; always derived from nx/ny)
+    if 'naky' not in input_parameters['kxky_grid_box']:
+        from stellapy.data.geometry.calculate_gridDivisionsAndSize import calculate_nakx, calculate_naky
+        ny = input_parameters['kxky_grid_box']['ny']
+        nx = input_parameters['kxky_grid_box']['nx']
+        input_parameters['kxky_grid_box']['naky'] = calculate_naky(ny)
+        input_parameters['kxky_grid_box']['nakx'] = calculate_nakx(nx)
+    elif input_parameters['kxky_grid_box']['naky'] == '(ny-1)/3 + 1':
         from stellapy.data.geometry.calculate_gridDivisionsAndSize import calculate_nakx, calculate_naky
         ny = input_parameters['kxky_grid_box']['ny']
         nx = input_parameters['kxky_grid_box']['nx']
@@ -180,6 +193,8 @@ def calculate_extraInputParameters(input_parameters):
     
     # Fill in the species for the adiabatic electrons: custom knob for the GUI
     if input_parameters['species_options']['nspec'] == 1:
+        if 'species_parameters_a' not in input_parameters:
+            input_parameters['species_parameters_a'] = {}
         input_parameters['species_parameters_a']['nine'] = input_parameters['adiabatic_electron_response']['nine']
         input_parameters['species_parameters_a']['tite'] = input_parameters['adiabatic_electron_response']['tite']
         input_parameters['species_parameters_a']['dens'] = round(1/input_parameters['adiabatic_electron_response']['nine'], 4)
@@ -194,7 +209,11 @@ def calculate_extraInputParameters(input_parameters):
 
 #-----------------------------------------      
 def calculate_extraInputParametersFromWout(input_parameters, path_input_file):
-    
+
+    # VMEC quantities are not needed for Miller geometry — skip entirely
+    if input_parameters['geometry_options']['geometry_option'] != 'vmec':
+        return input_parameters
+
     # Step size in real space
     y0 = input_parameters['kxky_grid_box']['y0']
     if input_parameters['gyrokinetic_terms']['include_full_flux_annulus']==True:
@@ -527,6 +546,15 @@ def read_explicitOptionFromInputParameters(input_parameters):
 #===============================================================================
 #                Read specific data types from the input file                  #
 #===============================================================================
+
+def read_parameterFromString(value):
+    ''' Infer type from a string value when no default is available. '''
+    if value in ('True', 'False'): return value == 'True'
+    try: return int(value)
+    except ValueError: pass
+    try: return float(value)
+    except ValueError: pass
+    return value
 
 def read_parameterFromIniFile(section, parameter, default_value):
     ''' Read the variables if they exist and convert them to the correct datatype. '''
