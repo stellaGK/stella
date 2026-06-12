@@ -132,8 +132,8 @@ def read_relevantInputParameters(input_file):
     kxky_grid_range_parameters = copy.deepcopy(input_parameters['kxky_grid_range'])
     
     # The (kx,ky) values are allowed to be different in the "same" simulation
-    del input_parameters['kxky_grid_range']
-    
+    input_parameters.pop('kxky_grid_range', None)
+
     # Remove other parameters that are allowed to differ
     input_parameters['time_step'].pop('delt_option', None)
     input_parameters['time_step'].pop('delt_max', None)

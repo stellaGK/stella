@@ -304,8 +304,8 @@ def calculate_extraInputParametersFromNetcdf(input_parameters, path_input_file):
     if len(data['vec_ky'])==1: data['vec_ky'] = np.array([0, data['vec_ky'][0]])
         
     # Calculate the (kx,ky) dimensions   
-    input_parameters['kxky_grid_box']['Lx'] = 2*np.pi/(data['vec_kx'][1]-data['vec_kx'][0]) if data['vec_kx'][0]!=data['vec_kx'][1] else np.Inf
-    input_parameters['kxky_grid_box']['Ly'] = 2*np.pi/(data['vec_ky'][1]-data['vec_ky'][0]) if data['vec_ky'][0]!=data['vec_ky'][1] else np.Inf
+    input_parameters['kxky_grid_box']['Lx'] = 2*np.pi/(data['vec_kx'][1]-data['vec_kx'][0]) if data['vec_kx'][0]!=data['vec_kx'][1] else np.inf
+    input_parameters['kxky_grid_box']['Ly'] = 2*np.pi/(data['vec_ky'][1]-data['vec_ky'][0]) if data['vec_ky'][0]!=data['vec_ky'][1] else np.inf
     input_parameters['kxky_grid_box']['kx max'] = np.max(data['vec_kx'])
     input_parameters['kxky_grid_box']['ky max'] = np.max(data['vec_ky'])
     input_parameters['kxky_grid_box']['dkx'] = np.min(np.abs(data['vec_kx'][np.nonzero(data['vec_kx'])])) if len(data['vec_kx'][np.nonzero(data['vec_kx'])])!=0 else 0

@@ -40,7 +40,7 @@
   surface_option = 0
   radial_coordinate = 'sgn(psi_t)psi_t'
   verbose = .true.
-  vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+  vmec_filename = 'wout_w7x_standardConfig.nc'
   n_tolerated_test_arrays_inconsistencies = 0
 /
 
@@ -137,6 +137,19 @@
   type = 'default'
 /
 
+&species_parameters_a
+  z = -1.0
+  mass = 0.00027
+  dens = 1.0
+  temp = 1.0
+  tprim = 0.0
+  fprim = 0.0
+  bess_fac = 1.0
+  type = 'adiabatic'
+  tite = 1.0
+  nine = 1.0
+/
+
 &euterpe_parameters
   nradii = 1000
   data_file = 'euterpe.dat'
@@ -177,6 +190,8 @@
 &kxky_grid_box
   nx = 1
   ny = 1
+  naky = 1
+  nakx = 1
   jtwist = -1
   jtwistfac = 1.0
   x0 = -1.0
@@ -191,6 +206,7 @@
   nzed = 24
   nperiod = 1
   ntubes = 1
+  nzgrid = 12
   zed_equal_arc = .false.
 /
 

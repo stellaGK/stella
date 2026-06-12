@@ -84,7 +84,7 @@ def plot_surface(
     
     # Put the z-axis in logaritmic scales
     if log:
-        zdata[zdata < 1.E-25] = np.NaN
+        zdata[zdata < 1.E-25] = np.nan
         if not crange:
             crange = [ np.nanmin(abs(zdata)), np.nanmax(abs(zdata)) ]  
             if ordersOfMagnitude:
