@@ -127,7 +127,7 @@ def read_dphizVsTime(dt, netcdf_path):
     
     # At a certain point a NaN might occur in the (z,kx,ky) grid
     # Remove this data, as well as data with infinite values
-    phi_vs_tkxkyz[phi_vs_tkxkyz==np.inf] = np.NaN 
+    phi_vs_tkxkyz[phi_vs_tkxkyz==np.inf] = np.nan 
     for it in range(len(vec_time)): vec_time[it] = np.nan if np.any(np.isnan(phi_vs_tkxkyz[it,:,:,:])) else vec_time[it] 
     phi_vs_tkxkyz = phi_vs_tkxkyz[~np.isnan(vec_time),:] 
     vec_time = vec_time[~np.isnan(vec_time)]

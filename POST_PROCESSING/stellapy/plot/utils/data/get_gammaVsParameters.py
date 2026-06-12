@@ -11,9 +11,9 @@ from stellapy.utils.commandprompt.print_progressbar import print_progressbar
 def get_gammaVsParameters(research, parameters1, parameters2, knob1, key1, knob2, key2, start=0 , stop=100, count=1):
     
     # Initiate the data
-    gamma = np.empty((len(parameters1), len(parameters2)))*[np.NaN]
-    omega = np.empty((len(parameters1), len(parameters2)))*[np.NaN]
-    ky    = np.empty((len(parameters1), len(parameters2)))*[np.NaN] 
+    gamma = np.empty((len(parameters1), len(parameters2)))*[np.nan]
+    omega = np.empty((len(parameters1), len(parameters2)))*[np.nan]
+    ky    = np.empty((len(parameters1), len(parameters2)))*[np.nan] 
 
     # Add the (0,0) point since we can't simulate it
     if 0 in parameters1 and 0 in parameters2: 

@@ -37,7 +37,7 @@
 !     surface_option = 0
 !     radial_coordinate = 'sgn(psi_t)psi_t'
 !     verbose = .true.
-!     vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+!     vmec_filename = 'wout_w7x_standardConfig.nc'
 !     n_tolerated_test_arrays_inconsistencies = 0
 !   
 !   geometry_zpinch
@@ -505,7 +505,7 @@ contains
          implicit none
 
          ! Default parameters for VMEC
-         vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
+         vmec_filename = 'wout_w7x_standardConfig.nc'
          alpha0 = 0.0
          zeta_center = 0.0
          nfield_periods = -1.0

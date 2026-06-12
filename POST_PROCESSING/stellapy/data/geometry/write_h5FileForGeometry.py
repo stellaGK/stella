@@ -92,22 +92,23 @@ def write_geometryFile(input_file, geometry_path):
     svalue = input_parameters['geometry_vmec']['torflux']
     vmec_filename = input_parameters['geometry_vmec']['vmec_filename']
     nfield_periods = input_parameters['geometry_vmec']['nfield_periods']
-    
+    geometry_option = input_parameters['geometry_options']['geometry_option']
+
     # Load all the geometry data
     geometry = read_geometryFromTxtFile(input_file.with_suffix('.geometry'))
     geometry.update(read_geometryFromNetcdfFile(input_file.with_suffix('.out.nc')))
-    
+
     # Load the VMEC or Miller data
     path = create_dummyPathObject(input_file, vmec_filename)
-    if vmec_filename=='wout*.nc': geometry.update(read_millerParameters(path)); geometry['b0'] = 1; geometry['nfp'] = 1 
-    if vmec_filename!='wout*.nc': geometry.update(read_woutFromNcFile(path.vmec))
+    if geometry_option != 'vmec': geometry.update(read_millerParameters(path)); geometry['b0'] = 1; geometry['nfp'] = 1
+    if geometry_option == 'vmec': geometry.update(read_woutFromNcFile(path.vmec))
     geometry['sign_B'] = np.sign(geometry['b0'])
 
     # Calculate the grid divisions set in stella based on the geometry data
     geometry.update(calculate_gridDivisionsAndSize(y0, nfield_periods, geometry, svalue))
-    
+
     # For miller, set the parameters to nan
-    if path.vmec_filename=='wout*.nc': 
+    if geometry_option != 'vmec':
         for key in ['b0', 'aminor', 'rmajor', 'volume']: geometry[key] = np.nan
         
     # Calculate the integration weights 
