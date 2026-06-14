@@ -612,40 +612,49 @@ contains
    !****************************************************************************
    !                   Convert <g> to <f> using (mu,vpa,kxkyzs)                 
    !****************************************************************************
-   subroutine g_to_f_kxkyz(g, phi, facphi)
-
-      ! Parallelisation
+   subroutine g_to_f_kxkyz(g, phi, apar, facphi)
+      ! Parallelisation.
       use parallelisation_layouts, only: kxkyz_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx
       use parallelisation_layouts, only: iz_idx, it_idx, is_idx
       
-      ! Calculations
+      ! Calculations.
       use calculations_gyro_averages, only: gyro_average
       
-      ! Grids
+      ! Grids.
       use grids_species, only: spec
       use grids_z, only: nzgrid
-      use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: nvpa, nmu, vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+
+      ! For HO simulations. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac_global, neo_vpa_fac_global
+
+      ! Geometry. 
+      use geometry, only: bmag
+
+      ! Physics flags.
+      use parameters_physics, only: include_apar
 
       implicit none
 
-      ! Arguments
+      ! Arguments.
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar
       real, intent(in) :: facphi
 
-      ! Local variables
+      ! Local variables.
       integer :: ikxkyz, iz, it, iky, ikx, is, ia
       complex, dimension(:, :), allocatable :: field, gyro_averaged_field
       
       !-------------------------------------------------------------------------
 
-      ! Allocate arrays
+      ! Allocate arrays.
       allocate (field(nvpa, nmu))
       allocate (gyro_averaged_field(nvpa, nmu))
 
-      ! Assume we only have one field line
+      ! Assume we only have one field line.
       ia = 1
 
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
@@ -659,14 +668,32 @@ contains
          ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
          ! First calculate [(Z_s/T_s)*<phi>] * F_s
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
-               * spread(maxwell_vpa(:, is), 2, nmu) &
-               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-         ! Gyroaverage
+         * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+
+         ! Gyroaverage.
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
          ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
-         
+
+         ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
+         if (neoclassical_is_enabled()) then
+             field = field * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+
+             ! Add this to  <f>.                                                     
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field
+         end if
+
+         ! Ir running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
+         if (neoclassical_is_enabled() .and. include_apar) then 
+             field = facphi * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm &
+             * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) &
+             * ( neo_vpa_fac_global(iz, :, :, is, 1) - spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+
+             ! Add this to <f>.
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field
+         end if
+          
       end do
 
       ! Deallocate local arrays
@@ -677,41 +704,45 @@ contains
    !****************************************************************************
    !                 Convert <g> to <f> using (kx,ky,z,ivpamus)                 
    !****************************************************************************
-   subroutine g_to_f_vmu(g, phi, facphi, phi_corr)
-
-      ! Parallelisation
+   subroutine g_to_f_vmu(g, phi, apar, facphi, phi_corr)
+      ! Parallelisation.
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
-      ! Calculations
+      ! Calculations.
       use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x, aj1x, j0_ffs
       use calculations_kxky, only: multiply_by_rho
       
-      ! Flags
+      ! Flags.
       use parameters_physics, only: radial_variation
       use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_apar
 
-      ! Geometry
+      ! Geometry. 
       use geometry, only: bmag, dBdrho
       use arrays, only: kperp2, dkperp2dr
       
-      ! Grids
+      ! Grids. 
       use grids_species, only: spec
       use grids_kxky, only: naky, nakx
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
 
+      ! For HO simulations. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac, neo_vpa_fac
+
       implicit none
 
-      ! Arguments
+      ! Arguments. 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :), optional, intent(in) :: phi_corr
       real, intent(in) :: facphi
 
-      ! Local variables
+      ! Local variables. 
       integer :: ivmu, iz, it, is, imu, iv, ia
       complex, dimension(:, :), allocatable :: field, gyro_averaged_field, g0k
       
@@ -741,7 +772,7 @@ contains
                           maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                   call gyro_average(field, gyro_averaged_field, j0_ffs(:, :, iz, ivmu))
 
-               ! Flux-tube
+               ! Flux-tube.
                else
                
                   ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
@@ -769,7 +800,23 @@ contains
                
                ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
                g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + gyro_averaged_field - field
-               
+ 
+               ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
+               if (neoclassical_is_enabled()) then
+                   field = field * ( 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+
+                   ! Add this to  <f>.
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field
+               end if
+
+               ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
+               if (neoclassical_is_enabled() .and. include_apar) then
+                   field = facphi * apar(:, :, iz, it) * spec(is)%zt * spec(is)%stm * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
+                   * ( neo_vpa_fac(iz, ivmu, 1) - vpa(iv) * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+
+                   ! Add this to <f>.
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field
+               end if
             end do
          end do
       end do

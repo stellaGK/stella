@@ -122,7 +122,7 @@ contains
       use arrays_distribution_function, only: gvmu
       
       ! Fields
-      use arrays_fields, only: phi, bpar
+      use arrays_fields, only: phi, apar, bpar
       use parameters_physics, only: fphi
 
       ! Dimensions
@@ -266,7 +266,7 @@ contains
 
          ! Switch to f
          if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, fphi)
-         call g_to_f(gnew, phi, fphi)
+         call g_to_f(gnew, phi, apar, fphi)
 
          ! Use gnew(ky, kx, z, tube, ivmus) to calculate |g|^2(z, vpa, s), |g|^2(z, mu, s) and |g|^2(vpa, mu, s)
          call calculate_distribution(gnew, gvmu, g2_vs_zmus, g2_vs_zvpas, g2_vs_vpamus, g2_vs_zkykxs, g2_vs_zvpamus, &
@@ -285,7 +285,7 @@ contains
 
          ! Switch back to g
          if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
-         call g_to_f(gnew, phi, -fphi)
+         call g_to_f(gnew, phi, apar, -fphi)
 
       end if
 

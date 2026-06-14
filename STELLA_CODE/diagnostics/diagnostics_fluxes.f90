@@ -235,7 +235,7 @@ contains
 
       ! Load data
       use arrays_distribution_function, only: gnew, gvmu
-      use arrays_fields, only: phi, bpar
+      use arrays_fields, only: phi, apar, bpar
       use parameters_physics, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s]
@@ -268,7 +268,7 @@ contains
       if (include_apar .or. include_bpar) then
          call g_to_h(gvmu, phi, bpar, fphi)
       else if (.not. include_apar .and. .not. include_bpar) then
-         call g_to_f(gvmu, phi, fphi)
+         call g_to_f(gvmu, phi, apar, fphi)
       end if
 
       ! Now calculate the fluxes explicitly
@@ -281,7 +281,7 @@ contains
       if (include_apar .or. include_bpar) then
          call g_to_h(gvmu, phi, bpar, -fphi)
       else if (.not. include_apar .and. .not. include_bpar) then
-         call g_to_f(gvmu, phi, -fphi)
+         call g_to_f(gvmu, phi, apar, -fphi)
       end if
 
    end subroutine write_fluxes_for_fluxtube
