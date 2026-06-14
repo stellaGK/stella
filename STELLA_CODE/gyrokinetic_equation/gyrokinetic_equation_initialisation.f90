@@ -55,7 +55,7 @@ contains
       
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled    
-      use gk_neo_apar_terms, only: init_neo_apar_terms
+      use gk_neo_mirror, only: init_neo_mirror
       use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
       use gk_neo_drive, only: init_wstar1y, init_wstar1x
       use gk_neo_drifts, only: init_neo_curv_drift
@@ -96,9 +96,9 @@ contains
 
       ! If NEO's neoclassical corrections are enabled, then ...
       if (neoclassical_is_enabled()) then
-          ! If apar is included, allocate and calculate the coeffecient multiplying apar.
+          ! If apar is included, allocate and calculate the coeffecient multiplying apar in the mirror advance.
           if (include_apar) then          
-              call init_neo_apar_terms
+              call init_neo_mirror
           end if 
 
           ! Allocate and calculate the coeffecient multiplying dchi/dz in NEO's neoclassical corrections.
@@ -168,7 +168,7 @@ contains
       
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled, finish_neoclassical_terms_neo
-      use gk_neo_apar_terms, only: finish_neo_apar_terms
+      use gk_neo_mirror, only: finish_neo_mirror
       use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
       use gk_neo_drive, only: finish_wstar1y, finish_wstar1x
       use gk_neo_drifts, only: finish_neo_curv_drift
@@ -191,9 +191,9 @@ contains
       if (neoclassical_is_enabled()) then
           call finish_neoclassical_terms_neo
 
-          ! If apar is included, deallocate the apar neoclassical terms.  
+          ! If apar is included, deallocate the mirror correction.
           if (include_apar) then
-              call finish_neo_apar_terms
+              call finish_neo_mirror
           end if 
 
           call finish_neo_dchidz_terms

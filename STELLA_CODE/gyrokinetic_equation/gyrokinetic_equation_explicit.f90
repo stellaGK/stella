@@ -226,7 +226,7 @@ contains
 
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use gk_neo_apar_terms, only: advance_neo_apar_terms_explicit
+      use gk_neo_mirror, only: advance_neo_mirror_explicit
       use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
       use gk_neo_drive, only: advance_wstar1y_explicit, advance_wstar1x_explicit
       use gk_neo_drifts, only: advance_neo_curv_drift_explicit
@@ -362,9 +362,9 @@ contains
 
          ! If HO corrections are enabled, evolve them explicitly.
          if (neoclassical_is_enabled()) then
-             ! If apar is switched on, we must advance the neoclassical apar terms, coming from the mirror correction. 
+             ! If apar is switched on, we must advance the neoclassical mirror correction. 
              if (include_apar) then
-                 call advance_neo_apar_terms_explicit(rhs)
+                 call advance_neo_mirror_explicit(apar, rhs)
              end if
 
              ! Advance the neoclassical dchi/dz terms, coming from the parallel streaming correction.

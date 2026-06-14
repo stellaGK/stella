@@ -21,7 +21,7 @@ module arrays
    public :: initialised_radial_variation
    
    ! For NEO's neoclassical corrections. 
-   public :: initialised_neo_apar_terms
+   public :: initialised_neo_mirror
    public :: initialised_neo_dchidz_terms
    public :: initialised_wstar1y
    public :: initialised_wstar1x 
@@ -66,7 +66,7 @@ module arrays
    public :: qn_zf_window
 
    ! For HO corrections. 
-   public :: neo_apar_coeff
+   public :: neo_mirror
    public :: neo_dchidz_coeff
    public :: wstar1y
    public :: wstar1x
@@ -123,7 +123,7 @@ module arrays
    logical :: initialised_implicit_drifts
    
    ! For HO corrections. 
-   logical :: initialised_neo_apar_terms   
+   logical :: initialised_neo_mirror   
    logical :: initialised_neo_dchidz_terms
    logical :: initialised_wstar1y
    logical :: initialised_wstar1x
@@ -161,7 +161,7 @@ module arrays
    real, dimension(:), allocatable :: shift_state
 
    ! For HO corrections. 
-   real, dimension(:, :, :), allocatable :: neo_apar_coeff
+   real, dimension(:, :, :), allocatable :: neo_mirror
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
    real, dimension(:, :, :), allocatable :: wstar1y, wstar1x
    real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
