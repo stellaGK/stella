@@ -21,11 +21,10 @@ module arrays
    public :: initialised_radial_variation
    
    ! For NEO's neoclassical corrections. 
-   public :: initialised_neo_chi_terms
    public :: initialised_neo_apar_terms
    public :: initialised_neo_dchidz_terms
-   public :: initialised_wstar1
-   public :: initialised_wpol
+   public :: initialised_wstar1y
+   public :: initialised_wstar1x 
    public :: initialised_neo_curv_drift
    
    !----------------------------------------------------------------------------
@@ -66,12 +65,11 @@ module arrays
    public :: qn_window
    public :: qn_zf_window
 
-   ! For NEO's neoclassical corrections. 
-   public :: neo_chi_coeff
+   ! For HO corrections. 
    public :: neo_apar_coeff
    public :: neo_dchidz_coeff
-   public :: wstar1
-   public :: wpol
+   public :: wstar1y
+   public :: wstar1x
    public :: neocurvx
    public :: neocurvy
 
@@ -124,12 +122,11 @@ module arrays
    logical :: initialised_radial_variation
    logical :: initialised_implicit_drifts
    
-   ! For NEO's neoclassical corrections. 
-   logical :: initialised_neo_chi_terms
+   ! For HO corrections. 
    logical :: initialised_neo_apar_terms   
    logical :: initialised_neo_dchidz_terms
-   logical :: initialised_wstar1
-   logical :: initialised_wpol
+   logical :: initialised_wstar1y
+   logical :: initialised_wstar1x
    logical :: initialised_neo_curv_drift
 
    !----------------------------------------------------------------------------
@@ -163,11 +160,10 @@ module arrays
    ! For flow shear
    real, dimension(:), allocatable :: shift_state
 
-   ! For higher order corrections. 
-   real, dimension(:, :, :), allocatable :: neo_chi_coeff
+   ! For HO corrections. 
    real, dimension(:, :, :), allocatable :: neo_apar_coeff
    real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
-   real, dimension(:, :, :), allocatable :: wstar1, wpol
+   real, dimension(:, :, :), allocatable :: wstar1y, wstar1x
    real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
 
    !----------------------------------------------------------------------------

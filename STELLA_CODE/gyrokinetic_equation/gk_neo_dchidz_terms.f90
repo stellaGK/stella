@@ -107,8 +107,7 @@ contains
         use grids_z, only: nzgrid, ntubes
         use grids_kxky, only: naky, nakx
       
-        ! For calculating <Χ_k> and ∂<Χ_k>/∂z. 
-        use gk_neo_chi_terms, only: get_chi
+        ! For calculating ∂<Χ_k>/∂z. 
         use gk_parallel_streaming, only: get_dgdz_centered
 
         ! Calculations.
@@ -196,7 +195,80 @@ contains
 
 
 ! ================================================================================================================================================================================= !
+! ---------------------------------------------------------------------- Calculate the gyroaveraged potential. -------------------------------------------------------------------- ! 
+! ================================================================================================================================================================================= !
+
+    subroutine get_chi(phi, apar, bpar, chi)      
+        ! Parallelisation.
+        use parallelisation_layouts, only: vmu_lo
+        use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
+      
+        ! Flags.
+        use parameters_physics, only: include_apar, include_bpar
+        use parameters_physics, only: fphi
+      
+        ! Grids.
+        use grids_species, only: spec
+        use grids_z, only: nzgrid, ntubes
+        use grids_velocity, only: vpa, mu
+        use grids_kxky, only: nakx, naky, aky
+      
+        ! Calculations.
+        use calculations_gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average_j1
+
+        implicit none
+
+        ! Arguments.
+        complex, dimension(:, :, -nzgrid:, :), intent(in)                     :: phi, apar, bpar
+        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: chi
+
+        ! Local variables.
+        integer :: ivmu, iv, is, imu
+        complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
+
+        ! Allocate temporary array for <g0> = Χ_k. 
+        allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+        ! Construct the generalised potential.
+        ! Iterate over the (mu,vpa,s) points.
+
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+
+            ! Calculate phi.
+            field = fphi * phi
+
+            ! If apar is present, we must account for this.
+            if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+
+            ! Gyroaverage the J_0 contribution.
+            call gyro_average(field, ivmu, chi(:, :, :, :, ivmu))
+
+            ! If bpar is present, we must account for this too.
+            if (include_bpar) then
+                field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
+               
+                ! Gyroaverage the J_1 contribution.
+                call gyro_average_j1(field, ivmu, gyro_tmp)
+              
+                chi(:, :, :, :, ivmu) = chi(:, :, :, :, ivmu) + gyro_tmp
+            end if
+        end do
+
+        ! Deallocate temporary arrays.
+        deallocate (field)
+        deallocate (gyro_tmp)
+
+    end subroutine get_chi
+
+
+! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
+
 
 end module gk_neo_dchidz_terms

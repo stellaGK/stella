@@ -224,12 +224,11 @@ contains
       use field_equations, only: advance_fields
       use field_equations, only: fields_updated
 
-      ! For advancing NEO's neoclassical corrections explicitly. 
+      ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use gk_neo_chi_terms, only: advance_neo_chi_terms_explicit
       use gk_neo_apar_terms, only: advance_neo_apar_terms_explicit
       use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
-      use gk_neo_drive, only: advance_wstar1_explicit, advance_wpol_explicit
+      use gk_neo_drive, only: advance_wstar1y_explicit, advance_wstar1x_explicit
       use gk_neo_drifts, only: advance_neo_curv_drift_explicit
  
       implicit none
@@ -361,24 +360,21 @@ contains
             call advance_hyper_explicit(pdf, rhs)
          end if
 
-         ! If NEO's corrections are included, then evolve the HO corrections.
+         ! If HO corrections are enabled, evolve them explicitly.
          if (neoclassical_is_enabled()) then
-             ! Advance the neoclassical chi terms.
-             call advance_neo_chi_terms_explicit(phi, rhs)
-
-             ! If apar is switched on, we must advance the neoclassical apar terms. 
+             ! If apar is switched on, we must advance the neoclassical apar terms, coming from the mirror correction. 
              if (include_apar) then
                  call advance_neo_apar_terms_explicit(rhs)
              end if
 
-             ! Advance the neoclassical dchi/dz terms.
+             ! Advance the neoclassical dchi/dz terms, coming from the parallel streaming correction.
              call advance_neo_dchidz_terms_explicit(phi, rhs)
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
-             call advance_wstar1_explicit(phi, rhs)
-             call advance_wpol_explicit(phi, rhs)
+             call advance_wstar1y_explicit(phi, rhs)
+             call advance_wstar1x_explicit(phi, rhs)
 
-             ! Advance the neoclassical curvature drift terms.
+             ! Advance the neoclassical magnetic drift terms.
              call advance_neo_curv_drift_explicit(phi, rhs) 
          end if
 

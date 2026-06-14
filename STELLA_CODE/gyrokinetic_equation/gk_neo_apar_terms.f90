@@ -195,7 +195,7 @@ contains
 
         ! Arguments.
         complex, dimension(:, :, -nzgrid:, :), intent(in)                     :: apar
-        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_apar
+        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gyro_apar
 
         ! Local variables.
         integer :: ivmu, iv, is, imu

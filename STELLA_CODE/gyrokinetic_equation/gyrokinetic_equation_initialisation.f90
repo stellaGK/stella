@@ -53,12 +53,11 @@ contains
       use gk_parallel_nonlinearity, only: init_parallel_nonlinearity
       ! use neoclassical_terms, only: init_neoclassical_terms
       
-      ! For NEO's neoclassical corrections. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use gk_neo_chi_terms, only: init_neo_chi_terms    
+      ! For HO corrections. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled    
       use gk_neo_apar_terms, only: init_neo_apar_terms
       use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
-      use gk_neo_drive, only: init_wstar1, init_wpol
+      use gk_neo_drive, only: init_wstar1y, init_wstar1x
       use gk_neo_drifts, only: init_neo_curv_drift
                                                                                    
       implicit none
@@ -97,9 +96,6 @@ contains
 
       ! If NEO's neoclassical corrections are enabled, then ...
       if (neoclassical_is_enabled()) then
-          ! Allocate and calculate the coeffecient multiplying chi in NEO's neoclassical corrections. 
-          call init_neo_chi_terms
-
           ! If apar is included, allocate and calculate the coeffecient multiplying apar.
           if (include_apar) then          
               call init_neo_apar_terms
@@ -109,8 +105,8 @@ contains
           call init_neo_dchidz_terms
 
           ! Allocate and calculate the neoclassical counterpart to wstar and the poloidal gradient drive. 
-          call init_wstar1
-          call init_wpol
+          call init_wstar1y
+          call init_wstar1x
 
           ! Allocate and calculate the neoclassical curvature drift corrections. 
           call init_neo_curv_drift
@@ -170,13 +166,11 @@ contains
       use gk_radial_variation, only: finish_radial_variation 
       use dissipation_and_collisions, only: finish_dissipation
       
-      ! For NEO's neoclassical corrections. 
-
+      ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled, finish_neoclassical_terms_neo
-      use gk_neo_chi_terms, only: finish_neo_chi_terms
       use gk_neo_apar_terms, only: finish_neo_apar_terms
       use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
-      use gk_neo_drive, only: finish_wstar1, finish_wpol
+      use gk_neo_drive, only: finish_wstar1y, finish_wstar1x
       use gk_neo_drifts, only: finish_neo_curv_drift
 
       implicit none
@@ -196,7 +190,6 @@ contains
       ! If NEO's neoclassical corrections are enabled, then ...
       if (neoclassical_is_enabled()) then
           call finish_neoclassical_terms_neo
-          call finish_neo_chi_terms
 
           ! If apar is included, deallocate the apar neoclassical terms.  
           if (include_apar) then
@@ -204,8 +197,8 @@ contains
           end if 
 
           call finish_neo_dchidz_terms
-          call finish_wstar1
-          call finish_wpol
+          call finish_wstar1y
+          call finish_wstar1x
           call finish_neo_curv_drift
       end if
 

@@ -36,24 +36,24 @@ module gk_neo_drive
     implicit none
 
     ! Make routines available to other modules. 
-    public :: initialised_wstar1, initialised_wpol
-    public :: init_wstar1, init_wpol
-    public :: finish_wstar1, finish_wpol 
-    public :: advance_wstar1_explicit, advance_wpol_explicit 
+    public :: initialised_wstar1y, initialised_wstar1x
+    public :: init_wstar1y, init_wstar1x
+    public :: finish_wstar1y, finish_wstar1x 
+    public :: advance_wstar1y_explicit, advance_wstar1x_explicit 
 
     private
    
     ! Only initialise once.
-    logical :: initialised_wstar1 = .false.
-    logical :: initialised_wpol   = .false.
+    logical :: initialised_wstar1y = .false.
+    logical :: initialised_wstar1x = .false.
 
 contains
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------------------- Initialise wstar1. ------------------------------------------------------------------------------ ! 
+! ------------------------------------------------------------------------------ Initialise wstar1y. ------------------------------------------------------------------------------ ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine init_wstar1
+    subroutine init_wstar1y
         ! Parallelisation.
         use mp, only: mp_abort
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -63,50 +63,49 @@ contains
         use grids_kxky, only: nalpha
         use grids_z, only: nzgrid, zed
         use grids_species, only: spec
-        use grids_velocity, only: vperp2, vpa
+        use grids_velocity, only: vperp2, vpa, mu
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
         ! Geometry. 
-        use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi, gradx_dot_grady
-        use geometry, only: bmag, b_dot_gradz, btor, bpol2
-        use geometry, only: geo_surf, dthetadpsi
+        use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi 
+        use geometry, only: bmag, gradx_dot_grady, B_times_gradB_dot_grady
+        use geometry, only: geo_surf, Rmajor
 
         ! NEO data.
+        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: neo_h, neo_phi
         use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
         use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
 
         ! Arrays. 
-        use arrays, only: wstar1, initialised_wstar1
-
-        ! Rescale the drive term with <wstar1knob>.
-        ! use parameters_physics, only: wstarknob
+        use arrays, only: wstar1y, initialised_wstar1y
 
         implicit none
 
         ! Indices.
         integer :: is, imu, iv, ivmu, iz
      
-        ! wstar1 has a component which is proportional to ∂F_1/∂ψ, we will call this wstar1psi. 
-        ! Similarly the component proportional to ∂F_1/∂z will be called wstarz. 
-        ! We need to declare temporary arrays for both of these; this should make the maths easier to follow.
-        real, dimension(:, :, :), allocatable :: wstar1psi, wstar1z         
-        
-        ! To make the calculations easier to follow, we also calculate energy = v_parallel² + 2 mu B for each velocity point.
-        real, dimension(:, :), allocatable :: energy
+        ! wstar1y has a component which is proportional to ∂F_1/∂ψ, we will call this wstar1ypsi. 
+        ! Similarly the component proportional to ∂F_1/∂z will be called wstar1yz. 
+        ! The component proportional to the parallel velocity derivative is called wstar1yvpa. 
+        ! Splitting up the calculation this way should make the maths easier to follow.
+        real, dimension(:, :, :), allocatable :: wstar1ypsi, wstar1yz, wstar1yvpa         
 
-        ! Only intialise omega_{*,k,s,1} once.
-        if (initialised_wstar1) return
-        initialised_wstar1 = .true.
+        ! Only intialise omega_{*,k,s,1,y} once.
+        if (initialised_wstar1y) return
+        initialised_wstar1y = .true.
 
-        ! Allocate omega_{*,k,s,1} = wstar1[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(wstar1)) then
-            allocate (wstar1(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1 = 0.0
+        ! Allocate omega_{*,k,s,1,y} = wstar1y[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(wstar1y)) then
+            allocate (wstar1y(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1y = 0.0
         end if
 
         ! Allocate the temporary arrays. 
-        allocate (wstar1psi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1psi = 0.0      
-        allocate (wstar1z(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1z = 0.0
+        allocate (wstar1ypsi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1ypsi = 0.0      
+        allocate (wstar1yz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yz = 0.0
+        allocate (wstar1yvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yvpa = 0.0
 
+        ! First calculate the component proportional to the psi derivative of F_1. 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -114,39 +113,66 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1psi(:, iz, ivmu) = (1/clebsch_factor) * dydalpha * 0.5 * code_dt * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                * ( drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz) ) + dthetadpsi(:, iz) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) ) )
+                wstar1ypsi(:, iz, ivmu) = dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz) ) / clebsch_factor
             end do
-      end do
+        end do
 
+        ! Now calculate the component proportional to the z derivative of F_1. 
+        ! Iterate over velocity space.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
 
-      ! We must add the remaining corrections to wstar1, namely those proportinal to the z derivative of F₁. 
-      ! Iterate over velocity space.
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-          is = is_idx(vmu_lo, ivmu)
-          imu = imu_idx(vmu_lo, ivmu)
-          iv = iv_idx(vmu_lo, ivmu)
+            do iz = -nzgrid, nzgrid 
+                wstar1yz(:, iz, ivmu) = - dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
+                - clebsch_factor * gradx_dot_grady(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * geo_surf%qinp * dxdpsi )
+               
+                ! Multiply by the F_1 factor.
+                wstar1yz(:, iz, ivmu) = wstar1yz(:, iz, ivmu) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) )
+            end do
+        end do
 
-          do iz = -nzgrid, nzgrid 
-              wstar1z(:, iz, ivmu) = - 0.5 * btor(iz) * code_dt * gradx_dot_grady(:, iz) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) & 
-              * b_dot_gradz(:, iz) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) ) / ( bmag(:, iz) * geo_surf%rmaj * dxdpsi * bpol2(:, iz) )
-          end do
-      end do
+        ! Finally add the remaining corrections to wstar1y, namely the one proportinal to the vpa derivative of F₁.
+        ! Iterate over velocity space.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
 
-      ! Finally, calculate wstar1 = wstar1psi + wstar1z.
-      wstar1 = wstar1psi + wstar1z 
+            do iz = -nzgrid, nzgrid
+                wstar1yvpa(:, iz, ivmu) = - mu(imu) * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
+ 
+                ! Multiply by the F_1 factor.
+                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + 2.0 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) 
+            end do
+        end do
 
-      ! Deallocate the remaining temporary arrays. 
-      deallocate(wstar1psi)
-      deallocate(wstar1z)
-    end subroutine init_wstar1
+        ! Finally, calculate wstar1y = wstar1ypsi + wstar1yz + wstar1yvpa, including the common factor.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+          
+            do iz = -nzgrid, nzgrid
+                wstar1y(:, iz, ivmu) = 0.5 * code_dt * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+            end do
+        end do
+
+        ! Deallocate temporary arrays. 
+        deallocate(wstar1ypsi)
+        deallocate(wstar1yz)
+        deallocate(wstar1yvpa)
+
+    end subroutine init_wstar1y
 
 
 ! ================================================================================================================================================================================= !
-! -------------------------------------------------------------------------------- Initialise wpol. ------------------------------------------------------------------------------- ! 
+! ----------------------------------------------------------------------------- Initialise wstar1x. ------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine init_wpol
+    subroutine init_wstar1x
         ! Parallelisation.
         use mp, only: mp_abort
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -156,38 +182,42 @@ contains
         use grids_kxky, only: nalpha
         use grids_z, only: nzgrid, zed
         use grids_species, only: spec
-        use grids_velocity, only: vpa
+        use grids_velocity, only: vpa, mu 
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
         ! Geometry.
-        use geometry, only: dydalpha, drhodpsi, clebsch_factor
-        use geometry, only: bmag, b_dot_gradz, dxdpsi
-        use geometry, only: geo_surf, btor
+        use geometry, only: dydalpha, dxdpsi, drhodpsi, clebsch_factor
+        use geometry, only: bmag, b_dot_gradz, gradx_dot_gradx, B_times_gradB_dot_gradx
+        use geometry, only: geo_surf, Rmajor
    
         ! NEO data.
+        use neoclassical_terms_neo, only: neo_vpa_fac
         use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
+        use neoclassical_terms_neo, only: neo_h, neo_phi
 
         ! Arrays. 
-        use arrays, only: wpol, initialised_wpol
-
-        ! Rescale the drive term with <wpolknob>.
-        ! use parameters_physics, only: wpolknob
+        use arrays, only: wstar1x, initialised_wstar1x
 
         implicit none
 
-        ! Indices.
+        ! Local variables.
         integer :: is, imu, iv, ivmu, iz
-         
-        ! Only intialise omega_pol once.
-        if (initialised_wpol) return
-        initialised_wpol = .true.
+        real, dimension(:, :, :), allocatable :: wstar1xz, wstar1xvpa         
 
-        ! Allocate omega_pol = wpol[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(wpol)) then
-            allocate (wpol(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wpol = 0.0
+        ! Only intialise once.
+        if (initialised_wstar1x) return
+        initialised_wstar1x = .true.
+
+        ! Allocate temporary arrays. 
+        allocate (wstar1xz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1xz = 0.0
+        allocate (wstar1xvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1xvpa = 0.0
+
+        ! Allocate wstar1x = wstar1x[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(wstar1x)) then
+            allocate (wstar1x(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1x = 0.0
         end if
   
-
+        ! First calculate the component proportional to the z derivative of F_1. 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -195,23 +225,58 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wpol(:, iz, ivmu) = - 0.5 * code_dt * geo_surf%rmaj * ( btor(iz) / bmag(:, iz) ) * b_dot_gradz(:, iz) * dxdpsi & 
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) ) 
+                wstar1xz(:, iz, ivmu) = ( (dxdpsi / clebsch_factor) - clebsch_factor * gradx_dot_gradx(:, iz) / (Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * dxdpsi ) ) &
+                / geo_surf%qinp
+
+                ! Multiply by the F_1 factor.
+                wstar1xz(:, iz, ivmu) = wstar1xz(:, iz, ivmu) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) ) 
             end do  
         end do
-    end subroutine init_wpol               
+
+        ! Now calculate the component proportional to the vpa derivative of F_1.
+        ! Iterate over velocity space.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+
+            do iz = -nzgrid, nzgrid
+                wstar1xvpa(:, iz, ivmu) = - mu(imu) * B_times_gradB_dot_gradx(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) )
+
+                ! Multiply by the F_1 factor. 
+                wstar1xvpa(:, iz, ivmu) = wstar1xvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + 2.0 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+            end do
+        end do
+
+        ! Finally, calculate wstar1x = wstar1xz + wstar1xvpa, including the common factor.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+
+            do iz = -nzgrid, nzgrid
+                wstar1x(:, iz, ivmu) = 0.5 * code_dt * ( wstar1xz(:, iz, ivmu) + wstar1xvpa(:, iz, ivmu) ) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+            end do
+        end do
+
+        ! Deallocate temporary arrays. 
+        deallocate (wstar1xz)
+        deallocate (wstar1xvpa)
+
+    end subroutine init_wstar1x               
 
 
 ! ================================================================================================================================================================================= !
-! --------------------------------------------------------------------------- Advance wstar1 explicitly. -------------------------------------------------------------------------- ! 
+! -------------------------------------------------------------------------- Advance wstar1y explicitly. -------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_wstar1_explicit(phi, gout)
+    subroutine advance_wstar1y_explicit(phi, gout)
         ! Parallelisation.
         use mp, only: proc0
       
         ! Data arrays.
-        use arrays, only: wstar1
+        use arrays, only: wstar1y
         use arrays_fields, only: apar, bpar
       
         ! Grids.
@@ -237,22 +302,22 @@ contains
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
         !                                                                                            ! 
-        ! Add the neoclassical ψ drive term to the GKE:                                              !
+        ! Add the k_y drive term to the GKE:                                                         !
         !                                                                                            ! 
-        ! wstar1 * i * ky * <Χ_k>                                                                    !
+        ! wstar1y * i * ky * <Χ_k>                                                                   !
         !                                                                                            !
         ! First we calculate i * ky * <Χ_k> which corresponds to ∂<Χ_k>/∂y:                          !
         !                                                                                            ! 
-        ! Then multiply with <wstar1> and add it to the RHS of the GKE:                              !
+        ! Then multiply with <wstar1y> and add it to the RHS of the GKE:                             !
         !                                                                                            !
-        ! add_explicit_term(g0, wstar1(1, :, :), gout)                                               !
+        ! add_explicit_term(g0, wstar1y(1, :, :), gout)                                              !
         !                                                                                            ! 
         ! ========================================================================================== !
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
 
         ! Start timing the time advance due to the driving gradient.
-        if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1 advance')
+        if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1y advance')
 
         ! Allocate temporary array for <g0> = ∂Χ_k/∂y = i *ky * <Χ_k>.
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -262,28 +327,28 @@ contains
         call get_dchidy(phi, apar, bpar, g0)
 
         ! Add the drive term to the RHS of the gyrokinetic equation. 
-        ! if (debug) write (*, *) 'time_advance::solve_gke::add_wstar1_term'
-        call add_explicit_term(g0, wstar1(1, :, :), gout)
+        ! if (debug) write (*, *) 'time_advance::solve_gke::add_wstar1y_term'
+        call add_explicit_term(g0, wstar1y(1, :, :), gout)
 
         ! Deallocate <g0>.
         deallocate (g0)
 
         ! Stop timing the time advance due to the driving gradient.
-        if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1 advance')
+        if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1y advance')
  
-    end subroutine advance_wstar1_explicit
+    end subroutine advance_wstar1y_explicit
 
 
 ! ================================================================================================================================================================================= !
-! ---------------------------------------------------------------------------- Advance wpol explicitly. --------------------------------------------------------------------------- ! 
+! ------------------------------------------------------------------------- Advance wstar1x explicitly. --------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_wpol_explicit(phi, gout)
+    subroutine advance_wstar1x_explicit(phi, gout)
         ! Parallelisation.
         use mp, only: proc0
       
         ! Data arrays.
-        use arrays, only: wpol
+        use arrays, only: wstar1x
         use arrays_fields, only: apar, bpar
       
         ! Grids.
@@ -309,22 +374,22 @@ contains
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
         !                                                                                            ! 
-        ! Add the neoclassical z drive term to the GKE:                                              !
+        ! Add the k_x drive term to the GKE:                                                         !
         !                                                                                            ! 
-        ! wpol * i * kx * <Χ_k>                                                                      !
+        ! wstar1x * i * kx * <Χ_k>                                                                   !
         !                                                                                            !
         ! First we calculate i * kx * <Χ_k> which corresponds to d<Χ_k>/dx:                          !
         !                                                                                            ! 
-        ! Then multiply with wpol and add it to the right-hand-side of the GKE:                      !
+        ! Then multiply with wstar1x and add it to the right-hand-side of the GKE:                   !
         !                                                                                            !
-        ! add_explicit_term(g0, wpol(1, :, :), gout)                                                 !
+        ! add_explicit_term(g0, wstar1x(1, :, :), gout)                                              !
         !                                                                                            ! 
         ! ========================================================================================== !
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
 
         ! Start timing the time advance due to the driving gradient.
-        if (proc0) call time_message(.false., time_gke(:, 6), ' wpol advance')
+        if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1x advance')
 
         ! Allocate temporary array for <g0> = d<Χ_k>/dx  = i * kx * <Χ_k>.
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -334,46 +399,46 @@ contains
         call get_dchidx(phi, apar, bpar, g0)
 
         ! Add the drive term to the RHS of the GKE. 
-        ! if (debug) write (*, *) 'time_advance::solve_gke::add_wpol_term'
-        call add_explicit_term(g0, wpol(1, :, :), gout)
+        ! if (debug) write (*, *) 'time_advance::solve_gke::add_wstar1x_term'
+        call add_explicit_term(g0, wstar1x(1, :, :), gout)
 
         ! Deallocate <g0>.
         deallocate (g0)
 
         ! Stop timing the time advance due to the driving gradient.
-        if (proc0) call time_message(.false., time_gke(:, 6), ' wpol advance')
+        if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1x advance')
 
-    end subroutine advance_wpol_explicit
+    end subroutine advance_wstar1x_explicit
 
 
 ! ================================================================================================================================================================================= !
-! --------------------------------------------------------------------------------- Finish wstar1. -------------------------------------------------------------------------------- ! 
+! -------------------------------------------------------------------------------- Finish wstar1y. -------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine finish_wstar1
-        use arrays, only: wstar1
+    subroutine finish_wstar1y
+        use arrays, only: wstar1y
 
         implicit none
 
-        if (allocated(wstar1)) deallocate (wstar1)
-        initialised_wstar1 = .false.
+        if (allocated(wstar1y)) deallocate (wstar1y)
+        initialised_wstar1y = .false.
 
-    end subroutine finish_wstar1
+    end subroutine finish_wstar1y
 
 
 ! ================================================================================================================================================================================= !
-! ---------------------------------------------------------------------------------- Finish wpol. --------------------------------------------------------------------------------- ! 
+! -------------------------------------------------------------------------------- Finish wstar1x. -------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine finish_wpol   
-        use arrays, only: wpol       
+    subroutine finish_wstar1x   
+        use arrays, only: wstar1x       
 
         implicit none
 
-        if (allocated(wpol)) deallocate (wpol)
-        initialised_wpol = .false.
+        if (allocated(wstar1x)) deallocate (wstar1x)
+        initialised_wstar1x = .false.
 
-    end subroutine finish_wpol   
+    end subroutine finish_wstar1x   
 
 
 ! ================================================================================================================================================================================= !
