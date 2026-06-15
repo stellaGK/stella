@@ -61,9 +61,9 @@ contains
       
       ! For HO corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use arrays, only: neo_mirror, neo_dchidz_coeff
+      use arrays, only: neo_mirror, neo_stream
       use arrays, only: wstar1y, wstar1x
-      use arrays, only: neocurvx, neocurvy
+      use arrays, only: neo_wdrifty, neo_wdriftx
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
@@ -83,8 +83,8 @@ contains
       real :: wdriftx_max, wdrifty_max, wstar_max, zero
       
       ! For HO corrections. 
-      real :: cfl_dt_neo_mirror, cfl_dt_neo_dchidz_coeff, cfl_dt_wstar1y, cfl_dt_wstar1x, cfl_dt_neocurvx, cfl_dt_neocurvy
-      real :: neo_mirror_max, neo_dchidz_coeff_max, wstar1y_max, wstar1x_max, neocurvx_max, neocurvy_max      
+      real :: cfl_dt_neo_mirror, cfl_dt_neo_stream, cfl_dt_wstar1y, cfl_dt_wstar1x, cfl_dt_neo_wdrifty, cfl_dt_neo_wdriftx
+      real :: neo_mirror_max, neo_stream_max, wstar1y_max, wstar1x_max, neo_wdrifty_max, neo_wdriftx_max      
 
       !-------------------------------------------------------------------------
 
@@ -191,15 +191,15 @@ contains
           cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_mirror)
       end if
 
-      ! Check that the introduction of the neoclassical dchi/dz coeffecient doesn't break the CFL condition.
+      ! Check that the introduction of the neoclassical stream coeffecient doesn't break the CFL condition.
       if (neoclassical_is_enabled()) then
-          neo_dchidz_coeff_max = maxval(abs(neo_dchidz_coeff))
+          neo_stream_max = maxval(abs(neo_stream))
           if (nproc > 1) then
-              call max_allreduce(neo_dchidz_coeff_max)
+              call max_allreduce(neo_stream_max)
           end if
 
-          cfl_dt_neo_dchidz_coeff = abs(code_dt) / max(neo_dchidz_coeff_max, zero)
-          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_dchidz_coeff)
+          cfl_dt_neo_stream = abs(code_dt) / max(neo_stream_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_stream)
       end if
 
       ! Check that the introduction of the neoclassical wstar1y drive doesn't break the CFL condition.
@@ -227,28 +227,28 @@ contains
           end if
       end if
 
-      ! Check that the introduction of the neoclassical neocurvy doesn't break the CFL condition.
+      ! Check that the introduction of the neoclassical neo_wdrifty doesn't break the CFL condition.
       if (neoclassical_is_enabled()) then
-          neocurvy_max = maxval(abs(neocurvy))
+          neo_wdrifty_max = maxval(abs(neo_wdrifty))
           if (nproc > 1) then
-              call max_allreduce(neocurvy_max)
+              call max_allreduce(neo_wdrifty_max)
           end if
 
-          cfl_dt_neocurvy = abs(code_dt) / max(maxval(abs(aky)) * neocurvy_max, zero)
-          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neocurvy)
+          cfl_dt_neo_wdrifty = abs(code_dt) / max(maxval(abs(aky)) * neo_wdrifty_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_wdrifty)
       end if
 
-      ! Check that the introduction of the neoclassical neocurvx drive doesn't break the CFL condition.
+      ! Check that the introduction of the neoclassical neo_wdriftx drive doesn't break the CFL condition.
       if (neoclassical_is_enabled()) then
           ! Only calculate the CFL constaint if there are non-zero akx present. 
           if (maxval(abs(akx)) > epsilon(0.0)) then
-              neocurvx_max = maxval(abs(neocurvx))
+              neo_wdriftx_max = maxval(abs(neo_wdriftx))
               if (nproc > 1) then
-                  call max_allreduce(neocurvx_max)
+                  call max_allreduce(neo_wdriftx_max)
               end if
 
-              cfl_dt_neocurvx = abs(code_dt) / max(maxval(abs(akx)) * neocurvx_max, zero)
-              cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neocurvx)
+              cfl_dt_neo_wdriftx = abs(code_dt) / max(maxval(abs(akx)) * neo_wdriftx_max, zero)
+              cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_wdriftx)
           end if
       end if
 
@@ -269,11 +269,11 @@ contains
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
          if (neoclassical_is_enabled() .and. include_apar) write (*, '(A12,ES12.4)') '  neo_mirror: ', cfl_dt_neo_mirror
-         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_dchidz: ', cfl_dt_neo_dchidz_coeff
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_stream: ', cfl_dt_neo_stream
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wstar1y: ', cfl_dt_wstar1y
          if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'wstar1x: ', cfl_dt_wstar1x
-         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neocurvy: ', cfl_dt_neocurvy
-         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neocurvx: ', cfl_dt_neocurvx
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_wdrifty: ', cfl_dt_neo_wdrifty
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neo_wdriftx: ', cfl_dt_neo_wdriftx
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *)
       end if
@@ -335,9 +335,9 @@ contains
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use gk_neo_mirror, only: init_neo_mirror, initialised_neo_mirror
-      use gk_neo_dchidz_terms, only: init_neo_dchidz_terms, initialised_neo_dchidz_terms
+      use gk_neo_stream, only: init_neo_stream, initialised_neo_stream
       use gk_neo_drive, only: init_wstar1y, init_wstar1x, initialised_wstar1y, initialised_wstar1x
-      use gk_neo_drifts, only: init_neo_curv_drift, initialised_neo_curv_drift
+      use gk_neo_drifts, only: init_neo_wdrifty, init_neo_wdriftx, initialised_neo_wdrifty, initialised_neo_wdriftx
 
       implicit none
 
@@ -354,9 +354,10 @@ contains
       initialised_qn_source = .false.
 
       ! For HO corrections. 
-      initialised_neo_dchidz_terms = .false.
+      initialised_neo_stream = .false.
       initialised_neo_mirror = .false.
-      initialised_neo_curv_drift = .false.
+      initialised_neo_wdrifty = .false.
+      initialised_neo_wdriftx = .false.
       initialised_wstar1y = .false.
       initialised_wstar1x = .false.
 
@@ -394,10 +395,11 @@ contains
 
       ! If NEO's neoclassical corrections are enabled, then reinitialise the HO routines.
       if (neoclassical_is_enabled()) then
-          call init_neo_dchidz_terms
+          call init_neo_stream
           call init_wstar1y
           call init_wstar1x
-          call init_neo_curv_drift
+          call init_neo_wdrifty
+          call init_neo_wdriftx
 
           if (include_apar) then         
               call init_neo_mirror

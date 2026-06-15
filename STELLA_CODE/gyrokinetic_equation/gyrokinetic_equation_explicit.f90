@@ -227,9 +227,9 @@ contains
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use gk_neo_mirror, only: advance_neo_mirror_explicit
-      use gk_neo_dchidz_terms, only: advance_neo_dchidz_terms_explicit
+      use gk_neo_stream, only: advance_neo_stream_explicit
       use gk_neo_drive, only: advance_wstar1y_explicit, advance_wstar1x_explicit
-      use gk_neo_drifts, only: advance_neo_curv_drift_explicit
+      use gk_neo_drifts, only: advance_neo_wdrifty_explicit, advance_neo_wdriftx_explicit
  
       implicit none
 
@@ -367,15 +367,16 @@ contains
                  call advance_neo_mirror_explicit(apar, rhs)
              end if
 
-             ! Advance the neoclassical dchi/dz terms, coming from the parallel streaming correction.
-             call advance_neo_dchidz_terms_explicit(phi, rhs)
+             ! Advance the neoclassical parallel streaming correction.
+             ! call advance_neo_stream_explicit(phi, apar, bpar, rhs)
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
              call advance_wstar1y_explicit(phi, rhs)
              call advance_wstar1x_explicit(phi, rhs)
 
              ! Advance the neoclassical magnetic drift terms.
-             call advance_neo_curv_drift_explicit(phi, rhs) 
+             call advance_neo_wdrifty_explicit(phi, apar, bpar, rhs)
+             call advance_neo_wdriftx_explicit(phi, apar, bpar, rhs) 
          end if
 
          ! If simulating a full flux surface (flux annulus), all terms to this point have been calculated

@@ -56,9 +56,9 @@ contains
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled    
       use gk_neo_mirror, only: init_neo_mirror
-      use gk_neo_dchidz_terms, only: init_neo_dchidz_terms
+      use gk_neo_stream, only: init_neo_stream
       use gk_neo_drive, only: init_wstar1y, init_wstar1x
-      use gk_neo_drifts, only: init_neo_curv_drift
+      use gk_neo_drifts, only: init_neo_wdrifty, init_neo_wdriftx
                                                                                    
       implicit none
 
@@ -101,15 +101,16 @@ contains
               call init_neo_mirror
           end if 
 
-          ! Allocate and calculate the coeffecient multiplying dchi/dz in NEO's neoclassical corrections.
-          call init_neo_dchidz_terms
+          ! Allocate and calculate the coeffecient multiplying dchi/dz in the HO parallel streaming advance.
+          call init_neo_stream
 
           ! Allocate and calculate the neoclassical counterpart to wstar and the poloidal gradient drive. 
           call init_wstar1y
           call init_wstar1x
 
-          ! Allocate and calculate the neoclassical curvature drift corrections. 
-          call init_neo_curv_drift
+          ! Allocate and calculate the neoclassical grad-B and curvature drift corrections. 
+          call init_neo_wdrifty
+          call init_neo_wdriftx
       end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
@@ -169,9 +170,9 @@ contains
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled, finish_neoclassical_terms_neo
       use gk_neo_mirror, only: finish_neo_mirror
-      use gk_neo_dchidz_terms, only: finish_neo_dchidz_terms
+      use gk_neo_stream, only: finish_neo_stream
       use gk_neo_drive, only: finish_wstar1y, finish_wstar1x
-      use gk_neo_drifts, only: finish_neo_curv_drift
+      use gk_neo_drifts, only: finish_neo_wdrifty, finish_neo_wdriftx
 
       implicit none
 
@@ -196,10 +197,11 @@ contains
               call finish_neo_mirror
           end if 
 
-          call finish_neo_dchidz_terms
+          call finish_neo_stream
           call finish_wstar1y
           call finish_wstar1x
-          call finish_neo_curv_drift
+          call finish_neo_wdrifty
+          call finish_neo_wdriftx
       end if
 
       initialised_gyrokinetic_equation = .false.

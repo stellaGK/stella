@@ -22,10 +22,11 @@ module arrays
    
    ! For NEO's neoclassical corrections. 
    public :: initialised_neo_mirror
-   public :: initialised_neo_dchidz_terms
+   public :: initialised_neo_stream
    public :: initialised_wstar1y
    public :: initialised_wstar1x 
-   public :: initialised_neo_curv_drift
+   public :: initialised_neo_wdrifty
+   public :: initialised_neo_wdriftx
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -67,11 +68,11 @@ module arrays
 
    ! For HO corrections. 
    public :: neo_mirror
-   public :: neo_dchidz_coeff
+   public :: neo_stream
    public :: wstar1y
    public :: wstar1x
-   public :: neocurvx
-   public :: neocurvy
+   public :: neo_wdriftx
+   public :: neo_wdrifty
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -124,10 +125,11 @@ module arrays
    
    ! For HO corrections. 
    logical :: initialised_neo_mirror   
-   logical :: initialised_neo_dchidz_terms
+   logical :: initialised_neo_stream
    logical :: initialised_wstar1y
    logical :: initialised_wstar1x
-   logical :: initialised_neo_curv_drift
+   logical :: initialised_neo_wdrifty
+   logical :: initialised_neo_wdriftx
 
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -162,9 +164,9 @@ module arrays
 
    ! For HO corrections. 
    real, dimension(:, :, :), allocatable :: neo_mirror
-   real, dimension(:, :, :), allocatable :: neo_dchidz_coeff
+   real, dimension(:, :, :), allocatable :: neo_stream
    real, dimension(:, :, :), allocatable :: wstar1y, wstar1x
-   real, dimension(:, :, :), allocatable :: neocurvx, neocurvy
+   real, dimension(:, :, :), allocatable :: neo_wdriftx, neo_wdrifty
 
    !----------------------------------------------------------------------------
    ! For the Field Equations

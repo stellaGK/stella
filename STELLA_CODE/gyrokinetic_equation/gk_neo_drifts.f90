@@ -12,23 +12,28 @@ module gk_neo_drifts
    implicit none
 
    ! Make routines available to other modules. 
-   public :: initialised_neo_curv_drift
-   public :: init_neo_curv_drift
-   public :: finish_neo_curv_drift
-   public :: advance_neo_curv_drift_explicit
+   public :: initialised_neo_wdrifty
+   public :: initialised_neo_wdriftx
+   public :: init_neo_wdrifty
+   public :: init_neo_wdriftx
+   public :: finish_neo_wdrifty
+   public :: finish_neo_wdriftx
+   public :: advance_neo_wdrifty_explicit
+   public :: advance_neo_wdriftx_explicit
 
    private
 
    ! Only initialise once.
-   logical :: initialised_neo_curv_drift = .false.
+   logical :: initialised_neo_wdrifty = .false.
+   logical :: initialised_neo_wdriftx = .false.
 
 contains
 
 ! ================================================================================================================================================================================= !
-! ----------------------------------------------------------------------- Initialise the curvature drift. ------------------------------------------------------------------------- ! 
+! ------------------------------------------------------------------ Initialise the y-component of the drifts. -------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine init_neo_curv_drift
+    subroutine init_neo_wdrifty
         ! Parallelisation.
         use mp, only: mp_abort
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -50,22 +55,19 @@ contains
         use neoclassical_terms_neo, only: neo_vpa_fac
 
         ! Arrays. 
-        use arrays, only: neocurvx, neocurvy, initialised_neo_curv_drift
+        use arrays, only: neo_wdrifty, initialised_neo_wdrifty
 
         implicit none
 
         integer :: iz, iv, is, imu, ivmu
 
         ! Only intialise once.
-        if (initialised_neo_curv_drift) return
-        initialised_neo_curv_drift = .true.
+        if (initialised_neo_wdrifty) return
+        initialised_neo_wdrifty = .true.
 
-        ! Allocate neocurvx = neocurvx[ialpha, iz, i[mu,vpa,s]] and neocurvy = neocurvy[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(neocurvx)) then
-            allocate (neocurvx(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neocurvx = 0.0
-        end if
-        if (.not. allocated(neocurvy)) then
-            allocate (neocurvy(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neocurvy = 0.0
+        ! Allocate neo_wdrifty = neo_wdrifty[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(neo_wdrifty)) then
+            allocate (neo_wdrifty(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_wdrifty = 0.0
         end if
 
         ! Iterate over velocity space.
@@ -75,34 +77,87 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
            
             do iz = -nzgrid, nzgrid            
-                neocurvx(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) / vpa(iv)
-                
-                neocurvy(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz) / vpa(iv)
+                neo_wdrifty(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz) / vpa(iv)
 
                 ! Multiply by the neoclassical distribution factor. 
-                neocurvx(:, iz, ivmu) = neocurvx(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) & 
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
-
-                neocurvy(:, iz, ivmu) = neocurvy(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) &
+                neo_wdrifty(:, iz, ivmu) = neo_wdrifty(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
             end do
         end do
 
-    end subroutine init_neo_curv_drift         
+    end subroutine init_neo_wdrifty
 
 
 ! ================================================================================================================================================================================= !
-! -------------------------------------------------------------------- Advance the curvature drift explicitly. -------------------------------------------------------------------- ! 
+! ------------------------------------------------------------------ Initialise the x-component of the drifts. -------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_neo_curv_drift_explicit(phi, gout)
+    subroutine init_neo_wdriftx
+        ! Parallelisation.
+        use mp, only: mp_abort
+        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+        ! Grids. 
+        use grids_time, only: code_dt
+        use grids_species, only: spec
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+        use grids_velocity, only: vpa, mu
+        use grids_z, only: nzgrid
+        use grids_kxky, only: nalpha
+
+        ! Geometry. 
+        use geometry, only: bmag
+        use geometry, only: B_times_kappa_dot_gradx
+        use geometry, only: B_times_gradB_dot_gradx
+
+        ! Neoclassical. 
+        use neoclassical_terms_neo, only: neo_vpa_fac
+
+        ! Arrays. 
+        use arrays, only: neo_wdriftx, neo_wdriftx, initialised_neo_wdriftx
+
+        implicit none
+
+        integer :: iz, iv, is, imu, ivmu
+
+        ! Only intialise once.
+        if (initialised_neo_wdriftx) return
+        initialised_neo_wdriftx = .true.
+
+        ! Allocate neo_wdriftx = neo_wdriftx[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(neo_wdriftx)) then
+            allocate (neo_wdriftx(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_wdriftx = 0.0
+        end if
+
+        ! Iterate over velocity space.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+           
+            do iz = -nzgrid, nzgrid                          
+                neo_wdriftx(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) / vpa(iv)
+
+                ! Multiply by the neoclassical distribution factor. 
+                neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) & 
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
+            end do
+        end do
+
+    end subroutine init_neo_wdriftx                  
+
+
+! ================================================================================================================================================================================= !
+! -------------------------------------------------------------- Advance the y component of the drifts explicitly. ---------------------------------------------------------------- ! 
+! ================================================================================================================================================================================= !
+
+    subroutine advance_neo_wdrifty_explicit(phi, apar, bpar, gout)
         ! Parallelisation.
         use mp, only: proc0
         use parallelisation_layouts, only: vmu_lo
       
         ! Data arrays.
-        use arrays, only: neocurvx, neocurvy
-        use arrays_fields, only: apar, bpar      
+        use arrays, only: neo_wdrifty      
 
         ! Grids. 
         use grids_z, only: nzgrid, ntubes
@@ -110,7 +165,7 @@ contains
       
         ! Calculations.
         use calculations_add_explicit_terms, only: add_explicit_term
-        use calculations_kxky_derivatives, only: get_dchidx, get_dchidy
+        use calculations_kxky_derivatives, only: get_dchidy
 
         ! Time this routine.
         use timers, only: time_gke
@@ -118,66 +173,138 @@ contains
 
         implicit none
 
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout        
-        complex, dimension(:, :, :, :, :), allocatable :: g0x, g0y
+        complex, dimension(:, :, :, :, :), allocatable :: g0y
 
         ! ======================================================================================= ! 
         ! --------------------------------------------------------------------------------------- !
         ! ======================================================================================= !
         !                                                                                         ! 
-        ! Here we define two temporary arrays, g0x and g0y. These will hold                       ! 
-        ! <g0x> = ∂<Χ_k>/∂x = i * kx * <Χ_k> and <g0y> = ∂<Χ_k>/∂y = i * ky * <Χ_k> respectively. ! 
-        !                                                                                         ! 
-        ! get_dchidx(phi, apar, bpar, g0x)                                                        !     
+        ! Here we define the temporary array, g0y. These will hold                                ! 
+        ! <g0y> = ∂<Χ_k>/∂y = i * ky * <Χ_k>.                                                     ! 
+        !                                                                                         !      
         ! get_dchidy(phi, apar, bpar, g0y)                                                        !
         !                                                                                         ! 
-        ! We then multiply g0x by neocurvx and g0y by neocurvy and add the results seperately to  ! 
-        ! the RHS of the GKE:                                                                     !
+        ! We then multiply g0y by neo_wdrifty and add the result to the RHS of the GKE:           !
         !                                                                                         ! 
-        ! add_explicit_term(g0x, neocurvx(1, :, :), gout)                                         !
-        ! add_explicit_term(g0y, neocyrvy(1, :, :), gout)                                         !
+        ! add_explicit_term(g0y, neo_wdrifty(1, :, :), gout)                                      !
         !                                                                                         !
         ! ======================================================================================= !
         ! --------------------------------------------------------------------------------------- !
         ! ======================================================================================= !
 
         ! Start timing the time advance.
-        if (proc0) call time_message(.false., time_gke(:, 6), 'neocurvx and neocurvy advance')
+        if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdrifty advance')
 
-        ! Allocate temporary array for <g0x> and <g0y>.
-        allocate (g0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        ! Allocate temporary array for <g0y>.
         allocate (g0y(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
  
         ! Construct the derivative of the generalised potential. 
-        call get_dchidx(phi, apar, bpar, g0x)
         call get_dchidy(phi, apar, bpar, g0y)        
         
-        ! Add the terms to the right-hand-side of the GKE by multiplying by the appropriate coeffecients. 
-        call add_explicit_term(g0x, neocurvx(1, :, :), gout)
-        call add_explicit_term(g0y, neocurvy(1, :, :), gout)
+        ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
+        call add_explicit_term(g0y, neo_wdrifty(1, :, :), gout)
 
-        ! Deallocate <g0x> and <g0y>.
-        deallocate (g0x)
+        ! Deallocate temporary array.
         deallocate (g0y)
 
         ! Stop timing the time advance.
-        if (proc0) call time_message(.false., time_gke(:, 6), 'neocurvx and neocurvy advance')
-    end subroutine advance_neo_curv_drift_explicit
+        if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdrifty advance')
+    end subroutine advance_neo_wdrifty_explicit
 
 
 ! ================================================================================================================================================================================= !
-! --------------------------------------------------------------------------- Finish the curvature drift. ------------------------------------------------------------------------- ! 
+! -------------------------------------------------------------- Advance the x component of the drifts explicitly. ---------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine finish_neo_curv_drift
-        use arrays, only: neocurvx, neocurvy
+    subroutine advance_neo_wdriftx_explicit(phi, apar, bpar, gout)
+        ! Parallelisation.
+        use mp, only: proc0
+        use parallelisation_layouts, only: vmu_lo
+      
+        ! Data arrays.
+        use arrays, only: neo_wdriftx      
+
+        ! Grids. 
+        use grids_z, only: nzgrid, ntubes
+        use grids_kxky, only: naky, nakx
+      
+        ! Calculations.
+        use calculations_add_explicit_terms, only: add_explicit_term
+        use calculations_kxky_derivatives, only: get_dchidx
+
+        ! Time this routine.
+        use timers, only: time_gke
+        use job_manage, only: time_message
 
         implicit none
 
-        if (allocated(neocurvx)) deallocate (neocurvx)
-        if (allocated(neocurvy)) deallocate (neocurvy)
-    end subroutine finish_neo_curv_drift
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout        
+        complex, dimension(:, :, :, :, :), allocatable :: g0x
+
+        ! ======================================================================================= ! 
+        ! --------------------------------------------------------------------------------------- !
+        ! ======================================================================================= !
+        !                                                                                         ! 
+        ! Here we define the temporary array, g0x. These will hold                                ! 
+        ! <g0x> = ∂<Χ_k>/∂x = i * kx * <Χ_k>.                                                     ! 
+        !                                                                                         !      
+        ! get_dchidx(phi, apar, bpar, g0y)                                                        !
+        !                                                                                         ! 
+        ! We then multiply g0x by neo_wdriftx and add the result to the RHS of the GKE:           !
+        !                                                                                         ! 
+        ! add_explicit_term(g0x, neo_wdriftx(1, :, :), gout)                                      !
+        !                                                                                         !
+        ! ======================================================================================= !
+        ! --------------------------------------------------------------------------------------- !
+        ! ======================================================================================= !
+
+        ! Start timing the time advance.
+        if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdriftx advance')
+
+        ! Allocate temporary array for <g0x>.
+        allocate (g0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+ 
+        ! Construct the derivative of the generalised potential. 
+        call get_dchidx(phi, apar, bpar, g0x)        
+        
+        ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
+        call add_explicit_term(g0x, neo_wdriftx(1, :, :), gout)
+
+        ! Deallocate temporary array.
+        deallocate (g0x)
+
+        ! Stop timing the time advance.
+        if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdriftx advance')
+    end subroutine advance_neo_wdriftx_explicit
+
+
+! ================================================================================================================================================================================= !
+! ---------------------------------------------------------------------- Finish the y component of the drifts. -------------------------------------------------------------------- ! 
+! ================================================================================================================================================================================= !
+
+    subroutine finish_neo_wdrifty
+        use arrays, only: neo_wdrifty
+
+        implicit none
+
+        if (allocated(neo_wdrifty)) deallocate (neo_wdrifty)
+    end subroutine finish_neo_wdrifty
+
+
+! ================================================================================================================================================================================= !
+! ---------------------------------------------------------------------- Finish the x component of the drifts. -------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    subroutine finish_neo_wdriftx
+        use arrays, only: neo_wdriftx
+
+        implicit none
+
+        if (allocated(neo_wdriftx)) deallocate (neo_wdriftx)
+    end subroutine finish_neo_wdriftx
 
 
 ! ================================================================================================================================================================================= !
