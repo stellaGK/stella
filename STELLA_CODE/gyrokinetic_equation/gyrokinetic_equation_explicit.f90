@@ -52,7 +52,7 @@ contains
       use gk_parallel_streaming, only: stream_sign
       
       ! Calculations
-      use calculations_tofrom_ghf, only: gbar_to_g, g_to_gneo
+      use calculations_tofrom_ghf, only: gbar_to_g
       
       ! Numerical time advance schemes
       use parameters_numerical, only: explicit_algorithm_switch
@@ -61,7 +61,7 @@ contains
       use parameters_numerical, only: explicit_algorithm_rk4
       use parameters_numerical, only: explicit_algorithm_euler
 
-      ! For NEO's neoclassical corrections.
+      ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       implicit none
@@ -78,13 +78,8 @@ contains
 
       ! Start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
-
-      ! If NEO's higher order corrections are included,  convert from g or g_bar to g_neo, as gbarneo appears in the time derivative of the HO theory. 
-      if (neoclassical_is_enabled()) then
-          call g_to_gneo(g, phi, apar, bpar, 1.0)
-      end if
       
-      ! If the fields are not already updated, then update them
+      ! If the fields are not already updated, then update them.
       if (include_apar) then
          if (neoclassical_is_enabled()) then
              call advance_fields(g, phi, apar, bpar, dist='gneo')
@@ -130,11 +125,6 @@ contains
          end if
       end if
 
-      ! We now switch back to g if we are using g_neo. 
-      if (neoclassical_is_enabled()) then
-          call g_to_gneo(g, phi, apar, bpar, -1.0)
-      end if
-
       ! Enforce periodicity for periodic (including zonal) modes
       ! <stream_sign> > 0 corresponds to dz/dt < 0
       do iky = 1, naky
@@ -178,7 +168,7 @@ contains
       use arrays_gyro_averages, only: j0_ffs
       use calculations_gyro_averages, only: gyro_average
       use calculations_kxky, only: swap_kxky_back
-      use calculations_tofrom_ghf, only: gbar_to_g, g_to_gneo
+      use calculations_tofrom_ghf, only: gbar_to_g
 
       ! Physics flags
       use parameters_physics, only: include_parallel_nonlinearity

@@ -53,7 +53,6 @@ module calculations_tofrom_ghf
    public :: gbar_to_g
    public :: g_to_h
    public :: g_to_f
-   public :: g_to_gneo
 
    private
 
@@ -74,12 +73,6 @@ module calculations_tofrom_ghf
       module procedure g_to_f_kxkyz
       module procedure g_to_f_vmu
    end interface g_to_f
-
-   interface g_to_gneo
-      module procedure g_to_gneo_kxkyz
-      module procedure g_to_gneo_vmu
-      module procedure g_to_gneo_vmu_single
-   end interface g_to_gneo
 
 contains
 
@@ -112,11 +105,18 @@ contains
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
       
+      ! Geometry.
+      use geometry, only: bmag
+
       ! Grids
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac_global
       
       implicit none
 
@@ -153,6 +153,10 @@ contains
          ! Gyroaverage
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
+         if (neoclassical_is_enabled()) then
+             gyro_averaged_field = gyro_averaged_field * (1.0 + 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) 
+         end if
+
          ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
          g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field
          
@@ -179,6 +183,13 @@ contains
       use grids_species, only: spec
       use grids_velocity, only: nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+
+      ! Geometry.
+      use geometry, only: bmag
+
+      ! For HO simulations. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac_global
       
       implicit none
 
@@ -212,6 +223,10 @@ contains
       ! Gyroaverage
       call gyro_average(field, imu, ikxkyz, gyro_averaged_field)
       
+      if (neoclassical_is_enabled()) then
+          gyro_averaged_field = gyro_averaged_field * (1.0 + 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz) )
+      end if
+
       ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
       g = g - gyro_averaged_field
       
@@ -268,6 +283,13 @@ contains
       use grids_velocity, only: vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
 
+      ! Geometry. 
+      use geometry, only: bmag
+
+      ! For HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled 
+      use neoclassical_terms_neo, only: neo_mu_fac
+
       implicit none
 
       ! Arguments
@@ -306,6 +328,10 @@ contains
             ! Gyroaverage
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
             
+            if (neoclassical_is_enabled()) then
+                gyro_averaged_field = gyro_averaged_field * (1.0 + 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+            end if
+
             ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
             g0(:, :, iz, it) = g0(:, :, iz, it) - gyro_averaged_field
             
@@ -361,6 +387,13 @@ contains
       use grids_velocity, only: nvpa, nmu, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu
       
+      ! Use geometry. 
+      use geometry, only: bmag
+
+      ! For HO simulations. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac_global
+
       implicit none
 
       ! Arguments
@@ -396,6 +429,10 @@ contains
          ! Gyroaverage
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
+         if (neoclassical_is_enabled()) then
+             gyro_averaged_field = gyro_averaged_field * (1.0 + 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) 
+         end if
+
          ! Calculate <h> = <g> + (Z_s/T_s)*J_0*phi*F_s
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
          
@@ -423,6 +460,10 @@ contains
             ! Gyroaverage by multiplying with J_1/b_s
             call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
             
+            if (neoclassical_is_enabled()) then
+                gyro_averaged_field = gyro_averaged_field * (1.0 + 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) 
+            end if
+
             ! Calculate <h> = <g> + Z_s/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
             g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
             
@@ -485,6 +526,10 @@ contains
       use geometry, only: bmag, dBdrho
       use arrays, only: kperp2, dkperp2dr
       
+      ! For HO simulations. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac
+
       ! Grids
       use grids_species, only: spec
       use grids_kxky, only: naky, nakx
@@ -548,6 +593,10 @@ contains
             ! Finally add <...>_theta, which is equivalent to adding J_0
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
             
+            if (neoclassical_is_enabled()) then
+                gyro_averaged_field = gyro_averaged_field * (1.0 + 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+            end if
+
             ! Calculate <h> = <g> + Z_s/T_s * <phi>_theta * F_s
             g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
             
@@ -571,6 +620,10 @@ contains
                ! Gyroaverage by multiplying with J_1/b_s
                call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
                
+               if (neoclassical_is_enabled()) then
+                   gyro_averaged_field = gyro_averaged_field * (1.0 + 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+               end if
+
                ! Calculate <h> = <g> + Z_s/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
                g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
                
@@ -673,15 +726,12 @@ contains
          ! Gyroaverage.
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
-         ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
-         g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
-
          ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
          if (neoclassical_is_enabled()) then
-             field = field * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
-
-             ! Add this to  <f>.                                                     
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field
+             ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+         else
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
          end if
 
          ! Ir running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
@@ -797,16 +847,13 @@ contains
                   call gyro_average(field, iz, ivmu, gyro_averaged_field)
                   
                end if
-               
-               ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
-               g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + gyro_averaged_field - field
- 
+
                ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
                if (neoclassical_is_enabled()) then
-                   field = field * ( 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
-
                    ! Add this to  <f>.
-                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + ( gyro_averaged_field - field ) * ( 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+               else
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + gyro_averaged_field - field
                end if
 
                ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
@@ -826,251 +873,5 @@ contains
       if (allocated(g0k)) deallocate (g0k)
 
    end subroutine g_to_f_vmu
-
-
-! ================================================================================================================================================================================== !
-! ------------------------------------------------------------------------------- Convert <g> to <gneo>. --------------------------------------------------------------------------- !
-! ================================================================================================================================================================================== !
-
-! ================================================================================================================================================================================== !
-! ------------------------------------------------------------------- Convert <g> to <gneo> using (kx,ky,z,ivpamus). --------------------------------------------------------------- !
-! ================================================================================================================================================================================== !
-
-   subroutine g_to_gneo_kxkyz(g, phi, apar, bpar, facchi)
-      ! Parallelisation.
-      use parallelisation_layouts, only: kxkyz_lo
-      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      
-      ! Calculations.
-      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-
-      ! Geometry.
-      use geometry, only: bmag
-      
-      ! Grids.
-      use grids_species, only: spec
-      use grids_z, only: nzgrid
-      use grids_velocity, only: mu, vpa, nvpa, nmu
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-       
-      ! Flags.
-      use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: fphi
-
-      ! NEO data.
-      use neoclassical_terms_neo, only: neo_mu_fac_global
-
-      implicit none
-
-      ! Arguments.
-      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
-      real, intent(in) :: facchi
-
-      ! Local variables.
-      integer :: ikxkyz, iz, it, iky, ikx, is, ia
-      complex, dimension(:, :), allocatable :: field, gyro_averaged_field
-      
-      ! =================================================================================== !
-
-      ! Allocate local arrays.
-      allocate (field(nvpa, nmu))
-      allocate (gyro_averaged_field(nvpa, nmu))
-
-      ! Assume we only have one field line.
-      ia = 1
-      
-      ! Iterate over the (kx,ky,z,mu,vpa,s) grid
-      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-          iz = iz_idx(kxkyz_lo, ikxkyz)
-          it = it_idx(kxkyz_lo, ikxkyz)
-          ikx = ikx_idx(kxkyz_lo, ikxkyz)
-          iky = iky_idx(kxkyz_lo, ikxkyz)
-          is = is_idx(kxkyz_lo, ikxkyz)
-         
-          field = spec(is)%zt * facchi * fphi * phi (iky, ikx, iz, it) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-
-          ! If apar is present, we must account for this.
-          if (include_apar) then
-              field = - 2.0 * facchi * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu) &
-              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-          end if
-
-          ! Mutliply by the neoclassical distribution factor.  
-          field = field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
-
-          ! Gyroaverage.
-          call gyro_average(field, ikxkyz, gyro_averaged_field)
-         
-          ! Transform the distribution.
-          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
-      end do
-
-      ! If bpar is present, we must account for this too.
-      if (include_bpar) then
-          ! Iterate over the (kx,ky,z,mu,vpa,s) grid
-          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-              iz = iz_idx(kxkyz_lo, ikxkyz)
-              it = it_idx(kxkyz_lo, ikxkyz)
-              ikx = ikx_idx(kxkyz_lo, ikxkyz)
-              iky = iky_idx(kxkyz_lo, ikxkyz)
-              is = is_idx(kxkyz_lo, ikxkyz)
-
-              field = 4.0 * facchi * spread(mu, 1, nvpa) * bpar(:, :, iz, it) &
-              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-
-              field = field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
-
-              ! Gyroaverage.
-              call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
-         
-              ! Transform the distribution.
-              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
-          end do
-      end if
-
-      ! Deallocate local arrays.
-      deallocate (field, gyro_averaged_field)
-      
-   end subroutine g_to_gneo_kxkyz
-
-
-! ================================================================================================================================================================================== !
-! ------------------------------------------------------------------- Convert <g> to <gneo> using (kx,ky,z,ivpamus). --------------------------------------------------------------- !
-! ================================================================================================================================================================================== !
-
-    subroutine g_to_gneo_vmu(g, phi, apar, bpar, facchi)
-        ! Grids. 
-        use grids_z, only: nzgrid
-
-        ! Parallelisation.
-        use parallelisation_layouts, only: vmu_lo
-
-        implicit none
-
-        ! Arguments.
-        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
-        real, intent(in) :: facchi
-
-        ! Local variables.
-        integer :: ivmu
-
-        ! Convert <g> for each ivpamus point.
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call g_to_gneo_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, apar, bpar, facchi)
-        end do
-
-    end subroutine g_to_gneo_vmu
-
-
-! ================================================================================================================================================================================== !
-! ------------------------------------------------------ Convert <g> to <gneo> using (kx,ky,z,ivpamus) for a specific ivpamus point. ----------------------------------------------- !
-! ================================================================================================================================================================================== !
-
-    subroutine g_to_gneo_vmu_single(ivmu, g0, phi, apar, bpar, facchi)
-        ! Parallelisation.
-        use parallelisation_layouts, only: vmu_lo
-        use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
-      
-        ! Calculations.
-        use calculations_kxky, only: multiply_by_rho
-        use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      
-        ! Grids.
-        use grids_species, only: spec
-        use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: naky, nakx
-        use grids_velocity, only: vpa, mu
-        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-
-        ! Geometry. 
-        use geometry, only: bmag 
-      
-        ! Flags.
-        use parameters_physics, only: include_apar, include_bpar
-        use parameters_physics, only: fphi
-
-        ! NEO's Neoclassical information.
-        use neoclassical_terms_neo, only: neo_mu_fac
-
-        implicit none
-
-        ! Arguments.
-        integer, intent(in) :: ivmu
-        complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g0
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
-        real, intent(in) :: facchi
-
-        ! Local variables.
-        integer :: iv, imu, is
-        integer :: it, iz, ia
-        complex, dimension(:, :), allocatable :: field, gyro_averaged_field
-      
-        ! Allocate local arrays.
-        allocate (field(naky, nakx))
-        allocate (gyro_averaged_field(naky, nakx))
-        
-        ! Get the indices of this ivpamus point.
-        iv = iv_idx(vmu_lo, ivmu)
-        imu = imu_idx(vmu_lo, ivmu)
-        is = is_idx(vmu_lo, ivmu)
-
-        ! Assume we only have one field line. 
-        ia = 1
-      
-        ! Iterate over the (it,iz) points. 
-        do it = 1, ntubes
-           do iz = -nzgrid, nzgrid
-               ! First calculate the gyroaveraged field being used, <>. 
-               ! Calculate the phi contribution to gyoraveraged fields.
-         
-               field = spec(is)%zt * fphi * facchi * phi (:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
-               * maxwell_fac(is)
-
-               ! If apar is present, we must account for this.
-               if (include_apar) then 
-                   field = field - 2.0 * spec(is)%zt * facchi * apar(:, :, iz, it) * maxwell_vpa(iv, is) & 
-                   * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * vpa(iv) * spec(is)%stm 
-               end if
- 
-               ! Mutliply by the neoclassical distribution factor.  
-               field = field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
-               ! Gyroaverage the J₀ contribution.
-               call gyro_average(field, iz, ivmu, gyro_averaged_field)
-            
-               ! Calculate the transformed distribution. 
-               g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field 
-           end do
-       end do
-
-       ! If bpar is present, we must account for this too.
-       if (include_bpar) then
-           ! Iterate over the (it,iz) points. 
-           do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
- 
-                   field = 4.0 * facchi * mu(imu) * bpar(:, :, iz, it) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-               
-                    field = field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
-
-                   ! Gyroaverage the J_1 contribution.
-                   call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
-              
-                   ! Now get the full gyroaveraged field. 
-                   g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
-               end do
-           end do 
-       end if
-      
-       ! Deallocate local arrays.
-       deallocate (field, gyro_averaged_field)
-
-   end subroutine g_to_gneo_vmu_single
-
-
-! ================================================================================================================================================================================== !
-! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
-! ================================================================================================================================================================================== !
 
 end module calculations_tofrom_ghf

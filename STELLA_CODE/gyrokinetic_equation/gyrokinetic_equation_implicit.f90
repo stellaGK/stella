@@ -70,11 +70,11 @@ contains
       use gk_mirror, only: advance_mirror_implicit
       use gk_flow_shear, only: advance_perp_flow_shear
 
-      ! For NEO's neoclassical corrections.
+      ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       ! Calculations
-      use calculations_tofrom_ghf, only: gbar_to_g, g_to_gneo
+      use calculations_tofrom_ghf, only: gbar_to_g
 
       implicit none
 
@@ -87,10 +87,6 @@ contains
 
       ! Start the timer for the implicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
-
-      if (neoclassical_is_enabled()) then
-          call g_to_gneo(g, phi, apar, bpar, 1.0)
-      end if
 
       ! Reverse the order of operations every time step
       ! as part of alternating direction operator splitting
@@ -197,10 +193,6 @@ contains
             fields_updated = .false.
          end if
 
-      end if
-
-      if (neoclassical_is_enabled()) then
-          call g_to_gneo(g, phi, apar, bpar, -1.0)
       end if
 
       ! Stop the timer for the implict part of the solve
