@@ -368,7 +368,7 @@ contains
              end if
 
              ! Advance the neoclassical parallel streaming correction.
-             ! call advance_neo_stream_explicit(phi, apar, bpar, rhs)
+             call advance_neo_stream_explicit(phi, apar, bpar, rhs)
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
              call advance_wstar1y_explicit(phi, rhs)

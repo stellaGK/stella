@@ -27,12 +27,11 @@ module gk_neo_stream
    
    ! Only initialise once.
    logical :: initialised_neo_stream = .false.
-   integer, dimension(:), allocatable :: neo_stream_sign
 
 contains
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------ Initialise the neoclassical ∂<Χ_k>/∂z terms. ----------------------------------------------------------------- ! 
+! ------------------------------------------------------------- Initialise the neoclassical streaming correction. ----------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
     subroutine init_neo_stream
@@ -71,11 +70,6 @@ contains
             allocate (neo_stream(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream = 0.0
         end if
 
-        ! Allocate neo_stream_sign = neo_stream_sign[iv].
-        if (.not. allocated(neo_stream_sign)) then
-            allocate (neo_stream_sign(nvpa)); neo_stream_sign = 0.0
-        end if
-
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -86,21 +80,6 @@ contains
                 neo_stream(:, iz, ivmu) = 0.5 * code_dt * spec(is)%zt * spec(is)%stm * b_dot_gradz(:, iz) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * neo_vpa_fac(iz, ivmu, 1)
             end do
-        end do
-
-        ! ================================================================================================================================================= !
-        ! Create an array that gives the sign of the streaming coeffient.                                                                                   ! 
-        ! This is needed becuase the upwinding factor is dependent on the direction of advection.                                                           !
-        ! Here, neo_stream_sign set to +/- 1 depending on the sign of the parallel streaming term.                                                          !
-        ! NB: stream_sign = -1 corresponds to positive advection velocity.                                                                                  !
-        ! We only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependencies do not lead to change in sign of the streaming pre-factor. !
-        ! ================================================================================================================================================= !
- 
-        ! Iterate over velocity space.
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            iv = iv_idx(vmu_lo, ivmu)
-
-            neo_stream_sign(iv) = int(sign(1.0, neo_stream(1, 0, ivmu)))
         end do
 
     end subroutine init_neo_stream
@@ -124,8 +103,11 @@ contains
         use grids_velocity, only: mu, vpa
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac      
 
+        ! For calculating ∂<Χ_k>/∂z. 
+        use gk_parallel_streaming, only: get_dgdz_centered
+
         ! Parameters
-        use parameters_physics, only: include_apar, include_bpar
+        use parameters_physics, only: fphi, include_apar, include_bpar
 
         ! Calculations.
         use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -139,16 +121,17 @@ contains
 
         complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
-        complex, dimension(:, :, :, :), allocatable :: g0, dphi_dz, dapar_dz, dbpar_dz        
-        complex, dimension(:, :, :, :, :), allocatable :: dg0_dz
 
+        ! Local variables.
         integer :: iv, is, imu, ivmu, ia, iz
+        complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
+        complex, dimension(:, :, :, :, :), allocatable :: g0, dg0_dz
+
 
         ! Allocate temporary arrays.
-        allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
-        allocate (dphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
-        allocate (dapar_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
-        allocate (dbpar_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
         allocate (dg0_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
         ! Assume we only have one field line.
@@ -180,101 +163,45 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             is = is_idx(vmu_lo, ivmu)
 
-            ! Get <phi>.         
-            call gyro_average(phi, ivmu, g0(:, :, :, :))
+            ! Calculate phi.
+            field = fphi * phi
 
-            ! Get d<phi>/dz.
-            call get_dgdz_centered_neo(g0, ivmu, dphi_dz)
+            ! If apar is present, we must account for this.
+            if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
 
-            if (include_apar) then 
-                ! Get <apar>.         
-                call gyro_average(apar, ivmu, g0(:, :, :, :))
+            ! Gyroaverage the J_0 contribution.
+            call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
 
-                ! Get d<apar>/dz.
-                call get_dgdz_centered_neo(g0, ivmu, dapar_dz)
-            else
-                dapar_dz = 0.0
+            ! If bpar is present, we must account for this too.
+            if (include_bpar) then
+                field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
+               
+                ! Gyroaverage the J_1 contribution.
+                call gyro_average_j1(field, ivmu, gyro_tmp)
+              
+                g0(:, :, :, :, ivmu) = g0(:, :, :, :, ivmu) + gyro_tmp
             end if
 
-            if (include_bpar) then
-                call gyro_average_j1(bpar, ivmu, g0(:, :, :, :))
+            call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dg0_dz(:, :, :, :, ivmu))
 
-                call get_dgdz_centered_neo(g0, ivmu, dbpar_dz)
-            else
-                dbpar_dz = 0.0
-            end if 
-
-            ! Construct the full z derivative. 
-            dg0_dz(:, :, :, :, ivmu) = dg0_dz(:, :, :, :, ivmu) &
-            + dphi_dz(:, :, :, :) - 2.0 * spec(is)%stm * vpa(iv) * dapar_dz(:, :, :, :)  + 4.0 * mu(imu) * spec(is)%tz * dbpar_dz(:, :, :, :)
         end do
+
+        ! Get the z derivative of the generalised potential.
+
 
         ! Add the term to the right-hand-side of the GKE. 
         call add_explicit_term(dg0_dz, neo_stream(1, :, :), gout)
 
-        ! Allocate temporary arrays. 
+        ! Deallocate temporary arrays.
+        deallocate (field)
+        deallocate (gyro_tmp) 
         deallocate (g0)                          
         deallocate (dg0_dz)
-        deallocate (dphi_dz)
-        deallocate (dapar_dz)
-        deallocate (dbpar_dz)
 
         ! Stop timing the time advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_stream advance')
 
     end subroutine advance_neo_stream_explicit
-
-
-! ================================================================================================================================================================================= !
-! -------------------------- Get centered dg/dz using the neo_stream_sign: Get second order accurate centered dg/dz, assuming delta zed is equally spaced. ------------------------ ! 
-! ================================================================================================================================================================================= !
-
-    subroutine get_dgdz_centered_neo(g, ivmu, dgdz)
-      ! Calculations. 
-      use calculations_finite_differences, only: second_order_centered_zed
-
-      ! Parallelisation. 
-      use parallelisation_layouts, only: vmu_lo
-      use parallelisation_layouts, only: iv_idx
-
-      ! Grids. 
-      use grids_z, only: nzgrid, delzed, ntubes
-      use grids_extended_zgrid, only: neigen, nsegments
-      use grids_extended_zgrid, only: iz_low, iz_up
-      use grids_extended_zgrid, only: ikxmod
-      use grids_extended_zgrid, only: fill_zed_ghost_zones
-      use grids_extended_zgrid, only: periodic
-      use grids_kxky, only: naky
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: dgdz
-      integer, intent(in) :: ivmu
-
-      integer :: iseg, ie, iky, iv, it
-      complex, dimension(2) :: gleft, gright
-
-      !-------------------------------------------------------------------------
-
-      iv = iv_idx(vmu_lo, ivmu)
-      do iky = 1, naky
-         do it = 1, ntubes
-            do ie = 1, neigen(iky)
-               do iseg = 1, nsegments(ie, iky)
-                  ! First fill in ghost zones at boundaries in g(z)
-                  call fill_zed_ghost_zones(it, iseg, ie, iky, g(:, :, :, :), gleft, gright)
-                  ! Now get dg/dz
-                  call second_order_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
-                     g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
-                     delzed(0), neo_stream_sign(iv), gleft, gright, periodic(iky), &
-                     dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
-               end do
-            end do
-         end do
-      end do
-
-   end subroutine get_dgdz_centered_neo
 
 
 ! ================================================================================================================================================================================= !
@@ -287,7 +214,6 @@ contains
         implicit none
 
         if (allocated(neo_stream)) deallocate (neo_stream)
-        if (allocated(neo_stream_sign)) deallocate (neo_stream_sign)
         initialised_neo_stream = .false.
 
     end subroutine finish_neo_stream

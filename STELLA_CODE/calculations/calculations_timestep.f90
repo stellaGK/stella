@@ -268,13 +268,13 @@ contains
          if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '   wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
-         if (neoclassical_is_enabled() .and. include_apar) write (*, '(A12,ES12.4)') '  neo_mirror: ', cfl_dt_neo_mirror
-         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_stream: ', cfl_dt_neo_stream
-         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'wstar1y: ', cfl_dt_wstar1y
+         if (neoclassical_is_enabled() .and. include_apar) write (*, '(A12,ES12.4)') 'neo_mirror: ', cfl_dt_neo_mirror
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') ' neo_stream: ', cfl_dt_neo_stream
+         if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') ' wstar1y: ', cfl_dt_wstar1y
          if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'wstar1x: ', cfl_dt_wstar1x
          if (neoclassical_is_enabled()) write (*, '(A12,ES12.4)') 'neo_wdrifty: ', cfl_dt_neo_wdrifty
          if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0)) write (*, '(A12,ES12.4)') 'neo_wdriftx: ', cfl_dt_neo_wdriftx
-         write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
+         write (*, '(A12,ES12.4)') '    total: ', cfl_dt_linear
          write (*, *)
       end if
 
