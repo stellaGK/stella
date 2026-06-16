@@ -66,7 +66,7 @@ def write_txtFileForPotentialVsTime(folder, dt=1, verbose=False):
             if nonlinear: write_txtFileForPotentialVsTimeNonlinearSimulations(input_file, dt, status)
         except:
             print(status+'   ---> Something went wrong writing phi(t) for ' + input_file.parent.parent.name+'/'+input_file.parent.name+'/'+input_file.name)
-            sys.exit()
+            continue
         
     return 
 
