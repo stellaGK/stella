@@ -227,7 +227,7 @@ contains
       if (.not. allocated(phi)) then; allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes)); phi = 0.; end if
       if (.not. allocated(phi_old)) then; allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_old = 0.; end if
       if (.not. allocated(denominator_fields)) then; allocate (denominator_fields(naky, nakx, -nzgrid:nzgrid)); denominator_fields = 0.; end if
-      
+
       ! Allocate <denominator_fields_MBR> if we have adiabatic field-line-averaged electrons
       if (.not. allocated(denominator_fields_MBR)) then
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then

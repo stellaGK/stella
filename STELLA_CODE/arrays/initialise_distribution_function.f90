@@ -549,7 +549,7 @@ contains
          if (left) phi(:, :, :-1) = 0.0
          if (right) phi(:, :, 1:) = 0.0
       end if
-
+      
       if (zonal_mode(1)) then
          ! zero out kx = ky = 0 mode
          phi(1, :, :) = phi(1, :, :) * zf_init
@@ -861,54 +861,212 @@ contains
    subroutine initialise_distribution_rh
 
       use mp, only: proc0, broadcast
-      use grids_species, only: spec
+      use grids_species, only: spec, nspec
       use arrays_distribution_function, only: gvmu
       use arrays, only: kperp2
       use parallelisation_layouts, only: kxkyz_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use grids_velocity, only: nvpa, nmu
       use grids_kxky, only: akx
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_rh
 
+      use grids_velocity, only: vperp2
+      use grids_velocity, only: nvpa, nmu, vpa, mu
+      use grids_z, only: zed, nzgrid, nztot
+      
+      use arrays_gyro_averages, only: aj0v_y, aj0v_xy, aj0v_xy_minus, aj0v
+      use geometry, only: bmag
+      use grids_kxky, only: aky, ky_bessel, nakx, naky
+      use constants, only: pi
+      use grids_kxky, only: nalpha
+      use geometry, only: B_times_kappa_dot_grady, B_times_gradB_dot_grady
+      use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
+      use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, grady_dot_grady, gradx_dot_grady
+      use geometry, only: geo_surf, q_as_x
+      use geometry, only: dydalpha, drhodpsi, clebsch_factor, b_dot_gradz, dbdzed, dl_over_b
+
+      use constants, only: zi
+      use mp, only: sum_allreduce
+
+      use arrays_fields, only: phi, apar, bpar
+      use field_equations_fluxtube, only : advance_fields_fluxtube_using_field_equations
+      use field_equations, only: fields_updated
+
+      use calculations_tofrom_ghf, only: g_to_h
+
+      use arrays, only: denominator_fields_MBR, denominator_fields
+      use grids_species, only: ion_species
+      use spfunc, only: j0
+      use grids_species, only: tite, nine
+      use calculations_velocity_integrals, only: integrate_vmu
       implicit none
 
-      integer :: ikxkyz, iky, ikx, iz, is, ia
+      integer :: ikxkyz, iky, ikx, iz, is, ia, it, iv, imu
       
       ! Read the following variables from the input file
       real :: imfac, refac
       real :: kxmax, kxmin
-      
+
+      logical :: weaknl_rh
+      real :: width0
+      real :: delta, delta2
+
+      real :: fac
+      real, dimension(:,:), allocatable :: bxy
+      real, dimension(:, :, :), allocatable :: wcvdrifty, wgbdrifty
+      real, dimension(:, :, :), allocatable :: wcvdriftx, wgbdriftx
+      real, dimension(:, :, :, :), allocatable :: wstar, wdrifty, wdriftx
+      complex :: omega_y, omega_x
+
+      real :: arg
+      real :: tmp, wgt
+      complex, dimension(:, :, :, :), allocatable :: pol_fsa
+
+      real, parameter :: wr0=0.5482
+      real, parameter :: gm0=0.2301
+
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_rh> namelist
-      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
-      
+      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, weaknl_rh, &
+           width0, delta, delta2)
+
       ! Broadcast to all processors
       call broadcast(refac)
       call broadcast(imfac)
       call broadcast(kxmax)
       call broadcast(kxmin)
 
+      call broadcast(weaknl_rh)
+      call broadcast(width0)
+      call broadcast(delta)
+      call broadcast(delta2)
+
       ! initialise g to be a Maxwellian with a constant density perturbation
 
       gvmu = 0.
 
       ia = 1
-      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-         ! only set the first ky mode to be non-zero
-         ! this is because this is meant to test the damping of zonal flow (ky=0)
-         iky = iky_idx(kxkyz_lo, ikxkyz); if (iky /= 1) cycle
-         ikx = ikx_idx(kxkyz_lo, ikxkyz)
-         iz = iz_idx(kxkyz_lo, ikxkyz)
-         is = is_idx(kxkyz_lo, ikxkyz)
+      if (.not. weaknl_rh) then 
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            ! only set the first ky mode to be non-zero
+            ! this is because this is meant to test the damping of zonal flow (ky=0)
+            iky = iky_idx(kxkyz_lo, ikxkyz); if (iky /= 1) cycle
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            
+            if (abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
+               gvmu(:, :, ikxkyz) = spec(is)%z * 0.5 * phiinit * kperp2(iky, ikx, ia, iz) &
+                    * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            end if
+         end do
+      else
+         allocate (wcvdrifty(nalpha, -nzgrid:nzgrid, nvpa))
+         allocate (wgbdrifty(nalpha, -nzgrid:nzgrid, nmu))
+         allocate (wdrifty(nalpha, -nzgrid:nzgrid, nvpa, nmu))
 
-         if (abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
-            gvmu(:, :, ikxkyz) = spec(is)%z * 0.5 * phiinit * kperp2(iky, ikx, ia, iz) &
-                                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-         end if
-      end do
+         allocate (wcvdriftx(nalpha, -nzgrid:nzgrid, nvpa))
+         allocate (wgbdriftx(nalpha, -nzgrid:nzgrid, nmu))
+         allocate (wdriftx(nalpha, -nzgrid:nzgrid, nvpa, nmu))
 
+         allocate (wstar(nalpha, -nzgrid:nzgrid, nvpa, nmu))
+      
+         allocate (bxy(nakx, -nzgrid:nzgrid))
+         ! ------------------------------------------------------------------
+         
+         omega_y = wr0 + zi * gm0
+         omega_x = 2 * zi * gm0 
+         call broadcast(omega_x)
+         call broadcast(omega_y)
+
+         ia = 1
+         it = 1
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               bxy(ikx,iz) = akx(ikx)**2 * gradx_dot_gradx(ia,iz) + ky_bessel**2 * grady_dot_grady(ia,iz) &
+                  + 2 * akx(ikx) * ky_bessel * gradx_dot_grady(ia, iz)
+            end do
+         end do
+      
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iky = iky_idx(kxkyz_lo, ikxkyz) 
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+
+            if (aky(iky) == 0.0) then
+               fac = 0.5 * spec(is)%tz_psi0
+               wcvdrifty(ia,iz,:) = fac * 2 * B_times_kappa_dot_grady(ia,iz) * vpa**2 * ky_bessel
+               wgbdrifty(ia,iz,:) = fac * B_times_gradB_dot_grady(ia,iz) * vperp2(ia,iz,:) * ky_bessel
+               wdrifty(ia,iz,:,:) = spread(wcvdrifty(ia,iz,:), 2, nmu) + spread(wgbdrifty(ia,iz,:), 1, nvpa)
+
+               fac = 0.5 * spec(is)%tz_psi0 / geo_surf%shat
+               wcvdriftx(ia, iz, :) = fac * B_times_kappa_dot_gradx(ia, iz) * 2. * geo_surf%shat * vpa**2 * akx(ikx)
+               wgbdriftx(ia,iz,:) = fac * B_times_gradB_dot_gradx(ia,iz) * geo_surf%shat * vperp2(ia, iz, :) * akx(ikx)
+               wdriftx(ia,iz,:,:) = spread(wcvdriftx(ia,iz,:), 2, nmu) + spread(wgbdriftx(ia,iz,:), 1, nvpa)
+
+               wstar(ia, iz, :, :) = (1/clebsch_factor) * dydalpha * drhodpsi * 0.5 *(spec(is)%fprim + spec(is)%tprim &
+                  * (spread(vpa, 2, nmu)**2 + spread(vperp2(1, iz, :) , 1, nvpa) - 1.5 )) * ky_bessel
+                  
+               gvmu(:, :, ikxkyz) = - zi * spec(is)%z * phiinit * akx(ikx) &
+                  * spread(maxwell_vpa(:,is), 2, nmu) * spread(maxwell_mu(ia, iz, : ,is), 1, nvpa) &
+                  * exp(-2*(zed(iz) /width0)**2) &
+                  * ( (omega_x*(wdrifty(ia, iz, :, :) - wstar(ia, iz, :, :)) + wdriftx(ia, iz, :, :)*(wstar(ia, iz, :, :) - conjg(omega_y)) )) &
+                  * spread(aj0v_y(:, ikxkyz) * aj0v_xy(:, ikxkyz) , 1, nvpa) & !/ (1 + bxy(ikx,iz)) &                                        
+                  / ((omega_y - wdrifty(ia, iz, :, :))*(conjg(omega_y) - wdrifty(ia, iz, :, :))) !*(omega_x - wdriftx(ia,iz,:,:)) ) 
+            
+          else
+               gvmu(:, :, ikxkyz) = 0.0
+            end if
+         end do
+
+         fields_updated = .false.
+         call advance_fields_fluxtube_using_field_equations(gvmu, phi, apar, bpar, dist='g') 
+         fields_updated = .false.
+         call broadcast (phi)
+
+         allocate (pol_fsa(naky, nakx, nvpa, nmu)); pol_fsa = 0.0
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iky = iky_idx(kxkyz_lo, ikxkyz); ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz); is = is_idx(kxkyz_lo, ikxkyz)
+            if (aky(iky) /= 0.0) cycle
+            
+            wcvdriftx(ia, iz, :) = spec(is)%tz_psi0 * B_times_kappa_dot_gradx(ia, iz) * vpa**2 * akx(ikx)
+            wgbdriftx(ia, iz, :) = 0.5 * spec(is)%tz_psi0 * B_times_gradB_dot_gradx(ia, iz) * vperp2(ia, iz, :) * akx(ikx)
+            wdriftx(ia, iz, :, :) = spread(wcvdriftx(ia, iz, :), 2, nmu) + spread(wgbdriftx(ia, iz, :), 1, nvpa)
+            
+            pol_fsa(iky, ikx, :, :) = pol_fsa(iky, ikx, :, :) + dl_over_b(ia, iz) &
+               * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) &
+               * spread(aj0v(:, ikxkyz), 1, nvpa) &
+               * wdriftx(ia, iz, :, :) / (omega_x - wdriftx(ia, iz, :, :)) &
+               * phi(iky, ikx, iz, it)
+         end do
+         call sum_allreduce(pol_fsa)
+
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+
+            if (aky(iky) == 0.0) then
+               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
+                  + (delta + delta2*akx(ikx)**2) * spec(is)%zt * pol_fsa(iky, ikx, :, :) 
+
+            else
+               gvmu(:, :, ikxkyz) = 0.0
+            end if
+         end do
+
+         deallocate(bxy)
+         deallocate(wcvdrifty, wgbdrifty, wcvdriftx, wgbdriftx)
+         deallocate(wstar, wdriftx, wdrifty)
+         deallocate(pol_fsa)
+
+      end if
+
+     
    end subroutine initialise_distribution_rh
 
    !****************************************************************************

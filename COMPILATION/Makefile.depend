@@ -571,6 +571,7 @@ $(OBJ_DIR)/field_equations_fluxtube.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/field_equations_electromagnetic.o \
 	 $(OBJ_DIR)/field_equations_radialvariation.o \
@@ -1092,10 +1093,13 @@ $(OBJ_DIR)/initialise_arrays.o: \
 $(OBJ_DIR)/initialise_distribution_function.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
+	 $(OBJ_DIR)/arrays_fields.o \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_fluxtube.o \
 	 $(OBJ_DIR)/file_units.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \

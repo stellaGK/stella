@@ -72,6 +72,8 @@ module grids_kxky
    public :: g0x
    public :: box
 
+   public :: ky_bessel
+
    ! For Box/Range
    public :: naky, nakx
    public :: nx, ny
@@ -98,6 +100,8 @@ module grids_kxky
    real, dimension(:), allocatable :: x, x_d, y
    logical, dimension(:), allocatable :: zonal_mode
 
+   real :: ky_bessel
+   
    ! For radial variation
    real, dimension(:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
    complex, dimension(:, :), allocatable :: g0x
@@ -163,11 +167,11 @@ contains
          case (grid_option_range)
             call read_namelist_kxky_grid_range (nalpha, naky, nakx, aky_min, aky_max, & 
                akx_min, akx_max, theta0_min, theta0_max, &
-               kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all)
+               kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all, ky_bessel)
          case (grid_option_box)
             call read_namelist_kxky_grid_box (nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
                x0, y0, jtwist, jtwistfac, phase_shift_angle, &
-               centered_in_rho, randomize_phase_shift, periodic_variation, reality)
+               centered_in_rho, randomize_phase_shift, periodic_variation, reality, ky_bessel)
          end select
       end if
       
@@ -209,6 +213,7 @@ contains
          call broadcast(x0)
          call broadcast(y0)
 
+         call broadcast(ky_bessel)
       end subroutine broadcast_parameters
       
    end subroutine read_parameters_kxky_grids
@@ -226,7 +231,7 @@ contains
       use mp, only: mp_abort
       use common_types, only: flux_surface_type
       use grids_z, only: read_parameters_z_grid
-      
+
       implicit none
       
       !-------------------------------------------------------------------------
@@ -407,7 +412,36 @@ contains
                end if
                
             else
-               call mp_abort('The choice ky=0 is inconsistent with akx_min different from akx_max. Aborting.')
+
+               if (abs(aky(1)) > zero) aky_min_notzero = aky(1)
+               if (abs(aky(1)) < zero) aky_min_notzero = aky(2)
+               ! Ballooning angle is theta0 = kx / (ky*shat); or theta0 = kx / ky if x = q
+               ! The minimum and maximum balooning angle occur for the smallest value of ky
+               theta0_min = akx_min / (tfac * aky_min_notzero)
+               theta0_max = akx_max / (tfac * aky_min_notzero)
+
+               ! Construct the array of ballooning angles theta0 = kx / (ky*shat) 
+               do j = 1, naky
+                  if (abs(aky(j)) > zero) then
+                     theta0_min_temp = akx_min / (tfac * aky(j))
+                     theta0_max_temp = akx_max / (tfac * aky(j))
+                     if (nakx > 1) dtheta0 = (theta0_max_temp - theta0_min_temp) / real(nakx - 1)
+                  else
+                     theta0_min_temp = 0.0
+                     theta0_max_temp = 0.0
+                     dtheta0 = 0.0
+                  end if
+                  theta0(j, :) = (/(theta0_min_temp + dtheta0 * real(i), i=0, nakx - 1)/)
+               end do
+
+               ! Construct the range of kx-modes
+               if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
+               akx = (/(10**(akx_min + dkx * real(i)), i=0, nakx - 1) /)
+               
+               !do ikx = 1, nakx                  
+               !   akx(ikx) = 10**(linear(ikx))
+               
+               !!call mp_abort('The choice ky=0 is inconsistent with akx_min different from akx_max. Aborting.')
             end if
          
          ! If <shat> is smaller than <shat_zero>, periodic boundary conditions are enforced

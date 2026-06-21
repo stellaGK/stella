@@ -167,7 +167,8 @@ contains
    !                          (KX,KY) GRID: BOX OPTION                         !
    !****************************************************************************
    subroutine read_namelist_kxky_grid_box (nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
-      x0, y0, jtwist, jtwistfac, phase_shift_angle, centered_in_rho, randomize_phase_shift, periodic_variation, reality)
+        x0, y0, jtwist, jtwistfac, phase_shift_angle, centered_in_rho, randomize_phase_shift, periodic_variation, reality, &
+        ky_bessel)
 
       use mp, only: proc0, mp_abort
       use parameters_physics, only: initialised_parameters_physics
@@ -184,7 +185,7 @@ contains
       real, intent (out) :: jtwistfac
       real, intent (out) :: phase_shift_angle
       real, intent (out) :: x0, y0
-
+      real :: ky_bessel
       !-------------------------------------------------------------------------
       
       ! Some (kx,ky) grid flags are based on <full_flux_surface>
@@ -229,6 +230,7 @@ contains
          ikx_max = -1
          naky_all = -1
 
+         ky_bessel = 0.0
          ! Note that jtwist and y0 will possibly be modified
          ! later in init_kxky_grid_box() if they make it out
          ! of this subroutine with negative values.
@@ -249,7 +251,8 @@ contains
 
          ! Variables in the <kxky_grid_box> namelist
          namelist /kxky_grid_box/ nx, ny, jtwist, jtwistfac, x0, y0, &
-            centered_in_rho, periodic_variation, randomize_phase_shift, phase_shift_angle
+              centered_in_rho, periodic_variation, randomize_phase_shift, phase_shift_angle, &
+              ky_bessel
          
          !----------------------------------------------------------------------
 
@@ -327,7 +330,7 @@ contains
    !****************************************************************************
    subroutine read_namelist_kxky_grid_range (nalpha, naky, nakx, aky_min, aky_max, &
       akx_min, akx_max, theta0_min, theta0_max, &
-      kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all)
+      kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all, ky_bessel)
 
       use mp, only: proc0, mp_abort
       use parameters_physics, only: initialised_parameters_physics
@@ -343,6 +346,8 @@ contains
       real, intent (out) :: theta0_min, theta0_max
       real, intent (out) :: phase_shift_angle
 
+      real, intent (out) :: ky_bessel
+      
       ! Local variable to set <kyspacing_option_switch>
       character(20) :: kyspacing_option
       
@@ -393,6 +398,7 @@ contains
          ikx_max = -1
          naky_all = -1
 
+         ky_bessel = 0.0
          ! Note that jtwist and y0 will possibly be modified
          ! later in init_kxky_grid_box() if they make it out
          ! of this subroutine with negative values.
@@ -420,7 +426,8 @@ contains
 
          ! Variables in the <kxky_grid_range> namelist
          namelist /kxky_grid_range/ naky, nakx, &
-              aky_min, aky_max, theta0_min, theta0_max, akx_min, akx_max, kyspacing_option
+              aky_min, aky_max, theta0_min, theta0_max, akx_min, akx_max, kyspacing_option, &
+              ky_bessel
 
          !----------------------------------------------------------------------
 
@@ -501,11 +508,11 @@ contains
          if ((nakx==1) .and. (naky==1)) return
          
          ! We can not launch a range of modes with only ky=0
-         if (naky==1) then
-            if (aky_min==0.0 .or. aky_max==0.0) then
-               call mp_abort('Can not launch only the ky=0 mode. Aborting')
-            end if
-         end if
+         !if (naky==1) then
+         !   if (aky_min==0.0 .or. aky_max==0.0) then
+         !      call mp_abort('Can not launch only the ky=0 mode. Aborting')
+         !   end if
+         !end if
       
       end subroutine check_kxky_grid_range_parameters
       

@@ -17,6 +17,7 @@
 !      chop_side = .false.
 !      left = .true.
 !      set_theta0_to_zero = .false.
+!      zf_init = 1.0
 ! 
 !   initialise_distribution_noise
 !      zf_init = 1.0
@@ -273,9 +274,10 @@ contains
          write (unit, '(A, L0)') '  left = ', left
          write (unit, '(A, L0)') '  chop_side = ', chop_side
          write (unit, '(A, L0)') '  set_theta0_to_zero = ', set_theta0_to_zero
+         write (unit, '(A, ES0.4)') '  zf_init = ', zf_init
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
-      
+
       end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_initialise_distribution_maxwellian
@@ -455,16 +457,20 @@ contains
    !****************************************************************************
    !                          INITIALISE POTENTIAL: RH                         !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
+   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, &
+        weaknl_rh, width0, delta, delta2)
 
       use mp, only: proc0
 
       implicit none
-      
+
       ! Variables that are read from the input file
       real, intent(out) :: kxmax, kxmin
       real, intent(out) :: imfac, refac
-      
+
+      logical, intent (out) :: weaknl_rh
+      real, intent(out) :: width0
+      real, intent (out) :: delta, delta2
       !-------------------------------------------------------------------------
 
       if (.not. proc0) return
@@ -484,6 +490,10 @@ contains
          imfac = 0.0
          refac = 1.0
 
+         weaknl_rh = .false.
+         width0 = 1.0
+         delta = 0.0
+         delta2 = 0.0
       end subroutine set_default_parameters_initialise_distribution_rh
 
       !---------------------------- Read input file ----------------------------
@@ -492,7 +502,8 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac
+         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac, &
+              weaknl_rh, width0, delta, delta2
          in_file = input_unit_exist('initialise_distribution_rh', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 
