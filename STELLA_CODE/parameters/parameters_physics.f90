@@ -42,10 +42,23 @@ module parameters_physics
    public :: full_flux_surface
    public :: radial_variation
 
+   ! HO gyrokinetic terms that can be turned on/off.
+   public :: include_neoclassical_parallel_streaming
+   public :: include_neoclassical_mirror
+   public :: include_neoclassical_xdrift
+   public :: include_neoclassical_ydrift
+   public :: include_neoclassical_xdrive
+   public :: include_neoclassical_ydrive
+
    ! Scaling options
    public :: xdriftknob, ydriftknob, wstarknob
    public :: streamknob, mirrorknob
    public :: fphi, suppress_zonal_interaction
+   
+   ! HO scaling option.
+   public :: neostreamknob, neomirrorknob
+   public :: neoxdriftknob, neoydriftknob
+   public :: wstar1xknob, wstar1yknob
    
    ! Electromagnetic effects
    public :: include_apar
@@ -74,11 +87,24 @@ module parameters_physics
    logical :: full_flux_surface
    logical :: radial_variation
 
+   ! HO gyrokinetic terms.
+   logical :: include_neoclassical_parallel_streaming
+   logical :: include_neoclassical_mirror
+   logical :: include_neoclassical_xdrift
+   logical :: include_neoclassical_ydrift
+   logical :: include_neoclassical_xdrive
+   logical :: include_neoclassical_ydrive
+
    ! Scaling options
    real :: xdriftknob, ydriftknob, wstarknob
    real :: streamknob, mirrorknob
    real :: fphi
    logical :: suppress_zonal_interaction
+
+   ! HO scaling options.
+   real :: neostreamknob, neomirrorknob
+   real :: neoxdriftknob, neoydriftknob
+   real :: wstar1xknob, wstar1yknob
 
    ! Electromagnetic effects
    logical :: include_apar
@@ -112,14 +138,19 @@ contains
       initialised_parameters_physics = .true.
 
       ! Read the physics namelists in the input file
-      call read_namelist_gyrokinetic_terms (simulation_domain_switch, & 
-         include_parallel_streaming, include_mirror, &
-         include_xdrift, include_ydrift, include_drive, include_nonlinear, &
-         include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
-         full_flux_surface, radial_variation)
+      call read_namelist_gyrokinetic_terms(simulation_domain_switch, include_parallel_streaming, & 
+          include_mirror, include_xdrift, include_ydrift, include_drive, include_nonlinear, &
+          include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
+          full_flux_surface, radial_variation, include_neoclassical_parallel_streaming, &
+          include_neoclassical_mirror, include_neoclassical_xdrift, include_neoclassical_ydrift, &             
+          include_neoclassical_xdrive, include_neoclassical_ydrive)               
       call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
-         include_parallel_streaming, include_mirror, xdriftknob, ydriftknob, wstarknob, streamknob, & 
-         mirrorknob, fphi, suppress_zonal_interaction)
+          include_parallel_streaming, include_mirror, &
+          include_neoclassical_parallel_streaming, include_neoclassical_mirror, & 
+          include_neoclassical_xdrift, include_neoclassical_ydrift, &             
+          include_neoclassical_xdrive, include_neoclassical_ydrive, &             
+          xdriftknob, ydriftknob, wstarknob, streamknob, mirrorknob, fphi, suppress_zonal_interaction, &
+          neostreamknob, neomirrorknob, neoxdriftknob, neoydriftknob, wstar1xknob, wstar1yknob) 
       call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
       call read_namelist_physics_inputs(rhostar)
 
@@ -170,8 +201,15 @@ contains
          call broadcast(include_flow_shear)
          call broadcast(full_flux_surface)
          call broadcast(radial_variation)
+         ! HO gyrokinetic terms. 
+         call broadcast(include_neoclassical_parallel_streaming)
+         call broadcast(include_neoclassical_mirror)
+         call broadcast(include_neoclassical_xdrift)
+         call broadcast(include_neoclassical_ydrift)
+         call broadcast(include_neoclassical_ydrive)
+         call broadcast(include_neoclassical_xdrive)
 
-         ! Scaling options
+         ! Scaling options.
          call broadcast(xdriftknob)
          call broadcast(ydriftknob)
          call broadcast(wstarknob)
@@ -179,6 +217,13 @@ contains
          call broadcast(mirrorknob)
          call broadcast(fphi)
          call broadcast(suppress_zonal_interaction)
+         ! HO scaling options. 
+         call broadcast(neostreamknob)
+         call broadcast(neomirrorknob)
+         call broadcast(neoxdriftknob)
+         call broadcast(neoydriftknob)
+         call broadcast(wstar1xknob)
+         call broadcast(wstar1yknob)
 
          ! Electromagnetic effects
          call broadcast(include_apar)

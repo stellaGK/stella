@@ -73,9 +73,6 @@ contains
       ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
 
-      ! Calculations
-      use calculations_tofrom_ghf, only: gbar_to_g
-
       implicit none
 
       ! Arguments
@@ -112,9 +109,9 @@ contains
          if (collisions_implicit .and. include_collisions) then
             if (neoclassical_is_enabled()) then
                 call advance_fields(g, phi, apar, bpar, dist='gneo')
-            else 
+            else
                 call advance_fields(g, phi, apar, bpar, dist='g')
-            end if
+            end if 
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
@@ -129,7 +126,7 @@ contains
          ! quasi-neutrality condition to update the fields <phi>, <apar> and <bpar>.
          if (neoclassical_is_enabled()) then
              call advance_fields(g, phi, apar, bpar, dist='gneo')
-         else
+         else  
              call advance_fields(g, phi, apar, bpar, dist='g')
          end if
          fields_updated = .true. 
@@ -174,7 +171,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            if (neoclassical_is_enabled()) then 
+            if (neoclassical_is_enabled()) then
                 call advance_fields(g, phi, apar, bpar, dist='gneo')
             else
                 call advance_fields(g, phi, apar, bpar, dist='g')

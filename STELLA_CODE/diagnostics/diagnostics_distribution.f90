@@ -236,8 +236,8 @@ contains
       if (write_distribution_h) then
 
          ! Switch to h
-         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, fphi)
-         call g_to_h(gnew, phi, bpar, fphi)
+         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, apar, bpar, fphi)
+         call g_to_h(gnew, phi, apar, bpar, fphi)
 
          ! Use gnew(ky, kx, z, tube, ivmus) to calculate |g|^2(z, vpa, s), |g|^2(z, mu, s) and |g|^2(vpa, mu, s)
          call calculate_distribution(gnew, gvmu, g2_vs_zmus, g2_vs_zvpas, g2_vs_vpamus, g2_vs_zkykxs, g2_vs_zvpamus, &
@@ -255,8 +255,8 @@ contains
          if (write_g2_vs_zvpamus .and. proc0) call write_h2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
          ! Switch back to g
-         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
-         call g_to_h(gnew, phi, bpar, -fphi)
+         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, apar, bpar, -fphi)
+         call g_to_h(gnew, phi, apar, bpar, -fphi)
 
       end if
 
@@ -265,8 +265,8 @@ contains
       if (write_distribution_f) then
 
          ! Switch to f
-         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, fphi)
-         call g_to_f(gnew, phi, apar, fphi)
+         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, apar, bpar, fphi)
+         call g_to_f(gnew, phi, apar, bpar, fphi)
 
          ! Use gnew(ky, kx, z, tube, ivmus) to calculate |g|^2(z, vpa, s), |g|^2(z, mu, s) and |g|^2(vpa, mu, s)
          call calculate_distribution(gnew, gvmu, g2_vs_zmus, g2_vs_zvpas, g2_vs_vpamus, g2_vs_zkykxs, g2_vs_zvpamus, &
@@ -284,8 +284,8 @@ contains
          if (write_g2_vs_zvpamus .and. proc0) call write_f2nozonal_vs_zvpamus_nc(nout, g2nozonal_vs_zvpamus)
 
          ! Switch back to g
-         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
-         call g_to_f(gnew, phi, apar, -fphi)
+         if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, apar, bpar, -fphi)
+         call g_to_f(gnew, phi, apar, bpar, -fphi)
 
       end if
 

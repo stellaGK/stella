@@ -1461,7 +1461,7 @@ contains
 
          ! For HO corrections. 
          use neoclassical_terms_neo, only: neoclassical_is_enabled
-         use arrays, only: denominator_fields_neo 
+         use arrays, only: denominator_fields_neo_gneo  
 
          implicit none
 
@@ -1519,7 +1519,7 @@ contains
             ! For the given value of ky, kx, store the appropriate denominator from 
             ! the Quasineutrality equation for this this segment. 
             if (neoclassical_is_enabled()) then 
-                denominator_seg = denominator_fields_neo(iky, ikx, :)
+                denominator_seg = denominator_fields_neo_gneo(iky, ikx, :)
             else 
                 denominator_seg = denominator_fields(iky, ikx, :)
             end if 
@@ -1797,8 +1797,8 @@ contains
           use grids_species, only: spec
        
           ! Arrays. 
-          use arrays, only: denominator_fields_neo, denominator_fields_neo_12
-          use arrays, only: denominator_fields_neo_21, denominator_fields_neo_22_g
+          use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_12_gneo
+          use arrays, only: denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo
 
           implicit none
 
@@ -1867,10 +1867,10 @@ contains
               ! For the given value of ky, kx, store the appropriate matrix elements from 
               ! the field equations (Quasineutrality and parallel Amperes law) for this segment. 
                
-              gamma11 = denominator_fields_neo(iky, ikx, :)
-              gamma12 = denominator_fields_neo_12(iky, ikx, :)
-              gamma21 = denominator_fields_neo_21(iky, ikx, :)
-              gamma22 = denominator_fields_neo_22_g(iky, ikx, :)
+              gamma11 = denominator_fields_neo_gneo(iky, ikx, :)
+              gamma12 = denominator_fields_neo_12_gneo(iky, ikx, :)
+              gamma21 = denominator_fields_neo_21_gneo(iky, ikx, :)
+              gamma22 = denominator_fields_neo_22_gneo(iky, ikx, :)
 
               ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
               ! iz is only cycling through the zed location within a given segment. 
@@ -1929,9 +1929,9 @@ contains
           use grids_species, only: spec
        
           ! Arrays. 
-          use arrays, only: denominator_fields_neo, denominator_fields_neo_12, denominator_fields_neo_13
-          use arrays, only: denominator_fields_neo_21, denominator_fields_neo_22_g, denominator_fields_neo_23
-          use arrays, only: denominator_fields_neo_31, denominator_fields_neo_32, denominator_fields_neo_33
+          use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_12_gneo, denominator_fields_neo_13_gneo
+          use arrays, only: denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo, denominator_fields_neo_23_gneo
+          use arrays, only: denominator_fields_neo_31_gneo, denominator_fields_neo_32_gneo, denominator_fields_neo_33_gneo
 
           implicit none
 
@@ -2006,15 +2006,15 @@ contains
               ! For the given value of ky, kx, store the appropriate matrix elements from 
               ! the field equations (Quasineutrality and parallel Amperes law) for this segment. 
                
-              gamma11 = denominator_fields_neo(iky, ikx, :)
-              gamma12 = denominator_fields_neo_12(iky, ikx, :)
-              gamma13 = denominator_fields_neo_13(iky, ikx, :)
-              gamma21 = denominator_fields_neo_21(iky, ikx, :)
-              gamma22 = denominator_fields_neo_22_g(iky, ikx, :)
-              gamma23 = denominator_fields_neo_23(iky, ikx, :)
-              gamma31 = denominator_fields_neo_31(iky, ikx, :)
-              gamma32 = denominator_fields_neo_32(iky, ikx, :)
-              gamma33 = denominator_fields_neo_33(iky, ikx, :)
+              gamma11 = denominator_fields_neo_gneo(iky, ikx, :)
+              gamma12 = denominator_fields_neo_12_gneo(iky, ikx, :)
+              gamma13 = denominator_fields_neo_13_gneo(iky, ikx, :)
+              gamma21 = denominator_fields_neo_21_gneo(iky, ikx, :)
+              gamma22 = denominator_fields_neo_22_gneo(iky, ikx, :)
+              gamma23 = denominator_fields_neo_23_gneo(iky, ikx, :)
+              gamma31 = denominator_fields_neo_31_gneo(iky, ikx, :)
+              gamma32 = denominator_fields_neo_32_gneo(iky, ikx, :)
+              gamma33 = denominator_fields_neo_33_gneo(iky, ikx, :)
 
               ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
               ! iz is only cycling through the zed location within a given segment. 

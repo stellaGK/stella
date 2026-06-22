@@ -5,42 +5,42 @@
 ! This module will read the namelists associated with physics parameters:
 ! 
 !   gyrokinetic_terms
-!     simulation_domain = 'fluxtube'
-!     include_parallel_streaming = .true.
-!     include_mirror = .true.
-!     include_xdrift = .true.
-!     include_ydrift = .true.
-!     include_drive = .true. !! wstarknob = 1.0 or 0.0
-!     include_nonlinear = .false.
-!     include_parallel_nonlinearity = .false.
-!     include_electromagnetic = .false.
-!     include_full_flux_annulus = .false.
-!     include_radial_variation = .false.
-!   
+!      simulation_domain = 'fluxtube'
+!      include_parallel_streaming = .true.
+!      include_mirror = .true.
+!      include_xdrift = .true.
+!      include_ydrift = .true.
+!      include_drive = .true. !! wstarknob = 1.0 or 0.0
+!      include_nonlinear = .false.
+!      include_parallel_nonlinearity = .false.
+!      include_electromagnetic = .false.
+!      include_full_flux_annulus = .false.
+!      include_radial_variation = .false.
+!    
 !   scale_gyrokinetic_terms
-!     xdriftknob = 1.0
-!     ydriftknob = 1.0
-!     wstarknob = 1.0
-!     fphi = 1.0
-!     suppress_zonal_interaction = .false.
+!      xdriftknob = 1.0
+!      ydriftknob = 1.0
+!      wstarknob = 1.0
+!      fphi = 1.0
+!      suppress_zonal_interaction = .false.
 ! 
 !   electromagnetic
-!     include_apar = .false.
-!     include_bpar = .false.
-!     beta = 0.0
-!   
+!      include_apar = .false.
+!      include_bpar = .false.
+!      beta = 0.0
+!    
 !   physics_inputs
-!     rhostar = - 1.0
+!      rhostar = - 1.0
 ! 
 ! Text options for <simulation_domain>:
-!    - Flux tube: {default, fluxtube, ft}
-!    - Flux flux annulus: {full_flux_annulus, ffa}
-!    - Multibox from radial variation: {multibox, radial}
+!     - Flux tube: {default, fluxtube, ft}
+!     - Flux flux annulus: {full_flux_annulus, ffa}
+!     - Multibox from radial variation: {multibox, radial}
 ! 
 ! For each namelists two (or three) routines exist:
-!    - set_default_parameters_<namelist>
-!    - read_namelist_<namelist>
-!    - check_inputs_<namelist>
+!     - set_default_parameters_<namelist>
+!     - read_namelist_<namelist>
+!     - check_inputs_<namelist>
 ! 
 ! First the default input parameters are set, then the default options are
 ! overwritten with those specified in the input file. Optionally, it is
@@ -51,7 +51,7 @@ module namelist_parameters_physics
 
    implicit none
 
-   ! Make reading routines accesible to other modules
+   ! Make reading routines accessible to other modules
    public :: read_namelist_gyrokinetic_terms
    public :: read_namelist_scale_gyrokinetic_terms
    public :: read_namelist_electromagnetic
@@ -74,12 +74,14 @@ module namelist_parameters_physics
 contains
 
    !****************************************************************************
-   !                             GYROKINETIC TERMS                             !
+   !                             GYROKINETIC TERMS                              !
    !****************************************************************************
    subroutine read_namelist_gyrokinetic_terms(simulation_domain_switch, include_parallel_streaming, & 
       include_mirror, include_xdrift, include_ydrift, include_drive, include_nonlinear, &
       include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
-      include_full_flux_annulus, include_radial_variation)
+      include_full_flux_annulus, include_radial_variation, include_neoclassical_parallel_streaming, &
+      include_neoclassical_mirror, include_neoclassical_xdrift, include_neoclassical_ydrift, &
+      include_neoclassical_xdrive, include_neoclassical_ydrive)
 
       use mp, only: proc0
 
@@ -91,7 +93,13 @@ contains
       logical, intent(out) :: include_xdrift, include_ydrift, include_drive
       logical, intent(out) :: include_nonlinear, include_parallel_nonlinearity
       logical, intent(out) :: include_electromagnetic, include_flow_shear
-      logical, intent (out) :: include_full_flux_annulus, include_radial_variation
+      logical, intent(out) :: include_full_flux_annulus, include_radial_variation
+
+      ! For HO simulations. 
+      logical, intent(out) :: include_neoclassical_parallel_streaming
+      logical, intent(out) :: include_neoclassical_mirror 
+      logical, intent(out) :: include_neoclassical_xdrift, include_neoclassical_ydrift
+      logical, intent(out) :: include_neoclassical_xdrive, include_neoclassical_ydrive
 
       ! Local variable to set <simulation_domain_switch>
       character(30) :: simulation_domain
@@ -131,6 +139,14 @@ contains
          include_full_flux_annulus = .false.
          include_radial_variation = .false.
 
+         ! By default HO corrections are not included. 
+         include_neoclassical_parallel_streaming = .false.
+         include_neoclassical_mirror = .false.
+         include_neoclassical_xdrift = .false.
+         include_neoclassical_ydrift = .false.
+         include_neoclassical_xdrive = .false.
+         include_neoclassical_ydrive = .false.
+
       end subroutine set_default_parameters_gyrokinetic_terms
 
       !---------------------------- Read input file ----------------------------
@@ -158,7 +174,10 @@ contains
          namelist /gyrokinetic_terms/ simulation_domain, include_parallel_streaming, &
             include_mirror, include_xdrift, include_ydrift, include_drive, &
             include_nonlinear, include_parallel_nonlinearity, include_electromagnetic, &
-            include_flow_shear, include_full_flux_annulus, include_radial_variation
+            include_flow_shear, include_full_flux_annulus, include_radial_variation, & 
+            include_neoclassical_parallel_streaming, include_neoclassical_mirror, & 
+            include_neoclassical_xdrift, include_neoclassical_ydrift, & 
+            include_neoclassical_xdrive, include_neoclassical_ydrive 
 
          !----------------------------------------------------------------------
 
@@ -205,6 +224,12 @@ contains
          write (unit, '(A, L0)') '  include_flow_shear = ', include_flow_shear
          write (unit, '(A, L0)') '  include_full_flux_annulus = ', include_full_flux_annulus
          write (unit, '(A, L0)') '  include_radial_variation = ', include_radial_variation
+         write (unit, '(A, L0)') '  include_neoclassical_parallel_streaming = ', include_neoclassical_parallel_streaming
+         write (unit, '(A, L0)') '  include_neoclassical_mirror = ', include_neoclassical_mirror
+         write (unit, '(A, L0)') '  include_neoclassical_xdrift = ', include_neoclassical_xdrift
+         write (unit, '(A, L0)') '  include_neoclassical_ydrift = ', include_neoclassical_ydrift
+         write (unit, '(A, L0)') '  include_neoclassical_ydrive = ', include_neoclassical_ydrive
+         write (unit, '(A, L0)') '  include_neoclassical_xdrive = ', include_neoclassical_xdrive
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -213,24 +238,40 @@ contains
    end subroutine read_namelist_gyrokinetic_terms
 
    !****************************************************************************
-   !                          SCALE GYROKINETIC TERMS                          !
+   !                          SCALE GYROKINETIC TERMS                           !
    !****************************************************************************
    subroutine read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
-      include_parallel_streaming, include_mirror, xdriftknob, ydriftknob, wstarknob, &
-      streamknob, mirrorknob, fphi, suppress_zonal_interaction)
+      include_parallel_streaming, include_mirror, include_neoclassical_parallel_streaming, &
+      include_neoclassical_mirror, include_neoclassical_xdrift, include_neoclassical_ydrift, &
+      include_neoclassical_xdrive, include_neoclassical_ydrive, &
+      xdriftknob, ydriftknob, wstarknob, streamknob, mirrorknob, fphi, suppress_zonal_interaction, &
+      neostreamknob, neomirrorknob, neoxdriftknob, neoydriftknob, wstar1xknob, wstar1yknob)
 
       use mp, only: proc0
 
       implicit none
 
-      ! Variables that are read from the input file
+      ! Variables passed in to establish fallback bounds
       logical, intent (in) :: include_xdrift, include_ydrift, include_drive
       logical, intent (in) :: include_parallel_streaming, include_mirror
+     
+      ! For HO simulations. 
+      logical, intent(in) :: include_neoclassical_parallel_streaming
+      logical, intent(in) :: include_neoclassical_mirror
+      logical, intent(in) :: include_neoclassical_xdrift, include_neoclassical_ydrift
+      logical, intent(in) :: include_neoclassical_xdrive, include_neoclassical_ydrive
+
+      ! Variables passed out
       logical, intent (out) :: suppress_zonal_interaction
       real, intent (out) :: xdriftknob, ydriftknob, wstarknob 
       real, intent (out) :: streamknob, mirrorknob
       real, intent (out) :: fphi
       
+      ! For HO simulations.
+      real, intent (out) :: neostreamknob, neomirrorknob
+      real, intent (out) :: neoxdriftknob, neoydriftknob
+      real, intent (out) :: wstar1xknob, wstar1yknob
+
       !-------------------------------------------------------------------------
 
       if (.not. proc0) return
@@ -256,6 +297,14 @@ contains
          streamknob = 1.0
          mirrorknob = 1.0
 
+         ! Scale the HO terms in the gyrokinetic equation.
+         neostreamknob = 1.0
+         neomirrorknob = 1.0 
+         neoxdriftknob = 1.0
+         neoydriftknob = 1.0
+         wstar1xknob = 1.0
+         wstar1yknob = 1.0   
+
          ! The zonal modes can be set to zero at every time step to eliminate their effect
          suppress_zonal_interaction = .false.
 
@@ -269,7 +318,8 @@ contains
          implicit none
 
          namelist /scale_gyrokinetic_terms/ xdriftknob, ydriftknob, wstarknob, streamknob, mirrorknob, &
-            fphi, suppress_zonal_interaction
+            fphi, suppress_zonal_interaction, neostreamknob, neomirrorknob, neoxdriftknob, &
+            neoydriftknob, wstar1xknob, wstar1yknob
 
          in_file = input_unit_exist('scale_gyrokinetic_terms', dexist)
          if (dexist) read (unit=in_file, nml=scale_gyrokinetic_terms)
@@ -288,6 +338,14 @@ contains
          if (.not. include_parallel_streaming) streamknob = 0.0
          if (.not. include_mirror) mirrorknob = 0.0
 
+         ! For HO simulations.
+         if (.not. include_neoclassical_parallel_streaming) neostreamknob = 0.0
+         if (.not. include_neoclassical_mirror) neomirrorknob = 0.0
+         if (.not. include_neoclassical_xdrift) neoxdriftknob = 0.0
+         if (.not. include_neoclassical_ydrift) neoydriftknob = 0.0
+         if (.not. include_neoclassical_xdrive) wstar1xknob = 0.0
+         if (.not. include_neoclassical_ydrive) wstar1yknob = 0.0
+
       end subroutine check_inputs_scale_gyrokinetic_terms
       
       !------------------------- Write input parameters ------------------------
@@ -305,6 +363,13 @@ contains
          write (unit, '(A, F0.2)') '  ydriftknob = ', ydriftknob
          write (unit, '(A, F0.2)') '  wstarknob = ', wstarknob
          write (unit, '(A, F0.2)') '  fphi = ', fphi
+         ! For HO simulations.
+         write (unit, '(A, F0.2)') '  neostreamknob = ', neostreamknob
+         write (unit, '(A, F0.2)') '  neomirrorknob = ', neomirrorknob
+         write (unit, '(A, F0.2)') '  neoxdriftknob = ', neoxdriftknob
+         write (unit, '(A, F0.2)') '  neoydriftknob = ', neoydriftknob
+         write (unit, '(A, F0.2)') '  wstar1xknob = ', wstar1xknob
+         write (unit, '(A, F0.2)') '  wstar1yknob = ', wstar1yknob
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -313,7 +378,7 @@ contains
    end subroutine read_namelist_scale_gyrokinetic_terms
 
    !****************************************************************************
-   !                            ELECTROMAGNETIC TERMS                          !
+   !                            ELECTROMAGNETIC TERMS                           !
    !****************************************************************************
    subroutine read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta)
 
@@ -428,7 +493,7 @@ contains
 
          rhostar = -1.0
 
-      end subroutine set_default_parameters_physics_inputs
+       end subroutine set_default_parameters_physics_inputs
 
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_physics_inputs

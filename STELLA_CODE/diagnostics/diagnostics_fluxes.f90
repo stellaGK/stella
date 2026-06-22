@@ -266,9 +266,9 @@ contains
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
       ! TODO-GA: use g to f routine rather than g to h -- but check first 
       if (include_apar .or. include_bpar) then
-         call g_to_h(gvmu, phi, bpar, fphi)
+         call g_to_h(gvmu, phi, apar, bpar, fphi)
       else if (.not. include_apar .and. .not. include_bpar) then
-         call g_to_f(gvmu, phi, apar, fphi)
+         call g_to_f(gvmu, phi, apar, bpar, fphi)
       end if
 
       ! Now calculate the fluxes explicitly
@@ -279,9 +279,9 @@ contains
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
       ! TODO-GA: use g to f routine rather than g to h -- but check first 
       if (include_apar .or. include_bpar) then
-         call g_to_h(gvmu, phi, bpar, -fphi)
+         call g_to_h(gvmu, phi, apar, bpar, -fphi)
       else if (.not. include_apar .and. .not. include_bpar) then
-         call g_to_f(gvmu, phi, apar, -fphi)
+         call g_to_f(gvmu, phi, apar, bpar, -fphi)
       end if
 
    end subroutine write_fluxes_for_fluxtube

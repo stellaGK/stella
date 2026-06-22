@@ -54,7 +54,10 @@ contains
         use arrays, only: neo_stream, initialised_neo_stream
 
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
+
+        ! For switching mirror on and off.
+        use parameters_physics, only: neostreamknob
 
         implicit none
 
@@ -77,8 +80,9 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                neo_stream(:, iz, ivmu) = 0.5 * code_dt * spec(is)%zt * spec(is)%stm * b_dot_gradz(:, iz) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * neo_vpa_fac(iz, ivmu, 1)
+                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
+                * 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) 
             end do
         end do
 
@@ -174,7 +178,7 @@ contains
 
             ! If bpar is present, we must account for this too.
             if (include_bpar) then
-                field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
+                field = 4.0 * mu(imu) * spec(is)%tz * bpar
                
                 ! Gyroaverage the J_1 contribution.
                 call gyro_average_j1(field, ivmu, gyro_tmp)
@@ -182,12 +186,10 @@ contains
                 g0(:, :, :, :, ivmu) = g0(:, :, :, :, ivmu) + gyro_tmp
             end if
 
+            ! Get the z derivative of the generalised potential.
             call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dg0_dz(:, :, :, :, ivmu))
 
         end do
-
-        ! Get the z derivative of the generalised potential.
-
 
         ! Add the term to the right-hand-side of the GKE. 
         call add_explicit_term(dg0_dz, neo_stream(1, :, :), gout)

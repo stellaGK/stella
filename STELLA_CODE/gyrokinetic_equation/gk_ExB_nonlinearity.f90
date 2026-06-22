@@ -140,7 +140,7 @@ contains
       ! Incoming pdf is g = <f>.
       ! For EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
-      if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
+      if (include_apar .or. include_bpar) call g_to_h(g, phi, apar, bpar, fphi)
 
       ! Iterate over velocity space
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -272,7 +272,7 @@ contains
       end do
 
       ! Convert back from h to g = <f> (only needed for EM sims)
-      if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, -fphi)
+      if (include_apar .or. include_bpar) call g_to_h(g, phi, apar, bpar, -fphi)
 
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
       if (allocated(g0k_swap)) deallocate (g0k_swap)

@@ -80,6 +80,9 @@ contains
         ! Arrays. 
         use arrays, only: wstar1y, initialised_wstar1y
 
+        ! Switch drive on and off. 
+        use parameters_physics, only: wstar1yknob
+
         implicit none
 
         ! Indices.
@@ -113,7 +116,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1ypsi(:, iz, ivmu) = dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz) ) / clebsch_factor
+                wstar1ypsi(:, iz, ivmu) = wstar1yknob * dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz) ) / clebsch_factor
             end do
         end do
 
@@ -125,7 +128,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid 
-                wstar1yz(:, iz, ivmu) = - dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
+                wstar1yz(:, iz, ivmu) = - wstar1yknob * dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
                 - clebsch_factor * gradx_dot_grady(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * geo_surf%qinp * dxdpsi )
                
                 ! Multiply by the F_1 factor.
@@ -141,7 +144,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1yvpa(:, iz, ivmu) = - mu(imu) * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
+                wstar1yvpa(:, iz, ivmu) = - mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
  
                 ! Multiply by the F_1 factor.
                 wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + 2.0 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) 
@@ -155,7 +158,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
           
             do iz = -nzgrid, nzgrid
-                wstar1y(:, iz, ivmu) = 0.5 * code_dt * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
+                wstar1y(:, iz, ivmu) = 0.5 * wstar1yknob * code_dt * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do
@@ -197,6 +200,9 @@ contains
 
         ! Arrays. 
         use arrays, only: wstar1x, initialised_wstar1x
+
+        ! Switch drive on and off. 
+        use parameters_physics, only: wstar1xknob
 
         implicit none
 
@@ -255,7 +261,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1x(:, iz, ivmu) = 0.5 * code_dt * ( wstar1xz(:, iz, ivmu) + wstar1xvpa(:, iz, ivmu) ) &
+                wstar1x(:, iz, ivmu) = 0.5 * wstar1xknob * code_dt * ( wstar1xz(:, iz, ivmu) + wstar1xvpa(:, iz, ivmu) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do
@@ -271,13 +277,12 @@ contains
 ! -------------------------------------------------------------------------- Advance wstar1y explicitly. -------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_wstar1y_explicit(phi, gout)
+    subroutine advance_wstar1y_explicit(phi, apar, bpar, gout)
         ! Parallelisation.
         use mp, only: proc0
       
         ! Data arrays.
         use arrays, only: wstar1y
-        use arrays_fields, only: apar, bpar
       
         ! Grids.
         use parallelisation_layouts, only: vmu_lo
@@ -294,7 +299,7 @@ contains
 
         implicit none
 
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
         complex, dimension(:, :, :, :, :), allocatable :: g0
          
@@ -343,13 +348,12 @@ contains
 ! ------------------------------------------------------------------------- Advance wstar1x explicitly. --------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_wstar1x_explicit(phi, gout)
+    subroutine advance_wstar1x_explicit(phi, apar, bpar, gout)
         ! Parallelisation.
         use mp, only: proc0
       
         ! Data arrays.
         use arrays, only: wstar1x
-        use arrays_fields, only: apar, bpar
       
         ! Grids.
         use parallelisation_layouts, only: vmu_lo
@@ -366,7 +370,7 @@ contains
 
         implicit none
 
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
         complex, dimension(:, :, :, :, :), allocatable :: g0
          

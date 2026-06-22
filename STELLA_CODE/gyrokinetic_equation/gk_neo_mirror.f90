@@ -48,9 +48,12 @@ contains
 
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
-        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
 
         use arrays, only: neo_mirror, initialised_neo_mirror
+
+        ! For switching streaming on and off.
+        use parameters_physics, only: neomirrorknob
 
         implicit none
 
@@ -72,8 +75,10 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid  
-                neo_mirror(:, iz, ivmu) = mu(imu) * spec(is)%z * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * neo_vpa_fac(iz, ivmu, 1) * code_dt / ( vpa(iv) * spec(is)%mass )
+                neo_mirror(:, iz, ivmu) = neomirrorknob * mu(imu) * spec(is)%z * b_dot_gradz(:, iz) * dbdzed(:, iz) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * code_dt / spec(is)%mass 
+
+                neo_mirror(:, iz, ivmu) = neo_mirror(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1) / vpa(iv)
             end do 
         end do
 

@@ -541,12 +541,12 @@ contains
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
       use field_equations_radialvariation, only: get_radial_correction
+
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
       
       ! Parallelisation
       use mp, only: job
-      
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       implicit none
       
@@ -559,11 +559,12 @@ contains
       ! in initialise_distribution(). Use the quasineutrality condition to initialise 
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
+      
       if (neoclassical_is_enabled()) then
           call advance_fields(gnew, phi, apar, bpar, dist='gneo')
-      else
+      else 
           call advance_fields(gnew, phi, apar, bpar, dist='g')
-      end if       
+      end if
 
       ! Add the radial variation correction to the fields
       if (radial_variation) then

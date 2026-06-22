@@ -218,8 +218,7 @@ contains
 !###############################################################################
 
    !----------------------- Advance collisions: explicit -----------------------
-   subroutine advance_collisions_explicit(g, phi, bpar, gke_rhs)
-
+   subroutine advance_collisions_explicit(g, phi, apar, bpar, gke_rhs)
       ! Parallelisation
       use mp, only: mp_abort
       use timers, only: time_collisions
@@ -238,7 +237,7 @@ contains
       implicit none
 
       ! Fields
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
       
@@ -251,9 +250,9 @@ contains
 
       ! Advance the explicit collisions
       if (collision_model == "dougherty") then
-         call advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs, time_collisions)
+         call advance_collisions_dougherty_explicit(g, phi, apar, bpar, gke_rhs, time_collisions)
       else if (collision_model == "fokker-planck") then
-         call advance_collisions_fp_explicit(g, phi, bpar, gke_rhs, time_collisions)
+         call advance_collisions_fp_explicit(g, phi, apar, bpar, gke_rhs, time_collisions)
       end if
 
    end subroutine advance_collisions_explicit

@@ -98,19 +98,18 @@ module arrays
    ! Arrays used to calculate the fields for radial variation simulations
    public :: denominator_fields_dr
 
-   ! Arrays for calculating the fields for higher order electrostatic simulations. 
-   public :: denominator_fields_neo
+   ! Arrays for calculating the fields for HO electrostatic simulations. 
+   public :: denominator_fields_neo_g, denominator_fields_neo_gneo
 
-   ! Arrays for calculating the fields for higher order electromagnetic simulations.
-   public :: denominator_fields_neo_12
-   public :: denominator_fields_neo_13
-   public :: denominator_fields_neo_21
-   public :: denominator_fields_neo_22_g
-   public :: denominator_fields_neo_22_gbar
-   public :: denominator_fields_neo_23
-   public :: denominator_fields_neo_31
-   public :: denominator_fields_neo_32
-   public :: denominator_fields_neo_33
+   ! Arrays for calculating the fields for HO electromagnetic simulations. 
+   public :: denominator_fields_neo_12_gneo, denominator_fields_neo_12_g
+   public :: denominator_fields_neo_13_gneo, denominator_fields_neo_13_g
+   public :: denominator_fields_neo_21_gneo, denominator_fields_neo_21_g
+   public :: denominator_fields_neo_22_gbarneo, denominator_fields_neo_22_gneo, denominator_fields_neo_22_g
+   public :: denominator_fields_neo_23_gneo, denominator_fields_neo_23_g
+   public :: denominator_fields_neo_31_gneo, denominator_fields_neo_31_g
+   public :: denominator_fields_neo_32_gneo, denominator_fields_neo_32_g
+   public :: denominator_fields_neo_33_gneo, denominator_fields_neo_33_g
    
    private
    
@@ -179,8 +178,8 @@ module arrays
    real :: denominator_fields_MBR_h
    real :: efac, efacp
 
-   ! Arrays for calculating the fields for higher order electrostatic simulations.
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo
+   ! Arrays for calculating the fields for HO electrostatic simulations.
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_g, denominator_fields_neo_gneo
 
    ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_inv11
@@ -190,15 +189,14 @@ module arrays
    real, dimension(:, :, :), allocatable :: apar_denom
    
    ! Arrays for calculating the fields for higher order electromagnetic simulations.
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_12
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_13
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_21
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_g
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_gbar
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_23
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_31
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_32
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_33
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_12_g, denominator_fields_neo_12_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_13_g, denominator_fields_neo_13_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_21_g, denominator_fields_neo_21_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_g, denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_23_g, denominator_fields_neo_23_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_31_g, denominator_fields_neo_31_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_32_g, denominator_fields_neo_32_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_33_g, denominator_fields_neo_33_gneo
 
    ! For radial variation simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_dr

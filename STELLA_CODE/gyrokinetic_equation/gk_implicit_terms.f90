@@ -143,7 +143,7 @@ contains
           dist_choice = 'gneo'
       else
           dist_choice = 'g'
-      end if      
+      end if
 
       ! Store g_n from pervious time step 
       g1 = g

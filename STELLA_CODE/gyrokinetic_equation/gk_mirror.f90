@@ -366,12 +366,17 @@ contains
          end do
       end do
 
-      ! Calculate the contribution to apar from mirror_response_g
+      ! The incoming distribution is g even when HO corrections are enabled.
       if (neoclassical_is_enabled()) then
           dist = 'gneo'
+      else
+          dist  = 'g'
+      end if 
+
+      ! Calculate the contribution to apar from mirror_response_g
+      if (neoclassical_is_enabled()) then
           call advance_apar_neo(mirror_response_g, dist, response_apar_denom)
       else
-          dist = 'g'
           call advance_apar(mirror_response_g, dist, response_apar_denom)
       end if
 
@@ -716,14 +721,13 @@ contains
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       tupwnd = (1.0 - time_upwind) * 0.5
-
-      ! incoming pdf is g = <f>
+  
       if (neoclassical_is_enabled()) then
           dist = 'gneo'
       else
           dist = 'g'
       end if
-
+    
       ! now that we have g^{*}, need to solve
       ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
       ! define A_0^{-1} = dt*mu*bhat.gradB/2

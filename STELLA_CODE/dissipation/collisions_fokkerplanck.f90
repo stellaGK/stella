@@ -3419,7 +3419,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine advance_collisions_fp_explicit(g, phi, bpar, gke_rhs, time_collisions)
+   subroutine advance_collisions_fp_explicit(g, phi, apar, bpar, gke_rhs, time_collisions)
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
@@ -3440,7 +3440,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
       real, dimension(:, :), intent(in out) :: time_collisions
 
@@ -3470,7 +3470,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! switch from g = <f> to h = f + Z*e*phi/T * F0
       tmp_vmulo = g
-      call g_to_h(tmp_vmulo, phi, bpar, fphi)
+      call g_to_h(tmp_vmulo, phi, apar, bpar, fphi)
 
       ! remap so that (vpa,mu) local
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
@@ -4336,7 +4336,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + sum_jlm psi_jlm^{n+1}*delta_jl
       ! first two terms added via g_to_h subroutine
       if (advfield_coll) then
-         call g_to_h(g, phi, bpar, fphi)
+         call g_to_h(g, phi, apar, bpar, fphi)
       end if
 
       ! add field particle contribution to RHS:
@@ -4404,7 +4404,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! get g^{n+1} from h^{n+1} and phi^{n+1}
       if (advfield_coll) then
-         call g_to_h(g, phi, bpar, -fphi)
+         call g_to_h(g, phi, apar, bpar, -fphi)
       end if
 
       !fields_updated = .false.

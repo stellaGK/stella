@@ -52,10 +52,13 @@ contains
         use geometry, only: B_times_gradB_dot_gradx, B_times_gradB_dot_grady
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
 
         ! Arrays. 
         use arrays, only: neo_wdrifty, initialised_neo_wdrifty
+
+        ! For switching drifts on and off. 
+        use parameters_physics, only: neoydriftknob
 
         implicit none
 
@@ -77,11 +80,14 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
            
             do iz = -nzgrid, nzgrid            
-                neo_wdrifty(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz) / vpa(iv)
+                neo_wdrifty(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz) 
 
-                ! Multiply by the neoclassical distribution factor. 
-                neo_wdrifty(:, iz, ivmu) = neo_wdrifty(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) &
+                neo_wdrifty(:, iz, ivmu) = neo_wdrifty(:, iz, ivmu) * code_dt &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
+
+                ! Multiply by the neoclassical distribution factor.
+                ! neo_wdrifty(:, iz, ivmu) =  neoydriftknob * neo_wdrifty(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) / vpa(iv) - neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) )
+                neo_wdrifty(:, iz, ivmu) =  neoydriftknob * neo_wdrifty(:, iz, ivmu) * 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv)
             end do
         end do
 
@@ -111,10 +117,13 @@ contains
         use geometry, only: B_times_gradB_dot_gradx
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
 
         ! Arrays. 
         use arrays, only: neo_wdriftx, neo_wdriftx, initialised_neo_wdriftx
+
+        ! For switching drifts on and off. 
+        use parameters_physics, only: neoxdriftknob
 
         implicit none
 
@@ -136,11 +145,13 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
            
             do iz = -nzgrid, nzgrid                          
-                neo_wdriftx(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) / vpa(iv)
+                neo_wdriftx(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) 
+
+                neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * 0.5 * code_dt & 
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
 
                 ! Multiply by the neoclassical distribution factor. 
-                neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * 0.5 * code_dt * neo_vpa_fac(iz, ivmu, 1) & 
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
+                neo_wdriftx(:, iz, ivmu) = neoxdriftknob * neo_wdriftx(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) / vpa(iv) - neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) ) 
             end do
         end do
 

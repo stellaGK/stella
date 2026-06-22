@@ -1034,8 +1034,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs, time_collisions)
-
+   subroutine advance_collisions_dougherty_explicit(g, phi, apar, bpar, gke_rhs, time_collisions)
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
@@ -1063,7 +1062,7 @@ contains
 
       ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
       real, dimension(:, :), intent(in out) :: time_collisions
 
@@ -1104,7 +1103,7 @@ contains
 
          ! Switch from g = <f> to h = f + Z*e*phi/T * F0
          tmp_vmulo = g
-         call g_to_h(tmp_vmulo, phi, bpar, fphi, phi_corr_QN)
+         call g_to_h(tmp_vmulo, phi, apar, bpar, fphi, phi_corr_QN)
 
          ! Handle gyroviscous term
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1198,7 +1197,7 @@ contains
       
          ! Dwitch from g = <f> to h = f + Z*e*phi/T * F0
          tmp_vmulo = g
-         call g_to_h(tmp_vmulo, phi, bpar, fphi)
+         call g_to_h(tmp_vmulo, phi, apar, bpar, fphi)
 
          ! Remap so that (vpa,mu) local
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
@@ -1848,7 +1847,7 @@ contains
 
       ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + 2*dt*nu*J0*F0*(vpa*upar+(v^2-3/2)*temp)
       ! first two terms added via g_to_h subroutine
-      call g_to_h(g, phi, bpar, fphi)
+      call g_to_h(g, phi, apar, bpar, fphi)
 
       allocate (tmp(nvpa, nmu))
 
@@ -1880,7 +1879,7 @@ contains
       end do
 
       ! Now get g^{n+1} from h^{n+1} and phi^{n+1}
-      call g_to_h(g, phi, bpar, -fphi)
+      call g_to_h(g, phi, apar, bpar, -fphi)
 
       deallocate (g_in)
 
@@ -2023,7 +2022,7 @@ contains
 
       ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + ...
       ! first two terms added via g_to_h subroutine
-      call g_to_h(g, phi, bpar, fphi)
+      call g_to_h(g, phi, apar, bpar, fphi)
 
       allocate (tmp(nvpa, nmu))
 
@@ -2059,7 +2058,7 @@ contains
       end do
 
       ! Now get g^{n+1} from h^{n+1} and phi^{n+1}
-      call g_to_h(g, phi, bpar, -fphi)
+      call g_to_h(g, phi, apar, bpar, -fphi)
 
       deallocate (g_in)
 
