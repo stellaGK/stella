@@ -75,10 +75,10 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid  
-                neo_mirror(:, iz, ivmu) = neomirrorknob * mu(imu) * spec(is)%z * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * code_dt / spec(is)%mass 
+                neo_mirror(:, iz, ivmu) = neomirrorknob * code_dt * spec(is)%z * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / spec(is)%mass 
 
-                neo_mirror(:, iz, ivmu) = neo_mirror(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1) / vpa(iv)
+                neo_mirror(:, iz, ivmu) = neo_mirror(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) / vpa(iv) - neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) )
             end do 
         end do
 
@@ -92,6 +92,8 @@ contains
         ! Parallelisation.
         use mp, only: proc0
         use parallelisation_layouts, only: vmu_lo
+        use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
+
       
         ! Data arrays.
         use arrays, only: neo_mirror
@@ -102,6 +104,7 @@ contains
       
         ! Calculations.
         use calculations_add_explicit_terms, only: add_explicit_term
+        use calculations_gyro_averages, only: gyro_average
 
         ! Time this routine.
         use timers, only: time_gke
@@ -111,7 +114,11 @@ contains
 
         complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout        
-        complex, dimension(:, :, :, :, :), allocatable :: g0 
+
+        ! Local variables.
+        integer :: ivmu, iv, is, imu
+        complex, dimension(:, :, :, :), allocatable :: field
+        complex, dimension(:, :, :, :, :), allocatable :: g0
 
         ! ======================================================================================= ! 
         ! --------------------------------------------------------------------------------------- !
@@ -134,15 +141,28 @@ contains
 
         ! Allocate temporary array for <g0> = <A∥_k>.
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
  
-        ! Construct <A∥_k> potential. 
-        call get_apar(apar, g0)        
-        
+        ! Construct <A∥_k>.
+        ! Iterate over the (mu,vpa,s) points. 
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+
+            ! Calculate the apar field. 
+            field = apar
+
+            ! Gyroaverage.
+            call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
+        end do
+
         ! Add the term to the right-hand-side of the GKE. 
         call add_explicit_term(g0, neo_mirror(1, :, :), gout)
 
         ! Deallocate <g0>.
         deallocate (g0)
+        deallocate (field)
 
         ! Stop timing the time advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_mirror advance')
@@ -151,7 +171,7 @@ contains
 
 
 ! ================================================================================================================================================================================= !
-! ---------------------------------------------------------------------------- Finish the A∥_k terms. ----------------------------------------------------------------------------- ! 
+! --------------------------------------------------------------------- Finish the mirror correction. ----------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_mirror
@@ -163,60 +183,6 @@ contains
         initialised_neo_mirror = .false.
 
     end subroutine finish_neo_mirror
-
-
-! ================================================================================================================================================================================= !
-! ---------------------------------------------------------------------------------- Utilities. ----------------------------------------------------------------------------------- ! 
-! ================================================================================================================================================================================= !
-
-! ================================================================================================================================================================================= !
-! ------------------------------------------------------------------------ Calculate the gyroaveraged A∥_k. ----------------------------------------------------------------------- ! 
-! ================================================================================================================================================================================= !
-
-    subroutine get_apar(apar, gyro_apar)      
-        ! Parallelisation.
-        use parallelisation_layouts, only: vmu_lo
-        use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
-       
-        ! Grids.
-        use grids_species, only: spec
-        use grids_z, only: nzgrid, ntubes
-        use grids_velocity, only: vpa, mu
-        use grids_kxky, only: nakx, naky, aky
-      
-        ! Calculations.
-        use calculations_gyro_averages, only: gyro_average
-
-        implicit none
-
-        ! Arguments.
-        complex, dimension(:, :, -nzgrid:, :), intent(in)                        :: apar
-        complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gyro_apar
-
-        ! Local variables.
-        integer :: ivmu, iv, is, imu
-        complex, dimension(:, :, :, :), allocatable :: field
-
-        ! Allocate temporary array for <gyro_apar> = A∥_k. 
-        allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
- 
-        ! Iterate over the (mu,vpa,s) points. 
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-
-            ! Calculate the apar field. 
-            field = apar
-
-            ! Gyroaverage.
-            call gyro_average(field, ivmu, gyro_apar(:, :, :, :, ivmu))
-        end do
-
-        ! Deallocate temporary array.
-        deallocate (field)
-
-    end subroutine get_apar
 
 ! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 

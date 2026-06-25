@@ -440,10 +440,10 @@ contains
         use timers, only: time_field_solve
 
         ! Arrays.
-        use arrays, only: denominator_fields_neo_g, denominator_fields_neo_gneo
-        use arrays, only: denominator_fields_neo_12_g, denominator_fields_neo_12_gneo
-        use arrays, only: denominator_fields_neo_21_g, denominator_fields_neo_21_gneo
-        use arrays, only: denominator_fields_neo_22_g, denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
+        use arrays, only: denominator_fields_neo_gneo
+        use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
+        use arrays, only: denominator_fields_neo_21_gneo
+        use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
 
         ! Grids.
         use grids_z, only: nzgrid, ntubes
@@ -488,11 +488,12 @@ contains
                         if (dist == 'gneo' .or. dist == 'gbarneo') then
                             ! Promote real matrix elements to complex numbers to be solved with zgesv. 
                             A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
                             A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
                             if (dist == 'gneo') then
+                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
                                 A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
                             else if (dist == 'gbarneo') then
+                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gbarneo(iky,ikx,iz), 0.0)
                                 A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0)
                             end if
                         else
@@ -535,13 +536,13 @@ contains
 
         ! Arrays.
         use arrays, only: denominator_fields_neo_gneo
-        use arrays, only: denominator_fields_neo_12_gneo
+        use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
         use arrays, only: denominator_fields_neo_13_gneo
         use arrays, only: denominator_fields_neo_21_gneo
         use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
         use arrays, only: denominator_fields_neo_23_gneo
         use arrays, only: denominator_fields_neo_31_gneo
-        use arrays, only: denominator_fields_neo_32_gneo
+        use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
         use arrays, only: denominator_fields_neo_33_gneo
         
         ! Grids.
@@ -587,13 +588,15 @@ contains
                             A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
                             A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
                             A_lapack(3,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
                             if (dist == 'gneo') then
+                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
                                 A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
+                                A_lapack(3,2) = cmplx(denominator_fields_neo_32_gneo(iky,ikx,iz), 0.0)
                             else if (dist == 'gbarneo') then
+                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gbarneo(iky,ikx,iz), 0.0)
                                 A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0)
+                                A_lapack(3,2) = cmplx(denominator_fields_neo_32_gbarneo(iky,ikx,iz), 0.0)
                             end if
-                            A_lapack(3,2) = cmplx(denominator_fields_neo_32_gneo(iky,ikx,iz), 0.0)
                             A_lapack(1,3) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
                             A_lapack(2,3) = cmplx(denominator_fields_neo_23_gneo(iky,ikx,iz), 0.0)
                             A_lapack(3,3) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
@@ -903,7 +906,7 @@ contains
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays.
-      use arrays, only: denominator_fields_neo_g, denominator_fields_neo_gneo, efac
+      use arrays, only: denominator_fields_neo_gneo, efac
       use arrays_gyro_averages, only: aj0v
 
       ! Parameters.
@@ -1021,13 +1024,13 @@ contains
 
         ! Arrays.
         use arrays, only: kperp2
-        use arrays, only: denominator_fields_neo_12_gneo
+        use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
         use arrays, only: denominator_fields_neo_13_gneo
         use arrays, only: denominator_fields_neo_21_gneo
         use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
         use arrays, only: denominator_fields_neo_23_gneo
         use arrays, only: denominator_fields_neo_31_gneo
-        use arrays, only: denominator_fields_neo_32_gneo
+        use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
         use arrays, only: denominator_fields_neo_33_gneo
 
         ! Parameters.
@@ -1071,8 +1074,7 @@ contains
             ! =========================================================================================================================================================== ! 
             ! denominator_fields_neo_12_gneo is the apar contribution to the QN condition when gneo is being used as the distribution function. This is given by:         !   
             !                                                                                                                                                             ! 
-            ! denominator_fields_neo_12_gneo[iky,ikz,iz] = { sum_s (Z_s² v_{th,s} n_s/T_s) (2B/sqrt(pi)) int dvpa int dmu exp(-v²)                                        ! 
-            ! [vpa * (1 - J_0^2) (dH_1/dμ|_v∥ - 2B_0 * F_1) / B_0  + (2 vpa * F_1 - dH_1/dv∥|_μ)]}                                                                        !  
+            ! denominator_fields_neo_12_gneo[iky,ikz,iz] = 
             !                                                                                                                                                             ! 	 
             ! =========================================================================================================================================================== !
         
@@ -1088,8 +1090,7 @@ contains
                 g0 = spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
 
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * ( ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) &
-                - neo_vpa_fac_global(iz, :, :, is, 1) )
+                g0 = g0 * ( spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - neo_vpa_fac_global(iz, :, :, is, 1) )
 
                 ! Calculate denominator_fields_neo_12_gneo[iky,ikz,iz].
                 wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp 
@@ -1100,11 +1101,42 @@ contains
             ! Sum the values on all processors and send them to <proc0>.
             call sum_allreduce(denominator_fields_neo_12_gneo)
 
+            ! =========================================================================================================================================================== ! 
+            ! denominator_fields_neo_12_gbarneo is the apar contribution to the QN condition when gbarneo is being used as the distribution function. This is given by:   !   
+            !                                                                                                                                                             ! 
+            ! denominator_fields_neo_12_gbarneo[iky,ikz,iz] =                                                                                                             ! 
+            !                                                                                                                                                             ! 	 
+            ! =========================================================================================================================================================== !
+        
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                it = it_idx(kxkyz_lo, ikxkyz)
+                if (it /= 1) cycle
+                iky = iky_idx(kxkyz_lo, ikxkyz)
+                ikx = ikx_idx(kxkyz_lo, ikxkyz)
+                iz = iz_idx(kxkyz_lo, ikxkyz)
+                is = is_idx(kxkyz_lo, ikxkyz)
+
+                ! Calculate the Maxwellian factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+
+                ! Multiply by the neoclassical factor.
+                g0 = g0 * ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
+                - neo_vpa_fac_global(iz, :, :, is, 1) )
+
+                ! Calculate denominator_fields_neo_12_gneo[iky,ikz,iz].
+                wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp 
+                call integrate_vmu(g0, iz, tmp)
+                denominator_fields_neo_12_gbarneo(iky, ikx, iz) = denominator_fields_neo_12_gbarneo(iky, ikx, iz) + tmp * wgt
+            end do
+
+            ! Sum the values on all processors and send them to <proc0>.
+            call sum_allreduce(denominator_fields_neo_12_gbarneo)
+
+
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_21_gneo is the phi contribution to parallel Amperes law when gneo is being used as the distribution. This is given by:            ! 
             !                                                                                                                                                          ! 
-            ! denominator_fields_neo_21_gneo[iky,ikz,iz] = β sum_s (Z_s² v_{th,s} n_s/T_s) (2B/sqrt(pi)) int dvpa int dmu exp(-v²) vpa                                 ! 
-            ! [(1 - J_0^2) ( F_1 - 0.5 * dH_1/dμ|_v∥/B_0 )                                                                                                             !  
+            ! denominator_fields_neo_21_gneo[iky,ikz,iz] = 
             !                                                                                                                                                          ! 
             ! ======================================================================================================================================================== !
 
@@ -1117,12 +1149,12 @@ contains
                 is = is_idx(kxkyz_lo, ikxkyz)                 
 
                 ! Calculate Maxwellian x vpa factor.
-                g0 = spread(maxwell_vpa(:, is) * vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
+                g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
 
-                g0 = - g0 * 0.5 * spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) *  neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+                g0 = g0 * spread((aj0v(:, ikxkyz)**2 - 1.0), 1, nvpa) *  neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
                 
                 ! Calculate denominator_fields_neo_21_gneo[iky,ikz,iz].
-                wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
+                wgt = 0.5 * beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_21_gneo(iky, ikx, iz) = denominator_fields_neo_21_gneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1134,8 +1166,7 @@ contains
             ! denominator_fields_neo_22_gneo is the apar contribution to parallel Amperes law when gneo is being used for the distribution function. This is           !
             ! given by:                                                                                                                                                ! 
             !                                                                                                                                                          !
-            ! denominator_fields_neo_22_gneo[iky,ikz,iz] = kperp2 + β sum_s (Z_s² n_s n_s/m_s) (2B/sqrt(pi)) int dvpa int dmu exp(-v²) vpa                             ! 
-            ! { vpa * (1 - J_0^2) * ( dH_1/dμ|_v∥ - 2B_0 F_1 ) / B_0 + ( 2v∥ * F_1 -  dH_1/dv∥|_μ ) }                                                                  !   
+            ! denominator_fields_neo_22_gneo[iky,ikz,iz] = 
             !                                                                                                                                                          !     
             ! ======================================================================================================================================================== !
 
@@ -1147,10 +1178,9 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread(maxwell_vpa(:, is) * vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+                g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
 
-                g0 = g0 * ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
-                - neo_vpa_fac_global(iz, :, :, is, 1) )
+                g0 = g0 * ( spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - neo_vpa_fac_global(iz, :, :, is, 1) )
 
                 ! Calculate denominator_fields_neo_22_gneo[iky,ikz,iz].            
                 wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
@@ -1182,7 +1212,7 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread(maxwell_vpa(:, is) * vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
+                g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
 
                 g0 = g0 * ( spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
                 - neo_vpa_fac_global(iz, :, :, is, 1) + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
@@ -1211,8 +1241,7 @@ contains
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_13_gneo is the bpar contribution to Quasineutrality when gneo is being used for the distribution. This is given by:               ! 
             !                                                                                                                                                          ! 
-            ! denominator_fields_neo_13_gneo[iky,ikz,iz] = 4 sum_s Z_s n_s (2B/sqrt(pi)) int dvpa int dmu exp(-v²) mu                                                  !
-            ! * J_0 * (J_1 / a_k) * ( 0.5 * dH_1/dμ|_v∥ / B_0 - F_1 - 1 )                                                                                              !  
+            ! denominator_fields_neo_13_gneo[iky,ikz,iz] = 
             !                                                                                                                                                          !     
             ! ======================================================================================================================================================== !
 
@@ -1224,7 +1253,7 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu(:) * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
+                g0 = spread((mu * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
                 * maxwell_fac(is) * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0 )
             
                 wgt = 4.0 * spec(is)%z * spec(is)%dens_psi0
@@ -1237,8 +1266,7 @@ contains
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_23_gneo is the bpar contribution to Parallel Ampere's law when gneo is being used for the distribution. This is given by:         ! 
             !                                                                                                                                                          ! 
-            ! denominator_fields_neo_23_gneo[iky,ikz,iz] = 4β sum_s Z_s n_s v_{th,s} (2B/sqrt(pi)) int dvpa int dmu exp(-v²) mu vpa                                    !
-            ! * J_0 * (J_1 / a_k) * ( 0.5 * dH_1/dμ|_v∥ / B_0 - F_1 ) / B_0                                                                                            !  
+            ! denominator_fields_neo_23_gneo[iky,ikz,iz] = 
             !                                                                                                                                                          !     
             ! ======================================================================================================================================================== !
 
@@ -1250,8 +1278,10 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu(:) * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(vpa * maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-                * maxwell_fac(is) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+                g0 = spread((mu * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(vpa * maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
+                * maxwell_fac(is)
+
+                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
 
                 wgt = 2.0 * beta *spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
                 call integrate_vmu(g0, iz, tmp)
@@ -1290,8 +1320,7 @@ contains
             ! denominator_fields_neo_32_gneo is the apar contribution to Perpendicular Ampere's law when gneo is being used as the distribution function.              !
             ! This is given by:                                                                                                                                        ! 
             !                                                                                                                                                          ! 
-            ! denominator_fields_neo_32_gneo[iky,ikz,iz] = 2β sum_s Z_s n_s v_{th,s} (2B/sqrt(pi)) int dvpa int dmu exp(-v²) mu * { ( dH_1/dv∥|_μ - 2v∥ * F_1 )        !
-            ! + v∥ * [ 1 - J_0 * (J_1 / a_k) ] * ( 2B_0 * F_1 - dH_1/dμ|_v∥) }                                                                                         !   
+            ! denominator_fields_neo_32_gneo[iky,ikz,iz] =                                                                                                             ! 
             !                                                                                                                                                          !     
             ! ======================================================================================================================================================== !
 
@@ -1303,9 +1332,8 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu(:) * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
-                * ( neo_vpa_fac_global(iz, :, :, is, 1) & 
-                - spread(vpa(:), 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) * ( 1.0 - spread((aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) ) / bmag(ia, iz) ) 
+                g0 = spread((mu * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
+                * ( neo_vpa_fac_global(iz, :, :, is, 1) - spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) 
 
                 wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
                 call integrate_vmu(g0, iz, tmp)
@@ -1313,6 +1341,32 @@ contains
             end do
 
             call sum_allreduce(denominator_fields_neo_32_gneo)
+
+            ! ======================================================================================================================================================== ! 
+            ! denominator_fields_neo_32_gbarneo is the apar contribution to Perpendicular Ampere's law when gneo is being used as the distribution function.           !
+            ! This is given by:                                                                                                                                        ! 
+            !                                                                                                                                                          ! 
+            ! denominator_fields_neo_32_gbarneo[iky,ikz,iz] =                                                                                                          ! 
+            ! ======================================================================================================================================================== !
+
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                it = it_idx(kxkyz_lo, ikxkyz)
+                if (it /= 1) cycle
+                iky = iky_idx(kxkyz_lo, ikxkyz)
+                ikx = ikx_idx(kxkyz_lo, ikxkyz)
+                iz = iz_idx(kxkyz_lo, ikxkyz)
+                is = is_idx(kxkyz_lo, ikxkyz)
+
+                g0 = spread((mu * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
+                * ( neo_vpa_fac_global(iz, :, :, is, 1) &
+                - spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) * ( 1.0 - spread((aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) ) / bmag(ia, iz) )
+
+                wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
+                call integrate_vmu(g0, iz, tmp)
+                denominator_fields_neo_32_gbarneo(iky, ikx, iz) = denominator_fields_neo_32_gbarneo(iky, ikx, iz) + tmp * wgt
+            end do
+
+            call sum_allreduce(denominator_fields_neo_32_gbarneo)
 
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_33_gneo is the bpar contribution to Quasineutrality when gneo is being for the distribution. This is given by:                    ! 
@@ -1330,7 +1384,7 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu(:) * mu(:) * maxwell_mu(ia, iz, :, is) * aj1v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
+                g0 = spread((mu * mu * maxwell_mu(ia, iz, :, is) * aj1v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
                 * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
 
                 wgt = 8.0 * beta * spec(is)%dens_psi0 * spec(is)%temp
@@ -1357,11 +1411,10 @@ contains
         use grids_kxky, only: naky, nakx        
 
         ! Arrays. 
-        use arrays, only: denominator_fields_neo_g, denominator_fields_neo_gneo
+        use arrays, only: denominator_fields_neo_gneo
 
         implicit none
 
-        if (.not. allocated(denominator_fields_neo_g)) then; allocate (denominator_fields_neo_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_g = 0. ; end if
         if (.not. allocated(denominator_fields_neo_gneo)) then; allocate (denominator_fields_neo_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_gneo = 0. ; end if 
     end subroutine allocate_neo_electrostatic_fields
 
@@ -1378,24 +1431,22 @@ contains
         use parameters_physics, only: include_apar, include_bpar
 
         ! Arrays. 
-        use arrays, only: denominator_fields_neo_12_g, denominator_fields_neo_12_gneo
-        use arrays, only: denominator_fields_neo_13_g, denominator_fields_neo_13_gneo
-        use arrays, only: denominator_fields_neo_21_g, denominator_fields_neo_21_gneo
-        use arrays, only: denominator_fields_neo_22_g, denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
-        use arrays, only: denominator_fields_neo_23_g, denominator_fields_neo_23_gneo
-        use arrays, only: denominator_fields_neo_31_g, denominator_fields_neo_31_gneo
-        use arrays, only: denominator_fields_neo_32_g, denominator_fields_neo_32_gneo
-        use arrays, only: denominator_fields_neo_33_g, denominator_fields_neo_33_gneo
+        use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
+        use arrays, only: denominator_fields_neo_13_gneo
+        use arrays, only: denominator_fields_neo_21_gneo
+        use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
+        use arrays, only: denominator_fields_neo_23_gneo
+        use arrays, only: denominator_fields_neo_31_gneo
+        use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
+        use arrays, only: denominator_fields_neo_33_gneo
  
         implicit none
 
         if (include_apar) then
-            if (.not. allocated(denominator_fields_neo_12_g)) then; allocate (denominator_fields_neo_12_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12_g = 0. ; end if
-            if (.not. allocated(denominator_fields_neo_21_g)) then; allocate (denominator_fields_neo_21_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_21_g = 0. ; end if 
-            if (.not. allocated(denominator_fields_neo_22_g)) then; allocate (denominator_fields_neo_22_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_22_g = 0. ; end if
-
             if (.not. allocated(denominator_fields_neo_12_gneo)) &
             then; allocate (denominator_fields_neo_12_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12_gneo = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_12_gbarneo)) &
+            then; allocate (denominator_fields_neo_12_gbarneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12_gbarneo = 0. ; end if
             if (.not. allocated(denominator_fields_neo_21_gneo)) &
             then; allocate (denominator_fields_neo_21_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_21_gneo = 0. ; end if
             if (.not. allocated(denominator_fields_neo_22_gneo)) &
@@ -1406,12 +1457,6 @@ contains
         end if        
    
         if (include_bpar) then
-            if (.not. allocated(denominator_fields_neo_13_g)) then; allocate (denominator_fields_neo_13_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_13_g = 0. ; end if
-            if (.not. allocated(denominator_fields_neo_23_g)) then; allocate (denominator_fields_neo_23_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_23_g = 0. ; end if
-            if (.not. allocated(denominator_fields_neo_31_g)) then; allocate (denominator_fields_neo_31_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_31_g = 0. ; end if
-            if (.not. allocated(denominator_fields_neo_32_g)) then; allocate (denominator_fields_neo_32_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_32_g = 0. ; end if
-            if (.not. allocated(denominator_fields_neo_33_g)) then; allocate (denominator_fields_neo_33_g(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_33_g = 0. ; end if
-
             if (.not. allocated(denominator_fields_neo_13_gneo)) & 
             then; allocate (denominator_fields_neo_13_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_13_gneo = 0. ; end if
             if (.not. allocated(denominator_fields_neo_23_gneo)) & 
@@ -1420,6 +1465,8 @@ contains
             then; allocate (denominator_fields_neo_31_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_31_gneo = 0. ; end if
             if (.not. allocated(denominator_fields_neo_32_gneo)) & 
             then; allocate (denominator_fields_neo_32_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_32_gneo = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_32_gbarneo)) &
+            then; allocate (denominator_fields_neo_32_gbarneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_32_gbarneo = 0. ; end if
             if (.not. allocated(denominator_fields_neo_33_gneo)) & 
             then; allocate (denominator_fields_neo_33_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_33_gneo = 0. ; end if
 
@@ -1433,11 +1480,9 @@ contains
 
     subroutine finish_neo_electrostatic_fields
         ! Arrays.
-        use arrays, only: denominator_fields_neo_g, denominator_fields_neo_gneo
+        use arrays, only: denominator_fields_neo_gneo
         
         implicit none
-
-        if (allocated(denominator_fields_neo_g)) deallocate(denominator_fields_neo_g)
 
         if (allocated(denominator_fields_neo_gneo)) deallocate(denominator_fields_neo_gneo)
 
@@ -1450,36 +1495,30 @@ contains
 
     subroutine finish_neo_electromagnetic_fields
         ! Arrays.
-        use arrays, only: denominator_fields_neo_12_g, denominator_fields_neo_12_gneo
-        use arrays, only: denominator_fields_neo_13_g, denominator_fields_neo_13_gneo
-        use arrays, only: denominator_fields_neo_21_g, denominator_fields_neo_21_gneo
-        use arrays, only: denominator_fields_neo_22_g, denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
-        use arrays, only: denominator_fields_neo_23_g, denominator_fields_neo_23_gneo
-        use arrays, only: denominator_fields_neo_31_g, denominator_fields_neo_31_gneo
-        use arrays, only: denominator_fields_neo_32_g, denominator_fields_neo_32_gneo
-        use arrays, only: denominator_fields_neo_33_g, denominator_fields_neo_33_gneo
+        use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
+        use arrays, only: denominator_fields_neo_13_gneo
+        use arrays, only: denominator_fields_neo_21_gneo
+        use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
+        use arrays, only: denominator_fields_neo_23_gneo
+        use arrays, only: denominator_fields_neo_31_gneo
+        use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
+        use arrays, only: denominator_fields_neo_33_gneo
 
 
         implicit none
-
-        if (allocated(denominator_fields_neo_12_g)) deallocate(denominator_fields_neo_12_g)
-        if (allocated(denominator_fields_neo_13_g)) deallocate(denominator_fields_neo_13_g)
-        if (allocated(denominator_fields_neo_21_g)) deallocate(denominator_fields_neo_21_g)
-        if (allocated(denominator_fields_neo_22_g)) deallocate(denominator_fields_neo_22_g)
-        if (allocated(denominator_fields_neo_23_g)) deallocate(denominator_fields_neo_23_g)
-        if (allocated(denominator_fields_neo_31_g)) deallocate(denominator_fields_neo_31_g)
-        if (allocated(denominator_fields_neo_32_g)) deallocate(denominator_fields_neo_32_g)
-        if (allocated(denominator_fields_neo_33_g)) deallocate(denominator_fields_neo_33_g)
 
         if (allocated(denominator_fields_neo_12_gneo)) deallocate(denominator_fields_neo_12_gneo)
         if (allocated(denominator_fields_neo_13_gneo)) deallocate(denominator_fields_neo_13_gneo)
         if (allocated(denominator_fields_neo_21_gneo)) deallocate(denominator_fields_neo_21_gneo)
         if (allocated(denominator_fields_neo_22_gneo)) deallocate(denominator_fields_neo_22_gneo)
-        if (allocated(denominator_fields_neo_22_gbarneo)) deallocate(denominator_fields_neo_22_gbarneo)
         if (allocated(denominator_fields_neo_23_gneo)) deallocate(denominator_fields_neo_23_gneo)
         if (allocated(denominator_fields_neo_31_gneo)) deallocate(denominator_fields_neo_31_gneo)
         if (allocated(denominator_fields_neo_32_gneo)) deallocate(denominator_fields_neo_32_gneo)
         if (allocated(denominator_fields_neo_33_gneo)) deallocate(denominator_fields_neo_33_gneo)
+
+        if (allocated(denominator_fields_neo_12_gbarneo)) deallocate(denominator_fields_neo_12_gbarneo)
+        if (allocated(denominator_fields_neo_22_gbarneo)) deallocate(denominator_fields_neo_22_gbarneo)
+        if (allocated(denominator_fields_neo_32_gbarneo)) deallocate(denominator_fields_neo_32_gbarneo)
 
     end subroutine finish_neo_electromagnetic_fields
 

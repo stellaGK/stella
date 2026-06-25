@@ -38,12 +38,6 @@
 !                                                                                                                                                                                    !  
 ! When NEO's neoclassical corrections are included, we define a new distribution function, g_neo:                                                                                    ! 
 !                                                                                                                                                                                    !
-! g_neo = g + (Z/T) * <Χ_k> * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - Ze * Φ₀¹ ) )                                                                                                !
-!                                                                                                                                                                                    !
-! This expression is valid for electromagnetic simulations. For electrostatic, this expression reduces to:                                                                           !
-!                                                                                                                                                                                    !
-! g_neo = g + (Z/T) * J₀ * ϕ_k * exp(-v²) * ( (1/2B₀) * ∂H₁/∂μ|_v∥ - ( H₁ - Ze * Φ₀¹ ) )                                                                                             !
-!                                                                                                                                                                                    !
 ! ================================================================================================================================================================================== !
 
 
@@ -53,7 +47,6 @@ module calculations_tofrom_ghf
    public :: gbar_to_g
    public :: g_to_h
    public :: g_to_f
-   public :: g_to_gneo
 
    private
 
@@ -111,7 +104,14 @@ contains
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
-      
+
+      ! Geometry.
+      use geometry, only: bmag
+
+      ! For HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac_global      
+
       implicit none
 
       ! Arguments
@@ -144,8 +144,14 @@ contains
          ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
          field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 &
                * spread(vpa, 2, nmu)* spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
-         ! Gyroaverage
+
+         ! Gyroaverage.
          call gyro_average(field, ikxkyz, gyro_averaged_field)
+
+         ! If neoclassical is enabled, add the HO correction.
+         if (neoclassical_is_enabled()) then
+             gyro_averaged_field = gyro_averaged_field * (1 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) /bmag(ia, iz) )
+         end if
 
          ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
          g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field
@@ -173,6 +179,13 @@ contains
       use grids_species, only: spec
       use grids_velocity, only: nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+
+      ! Geometry.
+      use geometry, only: bmag
+
+      ! For HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac_global
 
       implicit none
 
@@ -203,8 +216,14 @@ contains
       ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
       field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa &
             * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
-      ! Gyroaverage
+
+      ! Gyroaverage.
       call gyro_average(field, imu, ikxkyz, gyro_averaged_field)
+
+      ! If neoclassical is enabled, add the HO correction.
+      if (neoclassical_is_enabled()) then
+          gyro_averaged_field = gyro_averaged_field * (1 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) /bmag(ia, iz) )
+      end if
 
       ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
       g = g - gyro_averaged_field
@@ -262,6 +281,13 @@ contains
       use grids_velocity, only: vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
 
+      ! Geometry.
+      use geometry, only: bmag
+
+      ! For HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac
+
       implicit none
 
       ! Arguments
@@ -297,8 +323,14 @@ contains
             ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
             field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar(:, :, iz, it) &
                   * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-            ! Gyroaverage
+
+            ! Gyroaverage.
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
+
+            ! If neoclassical is enabled, add the HO correction.
+            if (neoclassical_is_enabled()) then
+                gyro_averaged_field = gyro_averaged_field * (1 - 0.5 * neo_mu_fac(iz, ivmu, 1) /bmag(ia, iz) )
+            end if
 
             ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
             g0(:, :, iz, it) = g0(:, :, iz, it) - gyro_averaged_field
@@ -405,29 +437,6 @@ contains
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field 
       end do
 
-      ! When running HO simulations we get an apar term.       
-      if (include_apar .and. neoclassical_is_enabled()) then
-          facapar = facphi
-
-          ! Iterate over the (kx,ky,z,mu,vpa,s) grid.
-          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-              iz = iz_idx(kxkyz_lo, ikxkyz)
-              it = it_idx(kxkyz_lo, ikxkyz)
-              ikx = ikx_idx(kxkyz_lo, ikxkyz)
-              iky = iky_idx(kxkyz_lo, ikxkyz)
-              is = is_idx(kxkyz_lo, ikxkyz)
-
-              field = facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu) &
-              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
-
-              ! Gyroaverage.
-              call gyro_average(field, ikxkyz, gyro_averaged_field)
-              gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
-
-              ! Add the apar term to g. 
-              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
-          end do      
-      end if
 
       ! Add electromagnetic terms.
       if (include_bpar) then
@@ -592,26 +601,6 @@ contains
          end do
       end do
 
-      ! When running HO simulations we get an apar term.       
-      if (include_apar .and. neoclassical_is_enabled()) then
-          facapar = facphi
-
-          ! Iterate over the (it,iz) points.
-          do it = 1, ntubes
-              do iz = -nzgrid, nzgrid
-
-                  field = facapar * apar(:, :, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) &
-                  * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
-
-                  ! Gyroaverage.
-                  call gyro_average(field, iz, ivmu, gyro_averaged_field)
-                  gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
-
-                  ! Add the apar term to g. 
-                  g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
-              end do
-          end do
-      end if
 
       ! Add electromagnetic terms: 4*mu*<bpar>*Fs*J_1/b_s
       if (include_bpar) then
@@ -626,7 +615,7 @@ contains
                ! Calculate <gyro_averaged_field> = 4*mu*<bpar>*Fs*J_1/b_s
                ! First calculate [4*mu*<bpar>] * F_s
                field = 4.0 * mu(imu) * facbpar * bpar(:,:,iz,it) &
-                     * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+               * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                
                ! Gyroaverage by multiplying with J_1/b_s
                call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
@@ -739,7 +728,7 @@ contains
          ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
          if (neoclassical_is_enabled()) then
              ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) -1 )
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 1 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
          else
              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
          end if
@@ -750,15 +739,12 @@ contains
  
              field = facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm &
              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-
-             ! Gyroaverage.
-             call gyro_average(field, ikxkyz, gyro_averaged_field)
               
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) * ( field - gyro_averaged_field ) / bmag(ia, iz) &
-             - neo_vpa_fac_global(iz, :, :, is, 1) * field
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) &
+             + field * ( neo_vpa_fac_global(iz, :, :, is, 1) - spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
          end if
 
-         if (include_bpar) then
+         if (neoclassical_is_enabled() .and. include_bpar) then
              facbpar = facphi
           
              ! Calculate <gyro_averaged_field> = 4 * mu * <bpar>_theta * F_s
@@ -770,7 +756,7 @@ contains
              call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
 
              ! Add the bpar contribution.
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0 )
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
          end if
       end do
 
@@ -880,7 +866,7 @@ contains
                ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
                if (neoclassical_is_enabled()) then
                    ! Add this to  <f>.
-                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) +  ( gyro_averaged_field - field ) * ( 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) - 1.0 ) 
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) +  ( gyro_averaged_field - field ) * (1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) ) 
                else
                    g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + gyro_averaged_field - field
                end if
@@ -891,21 +877,17 @@ contains
 
                    field = facapar * apar(:, :, iz, it) * spec(is)%zt * spec(is)%stm * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) 
 
-                   ! Add <...>_theta, which is equivalent to adding J_0.
-                   call gyro_average(field, iz, ivmu, gyro_averaged_field)
-
-                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + vpa(iv) * neo_mu_fac(iz, ivmu, 1) * ( field - gyro_averaged_field ) / bmag(ia, iz) &
-                   - neo_vpa_fac(iz, ivmu, 1) * field
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field * ( neo_vpa_fac(iz, ivmu, 1) - vpa(iv) * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
                end if
 
-               if (include_bpar) then
+               if (neoclassical_is_enabled() .and. include_bpar) then
                    facbpar = facphi
 
                    field = facbpar * 4.0 * bpar(:, :, iz, it) * mu(imu) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) 
 
                    call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
 
-                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) +  gyro_averaged_field * ( 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) - 1.0) 
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) - gyro_averaged_field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) 
                end if
             end do
          end do

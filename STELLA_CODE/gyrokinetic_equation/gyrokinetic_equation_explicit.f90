@@ -364,30 +364,30 @@ contains
          ! Advance HO corrections explicitly. 
          if (neoclassical_is_enabled()) then
              ! If apar is switched on, we must advance the neoclassical mirror correction. 
-             if (include_apar .and. include_neoclassical_mirror) then
+             if (include_apar .and. include_neoclassical_mirror .and. .not. mirror_implicit) then
                  call advance_neo_mirror_explicit(apar, rhs)
              end if
 
              ! Advance the neoclassical parallel streaming correction.
-             if (include_neoclassical_parallel_streaming) then
+             if (include_neoclassical_parallel_streaming .and. .not. stream_implicit) then
                  call advance_neo_stream_explicit(phi, apar, bpar, rhs)
              end if
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
-             if (include_neoclassical_ydrive) then
+             if (include_neoclassical_ydrive .and. .not. drifts_implicit) then
                  call advance_wstar1y_explicit(phi, apar, bpar, rhs)
              end if
              
-             if (include_neoclassical_xdrive) then
+             if (include_neoclassical_xdrive .and. .not. drifts_implicit) then
                  call advance_wstar1x_explicit(phi, apar, bpar, rhs)
              end if
 
              ! Advance the neoclassical magnetic drift terms.
-             if (include_neoclassical_ydrift) then
+             if (include_neoclassical_ydrift .and. .not. drifts_implicit) then
                  call advance_neo_wdrifty_explicit(phi, apar, bpar, rhs)
              end if
 
-             if (include_neoclassical_xdrift) then
+             if (include_neoclassical_xdrift .and. .not. drifts_implicit) then
                  call advance_neo_wdriftx_explicit(phi, apar, bpar, rhs)  
              end if
          end if

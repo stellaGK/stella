@@ -184,7 +184,7 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical mirror correction doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. include_apar) then
+      if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. include_apar .and. .not. mirror_implicit) then
           neo_mirror_max = maxval(abs(neo_mirror))
           if (nproc > 1) then
               call max_allreduce(neo_mirror_max)
@@ -195,7 +195,7 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical stream coeffecient doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming) then
+      if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. stream_implicit) then
           neo_stream_max = maxval(abs(neo_stream))
           if (nproc > 1) then
               call max_allreduce(neo_stream_max)
@@ -206,7 +206,7 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical wstar1y drive doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_ydrive) then
+      if (neoclassical_is_enabled() .and. include_neoclassical_ydrive .and. .not. drifts_implicit) then
           wstar1y_max = maxval(abs(wstar1y))
           if (nproc > 1) then
               call max_allreduce(wstar1y_max)
@@ -217,7 +217,7 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical wstar1x drive doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_xdrive) then
+      if (neoclassical_is_enabled() .and. include_neoclassical_xdrive .and. .not. drifts_implicit) then
          ! Only calculate the CFL constaint if there are non-zero akx present. 
           if (maxval(abs(akx)) > epsilon(0.0)) then
               wstar1x_max = maxval(abs(wstar1x))
@@ -231,7 +231,7 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical neo_wdrifty doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_ydrift) then
+      if (neoclassical_is_enabled() .and. include_neoclassical_ydrift .and. .not. drifts_implicit) then
           neo_wdrifty_max = maxval(abs(neo_wdrifty))
           if (nproc > 1) then
               call max_allreduce(neo_wdrifty_max)
@@ -242,7 +242,7 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical neo_wdriftx drive doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_xdrift) then
+      if (neoclassical_is_enabled() .and. include_neoclassical_xdrift .and. .not. drifts_implicit) then
           ! Only calculate the CFL constaint if there are non-zero akx present. 
           if (maxval(abs(akx)) > epsilon(0.0)) then
               neo_wdriftx_max = maxval(abs(neo_wdriftx))
@@ -271,12 +271,15 @@ contains
          if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '     wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
-         if (neoclassical_is_enabled() .and. include_apar .and. include_neoclassical_mirror) write (*, '(A12,ES12.4)') ' neo_mirror: ', cfl_dt_neo_mirror
-         if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming) write (*, '(A12,ES12.4)') ' neo_stream: ', cfl_dt_neo_stream
-         if (neoclassical_is_enabled() .and. include_neoclassical_ydrive) write (*, '(A12,ES12.4)') '   wstar1y: ', cfl_dt_wstar1y
-         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0) .and. include_neoclassical_xdrive) write (*, '(A12,ES12.4)') 'wstar1x: ', cfl_dt_wstar1x
-         if (neoclassical_is_enabled() .and. include_neoclassical_ydrift) write (*, '(A12,ES12.4)') 'neo_wdrifty: ', cfl_dt_neo_wdrifty
-         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0) .and. include_neoclassical_xdrift) write (*, '(A12,ES12.4)') 'neo_wdriftx: ', cfl_dt_neo_wdriftx
+         if (neoclassical_is_enabled() .and. include_apar .and. include_neoclassical_mirror .and. .not. mirror_implicit) &
+         write (*, '(A12,ES12.4)') ' neo_mirror: ', cfl_dt_neo_mirror
+         if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. stream_implicit) write (*, '(A12,ES12.4)') ' neo_stream: ', cfl_dt_neo_stream
+         if (neoclassical_is_enabled() .and. include_neoclassical_ydrive .and. .not. drifts_implicit) write (*, '(A12,ES12.4)') '   wstar1y: ', cfl_dt_wstar1y
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0) .and. include_neoclassical_xdrive .and. .not. drifts_implicit) &
+         write (*, '(A12,ES12.4)') 'wstar1x: ', cfl_dt_wstar1x
+         if (neoclassical_is_enabled() .and. include_neoclassical_ydrift .and. .not. drifts_implicit) write (*, '(A12,ES12.4)') 'neo_wdrifty: ', cfl_dt_neo_wdrifty
+         if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0) .and. include_neoclassical_xdrift .and. .not. drifts_implicit) &
+         write (*, '(A12,ES12.4)') 'neo_wdriftx: ', cfl_dt_neo_wdriftx
          write (*, '(A12,ES12.4)') '    total: ', cfl_dt_linear
          write (*, *)
       end if

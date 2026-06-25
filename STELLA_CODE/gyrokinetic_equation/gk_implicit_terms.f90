@@ -530,6 +530,9 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
 
+      ! For HO corrections.   
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
       implicit none
 
       complex, dimension(:), intent(in) :: phi
@@ -565,6 +568,7 @@ contains
 
       call add_streaming_contribution_phi
       if (drifts_implicit) call add_drifts_contribution_phi
+      if (neoclassical_is_enabled() .and. drifts_implicit) call add_HO_drifts_contribution_phi
 
       deallocate (z_scratch)
 
@@ -587,6 +591,11 @@ contains
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
          use parameters_numerical, only: driftkinetic_implicit
+
+         ! For HO simulations.
+         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use neoclassical_terms_neo, only: neo_vpa_fac
+         use parameters_physics, only: neostreamknob
 
          integer :: izext
          complex :: scratch_left, scratch_right
@@ -624,6 +633,13 @@ contains
             do iz = -nzgrid, nzgrid
                z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * spec(is)%zt
             end do
+            call center_zed(iv, z_scratch, -nzgrid)
+         end if
+
+         ! IMPLICIT HO. 
+         ! Correct for HO simulations. 
+         if (neoclassical_is_enabled()) then
+            z_scratch = z_scratch * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(:, ivmu, 1) / vpa(iv) )
             call center_zed(iv, z_scratch, -nzgrid)
          end if
 
@@ -670,14 +686,48 @@ contains
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
-            scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
-                           + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
+            scratch(izext) = zi * scratch(izext) * ( akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
+            + aky(iky) * ( wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu) ) )
          end do
          call center_zed(iv, scratch, 1, periodic(iky))
 
          rhs = rhs + scratch
 
       end subroutine add_drifts_contribution_phi
+
+
+      subroutine add_HO_drifts_contribution_phi
+
+         use constants, only: zi
+         use grids_kxky, only: aky, akx
+         use gk_parallel_streaming, only: center_zed
+         use grids_extended_zgrid, only: periodic
+
+         ! For HO simulations.
+         use arrays, only: wstar1y, wstar1x
+         use arrays, only: neo_wdriftx, neo_wdrifty
+
+         integer :: izext, iz, ikx
+
+         !----------------------------------------------------------------------
+
+         if (debug) write (*, *) 'implicit_solve::add_drifts_contribution_phi'
+
+         ! 'scratch' starts out as the gyro-average of phi, evaluated at zed grid points
+         do izext = 1, nz_ext
+            ikx = ikx_from_izext(izext)
+            iz = iz_from_izext(izext)
+
+            scratch(izext) = zi * scratch(izext) * ( akx(ikx) * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
+            + aky(iky) * ( neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) )
+         end do
+
+         call center_zed(iv, scratch, 1, periodic(iky))
+
+         rhs = rhs + scratch
+
+      end subroutine add_HO_drifts_contribution_phi
+
 
    end subroutine get_contributions_from_phi
 
@@ -929,6 +979,13 @@ contains
       use grids_extended_zgrid, only: periodic
       use gk_parallel_streaming, only: center_zed
 
+      ! Geometry.
+      use geometry, only: bmag  
+
+      ! HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac_global
+
       implicit none
 
       complex, dimension(:), intent(in out) :: scratch2
@@ -957,6 +1014,14 @@ contains
          iz = iz_from_izext(izext)
          scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
+
+      ! If running with HO corrections, transformation between gbarneo and gneo acquires a correction,
+      ! if (neoclassical_is_enabled()) then
+          ! do izext = 1, nz_ext
+              ! iz = iz_from_izext(izext)
+              ! scratch2(izext) = scratch2(izext) * ( 1.0 - 0.5 * neo_mu_fac_global(iz, iv, imu, is, 1) / bmag(ia, iz) )
+          ! end do
+      ! end if 
 
       call center_zed(iv, scratch2, 1, periodic(iky))
       rhs = rhs + scratch2
@@ -1017,6 +1082,13 @@ contains
       use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       
+      ! Geometry.
+      use geometry, only: bmag
+
+      ! HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_mu_fac
+
       implicit none
 
       complex, dimension(:), intent(in out) :: pdf
@@ -1054,6 +1126,14 @@ contains
       end do
 
       call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, field, gyro_field)
+
+      if (neoclassical_is_enabled()) then 
+          do izext = 1, nz_ext
+              iz = iz_from_izext(izext)
+              gyro_field(izext) = gyro_field(izext) * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) ) 
+          end do
+      end if
+
       pdf = pdf - gyro_field
 
       deallocate (field, gyro_field)

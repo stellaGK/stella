@@ -66,13 +66,18 @@ module arrays
    public :: qn_window
    public :: qn_zf_window
 
-   ! For HO corrections. 
-   public :: neo_mirror
+   ! For HO phi and bpar corrections. 
    public :: neo_stream
    public :: wstar1y
    public :: wstar1x
    public :: neo_wdriftx
    public :: neo_wdrifty
+
+   ! For HO apar corrections.
+   public :: neo_mirror
+   public :: neo_stream_apar
+   public :: neo_wdriftx_apar
+   public :: neo_wdrifty_apar
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -99,17 +104,17 @@ module arrays
    public :: denominator_fields_dr
 
    ! Arrays for calculating the fields for HO electrostatic simulations. 
-   public :: denominator_fields_neo_g, denominator_fields_neo_gneo
+   public :: denominator_fields_neo_gneo
 
    ! Arrays for calculating the fields for HO electromagnetic simulations. 
-   public :: denominator_fields_neo_12_gneo, denominator_fields_neo_12_g
-   public :: denominator_fields_neo_13_gneo, denominator_fields_neo_13_g
-   public :: denominator_fields_neo_21_gneo, denominator_fields_neo_21_g
-   public :: denominator_fields_neo_22_gbarneo, denominator_fields_neo_22_gneo, denominator_fields_neo_22_g
-   public :: denominator_fields_neo_23_gneo, denominator_fields_neo_23_g
-   public :: denominator_fields_neo_31_gneo, denominator_fields_neo_31_g
-   public :: denominator_fields_neo_32_gneo, denominator_fields_neo_32_g
-   public :: denominator_fields_neo_33_gneo, denominator_fields_neo_33_g
+   public :: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
+   public :: denominator_fields_neo_13_gneo
+   public :: denominator_fields_neo_21_gneo
+   public :: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
+   public :: denominator_fields_neo_23_gneo
+   public :: denominator_fields_neo_31_gneo
+   public :: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
+   public :: denominator_fields_neo_33_gneo
    
    private
    
@@ -161,11 +166,15 @@ module arrays
    ! For flow shear
    real, dimension(:), allocatable :: shift_state
 
-   ! For HO corrections. 
-   real, dimension(:, :, :), allocatable :: neo_mirror
+   ! For HO phi and bpar corrections. 
    real, dimension(:, :, :), allocatable :: neo_stream
    real, dimension(:, :, :), allocatable :: wstar1y, wstar1x
    real, dimension(:, :, :), allocatable :: neo_wdriftx, neo_wdrifty
+
+   ! For HO phi and bpar corrections. 
+   real, dimension(:, :, :), allocatable :: neo_mirror
+   real, dimension(:, :, :), allocatable :: neo_stream_apar
+   real, dimension(:, :, :), allocatable :: neo_wdriftx_apar, neo_wdrifty_apar
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -179,7 +188,7 @@ module arrays
    real :: efac, efacp
 
    ! Arrays for calculating the fields for HO electrostatic simulations.
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_g, denominator_fields_neo_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_gneo
 
    ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_inv11
@@ -189,14 +198,14 @@ module arrays
    real, dimension(:, :, :), allocatable :: apar_denom
    
    ! Arrays for calculating the fields for higher order electromagnetic simulations.
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_12_g, denominator_fields_neo_12_gneo
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_13_g, denominator_fields_neo_13_gneo
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_21_g, denominator_fields_neo_21_gneo
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_g, denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_23_g, denominator_fields_neo_23_gneo
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_31_g, denominator_fields_neo_31_gneo
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_32_g, denominator_fields_neo_32_gneo
-   real, dimension(:, :, :), allocatable :: denominator_fields_neo_33_g, denominator_fields_neo_33_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_13_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_21_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_23_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_31_gneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_33_gneo
 
    ! For radial variation simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_dr

@@ -31,7 +31,7 @@ module gk_neo_stream
 contains
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------------------- Initialise the neoclassical streaming correction. ----------------------------------------------------------------- ! 
+! ------------------------------------------------------------- Initialise the neoclassical streaming corrections. ---------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
     subroutine init_neo_stream
@@ -51,10 +51,13 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! Arrays.
-        use arrays, only: neo_stream, initialised_neo_stream
+        use arrays, only: neo_stream, neo_stream_apar, initialised_neo_stream
 
         ! NEO data.
         use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
+
+        ! Parameters.
+        use parameters_physics, only: include_apar
 
         ! For switching mirror on and off.
         use parameters_physics, only: neostreamknob
@@ -73,6 +76,12 @@ contains
             allocate (neo_stream(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream = 0.0
         end if
 
+        ! Allocate neo_stream_apar = neo_stream_apar[ialpha, iz, i[mu,vpa,s]] if apar is included.
+        if (.not. allocated(neo_stream_apar) .and. include_apar) then
+            allocate (neo_stream_apar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream_apar = 0.0
+        end if
+
+        ! neo_stream is the coeffecient for phi and bpar fluctuations. 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -80,11 +89,27 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
+                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * b_dot_gradz(:, iz) * spec(is)%zt &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                * 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) 
+                * 0.5 * neo_vpa_fac(iz, ivmu, 1) 
             end do
         end do
+
+        ! If apar is also included we need to calculate the corresponding coeffecient. 
+        if (include_apar) then 
+            ! Iterate over velocity space.
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                is = is_idx(vmu_lo, ivmu)
+                imu = imu_idx(vmu_lo, ivmu)
+                iv = iv_idx(vmu_lo, ivmu)
+
+                do iz = -nzgrid, nzgrid 
+                    neo_stream_apar(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
+                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
+                    * 0.5 * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+               end do
+           end do
+        end if
 
     end subroutine init_neo_stream
 
@@ -98,7 +123,7 @@ contains
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       
         ! Data arrays.
-        use arrays, only: neo_stream
+        use arrays, only: neo_stream, neo_stream_apar
 
         ! Grids. 
         use grids_species, only: spec
@@ -129,14 +154,15 @@ contains
         ! Local variables.
         integer :: iv, is, imu, ivmu, ia, iz
         complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
-        complex, dimension(:, :, :, :, :), allocatable :: g0, dg0_dz
+        complex, dimension(:, :, :, :, :), allocatable :: g0, dphi_dz, dapar_dz, dbpar_dz
 
 
         ! Allocate temporary arrays.
         allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
-        allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        allocate (dg0_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (dphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (dapar_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate (dbpar_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
         ! Assume we only have one field line.
         ia = 1
@@ -161,7 +187,7 @@ contains
         ! Start timing the time advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_stream advance')
 
-        ! Calculate the parallel derivative depending on which fields are active. 
+        ! Calculate the parallel derivative of each field and add to the RHS of the GKE. 
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
@@ -170,35 +196,64 @@ contains
             ! Calculate phi.
             field = fphi * phi
 
-            ! If apar is present, we must account for this.
-            if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
-
-            ! Gyroaverage the J_0 contribution.
+            ! Gyroaverage.
             call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
 
-            ! If bpar is present, we must account for this too.
-            if (include_bpar) then
-                field = 4.0 * mu(imu) * spec(is)%tz * bpar
-               
-                ! Gyroaverage the J_1 contribution.
-                call gyro_average_j1(field, ivmu, gyro_tmp)
-              
-                g0(:, :, :, :, ivmu) = g0(:, :, :, :, ivmu) + gyro_tmp
-            end if
-
-            ! Get the z derivative of the generalised potential.
-            call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dg0_dz(:, :, :, :, ivmu))
-
+            ! Get the z derivative.
+            call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dphi_dz(:, :, :, :, ivmu))
         end do
 
         ! Add the term to the right-hand-side of the GKE. 
-        call add_explicit_term(dg0_dz, neo_stream(1, :, :), gout)
+        call add_explicit_term(dphi_dz, neo_stream(1, :, :), gout)
+
+
+        ! If apar is present, we calculate and add the correciton.
+        if (include_apar) then
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                iv = iv_idx(vmu_lo, ivmu)
+                imu = imu_idx(vmu_lo, ivmu)
+                is = is_idx(vmu_lo, ivmu)
+
+                field = 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+
+                ! Gyroaverage.
+                call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
+
+                ! Get the z derivative.
+                call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dapar_dz(:, :, :, :, ivmu))
+            end do
+
+            ! Add the term to the right-hand-side of the GKE. 
+            call add_explicit_term(dapar_dz, neo_stream_apar(1, :, :), gout)
+        end if
+
+
+        ! If bpar is present, we must account for this too.
+        if (include_bpar) then
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                iv = iv_idx(vmu_lo, ivmu)
+                imu = imu_idx(vmu_lo, ivmu)
+                is = is_idx(vmu_lo, ivmu)
+
+                field = 4.0 * mu(imu) * spec(is)%tz * bpar
+               
+                ! Gyroaverage.
+                call gyro_average_j1(field, ivmu, g0(:, :, :, :, ivmu))
+
+                ! Get the z derivative.
+                call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dbpar_dz(:, :, :, :, ivmu))
+            end do
+
+            ! Add the term to the right-hand-side of the GKE. 
+            call add_explicit_term(dbpar_dz, neo_stream(1, :, :), gout)
+        end if
 
         ! Deallocate temporary arrays.
         deallocate (field)
-        deallocate (gyro_tmp) 
         deallocate (g0)                          
-        deallocate (dg0_dz)
+        deallocate (dphi_dz)
+        deallocate (dapar_dz)
+        deallocate (dbpar_dz)
 
         ! Stop timing the time advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_stream advance')
@@ -211,11 +266,13 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_stream
-        use arrays, only: neo_stream, initialised_neo_stream
+        use arrays, only: neo_stream, neo_stream_apar, initialised_neo_stream
 
         implicit none
 
         if (allocated(neo_stream)) deallocate (neo_stream)
+        if (allocated(neo_stream_apar)) deallocate (neo_stream_apar)
+
         initialised_neo_stream = .false.
 
     end subroutine finish_neo_stream
