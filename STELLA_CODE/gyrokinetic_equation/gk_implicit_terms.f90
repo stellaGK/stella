@@ -963,7 +963,9 @@ contains
 
       call add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
       if (drifts_implicit) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
-      ! if (neoclassical_is_enabled() .and. drifts_implicit) call add_HO_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+
+      ! HO corrections. 
+      if (neoclassical_is_enabled() .and. drifts_implicit) call add_HO_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, ikx_from_izext, rhs)
       if (neoclassical_is_enabled()) call add_HO_streaming_contribution_apar(scratch, scratch3, z_scratch, iky, ia, ivmu, imu, iv, is, nz_ext, iz_from_izext, rhs)
 
       deallocate (scratch2)
@@ -1083,43 +1085,45 @@ contains
    end subroutine add_drifts_contribution_apar
 
 
-   ! subroutine add_HO_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
-       ! use constants, only: zi
-       ! use grids_kxky, only: aky, akx
-       ! use gk_parallel_streaming, only: center_zed
-       ! use grids_extended_zgrid, only: periodic
+   subroutine add_HO_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, ikx_from_izext, rhs)
+
+       use constants, only: zi
+       use grids_kxky, only: aky, akx
+       use grids_velocity, only: vpa
+       use grids_species, only: spec
+       use gk_parallel_streaming, only: center_zed
+       use grids_extended_zgrid, only: periodic
 
        ! For HO simulations.
-       ! use arrays, only: wstar1y, wstar1x
-       ! use arrays, only: neo_wdriftx, neo_wdrifty
+       use arrays, only: wstar1y, wstar1x
+       use arrays, only: neo_wdriftx, neo_wdrifty
 
-       ! implicit none
+       implicit none
 
-       ! complex, dimension(:), intent(in out) :: scratch, rhs
-       ! integer, intent(in) :: iky, ia, ivmu, iv, is, nz_ext
-       ! integer, dimension(:), intent(in) :: iz_from_izext
+       complex, dimension(:), intent(in out) :: scratch, rhs
+       integer, intent(in) :: iky, ia, ivmu, iv, is, nz_ext
+       integer, dimension(:), intent(in) :: iz_from_izext, ikx_from_izext
 
-       ! integer :: izext, iz
-       ! complex :: constant_factor
+       integer :: izext, iz, ikx
+       complex :: constant_factor
 
        ! =============================================================================================================== ! 
 
-       ! if (debug) write (*, *) 'implicit_solve::add_drifts_contribution_apar'
+       ! 'scratch' starts out as the gyro-average of apar, evaluated at zed grid points
+       do izext = 1, nz_ext
+          ikx = ikx_from_izext(izext)
+          iz = iz_from_izext(izext)
 
-       ! 'scratch' starts out as the gyro-average of phi, evaluated at zed grid points
-       ! do izext = 1, nz_ext
-          ! ikx = ikx_from_izext(izext)
-          ! iz = iz_from_izext(izext)
+          constant_factor = - 2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
+          scratch(izext) = constant_factor * scratch(izext) * ( akx(ikx) * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
+          + aky(iky) * ( neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) )
+       end do
 
-          ! constant_factor = - 2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
-          ! scratch(izext) = constant_factor * scratch(izext) * ( akx(ikx) * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
-          ! + aky(iky) * ( neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) )
-       ! end do
+       call center_zed(iv, scratch, 1, periodic(iky))
 
-       ! call center_zed(iv, scratch, 1, periodic(iky))
+       rhs = rhs + scratch
 
-       ! rhs = rhs + scratch
-   ! end subroutine add_HO_drifts_contribution_apar
+   end subroutine add_HO_drifts_contribution_apar
 
 
       ! ======================================================================== !
