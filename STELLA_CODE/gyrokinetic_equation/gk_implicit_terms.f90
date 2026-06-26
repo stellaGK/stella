@@ -484,7 +484,6 @@ contains
 
       ! nz_ext is the number of grid points in the extended zed domain
       nz_ext = size(phi)
-
       
       ! Determine the mapping from the extended domain zed index (izext) to the
       ! zed and kx domain indices (iz, ikx)
@@ -635,9 +634,8 @@ contains
             end do
             call center_zed(iv, z_scratch, -nzgrid)
          end if
-
-         ! IMPLICIT HO. 
-         ! Correct for HO simulations. 
+ 
+         ! Correction for HO simulations. 
          if (neoclassical_is_enabled()) then
             z_scratch = z_scratch * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(:, ivmu, 1) / vpa(iv) )
             call center_zed(iv, z_scratch, -nzgrid)
@@ -920,6 +918,12 @@ contains
       use parameters_numerical, only: driftkinetic_implicit, drifts_implicit
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
+      ! Grids.
+      use grids_z, only: nzgrid
+
+      ! For HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
       implicit none
 
       complex, dimension(:), intent(in) :: apar, aparnew
@@ -928,7 +932,8 @@ contains
       complex, dimension(:), intent(out) :: scratch
       complex, dimension(:), intent(in out) :: rhs
 
-      complex, dimension(:), allocatable :: scratch2
+      complex, dimension(:), allocatable :: scratch2, scratch3
+      real, dimension(:), allocatable :: z_scratch
       integer :: ia, iv, imu, is
       integer :: nz_ext
 
@@ -943,6 +948,8 @@ contains
       nz_ext = size(scratch)
 
       allocate (scratch2(nz_ext))
+      allocate (scratch3(nz_ext))
+      allocate (z_scratch(-nzgrid:nzgrid))
 
       ! set scratch to be apar or <apar> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
@@ -956,8 +963,12 @@ contains
 
       call add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
       if (drifts_implicit) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+      ! if (neoclassical_is_enabled() .and. drifts_implicit) call add_HO_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+      if (neoclassical_is_enabled()) call add_HO_streaming_contribution_apar(scratch, scratch3, z_scratch, iky, ia, ivmu, imu, iv, is, nz_ext, iz_from_izext, rhs)
 
       deallocate (scratch2)
+      deallocate (scratch3)
+      deallocate (z_scratch)
 
    end subroutine get_contributions_from_apar
 
@@ -1015,18 +1026,19 @@ contains
          scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
 
-      ! If running with HO corrections, transformation between gbarneo and gneo acquires a correction,
-      ! if (neoclassical_is_enabled()) then
-          ! do izext = 1, nz_ext
-              ! iz = iz_from_izext(izext)
-              ! scratch2(izext) = scratch2(izext) * ( 1.0 - 0.5 * neo_mu_fac_global(iz, iv, imu, is, 1) / bmag(ia, iz) )
-          ! end do
-      ! end if 
+      ! If running with HO corrections, transformation between gbar and g acquires a correction,
+      if (neoclassical_is_enabled()) then
+          do izext = 1, nz_ext
+              iz = iz_from_izext(izext)
+              scratch2(izext) = scratch2(izext) * ( 1.0 - 0.5 * neo_mu_fac_global(iz, iv, imu, is, 1) / bmag(ia, iz) )
+          end do
+      end if 
 
       call center_zed(iv, scratch2, 1, periodic(iky))
       rhs = rhs + scratch2
 
    end subroutine add_gbar_to_g_contribution_apar
+
 
    !*************************************************************************
    !                     RHS CONTRIBTUIONS FROM APAR DRIFTS
@@ -1069,6 +1081,132 @@ contains
       rhs = rhs + scratch
 
    end subroutine add_drifts_contribution_apar
+
+
+   ! subroutine add_HO_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+       ! use constants, only: zi
+       ! use grids_kxky, only: aky, akx
+       ! use gk_parallel_streaming, only: center_zed
+       ! use grids_extended_zgrid, only: periodic
+
+       ! For HO simulations.
+       ! use arrays, only: wstar1y, wstar1x
+       ! use arrays, only: neo_wdriftx, neo_wdrifty
+
+       ! implicit none
+
+       ! complex, dimension(:), intent(in out) :: scratch, rhs
+       ! integer, intent(in) :: iky, ia, ivmu, iv, is, nz_ext
+       ! integer, dimension(:), intent(in) :: iz_from_izext
+
+       ! integer :: izext, iz
+       ! complex :: constant_factor
+
+       ! =============================================================================================================== ! 
+
+       ! if (debug) write (*, *) 'implicit_solve::add_drifts_contribution_apar'
+
+       ! 'scratch' starts out as the gyro-average of phi, evaluated at zed grid points
+       ! do izext = 1, nz_ext
+          ! ikx = ikx_from_izext(izext)
+          ! iz = iz_from_izext(izext)
+
+          ! constant_factor = - 2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
+          ! scratch(izext) = constant_factor * scratch(izext) * ( akx(ikx) * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
+          ! + aky(iky) * ( neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) )
+       ! end do
+
+       ! call center_zed(iv, scratch, 1, periodic(iky))
+
+       ! rhs = rhs + scratch
+   ! end subroutine add_HO_drifts_contribution_apar
+
+
+      ! ======================================================================== !
+      ! -------------- RHS HO CONTRIBTUIONS FROM APAR STREAMING ---------------- !
+      ! ======================================================================== !
+      ! If we are including electromagnetic effects with apar and HO corrections,
+      ! then we need to add a RHS source from the apar component of parallel 
+      ! streaming. 
+      !
+      ! This is:
+      !
+      ! Note that the appropriate upwinding factor is added in the main 
+      ! advance_implicit_terms routine, as this subroutine is used for both the
+      ! 'explicit' and 'implicit' contributions to the equation.
+      ! ======================================================================== !
+
+      subroutine add_HO_streaming_contribution_apar(scratch, scratch3, z_scratch, iky, ia, ivmu, imu, iv, is, nz_ext, iz_from_izext, rhs)
+
+         use grids_extended_zgrid, only: fill_zext_ghost_zones
+         use gk_parallel_streaming, only: get_zed_derivative_extended_domain
+         use gk_parallel_streaming, only: center_zed
+         use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
+         use grids_extended_zgrid, only: periodic   
+
+         ! Geometry.
+         use geometry, only: bmag
+
+         ! Grids. 
+         use grids_z, only: nzgrid
+         use grids_time, only: code_dt
+         use grids_kxky, only: aky
+         use grids_species, only: spec
+         use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac 
+ 
+         ! For HO corrections.
+         use parameters_physics, only: neostreamknob
+         use neoclassical_terms_neo, only: neo_mu_fac, neo_vpa_fac
+
+         complex, dimension(:), intent(in out) :: scratch, rhs
+         complex, dimension(:), intent(in out) :: scratch3
+         real, dimension(-nzgrid:), intent(in out) :: z_scratch
+         integer, intent(in) :: iky, ia, ivmu, iv, imu, is, nz_ext
+         integer, dimension(:), intent(in) :: iz_from_izext
+
+         integer :: izext, iz
+         complex :: scratch_left, scratch_right
+
+         ! ============================================================================================================== !
+
+         ! Fill ghost zones beyond ends of extended zed domain for <apar>
+         ! and store values in scratch_left and scratch_right.
+         call fill_zext_ghost_zones(iky, scratch, scratch_left, scratch_right)
+
+         ! Obtain the zed derivative of <apar> (stored in scratch) and store in scratch3.
+         call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, scratch3)
+
+         ! Center Maxwellian factor in mu and store in dummy variable z_scratch.
+         z_scratch = maxwell_mu(ia, :, imu, is)
+         call center_zed(iv, z_scratch, -nzgrid)
+
+         ! Multiply by the Maxwellian factor.
+         do izext = 1, nz_ext
+            scratch3(izext) = scratch3(izext) * z_scratch(iz_from_izext(izext))
+         end do
+
+         z_scratch = 2.0 * spec(is)%zt * vpa(iv) * vpa(iv) * maxwell_vpa(iv, is) * maxwell_fac(is)
+                  
+         ! Multiply by the neoclassical distribution factor. 
+         do iz = -nzgrid, nzgrid
+             z_scratch(iz) = z_scratch(iz) * neostreamknob * 0.5 * ( neo_vpa_fac(iz, ivmu, 1) / vpa(iv) - neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+         end do
+         call center_zed(iv, z_scratch, -nzgrid)
+
+         if (stream_sign(iv) > 0) then
+            z_scratch = z_scratch * b_dot_gradz_centeredinz(:, -1) * code_dt * spec(is)%stm_psi0 * spec(is)%stm_psi0 
+         else
+            z_scratch = z_scratch * b_dot_gradz_centeredinz(:, 1) * code_dt * spec(is)%stm_psi0 * spec(is)%stm_psi0 
+         end if
+
+         do izext = 1, nz_ext
+            scratch3(izext) = -z_scratch(iz_from_izext(izext)) * scratch3(izext)
+         end do
+
+         ! Add scratch3 to rhs.
+         rhs = rhs + scratch3
+
+      end subroutine add_HO_streaming_contribution_apar
 
    !****************************************************************************
    !                         SWITCH BETWEEN GBAR AND G 

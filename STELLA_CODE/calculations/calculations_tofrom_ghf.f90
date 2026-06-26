@@ -150,7 +150,7 @@ contains
 
          ! If neoclassical is enabled, add the HO correction.
          if (neoclassical_is_enabled()) then
-             gyro_averaged_field = gyro_averaged_field * (1 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) /bmag(ia, iz) )
+             gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) /bmag(ia, iz) )
          end if
 
          ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
@@ -222,7 +222,7 @@ contains
 
       ! If neoclassical is enabled, add the HO correction.
       if (neoclassical_is_enabled()) then
-          gyro_averaged_field = gyro_averaged_field * (1 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) /bmag(ia, iz) )
+          gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) /bmag(ia, iz) )
       end if
 
       ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
@@ -329,7 +329,7 @@ contains
 
             ! If neoclassical is enabled, add the HO correction.
             if (neoclassical_is_enabled()) then
-                gyro_averaged_field = gyro_averaged_field * (1 - 0.5 * neo_mu_fac(iz, ivmu, 1) /bmag(ia, iz) )
+                gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) /bmag(ia, iz) )
             end if
 
             ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
