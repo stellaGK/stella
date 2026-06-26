@@ -1,0 +1,249 @@
+
+!================================================================================
+!=================================== Geometry ===================================
+!================================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+
+&geometry_miller
+  betadbprim = 0.0
+  betaprim = 0.0
+  d2psidr2 = 0.0
+  d2qdr2 = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  nzed_local = 128
+  qinp = 1.4
+  rgeo = 2.77778
+  rhoc = 0.5
+  rmaj = 2.77778
+  shat = 0.796
+  shift = 0.0
+  tri = 0.0
+  triprim = 0.0
+/
+
+
+!================================================================================
+!=================================== Physics ====================================
+!================================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
+  simulation_domain = 'fluxtube'
+/
+
+&scale_gyrokinetic_terms
+  fphi = 1.0
+  weakly_nonlinear = .true. 
+/
+
+&physics_inputs
+  rhostar = 0.0
+/
+
+&electromagnetic
+  beta = 0.0
+  include_apar = .false.
+  include_bpar = .false.
+/
+
+
+!================================================================================
+!================================= Diagnostics ==================================
+!================================================================================
+
+&diagnostics
+  nsave = 300
+  nwrite = 10
+  save_for_restart = .true.
+/
+
+&diagnostics_moments
+  write_moments = .true.
+/
+
+&diagnostics_omega
+  write_omega_avg_vs_kxky = .true.
+  write_omega_vs_kxky = .true.
+/
+
+&diagnostics_distribution
+  write_g2_vs_vpamus = .true.
+  write_g2_vs_zvpas = .true.
+/
+
+&diagnostics_fluxes
+  flux_norm = .false.
+  write_fluxes_kxky = .true.
+  write_fluxes_kxkyz = .true.
+/
+
+&diagnostics_potential
+  write_apar2_vs_kxky = .true.
+  write_bpar2_vs_kxky = .true.
+  write_phi2_vs_kxky = .true.
+  write_phi_vs_kxkyz = .true.
+/
+
+
+!================================================================================
+!=========================== Initialise Distribution ============================
+!================================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'many'
+  phiinit = 0.01
+/
+
+&initialise_distribution_maxwellian
+  chop_side = .false.
+  width0 = 1.0
+/
+
+&initialise_distribution_noise
+  chop_side = .false.
+  zf_init = 0.0
+/
+
+&initialise_distribution_kpar
+  chop_side = .false.
+  width0 = 1.0
+/
+
+&restart_options
+  restart_dir = './restart'
+/
+
+
+!================================================================================
+!====================== Ion, electron and impurity species ======================
+!================================================================================
+
+&species_options
+  nspec = 1
+  species_option = 'stella'
+/
+
+&adiabatic_electron_response
+  nine = 1.0
+  tite = 1.0
+/
+
+&species_parameters_1
+  dens = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 5.0
+  fprim = 0.3
+  type = 'ion'
+  z = 1.0
+/
+
+&species_parameters_2
+  dens = 1.0
+  fprim = 0.3
+  mass = 0.0005446623
+  temp = 1.0
+  tprim = 0
+  type = 'electron'
+  z = -1.0
+/
+
+
+!================================================================================
+!====================== Discretized (kx,ky,z,mu,vpa) grid =======================
+!================================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+
+&kxky_grid_box
+  ny = 151
+  nx = 91
+  y0 = 20
+/
+
+&z_grid
+  nperiod = 1
+  nzed = 32
+  zed_equal_arc = .true.
+/
+
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+
+&velocity_grids
+  nmu = 12
+  nvgrid = 36
+  vpa_max = 3.0
+  vperp_max = 3.0
+/
+
+
+!================================================================================
+!=================================== Numerics ===================================
+!================================================================================
+
+&time_trace_options
+  tend = 300
+/
+
+&time_step
+!  delt = 0.1
+  delt_option = 'check_restart'
+/
+
+&numerical_algorithms
+  drifts_implicit = .false.
+  explicit_algorithm = 'rk3'
+/
+
+
+!================================================================================
+!================================= Dissipation ==================================
+!================================================================================
+
+&dissipation_and_collisions_options
+  hyper_dissipation = .true.
+
+/
+
+&hyper_dissipation
+  d_hyper = 0.1
+/
+!================================================================================
+!================================= Neoclassics ==================================
+!================================================================================
+
+&neoclassical_input
+  include_neoclassical_terms = .false.
+/
+
+
+!================================================================================
+!=============================== Radial variation ===============================
+!================================================================================
+
+
+!================================================================================
+!=============================== Parallelisation ================================
+!================================================================================
+
+&parallelisation
+  lu_option = 'local'
+  mat_gen = .false.
+  mat_read = .false.
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
+/
+
+
+!================================================================================
+!==================================== Debug =====================================
+!================================================================================
+

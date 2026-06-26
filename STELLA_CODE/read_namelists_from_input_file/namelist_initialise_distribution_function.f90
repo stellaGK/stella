@@ -458,7 +458,9 @@ contains
    !                          INITIALISE POTENTIAL: RH                         !
    !****************************************************************************
    subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, &
-        weaknl_rh, width0, delta, delta2)
+        weaknl_rh, width0, delta, delta2, omega_drive, gamma_drive, &
+        sideband_re, sideband_im, &
+        cphi_re, cphi_im, zw1, zw2, tprim_beat)
 
       use mp, only: proc0
 
@@ -471,6 +473,11 @@ contains
       logical, intent (out) :: weaknl_rh
       real, intent(out) :: width0
       real, intent (out) :: delta, delta2
+
+      real, intent (out) :: omega_drive, gamma_drive
+      real, intent (out) :: sideband_re, sideband_im   
+      real, intent (out) :: cphi_re(6), cphi_im(6), zw1, zw2
+      real, intent (out) :: tprim_beat 
       !-------------------------------------------------------------------------
 
       if (.not. proc0) return
@@ -494,6 +501,16 @@ contains
          width0 = 1.0
          delta = 0.0
          delta2 = 0.0
+
+         omega_drive = 0.412
+         gamma_drive = 0.239
+         sideband_re = 0.0
+         sideband_im = 0.0
+
+         cphi_re = 0.0; cphi_im = 0.0
+         zw1 = 1.3; zw2 = 2.6
+         tprim_beat = 5.0
+
       end subroutine set_default_parameters_initialise_distribution_rh
 
       !---------------------------- Read input file ----------------------------
@@ -503,7 +520,9 @@ contains
          implicit none
 
          namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac, &
-              weaknl_rh, width0, delta, delta2
+              weaknl_rh, width0, delta, delta2, &
+              omega_drive, gamma_drive, sideband_re, sideband_im, &
+              cphi_re, cphi_im, zw1, zw2, tprim_beat
          in_file = input_unit_exist('initialise_distribution_rh', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 
@@ -523,6 +542,7 @@ contains
          write (unit, '(A, ES0.4)') '  kxmax = ', kxmax
          write (unit, '(A, ES0.4)') '  imfac = ', imfac
          write (unit, '(A, ES0.4)') '  refac = ', refac
+         write (unit, '(A, L1)')    '  weaknl_rh = ', weaknl_rh
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       

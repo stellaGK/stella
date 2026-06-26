@@ -894,15 +894,18 @@ contains
 
       use calculations_tofrom_ghf, only: g_to_h
 
-      use arrays, only: denominator_fields_MBR, denominator_fields
+      use arrays, only: denominator_fields_MBR, denominator_fields, efac
       use grids_species, only: ion_species
       use spfunc, only: j0
       use grids_species, only: tite, nine
+      use grids_species, only: has_electron_species
+      use grids_species, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use calculations_velocity_integrals, only: integrate_vmu
+      use save_stella_for_restart, only: stella_restore
       implicit none
 
       integer :: ikxkyz, iky, ikx, iz, is, ia, it, iv, imu
-      
+
       ! Read the following variables from the input file
       real :: imfac, refac
       real :: kxmax, kxmin
@@ -911,25 +914,27 @@ contains
       real :: width0
       real :: delta, delta2
 
+      real :: omega_drive, gamma_drive, sideband_re, sideband_im
+
+      real :: cphi_re(6), cphi_im(6), zw1, zw2, tprim_beat
+      complex :: phiz_beat, G1b, G2b
+      real, dimension(:, :), allocatable :: wstar_beat
+
       real :: fac
-      real, dimension(:,:), allocatable :: bxy
       real, dimension(:, :, :), allocatable :: wcvdrifty, wgbdrifty
       real, dimension(:, :, :), allocatable :: wcvdriftx, wgbdriftx
-      real, dimension(:, :, :, :), allocatable :: wstar, wdrifty, wdriftx
-      complex :: omega_y, omega_x
+      real, dimension(:, :, :, :), allocatable :: wdrifty, wdriftx
+      complex :: omega_y, omega_x, omega_xy
 
       real :: arg
       real :: tmp, wgt
-      complex, dimension(:, :, :, :), allocatable :: pol_fsa
-
-      real, parameter :: wr0=0.5482
-      real, parameter :: gm0=0.2301
 
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_rh> namelist
       if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, weaknl_rh, &
-           width0, delta, delta2)
+           width0, delta, delta2, omega_drive, gamma_drive, sideband_re, sideband_im, &
+           cphi_re, cphi_im, zw1, zw2, tprim_beat)
 
       ! Broadcast to all processors
       call broadcast(refac)
@@ -941,16 +946,21 @@ contains
       call broadcast(width0)
       call broadcast(delta)
       call broadcast(delta2)
+      call broadcast(omega_drive)
+      call broadcast(gamma_drive)
+      call broadcast(sideband_re)
+      call broadcast(sideband_im)
 
-      ! initialise g to be a Maxwellian with a constant density perturbation
+      call broadcast(cphi_re); call broadcast(cphi_im)
+      call broadcast(zw1); call broadcast(zw2); call broadcast(tprim_beat)
 
       gvmu = 0.
 
       ia = 1
-      if (.not. weaknl_rh) then 
+
+      if (.not. weaknl_rh) then
+         ! NORMAL RH 
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            ! only set the first ky mode to be non-zero
-            ! this is because this is meant to test the damping of zonal flow (ky=0)
             iky = iky_idx(kxkyz_lo, ikxkyz); if (iky /= 1) cycle
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
@@ -970,25 +980,19 @@ contains
          allocate (wgbdriftx(nalpha, -nzgrid:nzgrid, nmu))
          allocate (wdriftx(nalpha, -nzgrid:nzgrid, nvpa, nmu))
 
-         allocate (wstar(nalpha, -nzgrid:nzgrid, nvpa, nmu))
+         allocate (wstar_beat(nvpa, nmu))
       
-         allocate (bxy(nakx, -nzgrid:nzgrid))
          ! ------------------------------------------------------------------
          
-         omega_y = wr0 + zi * gm0
-         omega_x = 2 * zi * gm0 
+         omega_y  = omega_drive + zi * gamma_drive      
+         omega_xy = omega_y + sideband_re + zi * sideband_im 
+         omega_x  = 2 * zi * gamma_drive  
          call broadcast(omega_x)
          call broadcast(omega_y)
+         call broadcast(omega_xy)
 
          ia = 1
-         it = 1
-         do iz = -nzgrid, nzgrid
-            do ikx = 1, nakx
-               bxy(ikx,iz) = akx(ikx)**2 * gradx_dot_gradx(ia,iz) + ky_bessel**2 * grady_dot_grady(ia,iz) &
-                  + 2 * akx(ikx) * ky_bessel * gradx_dot_grady(ia, iz)
-            end do
-         end do
-      
+         it = 1      
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz) 
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -1005,65 +1009,49 @@ contains
                wcvdriftx(ia, iz, :) = fac * B_times_kappa_dot_gradx(ia, iz) * 2. * geo_surf%shat * vpa**2 * akx(ikx)
                wgbdriftx(ia,iz,:) = fac * B_times_gradB_dot_gradx(ia,iz) * geo_surf%shat * vperp2(ia, iz, :) * akx(ikx)
                wdriftx(ia,iz,:,:) = spread(wcvdriftx(ia,iz,:), 2, nmu) + spread(wgbdriftx(ia,iz,:), 1, nvpa)
+               wstar_beat = (1.0/clebsch_factor) * dydalpha * drhodpsi * 0.5 * tprim_beat &
+                  * (spread(vpa, 2, nmu)**2 + spread(vperp2(ia, iz, :), 1, nvpa) - 1.5) * ky_bessel
+               G1b = exp(-(zed(iz) / zw1)**2); G2b = exp(-(zed(iz) / zw2)**2)
+               phiz_beat = (cphi_re(1) + zi*cphi_im(1)) * G1b &
+                           + (cphi_re(2) + zi*cphi_im(2)) * zed(iz)**2 * G1b &
+                           + (cphi_re(3) + zi*cphi_im(3)) * zed(iz) * G1b &
+                           + (cphi_re(4) + zi*cphi_im(4)) * G2b &
+                           + (cphi_re(5) + zi*cphi_im(5)) * zed(iz)**2 * G2b &
+                           + (cphi_re(6) + zi*cphi_im(6)) * zed(iz) * G2b
+               gvmu(:, :, ikxkyz) = - zi * spec(is)%z * phiinit * akx(ikx) * ky_bessel &
+                  * spread(maxwell_vpa(:,is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
+                  * spread(aj0v_y(:, ikxkyz) * aj0v_xy(:, ikxkyz), 1, nvpa) &
+                  * ( (wdrifty(ia,iz,:,:) + wdriftx(ia,iz,:,:) - wstar_beat) &
+                           / (omega_xy - wdrifty(ia,iz,:,:) - wdriftx(ia,iz,:,:)) &
+                        - (wdrifty(ia,iz,:,:) - wstar_beat) / (omega_y - wdrifty(ia,iz,:,:)) ) &
+                     / (omega_x - wdriftx(ia,iz,:,:)) &
+                  * phiz_beat
 
-               wstar(ia, iz, :, :) = (1/clebsch_factor) * dydalpha * drhodpsi * 0.5 *(spec(is)%fprim + spec(is)%tprim &
-                  * (spread(vpa, 2, nmu)**2 + spread(vperp2(1, iz, :) , 1, nvpa) - 1.5 )) * ky_bessel
-                  
-               gvmu(:, :, ikxkyz) = - zi * spec(is)%z * phiinit * akx(ikx) &
-                  * spread(maxwell_vpa(:,is), 2, nmu) * spread(maxwell_mu(ia, iz, : ,is), 1, nvpa) &
-                  * exp(-2*(zed(iz) /width0)**2) &
-                  * ( (omega_x*(wdrifty(ia, iz, :, :) - wstar(ia, iz, :, :)) + wdriftx(ia, iz, :, :)*(wstar(ia, iz, :, :) - conjg(omega_y)) )) &
-                  * spread(aj0v_y(:, ikxkyz) * aj0v_xy(:, ikxkyz) , 1, nvpa) & !/ (1 + bxy(ikx,iz)) &                                        
-                  / ((omega_y - wdrifty(ia, iz, :, :))*(conjg(omega_y) - wdrifty(ia, iz, :, :))) !*(omega_x - wdriftx(ia,iz,:,:)) ) 
-            
           else
                gvmu(:, :, ikxkyz) = 0.0
             end if
          end do
 
          fields_updated = .false.
-         call advance_fields_fluxtube_using_field_equations(gvmu, phi, apar, bpar, dist='g') 
+         call advance_fields_fluxtube_using_field_equations(gvmu, phi, apar, bpar, dist='h')
          fields_updated = .false.
-         call broadcast (phi)
 
-         allocate (pol_fsa(naky, nakx, nvpa, nmu)); pol_fsa = 0.0
+         call broadcast (phi)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz); ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz); is = is_idx(kxkyz_lo, ikxkyz)
-            if (aky(iky) /= 0.0) cycle
-            
-            wcvdriftx(ia, iz, :) = spec(is)%tz_psi0 * B_times_kappa_dot_gradx(ia, iz) * vpa**2 * akx(ikx)
-            wgbdriftx(ia, iz, :) = 0.5 * spec(is)%tz_psi0 * B_times_gradB_dot_gradx(ia, iz) * vperp2(ia, iz, :) * akx(ikx)
-            wdriftx(ia, iz, :, :) = spread(wcvdriftx(ia, iz, :), 2, nmu) + spread(wgbdriftx(ia, iz, :), 1, nvpa)
-            
-            pol_fsa(iky, ikx, :, :) = pol_fsa(iky, ikx, :, :) + dl_over_b(ia, iz) &
-               * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) &
-               * spread(aj0v(:, ikxkyz), 1, nvpa) &
-               * wdriftx(ia, iz, :, :) / (omega_x - wdriftx(ia, iz, :, :)) &
-               * phi(iky, ikx, iz, it)
-         end do
-         call sum_allreduce(pol_fsa)
-
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-
-            if (aky(iky) == 0.0) then
-               gvmu(:,:,ikxkyz) = gvmu(:,:,ikxkyz) &
-                  + (delta + delta2*akx(ikx)**2) * spec(is)%zt * pol_fsa(iky, ikx, :, :) 
-
-            else
+            if (aky(iky) /= 0.0) then
                gvmu(:, :, ikxkyz) = 0.0
+            else
+               gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) &
+                  - spread(aj0v(:, ikxkyz), 1, nvpa) * phi(iky, ikx, iz, it) &
+                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) 
             end if
          end do
 
-         deallocate(bxy)
          deallocate(wcvdrifty, wgbdrifty, wcvdriftx, wgbdriftx)
-         deallocate(wstar, wdriftx, wdrifty)
-         deallocate(pol_fsa)
-
+         deallocate(wdriftx, wdrifty)
+         deallocate(wstar_beat)
       end if
 
      
