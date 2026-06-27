@@ -750,6 +750,9 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
 
+      ! For HO corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+
       implicit none
 
       complex, dimension(:), intent(in) :: bpar
@@ -788,6 +791,7 @@ contains
       
       call add_streaming_contribution_bpar
       if (drifts_implicit) call add_drifts_contribution_bpar
+      if (neoclassical_is_enabled() .and. drifts_implicit) call add_HO_drifts_contribution_bpar
 
       deallocate (z_scratch, scratch2)
 
@@ -919,7 +923,43 @@ contains
 
       end subroutine add_drifts_contribution_bpar
 
+
+      subroutine add_HO_drifts_contribution_bpar
+
+         use constants, only: zi
+         use grids_kxky, only: aky, akx
+         use arrays, only: wstar, wdriftx_bpar, wdrifty_bpar
+         use gk_parallel_streaming, only: center_zed
+         use grids_extended_zgrid, only: periodic
+
+         ! For HO corrections.
+         use arrays, only: wstar1y, wstar1x
+         use arrays, only: neo_wdriftx, neo_wdrifty
+
+         integer :: izext, iz, ikx
+         real :: constant_factor
+
+         ! =============================================================================== !
+
+         ! 'scratch' starts out as the gyroaverage of bpar, evaluated at zed grid points.
+         constant_factor = 4. * mu(imu) * spec(is)%tz
+         do izext = 1, nz_ext
+            ikx = ikx_from_izext(izext)
+            iz = iz_from_izext(izext)
+
+            scratch(izext) = zi * scratch(izext) * ( akx(ikx) * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
+            + aky(iky) * ( neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) )
+
+         end do
+
+         call center_zed(iv, scratch, 1, periodic(iky))
+
+         rhs = rhs + scratch
+
+      end subroutine add_HO_drifts_contribution_bpar
+
    end subroutine get_contributions_from_bpar
+         
 
    !****************************************************************************
    !                          RHS CONTRIBTUIONS FROM APAR
