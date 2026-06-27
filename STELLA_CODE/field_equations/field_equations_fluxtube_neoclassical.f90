@@ -135,10 +135,15 @@ contains
           call calculate_neo_phi(phi, dist, skip_fsa_local)
       end if  
 
-      ! If we are running electromagnetic but no bpar, the phi and apar field equations are a 2 x 2 matrix solve.
+      ! If we are running electromagnetic but no bpar, the phi and apar field equations are a 2 x 2 matrix.
       if (fphi > epsilon(0.0) .and. include_apar .and. .not. include_bpar) then
           call calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa_local)
       end if
+
+      ! If we are running electromagnetic but no apar, the phi and bpar field equations are a 2 x 2 matrix. 
+      if (fphi > epsilon(0.0) .and. .not. include_apar .and. include_bpar) then
+          call calculate_neo_phi_and_bpar(phi, bpar, dist, skip_fsa_local)
+      end if 
 
       ! If we are running electromagnetic fully electromagnetic, the phi apar and bpar field equations are a 3 x 3 matrix. 
       if (fphi > epsilon(0.0) .and. include_apar .and. include_bpar) then
@@ -303,6 +308,11 @@ contains
       ! If we are running electromagnetic but no bpar, the phi and apar field equations are a 2 x 2 matrix solve. 
       if (fphi > epsilon(0.0) .and. include_apar .and. .not. include_bpar) then
           call calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa_local)
+      end if
+
+      ! If we are running electromagnetic but no apar, the phi and bpar field equations are a 2 x 2 matrix. 
+      if (fphi > epsilon(0.0) .and. .not. include_apar .and. include_bpar) then
+          call calculate_neo_phi_and_bpar(phi, bpar, dist, skip_fsa_local)
       end if
 
       ! If we are running electromagnetic fully electromagnetic, the phi apar and bpar field equations are a 3 x 3 matrix.
@@ -522,6 +532,94 @@ contains
         end do
 
     end subroutine calculate_neo_phi_and_apar
+
+
+! ================================================================================================================================================================================ !
+! ------------------------------------------------ Calculate phi and apar for electromagnetic simulations when bpar is not included. --------------------------------------------- !
+! ================================================================================================================================================================================ !
+
+    subroutine calculate_neo_phi_and_bpar(phi, bpar, dist, skip_fsa)
+        ! Parallelisation.
+        use mp, only: proc0, mp_abort
+        use job_manage, only: time_message
+        use timers, only: time_field_solve
+
+        ! Arrays.
+        use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_13_gneo
+        use arrays, only: denominator_fields_neo_31_gneo, denominator_fields_neo_33_gneo
+
+        ! Grids.
+        use grids_z, only: nzgrid, ntubes
+        use grids_kxky, only: nakx, naky
+
+        implicit none
+
+        ! Arguments.
+        complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, bpar
+        character(*), intent(in) :: dist
+        logical, optional, intent(in) :: skip_fsa
+
+        ! Local variables.
+        integer :: ia, it, ikx, iky, iz
+        logical :: skip_fsa_local
+
+        ! LAPACK Variables.
+        complex(8)        :: A_lapack(2,2)
+        complex(8)        :: B_lapack(2,1)
+        integer        :: ipiv(2)
+        integer        :: info
+        external zgesv
+
+        ! ======================================================================================================================================================== ! 
+        ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of apar, this reduces to a 2 x 2    !
+        ! matrix problem where the solution provides phi and bpar. This is solved with LAPACK. This could be solved directly using Cramer's rule, as is done for   ! 
+        ! the coupling of phi and bpar at leading order. However, this would become algebriaclly cumbersome in the fully electromagnetic case where the matrix     !
+        ! becomes 3 x 3. The extension of the LAPACK logic to the fully electromagnetic regime is by comparison much easier.                                       !
+        ! ======================================================================================================================================================== !
+
+        ! Used for the Dougherty collision operator.
+        skip_fsa_local = .false.
+        if (present(skip_fsa)) skip_fsa_local = skip_fsa
+
+        ! Assume we only have one field line.
+        ia = 1
+
+        do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+                do ikx = 1, nakx
+                    do iky = 1, naky
+                        if (dist == 'gneo') then
+                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
+                            A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(2,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(1,2) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(2,2) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
+                        else
+                            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_bpar. Aborting.'
+                            call mp_abort('Unknown dist option in calculate_neo_phi_and_bpar. Aborting.')
+                            return
+                        end if
+
+                        B_lapack(1,1) = phi(iky,ikx,iz,it)
+                        B_lapack(2,1) = bpar(iky,ikx,iz,it)
+
+                        call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                        if (info == 0) then
+                            ! Assign solutions to the fields. 
+                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
+                            bpar(iky,ikx,iz,it) = B_lapack(2,1)                                
+                        else
+                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
+                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
+                            bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+    end subroutine calculate_neo_phi_and_bpar
 
 
 ! ================================================================================================================================================================================ !
@@ -1132,7 +1230,6 @@ contains
             ! Sum the values on all processors and send them to <proc0>.
             call sum_allreduce(denominator_fields_neo_12_gbarneo)
 
-
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_21_gneo is the phi contribution to parallel Amperes law when gneo is being used as the distribution. This is given by:            ! 
             !                                                                                                                                                          ! 
@@ -1253,8 +1350,8 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-                * maxwell_fac(is) * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0 )
+                g0 = spread((mu(:) * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
+                * maxwell_fac(is) * ( ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) - 1.0 )
             
                 wgt = 4.0 * spec(is)%z * spec(is)%dens_psi0
                 call integrate_vmu(g0, iz, tmp)
@@ -1306,14 +1403,15 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
-                * ( 1.0 - spread((aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) ) * (0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0 )
+                g0 = spread((mu(:) * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
+                * ( spread((aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) + 0.5 * ( 1.0 - spread((aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) ) &
+                * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
 
                 wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_31_gneo(iky, ikx, iz) = denominator_fields_neo_31_gneo(iky, ikx, iz) + tmp * wgt
             end do
-
+                
             call sum_allreduce(denominator_fields_neo_31_gneo)
 
             ! ======================================================================================================================================================== ! 

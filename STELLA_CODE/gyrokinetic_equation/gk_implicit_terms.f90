@@ -813,6 +813,16 @@ contains
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
 
+         ! Physics parameters.
+         use parameters_physics, only: neostreamknob
+
+         ! Grids.
+         use grids_velocity, only: vpa
+
+         ! For HO simulations. 
+         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use neoclassical_terms_neo, only: neo_vpa_fac
+
          integer :: izext
          complex :: scratch_left, scratch_right
 
@@ -845,6 +855,12 @@ contains
             do iz = -nzgrid, nzgrid
                z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * 4. * mu(imu)
             end do
+            call center_zed(iv, z_scratch, -nzgrid)
+         end if
+
+         ! Correction for HO simulations. 
+         if (neoclassical_is_enabled()) then
+            z_scratch = z_scratch * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(:, ivmu, 1) / vpa(iv) )
             call center_zed(iv, z_scratch, -nzgrid)
          end if
 
