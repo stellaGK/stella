@@ -31,6 +31,8 @@ module neoclassical_terms_neo
     public :: neo_vpa_fac_global, neo_mu_fac_global  ! Global versions of the velocity derivative factors that are not parallelised. 
                                                      ! Primarily for use in the field equations which are parallelised over kxkyz. 
 
+    public :: distribute_vmus_over_procs
+
     public :: initialised_neoclassical_terms_neo
 
     private
