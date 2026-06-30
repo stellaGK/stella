@@ -51,10 +51,11 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! Arrays.
-        use arrays, only: neo_stream, neo_stream_apar, initialised_neo_stream
+        use arrays, only: neo_stream, neo_stream_apar_1, neo_stream_apar_2, initialised_neo_stream
 
         ! NEO data.
         use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
+        use neoclassical_terms_neo, only: dneo_mu_fac_dz
 
         ! Parameters.
         use parameters_physics, only: include_apar
@@ -76,9 +77,14 @@ contains
             allocate (neo_stream(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream = 0.0
         end if
 
-        ! Allocate neo_stream_apar = neo_stream_apar[ialpha, iz, i[mu,vpa,s]] if apar is included.
-        if (.not. allocated(neo_stream_apar) .and. include_apar) then
-            allocate (neo_stream_apar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream_apar = 0.0
+        ! Allocate neo_stream_apar_1 = neo_stream_apar_1[ialpha, iz, i[mu,vpa,s]] if apar is included.
+        if (.not. allocated(neo_stream_apar_1) .and. include_apar) then
+            allocate (neo_stream_apar_1(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream_apar_1 = 0.0
+        end if
+
+        ! Allocate neo_stream_apar_2 = neo_stream_apar_2[ialpha, iz, i[mu,vpa,s]] if apar is included.
+        if (.not. allocated(neo_stream_apar_2) .and. include_apar) then
+            allocate (neo_stream_apar_2(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream_apar_2 = 0.0
         end if
 
         ! neo_stream is the coeffecient for phi and bpar fluctuations. 
@@ -104,9 +110,14 @@ contains
                 iv = iv_idx(vmu_lo, ivmu)
 
                 do iz = -nzgrid, nzgrid 
-                    neo_stream_apar(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
+                    ! The first apar piece is proportional to the z derivative of apar.
+                    neo_stream_apar_1(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
                     * 0.5 * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+
+                    ! The second apar piece is proportional to apar and results from using gneo as the distribution function. 
+                    neo_stream_apar_2(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
+                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * dneo_mu_fac_dz(iz, ivmu, 1)
                end do
            end do
         end if
@@ -123,7 +134,7 @@ contains
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       
         ! Data arrays.
-        use arrays, only: neo_stream, neo_stream_apar
+        use arrays, only: neo_stream, neo_stream_apar_1, neo_stream_apar_2
 
         ! Grids. 
         use grids_species, only: spec
@@ -141,6 +152,9 @@ contains
         ! Calculations.
         use calculations_gyro_averages, only: gyro_average, gyro_average_j1
         use calculations_add_explicit_terms, only: add_explicit_term
+
+        ! Neoclassical data.
+        use neoclassical_terms_neo, only: dneo_mu_fac_dz
 
         ! Time this routine.
         use timers, only: time_gke
@@ -223,8 +237,10 @@ contains
                 call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dapar_dz(:, :, :, :, ivmu))
             end do
 
-            ! Add the term to the right-hand-side of the GKE. 
-            call add_explicit_term(dapar_dz, neo_stream_apar(1, :, :), gout)
+            ! Add the terms to the right-hand-side of the GKE. 
+            ! This includes one term proportional to apar and one propotional to the z derivative of apar. 
+            call add_explicit_term(dapar_dz, neo_stream_apar_1(1, :, :), gout)
+            call add_explicit_term(g0, neo_stream_apar_2(1, :, :), gout)
         end if
 
 
@@ -248,6 +264,7 @@ contains
             call add_explicit_term(dbpar_dz, neo_stream(1, :, :), gout)
         end if
 
+
         ! Deallocate temporary arrays.
         deallocate (field)
         deallocate (g0)                          
@@ -266,17 +283,17 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_stream
-        use arrays, only: neo_stream, neo_stream_apar, initialised_neo_stream
+        use arrays, only: neo_stream, neo_stream_apar_1, neo_stream_apar_2, initialised_neo_stream
 
         implicit none
 
         if (allocated(neo_stream)) deallocate (neo_stream)
-        if (allocated(neo_stream_apar)) deallocate (neo_stream_apar)
+        if (allocated(neo_stream_apar_1)) deallocate (neo_stream_apar_1)
+        if (allocated(neo_stream_apar_2)) deallocate (neo_stream_apar_2)
 
         initialised_neo_stream = .false.
 
     end subroutine finish_neo_stream
-
 
 ! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 

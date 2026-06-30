@@ -75,7 +75,8 @@ module arrays
 
    ! For HO apar corrections.
    public :: neo_mirror
-   public :: neo_stream_apar
+   public :: neo_stream_apar_1
+   public :: neo_stream_apar_2
    public :: neo_wdriftx_apar
    public :: neo_wdrifty_apar
 
@@ -173,7 +174,7 @@ module arrays
 
    ! For HO phi and bpar corrections. 
    real, dimension(:, :, :), allocatable :: neo_mirror
-   real, dimension(:, :, :), allocatable :: neo_stream_apar
+   real, dimension(:, :, :), allocatable :: neo_stream_apar_1, neo_stream_apar_2
    real, dimension(:, :, :), allocatable :: neo_wdriftx_apar, neo_wdrifty_apar
 
    !----------------------------------------------------------------------------

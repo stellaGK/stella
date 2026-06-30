@@ -22,6 +22,7 @@ module gk_mirror
    public :: mirror
    public :: advance_mirror_explicit, advance_mirror_implicit
    public :: add_mirror_radial_variation
+   public :: mirror_sign
 
    private
 
@@ -1015,7 +1016,7 @@ contains
       vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
 
       if (neoclassical_is_enabled()) then
-          vpa_scratch = vpa_scratch * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz) - 0.5 * neo_vpa_fac_global(iz, :, imu, is, 1) / vpa(:) )
+          vpa_scratch = vpa_scratch * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz) )
       end if 
 
       rhs = vpa_scratch

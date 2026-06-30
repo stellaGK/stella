@@ -30,6 +30,7 @@ module neoclassical_terms_neo
  
     public :: neo_vpa_fac_global, neo_mu_fac_global  ! Global versions of the velocity derivative factors that are not parallelised. 
                                                      ! Primarily for use in the field equations which are parallelised over kxkyz. 
+    public :: dneo_mu_fac_dz                         ! Needed for advancing parallel streaming correction explicitly when including apar fluctuations in EM simulations. 
 
     public :: distribute_vmus_over_procs
 
@@ -48,13 +49,14 @@ module neoclassical_terms_neo
     real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
     real, dimension(:), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
     real, dimension(:, :, :), allocatable :: neo_vpa_fac, neo_mu_fac
+    real, dimension(:, :, :), allocatable :: dneo_mu_fac_dz
     real, dimension(:, :, :, :, :), allocatable :: neo_vpa_fac_global, neo_mu_fac_global
 
     ! DIAGNOSTICS. 
-    real, dimension(:, :), allocatable :: neo_dens, neo_dens_right, neo_dens_left
-    real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
-    real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
-    real, dimension(:, :), allocatable :: neo_dens_mu_deriv
+    ! real, dimension(:, :), allocatable :: neo_dens, neo_dens_right, neo_dens_left
+    ! real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
+    ! real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
+    ! real, dimension(:, :), allocatable :: neo_dens_mu_deriv
 
     logical :: initialised_neoclassical_terms_neo = .false.
 
@@ -107,9 +109,10 @@ contains
 
         ! Parallelisation. 
         use parallelisation_layouts, only: vmu_lo
+        use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
         ! Grids. 
-        use grids_z, only: nzgrid
+        use grids_z, only: nzgrid, delzed
         use grids_velocity, only: nvpa, nmu 
         use grids_species, only: nspec
         
@@ -118,8 +121,12 @@ contains
         use neoclassical_diagnostics, only: write_neo_phi_on_stella_z_grid_diagnostic, write_neo_distribution_on_stella_grids_diagnostic
         use neoclassical_diagnostics, only: write_distribution_moment_diagnostic
 
+        ! Geometry.
+        use geometry, only: get_dzed, bmag
+
         implicit none
 
+        ! Temporaray variables. 
         real, dimension(:, :, :, :, :), allocatable :: neo_h_hat_in, neo_h_hat_right_in, neo_h_hat_left_in                ! Holds vectors for reconstructing NEO H_1 on 3 flux surfaces.
         real, dimension(:, :), allocatable :: neo_phi_in, neo_phi_right_in, neo_phi_left_in                               ! Holds NEO ϕ^1_0 on 3 flux surfaces.
 
@@ -138,12 +145,17 @@ contains
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
         real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
 
-        integer :: iz
+        integer :: iz, ivmu, iv, imu, is, ia
         integer :: surface_index
         integer :: output_unit 
-
+ 
         type(neo_grid_data) :: neo_grid
         type(neo_version_data) :: neo_version
+
+        ! ===================================================================================== !
+
+        ! Assume we have on field line.
+        ia = 1
 
         if (initialised_neoclassical_terms_neo) return
         initialised_neoclassical_terms_neo = .true.
@@ -178,12 +190,13 @@ contains
         if (.not. allocated(dneo_phi_dz)) allocate(dneo_phi_dz(-nzgrid:nzgrid))
         if (.not. allocated(dneo_h_dmu_global)) allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
-        if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, neo_grid%n_species))
 
         if (.not. allocated(neo_vpa_fac_global)) allocate(neo_vpa_fac_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_mu_fac_global)) allocate(neo_mu_fac_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_vpa_fac)) allocate(neo_vpa_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_mu_fac)) allocate(neo_mu_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(dneo_mu_fac_dz)) allocate(dneo_mu_fac_dz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
 
         ! Allocate all temporary arrays needed for initilization. 
         call allocate_temp_arrays
@@ -285,6 +298,15 @@ contains
             call distribute_vmus_over_procs(neo_mu_fac_global(iz, :, :, :, 1), neo_mu_fac(iz, :, 1))
         end do
 
+        ! When evolving apar, we need the z derivative of the mu factor, arising from the mixed formulation in gbarneo and gneo used in the parallel streaming correction.
+        ! Iterate over velocity space.
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            call get_dzed(nzgrid, delzed, 0.5 * neo_mu_fac(:, ivmu, 1) / bmag(ia, :), dneo_mu_fac_dz(:, ivmu, 1))
+        end do
+
         ! Calculate the neo_h psi derivative on the central surface at fixed kinetic energy, E, and the neo_phi psi derivative on the central surface.  
         call get_psi_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac, drho, dneo_h_dpsi, dneo_phi_dpsi)
 
@@ -352,17 +374,17 @@ contains
         if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
 
         ! Allocate the NEO zeroeth order moments, FOR TESTING PURPOSES.
-        if (.not. allocated(neo_dens_right)) allocate(neo_dens_right(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_dens_left)) allocate(neo_dens_left(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_dens_right)) allocate(neo_dens_right(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_dens_left)) allocate(neo_dens_left(-nzgrid:nzgrid, neo_grid%n_species))
 
         ! Allocate the NEO first order moments, FOR TESTING PURPOSES.
-        if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_u_par_right)) allocate(neo_u_par_right(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_u_par_left)) allocate(neo_u_par_left(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_u_par_right)) allocate(neo_u_par_right(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_u_par_left)) allocate(neo_u_par_left(-nzgrid:nzgrid, neo_grid%n_species))
 
         ! FOR TESTING PURPOSES.
-        if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, neo_grid%n_species))
-        if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, neo_grid%n_species))
+        ! if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, neo_grid%n_species))
 
     end subroutine allocate_temp_arrays
     
@@ -415,13 +437,13 @@ contains
         if (allocated(dneo_h_dz)) deallocate(dneo_h_dz)
         if (allocated(dneo_phi_dz)) deallocate(dneo_phi_dz)
 
-        if (allocated(neo_dens)) deallocate(neo_dens)
+        ! if (allocated(neo_dens)) deallocate(neo_dens)
 
         if (allocated(neo_vpa_fac_global)) deallocate(neo_vpa_fac_global)
         if (allocated(neo_mu_fac_global)) deallocate(neo_mu_fac_global)
         if (allocated(neo_vpa_fac)) deallocate(neo_vpa_fac)
         if (allocated(neo_mu_fac)) deallocate(neo_mu_fac)
-
+        if (allocated(dneo_mu_fac_dz)) deallocate(dneo_mu_fac_dz)
 
         initialised_neoclassical_terms_neo = .false.
         

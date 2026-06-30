@@ -86,6 +86,8 @@ module geometry
    public :: aref, bref, twist_and_shift_geo_fac
    public :: q_as_x, get_x_to_rho, gfac
    public :: dVolume, grad_x_grad_y_end
+
+   public :: get_dzed
    
    ! Flux tube only needs b_dot_gradz_avg(z)
    public :: b_dot_gradz_avg

@@ -637,7 +637,7 @@ contains
  
          ! Correction for HO simulations. 
          if (neoclassical_is_enabled()) then
-            z_scratch = z_scratch * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(:, ivmu, 1) / vpa(iv) )
+            z_scratch = z_scratch * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(ia, ivmu, 1) / vpa(iv) )
             call center_zed(iv, z_scratch, -nzgrid)
          end if
 
@@ -864,7 +864,7 @@ contains
 
          ! Correction for HO simulations. 
          if (neoclassical_is_enabled()) then
-            z_scratch = z_scratch * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(:, ivmu, 1) / vpa(iv) )
+            z_scratch = z_scratch * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(ia, ivmu, 1) / vpa(iv) )
             call center_zed(iv, z_scratch, -nzgrid)
          end if
 
