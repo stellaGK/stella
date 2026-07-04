@@ -1152,7 +1152,7 @@ contains
 
        ! For HO simulations.
        use arrays, only: wstar1y, wstar1x
-       use arrays, only: neo_wdriftx, neo_wdrifty
+       use arrays, only: neo_wdriftx_apar, neo_wdrifty_apar
 
        implicit none
 
@@ -1170,9 +1170,9 @@ contains
           ikx = ikx_from_izext(izext)
           iz = iz_from_izext(izext)
 
-          constant_factor = - 2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
-          scratch(izext) = constant_factor * scratch(izext) * ( akx(ikx) * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
-          + aky(iky) * ( neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) )
+          constant_factor = zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
+          scratch(izext) = constant_factor * scratch(izext) * ( akx(ikx) * ( neo_wdriftx_apar(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
+          + aky(iky) * ( neo_wdrifty_apar(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) )
        end do
 
        call center_zed(iv, scratch, 1, periodic(iky))
