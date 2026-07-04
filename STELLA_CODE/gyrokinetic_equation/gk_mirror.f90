@@ -1009,7 +1009,7 @@ contains
 
       ! If running implicit mirror in a HO simulation, account for corrections to the inhomogenous piece. 
       ! There are two to account for, one associated with neo_mu_fac and one with neo_vpa_fac. 
-      if (neoclassical_is_enabled()) then
+      if (neoclassical_is_enabled() .and. include_apar) then
            allocate(vpa_scratch(nvpa))
 
            ! ================================ First we calculate the neo_mu_fac. ================================ ! 

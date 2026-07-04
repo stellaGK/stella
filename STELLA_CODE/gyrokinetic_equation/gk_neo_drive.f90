@@ -147,7 +147,7 @@ contains
                 wstar1yvpa(:, iz, ivmu) = - mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
  
                 ! Multiply by the F_1 factor.
-                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + 2.0 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) 
+                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
             end do
         end do
 
@@ -250,7 +250,7 @@ contains
                 wstar1xvpa(:, iz, ivmu) = - mu(imu) * B_times_gradB_dot_gradx(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) )
 
                 ! Multiply by the F_1 factor. 
-                wstar1xvpa(:, iz, ivmu) = wstar1xvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + 2.0 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                wstar1xvpa(:, iz, ivmu) = wstar1xvpa(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1) 
             end do
         end do
 

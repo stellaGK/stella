@@ -110,7 +110,7 @@ contains
                     neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * neoydriftknob * code_dt &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
 
-                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty(:, iz, ivmu) * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
                 end do
             end do
         end if

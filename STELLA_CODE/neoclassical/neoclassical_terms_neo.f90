@@ -956,18 +956,6 @@ contains
 
         ! In a similiar way we calculate the neo_h derivative, at fixed v_parallel and mu.
         dneo_h_dpsi   = (neo_h_right - neo_h_left)  / (2.0 * drho)
-
-        ! We need the neo_h derivative at fixed energy.
-        ! Iterate over velocity space
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
-
-            do iz = -nzgrid, nzgrid
-                dneo_h_dpsi(iz, ivmu, 1) = dneo_h_dpsi(iz, ivmu, 1) - mu(imu) * b_dot_gradz(ia, iz) * dbdzed(ia, iz) * neo_vpa_fac(iz, ivmu, 1) / vpa(iv)
-            end do
-        end do
             
     end subroutine get_psi_derivatives
 
