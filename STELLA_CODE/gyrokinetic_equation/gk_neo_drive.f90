@@ -94,6 +94,10 @@ contains
         ! Splitting up the calculation this way should make the maths easier to follow.
         real, dimension(:, :, :), allocatable :: wstar1ypsi, wstar1yz, wstar1yvpa         
 
+        ! To make the calculations easier to follow, we
+        ! calculate <energy> = v_parallel² + 2 mu B for each velocity point
+        real, dimension(:, :), allocatable :: energy
+
         ! Only intialise omega_{*,k,s,1,y} once.
         if (initialised_wstar1y) return
         initialised_wstar1y = .true.
@@ -107,6 +111,7 @@ contains
         allocate (wstar1ypsi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1ypsi = 0.0      
         allocate (wstar1yz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yz = 0.0
         allocate (wstar1yvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yvpa = 0.0
+        allocate (energy(nalpha, -nzgrid:nzgrid))
 
         ! First calculate the component proportional to the psi derivative of F_1. 
         ! Iterate over velocity space.
@@ -116,7 +121,11 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1ypsi(:, iz, ivmu) = wstar1yknob * dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz) ) / clebsch_factor
+               ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu)
+                energy(:, iz) = ( vpa(iv)**2 + vperp2(:, iz, imu) ) * ( spec(is)%temp_psi0 / spec(is)%temp )
+
+                wstar1ypsi(:, iz, ivmu) = wstar1yknob * dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz)  &
+                - ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) / clebsch_factor
             end do
         end do
 
@@ -147,7 +156,7 @@ contains
                 wstar1yvpa(:, iz, ivmu) = - mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
  
                 ! Multiply by the F_1 factor.
-                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1)
+                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + 2.0 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
             end do
         end do
 
@@ -167,6 +176,7 @@ contains
         deallocate(wstar1ypsi)
         deallocate(wstar1yz)
         deallocate(wstar1yvpa)
+        deallocate(energy)
 
     end subroutine init_wstar1y
 
@@ -277,12 +287,13 @@ contains
 ! -------------------------------------------------------------------------- Advance wstar1y explicitly. -------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_wstar1y_explicit(phi, apar, bpar, gout)
+    subroutine advance_wstar1y_explicit(phi, gout)
         ! Parallelisation.
         use mp, only: proc0
       
         ! Data arrays.
         use arrays, only: wstar1y
+        use arrays_fields, only: apar, bpar
       
         ! Grids.
         use parallelisation_layouts, only: vmu_lo
@@ -299,7 +310,7 @@ contains
 
         implicit none
 
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
         complex, dimension(:, :, :, :, :), allocatable :: g0
          

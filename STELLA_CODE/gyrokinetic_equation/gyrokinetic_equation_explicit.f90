@@ -204,6 +204,10 @@ contains
       use parameters_numerical, only: drifts_implicit
       use dissipation_and_collisions, only: advance_collisions_explicit
       use dissipation_and_collisions, only: collisions_implicit
+      ! For HO simulations.
+      use parameters_numerical, only: neoclassical_stream_implicit
+      use parameters_numerical, only: neoclassical_mirror_implicit
+      use parameters_numerical, only: neoclassical_drifts_implicit
 
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -364,32 +368,32 @@ contains
          ! Advance HO corrections explicitly. 
          if (neoclassical_is_enabled()) then
              ! If apar is switched on, we must advance the neoclassical mirror correction. 
-             if (include_apar .and. include_neoclassical_mirror .and. .not. mirror_implicit) then
-                 call advance_neo_mirror_explicit(apar, rhs)
-             end if
+             ! if (include_apar .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) then
+             call advance_neo_mirror_explicit(apar, rhs)
+             ! end if
 
              ! Advance the neoclassical parallel streaming correction.
-             if (include_neoclassical_parallel_streaming .and. .not. stream_implicit) then
-                 call advance_neo_stream_explicit(phi, apar, bpar, rhs)
-             end if
+             ! if (include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) then
+             call advance_neo_stream_explicit(phi, apar, bpar, rhs)
+             ! end if
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
-             if (include_neoclassical_ydrive .and. .not. drifts_implicit) then
-                 call advance_wstar1y_explicit(phi, apar, bpar, rhs)
-             end if
+             ! if (include_neoclassical_ydrive .and. .not. neoclassical_drifts_implicit) then
+             call advance_wstar1y_explicit(phi, rhs)
+             ! end if
              
-             if (include_neoclassical_xdrive .and. .not. drifts_implicit) then
-                 call advance_wstar1x_explicit(phi, apar, bpar, rhs)
-             end if
+             ! if (include_neoclassical_xdrive .and. .not. neoclassical_drifts_implicit) then
+             call advance_wstar1x_explicit(phi, apar, bpar, rhs)
+             ! end if
 
              ! Advance the neoclassical magnetic drift terms.
-             if (include_neoclassical_ydrift .and. .not. drifts_implicit) then
-                 call advance_neo_wdrifty_explicit(phi, apar, bpar, rhs)
-             end if
+             ! if (include_neoclassical_ydrift .and. .not. neoclassical_drifts_implicit) then
+             call advance_neo_wdrifty_explicit(phi, apar, bpar, rhs)
+             ! end if
 
-             if (include_neoclassical_xdrift .and. .not. drifts_implicit) then
-                 call advance_neo_wdriftx_explicit(phi, apar, bpar, rhs)  
-             end if
+             ! if (include_neoclassical_xdrift .and. .not. neoclassical_drifts_implicit) then
+             call advance_neo_wdriftx_explicit(phi, apar, bpar, rhs)  
+             ! end if
          end if
 
          ! If simulating a full flux surface (flux annulus), all terms to this point have been calculated

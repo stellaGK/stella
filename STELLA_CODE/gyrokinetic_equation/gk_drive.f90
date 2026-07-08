@@ -141,17 +141,9 @@ contains
          energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
          
          ! Calculate wstar = - code_dt*omega_{*,k,s}/ky = - code_dt * 0.5/C <dydalpha> exp(-v²) (drho/dpsi) d ln F_s / d rho 
-         !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²). 
-         if (neoclassical_is_enabled()) then 
-             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * 0.5 * code_dt * (spec(is)%fprim + spec(is)%tprim * ( energy - 1.5 ) ) 
-             
-             do iz = -nzgrid, nzgrid
-                 wstar(:, iz, ivmu) = wstar(:, iz, ivmu) * ( wstarknob * 1.0 + wstar1yknob * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
-             end do 
-         else
-             wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt * (spec(is)%fprim + spec(is)%tprim * ( energy - 1.5 ) ) 
-         end if  
- 
+         !  = - code_dt * 0.5/<clebsch_factor> <dydalpha> <drhodpsi> [<fprim> + <tprim> (v_parallel² + 2 mu B - 1.5)] exp(-v²).  
+         wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt * (spec(is)%fprim + spec(is)%tprim * ( energy - 1.5 ) ) 
+          
          wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)         
       end do
 

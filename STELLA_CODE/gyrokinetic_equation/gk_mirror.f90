@@ -337,6 +337,7 @@ contains
       ! HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use field_equations_fluxtube_neoclassical, only: advance_apar_neo
+      use parameters_numerical, only: neoclassical_mirror_implicit
 
       implicit none
 
@@ -364,7 +365,7 @@ contains
             call invert_mirror_operator(imu, ikxkyz, rhs)
 
             ! If running a HO simulation, account for corrections to response component of the distribution. 
-            if (neoclassical_is_enabled()) then
+            if (neoclassical_is_enabled() .and. neoclassical_mirror_implicit) then
                 call get_HO_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
             end if
 
@@ -702,6 +703,7 @@ contains
       ! HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use field_equations_fluxtube_neoclassical, only: advance_apar_neo	
+      use parameters_numerical, only: neoclassical_mirror_implicit
 
       implicit none
 
@@ -823,7 +825,7 @@ contains
                      ! invert the mirror operator to find the 'homogeneous' solution
                      call invert_mirror_operator(imu, ikxkyz, rhs)
 
-                     if (neoclassical_is_enabled()) then
+                     if (neoclassical_is_enabled() .and. neoclassical_mirror_implicit) then
                          call get_HO_mirror_rhs_apar_contribution(rhs, apar(iky, ikx, iz, it), imu, ikxkyz)
                      end if
                 
@@ -963,7 +965,8 @@ contains
       ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use neoclassical_terms_neo, only: neo_mu_fac_global, neo_vpa_fac_global
-      
+      use parameters_numerical, only: neoclassical_mirror_implicit      
+
       implicit none
 
       ! Arguments
@@ -1009,10 +1012,11 @@ contains
 
       ! If running implicit mirror in a HO simulation, account for corrections to the inhomogenous piece. 
       ! There are two to account for, one associated with neo_mu_fac and one with neo_vpa_fac. 
-      if (neoclassical_is_enabled() .and. include_apar) then
+      if (neoclassical_is_enabled() .and. include_apar .and. neoclassical_mirror_implicit) then
            allocate(vpa_scratch(nvpa))
 
            ! ================================ First we calculate the neo_mu_fac. ================================ ! 
+           
            pre_factor = - neomirrorknob * spec(is)%zt * spec(is)%stm 
            call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
 
@@ -1029,7 +1033,7 @@ contains
            rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
 
            ! ================================ Then we calculate the neo_vpa_fac. =============================== !
-           pre_factor = neomirrorknob * spec(is)%zt * spec(is)%stm
+           ! pre_factor = neomirrorknob * spec(is)%zt * spec(is)%stm
            call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
 
            ! Differentiate in vpa. 
@@ -1077,7 +1081,8 @@ contains
 
       ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_vpa_fac_global
+      use neoclassical_terms_neo, only: neo_vpa_fac_global, neo_mu_fac_global
+      use parameters_numerical, only: neoclassical_mirror_implicit
 
       ! Calculations.
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
@@ -1110,6 +1115,10 @@ contains
       ! Multiply by the maxwellian factor.
       vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
+      if (neoclassical_is_enabled() .and. .not. neoclassical_mirror_implicit) then
+          vpa_scratch = vpa_scratch * (1.0 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz) )
+      end if
+
       ! So far the RHS contains the leading order apar contribution which the inverted matrix will act upon.
       rhs = vpa_scratch
 
@@ -1118,7 +1127,7 @@ contains
       ! Here we only compute the neo_vpa_fac correction, because it involves matrix inversion once this routine has been called in the main implicit advance. 
       ! The neo_mu_fac correction does not require the matrix inversion and is simply added to the final solution.
       ! This is handled in the HO counterpart to this routine.
-      if (neoclassical_is_enabled()) then
+      if (neoclassical_is_enabled() .and. neoclassical_mirror_implicit) then
            ! Allocate temporary array for dvpa derivatives. 
            allocate (dgdv(nvpa)) 
 

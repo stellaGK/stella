@@ -49,6 +49,8 @@ module parameters_numerical
    public :: fully_implicit, fully_explicit
    public :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
    public :: split_parallel_dynamics
+   ! For HO simulations. 
+   public :: neoclassical_stream_implicit, neoclassical_mirror_implicit, neoclassical_drifts_implicit
 
    ! numerical_upwinding_for_derivatives
    public :: time_upwind, time_upwind_plus, time_upwind_minus
@@ -83,6 +85,8 @@ module parameters_numerical
    logical :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
    logical :: drifts_implicit, fully_implicit, fully_explicit
    logical :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
+   ! For HO simulations. 
+   logical :: neoclassical_stream_implicit, neoclassical_mirror_implicit, neoclassical_drifts_implicit
    
    ! if split_parallel_dynamics = .true. (default), use operator splitting
    ! to treat parallel streaming and mirror term separately
@@ -137,7 +141,8 @@ contains
                         fully_implicit, fully_explicit, &
                         maxwellian_inside_zed_derivative, &
                         use_deltaphi_for_response_matrix, & 
-                        split_parallel_dynamics)
+                        split_parallel_dynamics, neoclassical_stream_implicit, &
+                        neoclassical_mirror_implicit, neoclassical_drifts_implicit)
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
@@ -349,6 +354,11 @@ contains
          call broadcast(maxwellian_inside_zed_derivative)
          call broadcast(use_deltaphi_for_response_matrix)
          call broadcast(split_parallel_dynamics)
+
+         ! For HO simulations. 
+         call broadcast(neoclassical_stream_implicit)
+         call broadcast(neoclassical_mirror_implicit)
+         call broadcast(neoclassical_drifts_implicit)
 
          ! numerical_upwinding_for_derivatives
          call broadcast(time_upwind_plus)

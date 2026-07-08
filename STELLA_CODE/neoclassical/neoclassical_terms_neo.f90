@@ -49,7 +49,7 @@ module neoclassical_terms_neo
     real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
     real, dimension(:), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
     real, dimension(:, :, :), allocatable :: neo_vpa_fac, neo_mu_fac
-    real, dimension(:, :, :), allocatable :: dneo_mu_fac_dz
+    real, dimension(:, :, :), allocatable :: dneo_mu_fac_dz, dneo_vpa_fac_dz
     real, dimension(:, :, :, :, :), allocatable :: neo_vpa_fac_global, neo_mu_fac_global
 
     ! DIAGNOSTICS. 
@@ -145,6 +145,9 @@ contains
         ! Holds NEO H_1 data evaluated on the stella z, v∥​ and μ grids, compacted into 3 indicdes.
         real, dimension(:, :, :), allocatable :: neo_h_right, neo_h_left                 
 
+        ! Intermediate arrays for mixed derivatives in z and velocity factors.
+        real, dimension(:, :, :, :, :), allocatable :: dneo_mu_fac_dz_global, dneo_vpa_fac_dz_global
+
         integer :: iz, ivmu, iv, imu, is, ia
         integer :: surface_index
         integer :: output_unit 
@@ -197,6 +200,7 @@ contains
         if (.not. allocated(neo_vpa_fac)) allocate(neo_vpa_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_mu_fac)) allocate(neo_mu_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(dneo_mu_fac_dz)) allocate(dneo_mu_fac_dz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(dneo_vpa_fac_dz)) allocate(dneo_vpa_fac_dz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
 
         ! Allocate all temporary arrays needed for initilization. 
         call allocate_temp_arrays
@@ -299,13 +303,15 @@ contains
         end do
 
         ! When evolving apar, we need the z derivative of the mu factor, arising from the mixed formulation in gbarneo and gneo used in the parallel streaming correction.
-        ! Iterate over velocity space.
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
-            call get_dzed(nzgrid, delzed, 0.5 * neo_mu_fac(:, ivmu, 1) / bmag(ia, :), dneo_mu_fac_dz(:, ivmu, 1))
+        call get_neo_h_velocity_derivs_on_stella_grids(dneo_h_hat_dz_z_grid, neo_grid, 1, dneo_vpa_fac_dz_global, dneo_mu_fac_dz_global)
+
+        ! Now compact distribution into 3 indices for use in the GKE.
+        do iz = -nzgrid, nzgrid
+            call distribute_vmus_over_procs(dneo_vpa_fac_dz_global(iz, :, :, :, 1), dneo_vpa_fac_dz(iz, :, 1))
+            call distribute_vmus_over_procs(dneo_mu_fac_dz_global(iz, :, :, :, 1), dneo_mu_fac_dz(iz, :, 1))
         end do
+
+
 
         ! Calculate the neo_h psi derivative on the central surface at fixed kinetic energy, E, and the neo_phi psi derivative on the central surface.  
         call get_psi_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac, drho, dneo_h_dpsi, dneo_phi_dpsi)
@@ -373,6 +379,10 @@ contains
         if (.not. allocated(dneo_h_dmu_global)) allocate(dneo_h_dmu_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
 
+        ! For mixed derivatives in velocity and z. 
+        if (.not. allocated(dneo_mu_fac_dz_global)) allocate(dneo_mu_fac_dz_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(dneo_vpa_fac_dz_global)) allocate(dneo_vpa_fac_dz_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+
         ! Allocate the NEO zeroeth order moments, FOR TESTING PURPOSES.
         ! if (.not. allocated(neo_dens_right)) allocate(neo_dens_right(-nzgrid:nzgrid, neo_grid%n_species))
         ! if (.not. allocated(neo_dens_left)) allocate(neo_dens_left(-nzgrid:nzgrid, neo_grid%n_species))
@@ -417,6 +427,10 @@ contains
         if (allocated(dneo_h_dmu_global)) deallocate(dneo_h_dmu_global)
         if (allocated(dneo_h_dvpa_global)) deallocate(dneo_h_dvpa_global)
         
+        ! For mixed derivatives in velocity and z. 
+        if (allocated(dneo_mu_fac_dz_global)) deallocate(dneo_mu_fac_dz_global)
+        if (allocated(dneo_vpa_fac_dz_global)) deallocate(dneo_vpa_fac_dz_global)
+
     end subroutine deallocate_temp_arrays
 
     
@@ -444,6 +458,7 @@ contains
         if (allocated(neo_vpa_fac)) deallocate(neo_vpa_fac)
         if (allocated(neo_mu_fac)) deallocate(neo_mu_fac)
         if (allocated(dneo_mu_fac_dz)) deallocate(dneo_mu_fac_dz)
+        if (allocated(dneo_vpa_fac_dz)) deallocate(dneo_vpa_fac_dz)
 
         initialised_neoclassical_terms_neo = .false.
         
