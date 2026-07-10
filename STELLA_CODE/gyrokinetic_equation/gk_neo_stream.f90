@@ -55,7 +55,8 @@ contains
 
         ! NEO data.
         use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
-        use neoclassical_terms_neo, only: dneo_mu_fac_dz
+        use neoclassical_terms_neo, only: dneo_h_dmu, d2neo_h_dmudz
+        use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
 
         ! Parameters.
         use parameters_physics, only: include_apar
@@ -112,12 +113,20 @@ contains
                 do iz = -nzgrid, nzgrid 
                     ! The first apar piece is proportional to the z derivative of apar.
                     neo_stream_apar_1(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
-                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                    * 0.5 * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) 
+
+                    ! Multiply by the neoclassical distribution factor.
+                    neo_stream_apar_1(:, iz, ivmu) = neo_stream_apar_1(:, iz, ivmu) * 0.5 * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
 
                     ! The second apar piece is proportional to apar and results from using gneo as the distribution function. 
                     neo_stream_apar_2(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) * spec(is)%zt &
-                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) * dneo_mu_fac_dz(iz, ivmu, 1)
+                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+
+                    ! Multiply by the neoclassical distribution factor.
+                    ! neo_stream_apar_2(:, iz, ivmu) = neo_stream_apar_2(:, iz, ivmu) * (&
+                    ! - neo_h(iz, ivmu, 1) + spec(is)%z * neo_phi(iz) ) 
+                    neo_stream_apar_2(:, iz, ivmu) = neo_stream_apar_2(:, iz, ivmu) * ( 0.5 * d2neo_h_dmudz(iz, ivmu, 1) / bmag(:, iz) & 
+                    - 0.5 * dbdzed(:, iz) * dneo_h_dmu(iz, ivmu, 1) / ( bmag(:, iz) * bmag(:, iz) ) - dneo_h_dz(iz, ivmu, 1) + spec(is)%z * dneo_phi_dz(iz) ) 
                end do
            end do
         end if
@@ -152,9 +161,6 @@ contains
         ! Calculations.
         use calculations_gyro_averages, only: gyro_average, gyro_average_j1
         use calculations_add_explicit_terms, only: add_explicit_term
-
-        ! Neoclassical data.
-        use neoclassical_terms_neo, only: dneo_mu_fac_dz
 
         ! Time this routine.
         use timers, only: time_gke
