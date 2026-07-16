@@ -202,7 +202,12 @@ contains
 
       ! Check that the introduction of the neoclassical stream coeffecient doesn't break the CFL condition.
       if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) then
-          neo_stream_max = max( maxval(abs(neo_stream)), maxval(abs(neo_stream_apar_1)), maxval(abs(neo_stream_apar_2)) )
+          if (include_apar) then 
+              neo_stream_max = max( maxval(abs(neo_stream)), maxval(abs(neo_stream_apar_1)), maxval(abs(neo_stream_apar_2)) )
+          else
+              neo_stream_max = maxval(abs(neo_stream))
+          end if 
+
           if (nproc > 1) then
               call max_allreduce(neo_stream_max)
           end if
@@ -238,8 +243,12 @@ contains
 
       ! Check that the introduction of the neoclassical neo_wdrifty doesn't break the CFL condition.
       if (neoclassical_is_enabled() .and. include_neoclassical_ydrift .and. .not. neoclassical_drifts_implicit) then
-          neo_wdrifty_max = max( maxval(abs(neo_wdrifty)), maxval(abs(neo_wdrifty_apar)))
-          neo_wdrifty_max = maxval(abs(neo_wdrifty))
+          if (include_apar) then 
+              neo_wdrifty_max = max( maxval(abs(neo_wdrifty)), maxval(abs(neo_wdrifty_apar)))
+          else
+              neo_wdrifty_max = maxval(abs(neo_wdrifty))
+          end if
+
           if (nproc > 1) then
               call max_allreduce(neo_wdrifty_max)
           end if
@@ -252,7 +261,12 @@ contains
       if (neoclassical_is_enabled() .and. include_neoclassical_xdrift .and. .not. neoclassical_drifts_implicit) then
           ! Only calculate the CFL constaint if there are non-zero akx present. 
           if (maxval(abs(akx)) > epsilon(0.0)) then
-              neo_wdriftx_max = max( maxval(abs(neo_wdriftx)), maxval(abs(neo_wdriftx_apar)))
+              if (include_apar) then 
+                  neo_wdriftx_max = max(maxval(abs(neo_wdriftx)), maxval(abs(neo_wdriftx_apar)))
+              else
+                  neo_wdriftx_max = maxval(abs(neo_wdriftx))
+              end if
+              
               if (nproc > 1) then
                   call max_allreduce(neo_wdriftx_max)
               end if

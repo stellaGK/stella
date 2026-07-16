@@ -192,13 +192,13 @@ contains
                 iv = iv_idx(vmu_lo, ivmu)
 
                 do iz = -nzgrid, nzgrid
-                    neo_wdriftx(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz)
+                    neo_wdriftx_apar(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz)
 
-                    neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * neoxdriftknob * code_dt &
+                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * neoxdriftknob * code_dt &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
 
                     ! Multiply by the neoclassical distribution factor. 
-                    neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
                 end do
             end do
         end if
