@@ -1310,8 +1310,8 @@ contains
 
                 g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
 
-                g0 = g0 * ( spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - neo_vpa_fac_global(iz, :, :, is, 1) &
-                + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
+                - neo_vpa_fac_global(iz, :, :, is, 1) + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
 
                 ! Calculate denominator_fields_neo_22_gbarneo[iky,ikz,iz].            
                 wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass

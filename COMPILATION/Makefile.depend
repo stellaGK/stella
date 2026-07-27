@@ -63,11 +63,10 @@ stella_mod = \
 	 $(OBJ_DIR)/gk_implicit_terms.o \
 	 $(OBJ_DIR)/gk_magnetic_drift.o \
 	 $(OBJ_DIR)/gk_mirror.o \
-	 $(OBJ_DIR)/gk_neo_apar_terms.o \
-	 $(OBJ_DIR)/gk_neo_chi_terms.o \
-	 $(OBJ_DIR)/gk_neo_dchidz_terms.o \
 	 $(OBJ_DIR)/gk_neo_drifts.o \
 	 $(OBJ_DIR)/gk_neo_drive.o \
+	 $(OBJ_DIR)/gk_neo_mirror.o \
+	 $(OBJ_DIR)/gk_neo_stream.o \
 	 $(OBJ_DIR)/gk_parallel_nonlinearity.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
@@ -205,11 +204,10 @@ $(OBJ_DIR)/calculations_timestep.o: \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_magnetic_drift.o \
 	 $(OBJ_DIR)/gk_mirror.o \
-	 $(OBJ_DIR)/gk_neo_apar_terms.o \
-	 $(OBJ_DIR)/gk_neo_chi_terms.o \
-	 $(OBJ_DIR)/gk_neo_dchidz_terms.o \
 	 $(OBJ_DIR)/gk_neo_drifts.o \
 	 $(OBJ_DIR)/gk_neo_drive.o \
+	 $(OBJ_DIR)/gk_neo_mirror.o \
+	 $(OBJ_DIR)/gk_neo_stream.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
 	 $(OBJ_DIR)/gk_sources.o \
@@ -319,7 +317,6 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/diagnostics_distribution.o \
 	 $(OBJ_DIR)/diagnostics_fluxes.o \
@@ -620,7 +617,6 @@ $(OBJ_DIR)/field_equations_fluxtube.o: \
 $(OBJ_DIR)/field_equations_fluxtube_neoclassical.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
-	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
@@ -825,6 +821,7 @@ $(OBJ_DIR)/gk_implicit_terms.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/field_equations.o \
 	 $(OBJ_DIR)/field_equations_fullfluxsurface.o \
+	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/gk_ffs_solve.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
@@ -865,6 +862,7 @@ $(OBJ_DIR)/gk_magnetic_drift.o: \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
@@ -891,62 +889,11 @@ $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/timers.o 
-$(OBJ_DIR)/gk_neo_apar_terms.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_fields.o \
-	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_time.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/neoclassical_terms_neo.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/timers.o 
-$(OBJ_DIR)/gk_neo_chi_terms.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_fields.o \
-	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_time.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/neoclassical_terms_neo.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/timers.o 
-$(OBJ_DIR)/gk_neo_dchidz_terms.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_fields.o \
-	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/gk_neo_chi_terms.o \
-	 $(OBJ_DIR)/gk_parallel_streaming.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_time.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/neoclassical_terms_neo.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_neo_drifts.o: \
 	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
-	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -957,6 +904,7 @@ $(OBJ_DIR)/gk_neo_drifts.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_neo_drive.o: \
 	 $(OBJ_DIR)/arrays.o \
@@ -973,6 +921,42 @@ $(OBJ_DIR)/gk_neo_drive.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/neoclassical_terms_neo.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/timers.o 
+$(OBJ_DIR)/gk_neo_mirror.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/gk_mirror.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_time.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/neoclassical_terms_neo.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/timers.o 
+$(OBJ_DIR)/gk_neo_stream.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/gk_parallel_streaming.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_time.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/neoclassical_terms_neo.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_nonlinearity.o: \
 	 $(OBJ_DIR)/arrays.o \
@@ -1181,11 +1165,10 @@ $(OBJ_DIR)/gyrokinetic_equation_explicit.o: \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_magnetic_drift.o \
 	 $(OBJ_DIR)/gk_mirror.o \
-	 $(OBJ_DIR)/gk_neo_apar_terms.o \
-	 $(OBJ_DIR)/gk_neo_chi_terms.o \
-	 $(OBJ_DIR)/gk_neo_dchidz_terms.o \
 	 $(OBJ_DIR)/gk_neo_drifts.o \
 	 $(OBJ_DIR)/gk_neo_drive.o \
+	 $(OBJ_DIR)/gk_neo_mirror.o \
+	 $(OBJ_DIR)/gk_neo_stream.o \
 	 $(OBJ_DIR)/gk_parallel_nonlinearity.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
@@ -1203,7 +1186,6 @@ $(OBJ_DIR)/gyrokinetic_equation_explicit.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gyrokinetic_equation_implicit.o: \
-	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
@@ -1230,11 +1212,10 @@ $(OBJ_DIR)/gyrokinetic_equation_initialisation.o: \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_magnetic_drift.o \
 	 $(OBJ_DIR)/gk_mirror.o \
-	 $(OBJ_DIR)/gk_neo_apar_terms.o \
-	 $(OBJ_DIR)/gk_neo_chi_terms.o \
-	 $(OBJ_DIR)/gk_neo_dchidz_terms.o \
 	 $(OBJ_DIR)/gk_neo_drifts.o \
 	 $(OBJ_DIR)/gk_neo_drive.o \
+	 $(OBJ_DIR)/gk_neo_mirror.o \
+	 $(OBJ_DIR)/gk_neo_stream.o \
 	 $(OBJ_DIR)/gk_parallel_nonlinearity.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
@@ -1248,7 +1229,6 @@ $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
-	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
 	 $(OBJ_DIR)/debug_flags.o \

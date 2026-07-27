@@ -1119,6 +1119,8 @@ contains
               call calculate_phi_apar_and_bpar_for_response_matrix_neo
           else if (include_apar .and. .not. include_bpar) then
               call calculate_phi_and_apar_for_response_matrix_neo
+          else if (include_bpar .and. .not. include_apar) then
+              call calculate_phi_and_bpar_for_response_matrix_neo
           else  
               call calculate_phi_for_response_matrix
           end if 
@@ -1908,6 +1910,138 @@ contains
 
          deallocate (gamma11, gamma12, gamma21, gamma22)
       end subroutine calculate_phi_and_apar_for_response_matrix_neo
+
+
+      ! ================================================================================================================================================================== !
+      ! --------------------------------- Get the correct factors for the coupled phi and bpar for HO simulations when apar is not included. ----------------------------- ! 
+      ! ================================================================================================================================================================== !
+
+      subroutine calculate_phi_and_bpar_for_response_matrix_neo
+          ! MP. 
+          use mp, only: mp_abort, proc0
+
+          ! Grids. 
+          use grids_z, only: nzgrid
+          use grids_kxky, only: zonal_mode, akx
+          use grids_species, only: has_electron_species
+          use grids_extended_zgrid, only: iz_low, iz_up
+          use grids_extended_zgrid, only: ikxmod
+          use grids_extended_zgrid, only: nsegments
+          use grids_extended_zgrid, only: periodic, phase_shift
+          use grids_species, only: spec
+       
+          ! Arrays. 
+          use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_13_gneo
+          use arrays, only: denominator_fields_neo_31_gneo, denominator_fields_neo_33_gneo
+
+          implicit none
+
+          ! Local variables.
+          integer :: idx, iseg, ikx, iz, ia
+          integer :: izl_offset, izup
+          real, dimension(:), allocatable :: gamma11, gamma13, gamma31, gamma33
+          
+          ! LAPACK Variables.
+          complex(8)      :: A_lapack(2,2)
+          complex(8)      :: B_lapack(2,1)
+          integer         :: ipiv(2)
+          integer         :: info
+          external zgesv
+
+          ! =================================================================================== !
+
+          ia = 1
+
+          allocate (gamma11(-nzgrid:nzgrid))
+          allocate (gamma13(-nzgrid:nzgrid))
+          allocate (gamma31(-nzgrid:nzgrid))
+          allocate (gamma33(-nzgrid:nzgrid))
+
+          idx = 0
+          izl_offset = 0
+
+          ! ===================================================================== !
+          ! -------------------------- iky = ikx = 0 mode. ---------------------- !
+          ! ===================================================================== !
+          ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this  !
+          ! mode and make sure it is set to zero.                                 ! 
+          ! ===================================================================== !
+
+          ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
+          ! <ikx> value on the local domain given our position on the extended domain.
+          iseg = 1
+          ikx = ikxmod(iseg, ie, iky)
+          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
+              phi(:) = 0.0
+              bpar(:) = 0.0
+          return
+          end if
+
+          ! ===================================================================== !
+          ! ----------------- Divide by the correct field factor. --------------- !
+          ! ===================================================================== !
+       
+          ! Loop over all connected segments in a chain.
+          do iseg = 1, nsegments(ie, iky)
+              ! Make sure the boundary points are being treated correctly depending
+              ! on whether the mode is periodic or not. Here, define <izup> as the 
+              ! upper zed value within a segment. If the mode is periodic, then 
+              ! reduce the upper bound by one, as this is a repeated point so it is 
+              ! obtained using the periodicity condition. This avoids and double-counting.
+              if (periodic(iky)) then
+                  izup = iz_up(iseg) - 1
+              else
+                  izup = iz_up(iseg)
+              end if
+
+              ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
+              ! <ikx> value on the local domain given our position on the extended domain.
+              ikx = ikxmod(iseg, ie, iky)
+
+              ! For the given value of ky, kx, store the appropriate matrix elements from 
+              ! the field equations (Quasineutrality and parallel Amperes law) for this segment. 
+               
+              gamma11 = denominator_fields_neo_gneo(iky, ikx, :)
+              gamma13 = denominator_fields_neo_13_gneo(iky, ikx, :)
+              gamma31 = denominator_fields_neo_31_gneo(iky, ikx, :)
+              gamma33 = denominator_fields_neo_33_gneo(iky, ikx, :)
+
+              ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
+              ! iz is only cycling through the zed location within a given segment. 
+              do iz = iz_low(iseg) + izl_offset, izup
+                  idx = idx + 1
+                  
+                  A_lapack(1,1) = cmplx(gamma11(iz), 0.0)
+                  A_lapack(2,1) = cmplx(gamma31(iz), 0.0)
+                  A_lapack(1,2) = cmplx(gamma13(iz), 0.0)
+                  A_lapack(2,2) = cmplx(gamma33(iz), 0.0)
+
+                  B_lapack(1,1) = phi(idx)
+                  B_lapack(2,1) = bpar(idx)
+
+                  call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                  if (info == 0) then
+                      phi(idx)  = B_lapack(1,1)
+                      bpar(idx) = B_lapack(2,1)
+                  else
+                      if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_and_bpar_for_response_matrix_neo at iz=', iz
+                      phi(idx)  = cmplx(0.0, 0.0)
+                      bpar(idx) = cmplx(0.0, 0.0)
+                  end if
+              end do
+
+              ! Treat the periodic point correct by dividing by the phase shift.
+              if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
+              if (periodic(iky)) bpar(nz_ext) = bpar(1) / phase_shift(iky)
+            
+              ! Set the offset to 1 - all other connected segments need to start one point
+              ! displaced as they share a point with the previous segment. 
+              if (izl_offset == 0) izl_offset = 1
+          end do
+
+         deallocate (gamma11, gamma13, gamma31, gamma33)
+      end subroutine calculate_phi_and_bpar_for_response_matrix_neo
 
 
       ! ================================================================================================================================================================== !
