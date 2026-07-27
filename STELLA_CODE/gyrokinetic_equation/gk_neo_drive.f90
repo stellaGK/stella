@@ -72,7 +72,7 @@ contains
         use geometry, only: geo_surf, Rmajor
 
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: dneo_h_dvpa
         use neoclassical_terms_neo, only: neo_h, neo_phi
         use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
         use neoclassical_terms_neo, only: neo_zed_fac
@@ -156,7 +156,7 @@ contains
                 wstar1yvpa(:, iz, ivmu) = - 0.5 * mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
  
                 ! Multiply by the F_1 factor.
-                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) )
+                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * dneo_h_dvpa(iz, ivmu, 1)
             end do
         end do
 
