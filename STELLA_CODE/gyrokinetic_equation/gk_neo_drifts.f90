@@ -89,10 +89,7 @@ contains
                 neo_wdrifty(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz) 
 
                 neo_wdrifty(:, iz, ivmu) = neo_wdrifty(:, iz, ivmu) * neoydriftknob * code_dt &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
-
-                ! Multiply by the neoclassical factor.
-                neo_wdrifty(:, iz, ivmu) = neo_wdrifty(:, iz, ivmu) * 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv)
+                * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
             end do
         end do
 
@@ -177,10 +174,7 @@ contains
                 neo_wdriftx(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) 
 
                 neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * neoxdriftknob * code_dt & 
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
-
-                ! Multiply by the neoclassical distribution factor. 
-                neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv)  
+                * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
             end do
         end do
 

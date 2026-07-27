@@ -124,7 +124,7 @@ contains
                ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu)
                 energy(:, iz) = ( vpa(iv)**2 + vperp2(:, iz, imu) ) * ( spec(is)%temp_psi0 / spec(is)%temp )
 
-                wstar1ypsi(:, iz, ivmu) = wstar1yknob * dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz)  &
+                wstar1ypsi(:, iz, ivmu) = 0.5 * wstar1yknob * dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz)  &
                 - ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) / clebsch_factor
             end do
         end do
@@ -137,8 +137,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid 
-                wstar1yz(:, iz, ivmu) = - wstar1yknob * dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
-                - clebsch_factor * gradx_dot_grady(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * geo_surf%qinp * dxdpsi )
+                wstar1yz(:, iz, ivmu) = - 0.5 * wstar1yknob * dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
+                - 0.5 * wstar1yknob * clebsch_factor * gradx_dot_grady(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * geo_surf%qinp * dxdpsi )
                
                 ! Multiply by the F_1 factor.
                 wstar1yz(:, iz, ivmu) = wstar1yz(:, iz, ivmu) * ( dneo_h_dz(iz, ivmu, 1) - spec(is)%z * dneo_phi_dz(iz) )
@@ -153,10 +153,10 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1yvpa(:, iz, ivmu) = - mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
+                wstar1yvpa(:, iz, ivmu) = - 0.5 * mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
  
                 ! Multiply by the F_1 factor.
-                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + 2.0 * vpa(iv) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) )
+                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * ( neo_vpa_fac(iz, ivmu, 1) + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) )
             end do
         end do
 
@@ -167,7 +167,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
           
             do iz = -nzgrid, nzgrid
-                wstar1y(:, iz, ivmu) = 0.5 * wstar1yknob * code_dt * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
+                wstar1y(:, iz, ivmu) = wstar1yknob * code_dt * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do
@@ -241,7 +241,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1xz(:, iz, ivmu) = ( (dxdpsi / clebsch_factor) - clebsch_factor * gradx_dot_gradx(:, iz) / (Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * dxdpsi ) ) &
+                wstar1xz(:, iz, ivmu) = 0.5 * ( (dxdpsi / clebsch_factor) &
+                - clebsch_factor * gradx_dot_gradx(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * dxdpsi ) ) &
                 / geo_surf%qinp
 
                 ! Multiply by the F_1 factor.
@@ -257,10 +258,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1xvpa(:, iz, ivmu) = - mu(imu) * B_times_gradB_dot_gradx(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) )
-
-                ! Multiply by the F_1 factor. 
-                wstar1xvpa(:, iz, ivmu) = wstar1xvpa(:, iz, ivmu) * neo_vpa_fac(iz, ivmu, 1) 
+                wstar1xvpa(:, iz, ivmu) = - mu(imu) * B_times_gradB_dot_gradx(:, iz) * neo_vpa_fac(iz, ivmu, 1) / ( bmag(:, iz) * bmag(:, iz) )
             end do
         end do
 
@@ -271,7 +269,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1x(:, iz, ivmu) = 0.5 * wstar1xknob * code_dt * ( wstar1xz(:, iz, ivmu) + wstar1xvpa(:, iz, ivmu) ) &
+                wstar1x(:, iz, ivmu) = wstar1xknob * code_dt * ( wstar1xz(:, iz, ivmu) + wstar1xvpa(:, iz, ivmu) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do

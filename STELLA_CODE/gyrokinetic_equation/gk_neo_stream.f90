@@ -96,9 +96,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%stm * b_dot_gradz(:, iz) * spec(is)%zt &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                * 0.5 * neo_vpa_fac(iz, ivmu, 1) 
+                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%zt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) &
+                * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) 
             end do
         end do
 

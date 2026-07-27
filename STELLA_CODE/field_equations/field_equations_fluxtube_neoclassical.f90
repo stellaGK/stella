@@ -1076,7 +1076,7 @@ contains
             g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
 
             ! Multiply this by (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0) for each (kx,ky,z). 
-            g0 = g0 * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+            g0 = g0 * ( 1.0 - neo_mu_fac_global(iz, :, :, is, 1) )
             
             ! Calculate denominator_fields_neo[iky,ikz,iz].
             wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
@@ -1352,12 +1352,12 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
             
-                g0 = spread((mu(:) * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) &
+                g0 = spread(mu * aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) &
                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             
-                g0 = g0 * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0 )
+                g0 = g0 * ( 1.0 - neo_mu_fac_global(iz, :, :, is, 1) )
 
-                wgt = 4.0 * spec(is)%z * spec(is)%dens_psi0
+                wgt = - 4.0 * spec(is)%z * spec(is)%dens_psi0
                 call integrate_vmu(g0, iz, tmp)
    
                 denominator_fields_neo_13_gneo(iky, ikx, iz) = denominator_fields_neo_13_gneo(iky, ikx, iz) + tmp * wgt
@@ -1408,9 +1408,10 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu * (1.0 - aj0v(:, ikxkyz) * aj1v(:, ikxkyz)) * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) 
+                g0 = spread(mu * maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) 
 
-                g0 = g0 * (0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0)
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) * neo_mu_fac_global(iz, :, :, is, 1) &
+                + spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) ) 
 
                 wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0
                 call integrate_vmu(g0, iz, tmp)
@@ -1492,9 +1493,9 @@ contains
                 g0 = spread((mu * mu * aj1v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) &
                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             
-                g0 = g0 * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+                g0 = g0 * ( 1.0 - neo_mu_fac_global(iz, :, :, is, 1) )
 
-                wgt = 8.0 * spec(is)%temp * spec(is)%dens_psi0
+                wgt = 8.0 * beta * spec(is)%temp * spec(is)%dens_psi0
             
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_33_gneo(iky, ikx, iz) = denominator_fields_neo_33_gneo(iky, ikx, iz) + tmp * wgt
@@ -1502,7 +1503,7 @@ contains
 
             call sum_allreduce(denominator_fields_neo_33_gneo)
    
-            denominator_fields_neo_33_gneo = 1.0 + beta * denominator_fields_neo_33_gneo
+            denominator_fields_neo_33_gneo = 1.0 + denominator_fields_neo_33_gneo
 
             ! Deallocate temporary array.
             deallocate (g0)
