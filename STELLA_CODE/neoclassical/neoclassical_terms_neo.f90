@@ -29,6 +29,8 @@ module neoclassical_terms_neo
  
     public :: neo_vpa_fac, neo_mu_fac                ! Velocity derivative factors appearing in the GKE, parallelised over velocity coordinates. 
                                                      ! Makes more sense to calcuate each term here rather than at every point in the GKE that it appears.
+    public :: neo_zed_fac
+
  
     public :: neo_vpa_fac_global, neo_mu_fac_global  ! Global versions of the velocity derivative factors that are not parallelised. 
                                                      ! Primarily for use in the field equations which are parallelised over kxkyz. 
@@ -52,8 +54,10 @@ module neoclassical_terms_neo
     real, dimension(:), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
     real, dimension(:, :, :), allocatable :: dneo_h_dmu, dneo_h_dvpa
     real, dimension(:, :, :), allocatable :: neo_vpa_fac, neo_mu_fac
+    real, dimension(:, :, :), allocatable :: neo_zed_fac
     real, dimension(:, :, :), allocatable :: d2neo_h_dmudz, d2neo_h_dvpadz
     real, dimension(:, :, :, :, :), allocatable :: neo_vpa_fac_global, neo_mu_fac_global
+    real, dimension(:, :, :, :, :), allocatable :: neo_zed_fac_global
 
     ! DIAGNOSTICS. 
     ! real, dimension(:, :), allocatable :: neo_dens, neo_dens_right, neo_dens_left
@@ -202,8 +206,10 @@ contains
         if (.not. allocated(dneo_h_dvpa)) allocate(dneo_h_dvpa(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_vpa_fac_global)) allocate(neo_vpa_fac_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_mu_fac_global)) allocate(neo_mu_fac_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
+        if (.not. allocated(neo_zed_fac_global)) allocate(neo_zed_fac_global(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species, neo_grid%n_radial))
         if (.not. allocated(neo_vpa_fac)) allocate(neo_vpa_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(neo_mu_fac)) allocate(neo_mu_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
+        if (.not. allocated(neo_zed_fac)) allocate(neo_zed_fac(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(d2neo_h_dmudz)) allocate(d2neo_h_dmudz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
         if (.not. allocated(d2neo_h_dvpadz)) allocate(d2neo_h_dvpadz(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc, neo_grid%n_radial))
 
@@ -289,6 +295,13 @@ contains
         end do
 
         call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, dneo_phi_dz, .true.)
+
+        call get_zed_factor(neo_zed_fac_global, dneo_h_dz_global, dneo_phi_dz, neo_h_global, neo_phi, neo_grid)
+
+        ! Now compact distribution into 3 indices for use in the GKE.  
+        do iz = -nzgrid, nzgrid
+            call distribute_vmus_over_procs(neo_zed_fac_global(iz, :, :, :, 1), neo_zed_fac(iz, :, 1))
+        end do
 
         ! PHI DIAGNOSTIC.
         ! if (proc0) then
@@ -466,8 +479,10 @@ contains
         if (allocated(dneo_h_dvpa)) deallocate(dneo_h_dvpa)
         if (allocated(neo_vpa_fac_global)) deallocate(neo_vpa_fac_global)
         if (allocated(neo_mu_fac_global)) deallocate(neo_mu_fac_global)
+        if (allocated(neo_zed_fac_global)) deallocate(neo_zed_fac_global)
         if (allocated(neo_vpa_fac)) deallocate(neo_vpa_fac)
         if (allocated(neo_mu_fac)) deallocate(neo_mu_fac)
+        if (allocated(neo_zed_fac)) deallocate(neo_zed_fac)
         if (allocated(d2neo_h_dmudz)) deallocate(d2neo_h_dmudz)
         if (allocated(d2neo_h_dvpadz)) deallocate(d2neo_h_dvpadz)
 
@@ -913,7 +928,7 @@ contains
         implicit none    
 
         real, dimension(-nzgrid:, :, :, :, :), intent(in)  :: dneo_h_dvpa_global, dneo_h_dmu_global, neo_h_global
-        real, dimension(-nzgrid:)                          :: neo_phi
+        real, dimension(-nzgrid:), intent(in)              :: neo_phi
         real, dimension(-nzgrid:, :, :, :, :), intent(out) :: neo_vpa_fac_global, neo_mu_fac_global
         type(neo_grid_data), intent(in)                    :: neo_grid
 
@@ -940,10 +955,56 @@ contains
                 end do
             end do
         end do
-
-
     end subroutine get_velocity_factors
 
+
+! ================================================================================================================================================================================= !
+! ---------------------------------------------------------------- Calculate the zed factor appearing in the GKE. ----------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+!                                                                                                                                                                                   ! 
+!                                                                                                                                                                                   ! 
+!                                                                                                                                                                                   !
+! ================================================================================================================================================================================= !
+
+    subroutine get_zed_factor(neo_zed_fac_global, dneo_h_dz_global, dneo_phi_dz, neo_h_global, neo_phi, neo_grid)
+        ! Grids.
+        use grids_z, only: nzgrid
+        use grids_velocity, only: vpa, mu, nvpa, nmu
+        use grids_species, only: spec
+
+        ! Geometry. 
+        use geometry, only: bmag, dbdzed 
+
+        ! NEO data.
+        use NEO_interface, only: neo_grid_data
+
+        implicit none    
+
+        real, dimension(-nzgrid:, :, :, :, :), intent(in)  :: dneo_h_dz_global, neo_h_global
+        real, dimension(-nzgrid:), intent(in)              :: neo_phi, dneo_phi_dz
+        real, dimension(-nzgrid:, :, :, :, :), intent(out) :: neo_zed_fac_global
+        type(neo_grid_data), intent(in)                    :: neo_grid
+
+        ! Local variables. 
+        integer :: is, imu, iv, iz, ia
+
+        ! ================================================================================ ! 
+
+        ! Compute for ia = 1 only since each field line on our flux surface is identical in an axisymmetric geometry. 
+        ia = 1
+
+        do is = 1, neo_grid%n_species
+            do iv = 1, nvpa
+                do imu = 1, nmu
+                    do iz = -nzgrid, nzgrid
+                        neo_zed_fac_global(iz, iv, imu, is, 1) = dneo_h_dz_global(iz, iv, imu, is, 1) - spec(is)%z * dneo_phi_dz(iz) &
+                        - 2.0 * mu(imu) * dbdzed(ia, iz) * ( neo_h_global(iz, iv, imu, is, 1) - spec(is)%z * neo_phi(iz) )
+                    end do
+                end do
+            end do
+        end do
+
+    end subroutine get_zed_factor
 
 ! ================================================================================================================================================================================= !
 ! ------------------------------------------------ Calculate the psi derivative of neo_h and neo_phi on the central flux surface. ----------------------------------------------- !
