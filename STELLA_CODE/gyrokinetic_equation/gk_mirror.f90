@@ -333,11 +333,10 @@ contains
       use grids_velocity, only: nmu, nvpa
       use grids_kxky, only: naky, nakx
       use field_equations_electromagnetic, only: advance_apar
-
-      ! HO simulations.
+   
+      ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use field_equations_fluxtube_neoclassical, only: advance_apar_neo
-      use parameters_numerical, only: neoclassical_mirror_implicit
 
       implicit none
 
@@ -363,28 +362,17 @@ contains
             call get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
             ! Invert the mirror operator and replace rhs with the solution
             call invert_mirror_operator(imu, ikxkyz, rhs)
-
-            ! If running a HO simulation, account for corrections to response component of the distribution. 
-            if (neoclassical_is_enabled() .and. neoclassical_mirror_implicit) then
-                call get_HO_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
-            end if
-
             ! Store the solution in mirror_response_g
             mirror_response_g(:, imu, ikxkyz) = rhs
          end do
       end do
 
-      ! The incoming distribution is g even when HO corrections are enabled.
-      if (neoclassical_is_enabled()) then
-          dist = 'gneo'
-      else
-          dist  = 'g'
-      end if 
-
       ! Calculate the contribution to apar from mirror_response_g
       if (neoclassical_is_enabled()) then
+          dist = 'gneo'
           call advance_apar_neo(mirror_response_g, dist, response_apar_denom)
       else
+          dist = 'g'
           call advance_apar(mirror_response_g, dist, response_apar_denom)
       end if
 
@@ -423,7 +411,6 @@ contains
       ! Grids + Arrays
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: vpa, maxwell_vpa
       use grids_kxky, only: nakx, naky, naky_all, ny, ikx_max
       use arrays_distribution_function, only: gvmu
 
@@ -440,7 +427,7 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0x
       complex, dimension(:, :), allocatable :: dgdv, g_swap
       integer :: ikxyz, iz, it
-      integer :: ivmu, iv, is
+      integer :: ivmu, is
 
       !-------------------------------------------------------------------------
 
@@ -659,6 +646,7 @@ contains
    !****************************************************************************
    ! Advance mirror implicit solve:
    !              dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
+   !****************************************************************************
    subroutine advance_mirror_implicit(collisions_implicit, g, apar)
 
       ! Parallelisation
@@ -677,7 +665,6 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: ny, nakx
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: maxwell_vpa
       use grids_kxky, only: naky_all, ikx_max
       use grids_velocity, only: dvpa
       use arrays_distribution_function, only: gvmu
@@ -700,10 +687,9 @@ contains
       use field_equations_electromagnetic, only: advance_apar
       use neoclassical_terms, only: include_neoclassical_terms
       
-      ! HO simulations.
+      ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use field_equations_fluxtube_neoclassical, only: advance_apar_neo	
-      use parameters_numerical, only: neoclassical_mirror_implicit
+      use field_equations_fluxtube_neoclassical, only: advance_apar_neo
 
       implicit none
 
@@ -725,37 +711,34 @@ contains
       integer :: iy
       complex, dimension(:, :), allocatable :: g_swap
 
-      ! Local variables for HO fluxtube simulations.
-      integer :: ia
-
-      ! ======================================================================================= !
-
-      ! Assume we have one field line.
-      ia = 1
+      !-------------------------------------------------------------------------
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       tupwnd = (1.0 - time_upwind) * 0.5
-  
+      
+      ! Incoming pdf is g = <f>
       if (neoclassical_is_enabled()) then
           dist = 'gneo'
       else
           dist = 'g'
       end if
-    
-      ! now that we have g^{*}, need to solve
-      ! g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
-      ! define A_0^{-1} = dt*mu*bhat.gradB/2
-      ! so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
-      ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach
-      ! to invert and obtain h^{n+1}
+
+      ! Now that we have g^{*}, we need to solve
+      !    g^{n+1} = g^{*} - dt*mu*bhat . grad B d((h^{n+1}+h^{*})/2)/dvpa
+      ! Define A_0^{-1} = dt*mu*bhat.gradB/2 so that (A_0 + I)h^{n+1} = (A_0-I)h^{*}
+      ! will need (I-A_0^{-1})h^{*} in Sherman-Morrison approach to invert and obtain h^{n+1}
+      
       ! ------------------------------------------------------------------------
       !                                Flux Tube
       ! ------------------------------------------------------------------------
-      if (.not. full_flux_surface) then 
-         ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
-         if (.not. collisions_implicit) then
-            ! get g^{*} with v-space on processor
+      
+      ! Flux tube simulations
+      if (.not. full_flux_surface) then
+      
+         ! For the mirror term, we need the velocity data to be local, therefore, scatter the
+         ! g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout) data to gvmu(nvpa, nmu, kxkyz-layout) 
+         if (.not. collisions_implicit) then 
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
             call scatter(kxkyz2vmu, g, gvmu)
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
@@ -775,9 +758,10 @@ contains
                 if (neoclassical_is_enabled()) then
                     call advance_apar_neo(gvmu, dist, apar)
                 else
-                    call advance_apar(gvmu, dist, apar)
-                end if 
+                    call advance_apar(gvmu, dist, apar)         
+                end if
             end if
+
 
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -824,15 +808,9 @@ contains
                      call get_mirror_rhs_apar_contribution(rhs, apar(iky, ikx, iz, it), imu, ikxkyz)
                      ! invert the mirror operator to find the 'homogeneous' solution
                      call invert_mirror_operator(imu, ikxkyz, rhs)
-
-                     if (neoclassical_is_enabled() .and. neoclassical_mirror_implicit) then
-                         call get_HO_mirror_rhs_apar_contribution(rhs, apar(iky, ikx, iz, it), imu, ikxkyz)
-                     end if
-                
                      ! add the 'homogeneous' solution to the 'inhomogeneous' one found above
                      ! to get g = <f> at the future time step
                      g0v(:, imu, ikxkyz) = g0v(:, imu, ikxkyz) + rhs
-
                   end do
                end do
             end if
@@ -844,11 +822,13 @@ contains
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         
+      ! ------------------------------------------------------------------------
+      !                            Full Flux Surface                            
+      ! ------------------------------------------------------------------------
 
+      ! Full flux surface simulations
       elseif (full_flux_surface) then
-         ! ---------------------------------------------------------------------
-         !                              Full Flux Surface
-         ! ---------------------------------------------------------------------
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -942,30 +922,12 @@ contains
    !****************************************************************************
    subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
 
-      ! Parameters. 
       use parameters_physics, only: include_apar
-      use parameters_physics, only: neomirrorknob
-      
       use parameters_numerical, only: vpa_upwind, time_upwind_minus
-      use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
-
-      ! Calculations. 
-      use calculations_finite_differences, only: fd_variable_upwinding_vpa
       use calculations_tofrom_ghf, only: gbar_to_g
-      use calculations_gyro_averages, only: gyro_average
-
-      ! Grids.
-      use grids_velocity, only: dvpa, vpa, nvpa
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use grids_species, only: spec
-      
-      ! Geometry.
-      use geometry, only: bmag
-
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_mu_fac_global, neo_vpa_fac_global
-      use parameters_numerical, only: neoclassical_mirror_implicit      
+      use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
+      use calculations_finite_differences, only: fd_variable_upwinding_vpa
+      use grids_velocity, only: dvpa, nvpa
 
       implicit none
 
@@ -976,15 +938,10 @@ contains
       complex, dimension(:), intent(out) :: rhs
 
       ! Local variables
-      integer :: iz, is, ia
-      real :: pre_factor
+      integer :: iz, is
       complex, dimension(:), allocatable :: dgdv
-      complex, dimension(:), allocatable :: vpa_scratch
 
-      ! ====================================================================================== !
-
-      ! Assume one field line.
-      ia = 1
+      !-------------------------------------------------------------------------
 
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
@@ -1008,48 +965,8 @@ contains
       ! Construct RHS of GK equation for mirror advance;
       ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
       ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
+
       rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
-
-      ! If running implicit mirror in a HO simulation, account for corrections to the inhomogenous piece. 
-      ! There are two to account for, one associated with neo_mu_fac and one with neo_vpa_fac. 
-      if (neoclassical_is_enabled() .and. include_apar .and. neoclassical_mirror_implicit) then
-           allocate(vpa_scratch(nvpa))
-
-           ! ================================ First we calculate the neo_mu_fac. ================================ ! 
-           
-           pre_factor = - neomirrorknob * spec(is)%zt * spec(is)%stm 
-           call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
-
-           ! Multiply by the neoclassical distribution factor. 
-           vpa_scratch = vpa_scratch * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz)
-
-           ! Differentiate in vpa. 
-           call fd_variable_upwinding_vpa(1, vpa_scratch, dvpa, mirror_sign(1, iz), vpa_upwind, dgdv)
-           
-           ! Finally multiply by the Maxwellian factor. 
-           dgdv = dgdv * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-
-           ! Finally, add this to rhs. 
-           rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
-
-           ! ================================ Then we calculate the neo_vpa_fac. =============================== !
-           ! pre_factor = neomirrorknob * spec(is)%zt * spec(is)%stm
-           call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
-
-           ! Differentiate in vpa. 
-           call fd_variable_upwinding_vpa(1, vpa_scratch, dvpa, mirror_sign(1, iz), vpa_upwind, dgdv)
-
-           ! Multiply by the neoclassical distribution factor. 
-           dgdv = dgdv * neo_vpa_fac_global(iz, :, imu, is, 1) / vpa
-           
-           ! Finally multiply by the Maxwellian factor. 
-           dgdv = dgdv * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-
-           ! Finally, add this to rhs. 
-           rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
-
-           deallocate(vpa_scratch)
-      end if
 
       deallocate (dgdv)
 
@@ -1059,128 +976,12 @@ contains
    !                        ADD MIRROR CONTRBUTION FROM APAR
    !****************************************************************************
    subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
-      ! Parallelisation.
-      use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
 
-      ! Grids, 
       use grids_species, only: spec
-      use grids_velocity, only: mu, vpa, nvpa, dvpa
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vpa
-      use grids_time, only: code_dt    
-
-      ! Parameters.
-      use parameters_numerical, only: vpa_upwind, time_upwind
-      use parameters_physics, only: neomirrorknob
-
-      ! Calculations. 
-      use calculations_gyro_averages, only: gyro_average
-      use arrays_gyro_averages, only: aj0v
-
-      ! Geometry.
-      use geometry, only: bmag, b_dot_gradz, dbdzed 
-
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_vpa_fac_global, neo_mu_fac_global
-      use parameters_numerical, only: neoclassical_mirror_implicit
-
-      ! Calculations.
-      use calculations_finite_differences, only: fd_variable_upwinding_vpa
-
-      implicit none
-
-      ! Arguments
-      complex, dimension(:), intent(out) :: rhs
-      complex, intent(in) :: apar
-      integer, intent(in) :: imu, ikxkyz
-
-      ! Local variables
-      integer :: ia, iz, is
-      real :: pre_factor, tupwndfac
-      complex, dimension(:), allocatable :: vpa_scratch, dgdv
-
-      ! ========================================================================================================= !
-
-      allocate (vpa_scratch(nvpa))
-
-      is = is_idx(kxkyz_lo, ikxkyz)
-      iz = iz_idx(kxkyz_lo, ikxkyz)
-
-      ! Assume one field line.
-      ia = 1
-
-      pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
-      call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
-
-      ! Multiply by the maxwellian factor.
-      vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-
-      if (neoclassical_is_enabled() .and. .not. neoclassical_mirror_implicit) then
-          vpa_scratch = vpa_scratch * (1.0 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz) )
-      end if
-
-      ! So far the RHS contains the leading order apar contribution which the inverted matrix will act upon.
-      rhs = vpa_scratch
-
-      ! If running implicit mirror in a HO simulation, account for corrections to the inhomogenous piece of the distribution. 
-      ! There are two to account for, one associated with neo_mu_fac and one with neo_vpa_fac. 
-      ! Here we only compute the neo_vpa_fac correction, because it involves matrix inversion once this routine has been called in the main implicit advance. 
-      ! The neo_mu_fac correction does not require the matrix inversion and is simply added to the final solution.
-      ! This is handled in the HO counterpart to this routine.
-      if (neoclassical_is_enabled() .and. neoclassical_mirror_implicit) then
-           ! Allocate temporary array for dvpa derivatives. 
-           allocate (dgdv(nvpa)) 
-
-           pre_factor = neomirrorknob * spec(is)%zt * spec(is)%stm
-           call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
-
-           ! Differentiate in vpa. 
-           call fd_variable_upwinding_vpa(1, vpa_scratch, dvpa, mirror_sign(1, iz), vpa_upwind, dgdv)
-
-           ! Multiply by the neoclassical distribution factor. 
-           dgdv = dgdv * neo_vpa_fac_global(iz, :, imu, is, 1) / vpa
-
-           ! Finally multiply by the Maxwellian factor. 
-           dgdv = dgdv * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-
-           tupwndfac = 0.5 * (1.0 + time_upwind)
-
-           ! Finally, add this to the rhs. 
-           rhs = rhs + tupwndfac * mirror(1, iz, imu, is) * dgdv
-
-           ! Deallociate temporary array.
-           deallocate(dgdv)
-      end if
-
-      deallocate(vpa_scratch)
-     
-   end subroutine get_mirror_rhs_apar_contribution
-
-! ================================================================================================================================================================================== !
-! ----------------------------------------------------------- Get the final HO correction to the rhs response component of gneo. --------------------------------------------------- !
-! ================================================================================================================================================================================== !
-
-   subroutine get_HO_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
-      ! Parallelisation.
+      use grids_velocity, only: nvpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
       use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
-
-      ! Grids, 
-      use grids_species, only: spec
-      use grids_velocity, only: vpa, nvpa
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vpa
-
-      ! Calculations. 
       use calculations_gyro_averages, only: gyro_average
-
-      ! Geometry.
-      use geometry, only: bmag
-
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_mu_fac_global
-
-      ! Parameters. 
-      use parameters_physics, only: neomirrorknob
 
       implicit none
 
@@ -1194,38 +995,24 @@ contains
       real :: pre_factor
       complex, dimension(:), allocatable :: vpa_scratch
 
-      ! ========================================================================================================= !
+      !-------------------------------------------------------------------------
 
-      ! Allocate temporaray array.
       allocate (vpa_scratch(nvpa))
 
       is = is_idx(kxkyz_lo, ikxkyz)
       iz = iz_idx(kxkyz_lo, ikxkyz)
 
-      ! Assume one field line.
       ia = 1
-
-      pre_factor = neomirrorknob * spec(is)%zt * spec(is)%stm_psi0
+      pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
       call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
 
-      ! Multiply by the maxwellian factor.
-      vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+      vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
 
-      ! Multiply by the neoclassical distribution factor. 
-      vpa_scratch = vpa_scratch * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz)
+      rhs = vpa_scratch
 
-      ! Add this to the rhs. 
-      rhs = rhs + vpa_scratch
+      deallocate (vpa_scratch)
 
-      ! Deallocate temporary array.
-      deallocate(vpa_scratch)
-
-   end subroutine get_HO_mirror_rhs_apar_contribution
-
-
-! ================================================================================================================================================================================== !
-! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
-! ================================================================================================================================================================================== !
+   end subroutine get_mirror_rhs_apar_contribution
 
    !****************************************************************************
    !                       ADD MIRROR TERM FOR RADIAL VARIATION

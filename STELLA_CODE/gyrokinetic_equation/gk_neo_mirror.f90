@@ -53,6 +53,7 @@ contains
         ! Neoclassical.
         use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
         use neoclassical_terms_neo, only: neo_mu_fac_global
+        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
         use arrays, only: neo_mirror, initialised_neo_mirror
 
@@ -91,7 +92,7 @@ contains
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / spec(is)%mass 
 
                 neo_mirror(:, iz, ivmu) = neo_mirror(:, iz, ivmu) &
-                * ( neo_vpa_fac(iz, ivmu, 1) / vpa(iv) - neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - vpa(iv) * d2dF1_dvpadmu(iz, ivmu, 1) / bmag(:, iz) )
+                * ( 0.5 * dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - 0.5 * dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - vpa(iv) * d2dF1_dvpadmu(iz, ivmu, 1) / bmag(:, iz) )
             end do 
         end do
 

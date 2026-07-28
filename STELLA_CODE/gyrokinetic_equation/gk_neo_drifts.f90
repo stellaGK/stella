@@ -52,7 +52,8 @@ contains
         use geometry, only: B_times_gradB_dot_gradx, B_times_gradB_dot_grady
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
+        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu 
 
         ! Arrays. 
         use arrays, only: neo_wdrifty, neo_wdrifty_apar, initialised_neo_wdrifty
@@ -104,10 +105,10 @@ contains
                 do iz = -nzgrid, nzgrid
                     neo_wdrifty_apar(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz)
 
-                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * neoydriftknob * code_dt &
+                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * 0.5 * neoydriftknob * code_dt &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
 
-                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * ( dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) )
                 end do
             end do
         end if
@@ -138,7 +139,8 @@ contains
         use geometry, only: B_times_gradB_dot_gradx
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
+        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: dneo_h_dmu, dneo_h_dvpa
 
         ! Arrays. 
         use arrays, only: neo_wdriftx, neo_wdriftx_apar, initialised_neo_wdriftx
@@ -188,11 +190,11 @@ contains
                 do iz = -nzgrid, nzgrid
                     neo_wdriftx_apar(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz)
 
-                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * neoxdriftknob * code_dt &
+                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * neoxdriftknob * 0.5 * code_dt &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
 
                     ! Multiply by the neoclassical distribution factor. 
-                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * ( neo_mu_fac(iz, ivmu, 1) / bmag(:, iz) - neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * ( dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) )
                 end do
             end do
         end if
