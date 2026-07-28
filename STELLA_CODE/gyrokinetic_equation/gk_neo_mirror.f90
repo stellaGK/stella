@@ -52,10 +52,11 @@ contains
 
         ! Neoclassical.
         use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
-        use neoclassical_terms_neo, only: neo_mu_fac_global
+        use neoclassical_terms_neo, only: dneo_h_dmu_global
         use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
-        use arrays, only: neo_mirror, initialised_neo_mirror
+        use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
+        use arrays, only: initialised_neo_mirror
 
         ! For switching streaming on and off.
         use parameters_physics, only: neomirrorknob
@@ -64,22 +65,27 @@ contains
 
         ! Local variables. 
         integer :: iz, iv, is, imu, ivmu
-        real, dimension(:, :, :), allocatable :: d2dF1_dvpadmu
+        real, dimension(:, :, :), allocatable :: d2neo_h_dvpadmu
 
         ! Only intialise once.
         if (initialised_neo_mirror) return
         initialised_neo_mirror = .true.
 
-        ! Allocate neo_mirror = neo_mirror[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(neo_mirror)) then
-            allocate (neo_mirror(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_mirror = 0.0
+        ! Allocate neo_mirror_apar_1 = neo_mirror_apar_1[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(neo_mirror_apar_1)) then
+            allocate (neo_mirror_apar_1(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_mirror_apar_1 = 0.0
+        end if
+
+        ! Allocate neo_mirror_apar_2 = neo_mirror_apar_2[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(neo_mirror_apar_2)) then
+            allocate (neo_mirror_apar_2(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_mirror_apar_2 = 0.0
         end if
  
         ! Allocate the mixed derivative in F_1.
-        allocate(d2dF1_dvpadmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc, 1)); d2dF1_dvpadmu = 0.0
+        allocate(d2neo_h_dvpadmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc, 1)); d2neo_h_dvpadmu = 0.0
 
         ! Get the mixed derivative of F_1, parallelised over the velocity space. 
-        call get_vpa_derivative_explicit(neo_mu_fac_global, d2dF1_dvpadmu)
+        call get_vpa_derivative_explicit(dneo_h_dmu_global, d2neo_h_dvpadmu)
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -88,16 +94,17 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid  
-                neo_mirror(:, iz, ivmu) = neomirrorknob * code_dt * spec(is)%z * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / spec(is)%mass 
+                ! This is the term multipling apar. 
+                neo_mirror_apar_1(:, iz, ivmu) = neomirrorknob * code_dt * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)  
 
-                neo_mirror(:, iz, ivmu) = neo_mirror(:, iz, ivmu) &
-                * ( 0.5 * dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - 0.5 * dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - vpa(iv) * d2dF1_dvpadmu(iz, ivmu, 1) / bmag(:, iz) )
+                neo_mirror_apar_1(:, iz, ivmu) = neo_mirror_apar_1(:, iz, ivmu) &
+                * ( vpa(iv) * dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - 0.5 * d2neo_h_dvpadmu(iz, ivmu, 1) / bmag(:, iz) + 2.0 * vpa(iv) * neo_vpa_fac(iz, ivmu, 1) )
             end do 
         end do
 
         ! Deallocate temporary array. 
-        deallocate(d2dF1_dvpadmu)
+        deallocate(d2neo_h_dvpadmu)
 
     end subroutine init_neo_mirror
 
@@ -113,11 +120,13 @@ contains
 
       
         ! Data arrays.
-        use arrays, only: neo_mirror
+        use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
 
         ! Grids. 
         use grids_z, only: nzgrid, ntubes
         use grids_kxky, only: naky, nakx
+        use grids_species, only: spec
+        use grids_velocity, only: vpa
       
         ! Calculations.
         use calculations_add_explicit_terms, only: add_explicit_term
@@ -160,7 +169,7 @@ contains
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
         allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
  
-        ! Construct <A∥_k>.
+        ! Construct 2 v_th vpa <A∥_k>.
         ! Iterate over the (mu,vpa,s) points. 
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -168,14 +177,14 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
 
             ! Calculate the apar field. 
-            field = apar
+            field = 2.0 * spec(is)%stm * vpa(iv) * apar 
 
             ! Gyroaverage.
             call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
         end do
 
         ! Add the term to the right-hand-side of the GKE. 
-        call add_explicit_term(g0, neo_mirror(1, :, :), gout)
+        call add_explicit_term(g0, neo_mirror_apar_1(1, :, :), gout)
 
         ! Deallocate <g0>.
         deallocate (g0)
@@ -192,11 +201,13 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_mirror
-        use arrays, only: neo_mirror, initialised_neo_mirror
+        use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
+        use arrays, only: initialised_neo_mirror
 
         implicit none
 
-        if (allocated(neo_mirror)) deallocate (neo_mirror)
+        if (allocated(neo_mirror_apar_1)) deallocate (neo_mirror_apar_1)
+        if (allocated(neo_mirror_apar_2)) deallocate (neo_mirror_apar_2)
         initialised_neo_mirror = .false.
 
     end subroutine finish_neo_mirror
