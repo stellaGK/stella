@@ -220,7 +220,7 @@ contains
       ! Gyroaverage.
       call gyro_average(field, imu, ikxkyz, gyro_averaged_field)
 
-      ! If neoclassical is enabled, add the HO correction.
+      ! If neoclassical is enabled, add the HO correction. 
       ! if (neoclassical_is_enabled()) then
           ! gyro_averaged_field = gyro_averaged_field * ( 1.0 - neo_mu_fac_global(iz, :, imu, is, 1) )
       ! end if 
@@ -334,7 +334,6 @@ contains
 
             ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
             g0(:, :, iz, it) = g0(:, :, iz, it) - gyro_averaged_field
-            
          end do
       end do
       
@@ -734,16 +733,17 @@ contains
              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
          end if
 
-         ! Ir running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
-         ! if (neoclassical_is_enabled() .and. include_apar) then
-             ! facapar = facphi
+         ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
+         if (neoclassical_is_enabled() .and. include_apar) then
+             facapar = facphi
  
-             ! field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm &
-             ! * spread(maxwell_vpa(:, is) * vpa, 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-              
-             ! g(:, :, ikxkyz) = g(:, :, ikxkyz) &
-             ! + field * ( 0.5 * dneo_h_dvpa_global(iz, :, :, is, 1) / spread(vpa, 2, nmu) - 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) )
-         ! end if
+             field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm &
+             * spread(maxwell_vpa(:, is) * vpa, 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+         
+             field = field * ( 0.5 * dneo_h_dvpa_global(iz, :, :, is, 1) / spread(vpa, 2, nmu) - 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) )
+     
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field 
+         end if
 
          if (neoclassical_is_enabled() .and. include_bpar) then
              facbpar = facphi
@@ -874,13 +874,15 @@ contains
                end if
 
                ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
-               ! if (neoclassical_is_enabled() .and. include_apar) then
-                   ! facapar = facphi
+               if (neoclassical_is_enabled() .and. include_apar) then
+                   facapar = facphi
 
-                   ! field = 2.0 * facapar * apar(:, :, iz, it) * spec(is)%zt * spec(is)%stm * vpa(iv) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) 
+                   field = 2.0 * facapar * apar(:, :, iz, it) * spec(is)%zt * spec(is)%stm * vpa(iv) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) 
 
-                   ! g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field * ( 0.5 * dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - 0.5 * dneo_h_dmu(iz, ivmu, 1) / bmag(ia, iz) )
-               ! end if
+                   field = field * ( 0.5 * dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - 0.5 * dneo_h_dmu(iz, ivmu, 1) / bmag(ia, iz) )
+
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field
+               end if
 
                if (neoclassical_is_enabled() .and. include_bpar) then
                    facbpar = facphi
