@@ -1237,27 +1237,27 @@ contains
             !                                                                                                                                                          ! 
             ! ======================================================================================================================================================== !
 
-            ! do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                ! it = it_idx(kxkyz_lo, ikxkyz)
-                ! if (it /= 1) cycle
-                ! iky = iky_idx(kxkyz_lo, ikxkyz)
-                ! ikx = ikx_idx(kxkyz_lo, ikxkyz)
-                ! iz = iz_idx(kxkyz_lo, ikxkyz)
-                ! is = is_idx(kxkyz_lo, ikxkyz)                 
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                it = it_idx(kxkyz_lo, ikxkyz)
+                if (it /= 1) cycle
+                iky = iky_idx(kxkyz_lo, ikxkyz)
+                ikx = ikx_idx(kxkyz_lo, ikxkyz)
+                iz = iz_idx(kxkyz_lo, ikxkyz)
+                is = is_idx(kxkyz_lo, ikxkyz)                 
 
                 ! Calculate Maxwellian x vpa factor.
-                ! g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
+                g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) 
 
-                ! g0 = g0 * spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) *  neo_mu_fac_global(iz, :, :, is, 1) 
+                g0 = g0 * spread(aj0v(:, ikxkyz)**2 - 1.0, 1, nvpa) * neo_mu_fac_global(iz, :, :, is, 1) 
                 
                 ! Calculate denominator_fields_neo_21_gneo[iky,ikz,iz].
-                ! wgt = - beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
-                ! call integrate_vmu(g0, iz, tmp)
-                ! denominator_fields_neo_21_gneo(iky, ikx, iz) = denominator_fields_neo_21_gneo(iky, ikx, iz) + tmp * wgt
-            ! end do
+                wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
+                call integrate_vmu(g0, iz, tmp)
+                denominator_fields_neo_21_gneo(iky, ikx, iz) = denominator_fields_neo_21_gneo(iky, ikx, iz) + tmp * wgt
+            end do
 
             ! Sum the values on all processors and send them to <proc0>.
-            ! call sum_allreduce(denominator_fields_neo_21_gneo)
+            call sum_allreduce(denominator_fields_neo_21_gneo)
 
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_22_gneo is the apar contribution to parallel Amperes law when gneo is being used for the distribution function. This is           !
