@@ -81,7 +81,7 @@ jobs:
               sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
               gfortran --version
             elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then
-              brew rm gcc
+               brew rm gcc || true
               brew install gcc@11
               ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
               sudo mkdir -p /usr/local/gfortran
