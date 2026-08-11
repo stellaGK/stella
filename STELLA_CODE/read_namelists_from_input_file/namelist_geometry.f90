@@ -55,6 +55,11 @@
 !     overwrite_B_times_gradB_dot_grady = .false.
 !     overwrite_B_times_kappa_dot_grady = .false.
 !     overwrite_B_times_gradB_dot_gradx = .false.
+!
+!   <geometry_file> must be a *.geometry file previously written by stella
+!   itself (write_geometric_coefficients in geometry.f90); overwrite_gds23
+!   and overwrite_gds24 abort at runtime because gds23/gds24 are no longer
+!   among the columns that file contains.
 ! 
 ! Text options for <geometry_option>:
 !    - miller: {default, miller, local}
