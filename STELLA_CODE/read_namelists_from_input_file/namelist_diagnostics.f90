@@ -58,6 +58,9 @@
 !   diagnostics_moments
 !     write_moments = .false.
 !     write_radial_moments = .false.
+!   
+!   diagnostics_stresses
+!     write_stresses = .false.
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
@@ -80,6 +83,7 @@ module namelist_diagnostics
    public :: read_namelist_diagnostics_distribution
    public :: read_namelist_diagnostics_fluxes
    public :: read_namelist_diagnostics_moments
+   public :: read_namelist_diagnostics_stresses
 
    private
 
@@ -689,5 +693,58 @@ contains
       end subroutine check_inputs_diagnostics_moments
 
    end subroutine read_namelist_diagnostics_moments
+
+   !****************************************************************************
+   !                            DIAGNOSTICS STRESSES                           !
+   !****************************************************************************
+   subroutine read_namelist_diagnostics_stresses (write_stresses)
+
+      use mp, only: proc0, mp_abort
+      use parameters_physics, only: initialised_parameters_physics
+
+      implicit none
+
+      ! Variables that are read from the input file
+      logical, intent (out) :: write_stresses
+
+      !-------------------------------------------------------------------------
+      
+      ! read the physics parameters first
+      if (.not. initialised_parameters_physics) then
+         call mp_abort('Initialise physics parameters before reading diagnostics namelists. Aborting.')
+      end if
+      
+      ! Set the default input parameters and read the input file
+      if (.not. proc0) return
+      call set_default_parameters_diagnostics_stresses
+      call read_input_file_diagnostics_stresses
+
+   contains
+
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_diagnostics_stresses
+
+         implicit none
+
+         write_stresses = .false.
+
+      end subroutine set_default_parameters_diagnostics_stresses
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_diagnostics_stresses
+
+      use file_utils, only: input_unit_exist
+
+         implicit none
+
+         namelist /diagnostics_stresses/ write_stresses
+         in_file = input_unit_exist('diagnostics_stresses', dexist)
+         if (dexist) read (unit=in_file, nml=diagnostics_stresses)
+
+      end subroutine read_input_file_diagnostics_stresses
+
+   end subroutine read_namelist_diagnostics_stresses
+
+
 
 end module namelist_diagnostics

@@ -68,6 +68,10 @@
 !   write_moments = .false.
 !   write_radial_moments = .false.
 !/
+!
+!&diagnostics_stresses
+!   write_stresses = .false.
+!
 ! 
 !---------------------------------- Time traces --------------------------------
 ! 
@@ -164,6 +168,7 @@ contains
       use diagnostics_fluxes, only: write_fluxes_to_netcdf_file
       use diagnostics_moments, only: write_moments_to_netcdf_file
       use diagnostics_distribution, only: write_distribution_to_netcdf_file
+      use diagnostics_stresses, only: write_stresses_to_netcdf_file
       use write_diagnostics_to_netcdf, only: sync_nc
 
       implicit none
@@ -222,6 +227,7 @@ contains
       ! Write data to the netcdf files
       call write_moments_to_netcdf_file(nout, time_individual_diagnostics(:, 5))
       call write_distribution_to_netcdf_file(nout, time_individual_diagnostics(:, 6))
+      call write_stresses_to_netcdf_file(nout)
 
       ! Synchronize the disk copy of a netCDF dataset with in-memory buffers
       if (proc0) call sync_nc
