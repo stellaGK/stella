@@ -20,7 +20,8 @@ jobs:
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
-    
+      HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
+
     # Run the same set-up multiple times
     # Note that macos-12 has been deprecated on GitHub in 2025 
     # Note that ubuntu-20.04 has been deprecated on GitHub in April 2025 
@@ -75,13 +76,19 @@ jobs:
           # Install dependencies
           if ${{ contains(matrix.os, 'macos') }}; then   
             if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
-              brew rm gcc
+              # Only remove gcc if it's actually installed -- recent runner images
+              # don't preinstall it, and an unconditional 'brew rm gcc' errors loudly
+              # ("No such keg") for no reason in that case.
+              if brew list gcc &>/dev/null; then brew rm gcc; fi
               brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
               sudo mkdir /usr/local/gfortran
               sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
               gfortran --version
             elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then
-               brew rm gcc || true
+              # Only remove gcc if it's actually installed -- recent runner images
+              # don't preinstall it, and an unconditional 'brew rm gcc' errors loudly
+              # ("No such keg") for no reason in that case.
+              if brew list gcc &>/dev/null; then brew rm gcc; fi
               brew install gcc@11
               ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
               sudo mkdir -p /usr/local/gfortran
