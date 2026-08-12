@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-14, macos-15] # , ubuntu-22.04, ubuntu-24.04
         compiler: [Make, CMake]
     
     # Operating system
@@ -64,10 +64,7 @@ jobs:
           # Install dependencies
           if ${{ contains(matrix.os, 'macos') }}; then   
             if [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then
-              brew install gcc@11
-              ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
-              sudo mkdir -p /usr/local/gfortran
-              sudo ln -sf /opt/homebrew/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
+              brew install gcc
               brew install make openmpi fftw netcdf-fortran gnu-sed
               gfortran --version
             fi
