@@ -85,14 +85,23 @@ jobs:
               sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
               gfortran --version
             elif [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then
-              # Only remove gcc if it's actually installed -- recent runner images
-              # don't preinstall it, and an unconditional 'brew rm gcc' errors loudly
-              # ("No such keg") for no reason in that case.
-              if brew list gcc &>/dev/null; then brew rm gcc; fi
-              brew install gcc@11
-              ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
+              # macos-14/macos-15 runner images already ship gcc@14 (gfortran-14)
+              # preinstalled, so point gfortran at that directly instead of also
+              # installing a separate gcc@11 -- which, on top of the gcc@13/14/15
+              # already on the image, pulls in yet ANOTHER full generic 'gcc' as a
+              # transitive dependency of open-mpi (confirmed locally: installing
+              # `make openmpi fftw netcdf-fortran gnu-sed` alone drags in gcc as a
+              # dependency of open-mpi). That's up to 4 GCC toolchains being
+              # unpacked on one runner, and these runners are documented to be
+              # tight on disk (actions/runner-images#10511); the brew install was
+              # failing at "The post-install step did not complete successfully"
+              # with no more specific error visible without repo admin log access.
+              # gfortran-14 is already confirmed locally (this session) to build
+              # stella cleanly, including the changes on this branch, so there's
+              # no need to pin gcc@11 specifically on these images.
+              ln -fs /opt/homebrew/bin/gfortran-14 /usr/local/bin/gfortran
               sudo mkdir -p /usr/local/gfortran
-              sudo ln -sf /opt/homebrew/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
+              sudo ln -sf /opt/homebrew/Cellar/gcc@14/*/lib/gcc/14 /usr/local/gfortran/lib
               brew install make openmpi fftw netcdf-fortran gnu-sed
               gfortran --version
             fi
