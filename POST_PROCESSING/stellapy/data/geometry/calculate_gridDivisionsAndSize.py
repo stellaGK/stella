@@ -35,7 +35,7 @@ Moreover, nalpha may be specified via input file.
 
 Default vmec_parameters
 -----------------------
-vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
+vmec_filename = 'wout_w7x_standardConfig.nc'
 alpha0 = 0.0
 zeta_center = 0.0
 nfield_periods = -1.0
@@ -943,8 +943,8 @@ def calculate_velocityWeights(self):
     ''' Add the potential squared averaged over (kx,ky) as an attribute of the simulation object. '''
     
     # Initiate the attributes 
-    self.wgts_vpa = np.empty((self.nvgrid)); self.wgts_vpa[:] = np.NaN
-    self.wgts_mu = np.empty((2*self.nzgrid+1, self.nmu)); self.wgts_mu[:,:] = np.NaN 
+    self.wgts_vpa = np.empty((self.nvgrid)); self.wgts_vpa[:] = np.nan
+    self.wgts_mu = np.empty((2*self.nzgrid+1, self.nmu)); self.wgts_mu[:,:] = np.nan 
     
     # Allocate the attributes
     self.wgts_vpa = calculate_vpaWeights(self.input_files[0])   

@@ -37,7 +37,7 @@
 !     surface_option = 0
 !     radial_coordinate = 'sgn(psi_t)psi_t'
 !     verbose = .true.
-!     vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+!     vmec_filename = 'wout_w7x_standardConfig.nc'
 !     n_tolerated_test_arrays_inconsistencies = 0
 !   
 !   geometry_zpinch
@@ -227,7 +227,7 @@ contains
 
          write (unit, '(A)') '&geometry_options'
          write (unit, '(A, A, A)') '  geometry_option = "', trim(geometry_option),'"'
-         write (unit, '(A, L0)') '  q_as_x = ', q_as_x
+         write (unit, '(A, L1)') '  q_as_x = ', q_as_x
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -331,16 +331,16 @@ contains
 
          write (unit, '(A)') '&geometry_from_txt'
          write (unit, '(A, A, A)') '  geometry_file = "', trim(geometry_file),'"'
-         write (unit, '(A, L0)') '  overwrite_bmag = ', overwrite_bmag
-         write (unit, '(A, L0)') '  overwrite_b_dot_gradzeta = ', overwrite_b_dot_gradzeta
-         write (unit, '(A, L0)') '  overwrite_grady_dot_grady = ', overwrite_grady_dot_grady
-         write (unit, '(A, L0)') '  overwrite_gradx_dot_grady = ', overwrite_gradx_dot_grady
-         write (unit, '(A, L0)') '  overwrite_gradx_dot_gradx = ', overwrite_gradx_dot_gradx
-         write (unit, '(A, L0)') '  overwrite_gds23 = ', overwrite_gds23
-         write (unit, '(A, L0)') '  overwrite_gds24 = ', overwrite_gds24
-         write (unit, '(A, L0)') '  overwrite_B_times_kappa_dot_grady = ', overwrite_B_times_kappa_dot_grady
-         write (unit, '(A, L0)') '  overwrite_B_times_gradB_dot_grady = ', overwrite_B_times_gradB_dot_grady
-         write (unit, '(A, L0)') '  overwrite_B_times_gradB_dot_gradx = ', overwrite_B_times_gradB_dot_gradx
+         write (unit, '(A, L1)') '  overwrite_bmag = ', overwrite_bmag
+         write (unit, '(A, L1)') '  overwrite_b_dot_gradzeta = ', overwrite_b_dot_gradzeta
+         write (unit, '(A, L1)') '  overwrite_grady_dot_grady = ', overwrite_grady_dot_grady
+         write (unit, '(A, L1)') '  overwrite_gradx_dot_grady = ', overwrite_gradx_dot_grady
+         write (unit, '(A, L1)') '  overwrite_gradx_dot_gradx = ', overwrite_gradx_dot_gradx
+         write (unit, '(A, L1)') '  overwrite_gds23 = ', overwrite_gds23
+         write (unit, '(A, L1)') '  overwrite_gds24 = ', overwrite_gds24
+         write (unit, '(A, L1)') '  overwrite_B_times_kappa_dot_grady = ', overwrite_B_times_kappa_dot_grady
+         write (unit, '(A, L1)') '  overwrite_B_times_gradB_dot_grady = ', overwrite_B_times_gradB_dot_grady
+         write (unit, '(A, L1)') '  overwrite_B_times_gradB_dot_gradx = ', overwrite_B_times_gradB_dot_gradx
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -447,8 +447,8 @@ contains
          write (unit, '(A, ES0.4)') '  d2qdr2 = ', d2qdr2
          write (unit, '(A, ES0.4)') '  d2psidr2 = ', d2psidr2
          write (unit, '(A, I0)') '  nzed_local = ', nzed_local
-         write (unit, '(A, L0)') '  read_profile_variation = ', read_profile_variation
-         write (unit, '(A, L0)') '  write_profile_variation = ', write_profile_variation
+         write (unit, '(A, L1)') '  read_profile_variation = ', read_profile_variation
+         write (unit, '(A, L1)') '  write_profile_variation = ', write_profile_variation
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       
@@ -505,7 +505,7 @@ contains
          implicit none
 
          ! Default parameters for VMEC
-         vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
+         vmec_filename = 'wout_w7x_standardConfig.nc'
          alpha0 = 0.0
          zeta_center = 0.0
          nfield_periods = -1.0
@@ -588,8 +588,8 @@ contains
          write (unit, '(A, I0)') '  z_grid_refinement_factor = ', z_grid_refinement_factor 
          write (unit, '(A, I0)') '  surface_option = ', surface_option 
          write (unit, '(A, I0)') '  n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
-         write (unit, '(A, L0)') '  verbose = ', verbose
-         write (unit, '(A, L0)') '  rectangular_cross_section = ', rectangular_cross_section
+         write (unit, '(A, L1)') '  verbose = ', verbose
+         write (unit, '(A, L1)') '  rectangular_cross_section = ', rectangular_cross_section
          write (unit, '(A, A, A)') '  radial_coordinate = "', trim(radial_coordinate),'"'
          write (unit, '(A)') '/'
          write (unit, '(A)') ''

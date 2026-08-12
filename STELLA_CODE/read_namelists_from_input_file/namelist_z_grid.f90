@@ -167,7 +167,7 @@ contains
          write (unit, '(A, I0)') '  nzed = ', nzed
          write (unit, '(A, I0)') '  nperiod = ', nperiod
          write (unit, '(A, I0)') '  ntubes = ', ntubes
-         write (unit, '(A, L0)') '  zed_equal_arc = ', zed_equal_arc
+         write (unit, '(A, L1)') '  zed_equal_arc = ', zed_equal_arc
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

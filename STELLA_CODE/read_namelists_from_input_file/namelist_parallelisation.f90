@@ -163,9 +163,9 @@ contains
          write (unit, '(A, A, A)') '  xyzs_layout = "', trim(xyzs_layout), '"'
          write (unit, '(A, A, A)') '  vms_layout = "', trim(vms_layout), '"'
          write (unit, '(A, A, A)') '  kymus_layout = "', trim(kymus_layout), '"'
-         write (unit, '(A, L0)') '  fields_kxkyz = ', fields_kxkyz
-         write (unit, '(A, L0)') '  mat_gen = ', mat_gen
-         write (unit, '(A, L0)') '  mat_read = ', mat_read
+         write (unit, '(A, L1)') '  fields_kxkyz = ', fields_kxkyz
+         write (unit, '(A, L1)') '  mat_gen = ', mat_gen
+         write (unit, '(A, L1)') '  mat_read = ', mat_read
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

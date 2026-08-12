@@ -95,8 +95,8 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&flow_shear'
-         write (unit, '(A, L0)') '  prp_shear_enabled = ', prp_shear_enabled
-         write (unit, '(A, L0)') '  hammett_flow_shear = ', hammett_flow_shear
+         write (unit, '(A, L1)') '  prp_shear_enabled = ', prp_shear_enabled
+         write (unit, '(A, L1)') '  hammett_flow_shear = ', hammett_flow_shear
          write (unit, '(A, ES0.4)') '  g_exb = ', g_exb
          write (unit, '(A, ES0.4)') '  g_exbfac = ', g_exbfac
          write (unit, '(A, ES0.4)') '  omprimfac = ', omprimfac

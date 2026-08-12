@@ -42,8 +42,8 @@ def read_millerParameters(path):
     input_parameters = read_inFile(path.input_file)
     wout_variables = {"source" : "Miller coordinates"} 
     wout_variables["nfp"] = 1 
-    wout_variables["shat"] = input_parameters["millergeo_parameters"]["shat"]
-    wout_variables["iota"] = 1/input_parameters["millergeo_parameters"]["qinp"]
+    wout_variables["shat"] = input_parameters["geometry_miller"]["shat"]
+    wout_variables["iota"] = 1/input_parameters["geometry_miller"]["qinp"]
     return wout_variables
     
 #-------------------------------------

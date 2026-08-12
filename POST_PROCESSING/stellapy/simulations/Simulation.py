@@ -87,24 +87,24 @@ class Simulation:
         self.nakxnaky = self.input_parameters['kxky_grid_range']['nakx']*self.input_parameters['kxky_grid_range']['naky'] if self.input_parameters['kxky_grid_option']['grid_option']=='range' else self.input_parameters['kxky_grid_box']['nx']*self.input_parameters['kxky_grid_box']['ny']
         
         # Remove some input parameters that may vary between simulations without affecting the simulation (much)
-        del self.input_parameters['time_step']['delt_option']
-        del self.input_parameters['time_step']['delt_max']
-        del self.input_parameters['time_step']['delt_min']
-        del self.input_parameters['parallelisation']['mat_gen']
-        del self.input_parameters['time_trace_options']['nstep']
-        del self.input_parameters['time_trace_options']['tend']
-        del self.input_parameters['time_trace_options']['avail_cpu_time']
-        del self.input_parameters['restart_options']['restart_file']
-        del self.input_parameters['restart_options']['restart_dir']
-        del self.input_parameters['initialise_distribution']['phiinit']
-        del self.input_parameters['initialise_distribution']['initialise_distribution_option']
-        del self.input_parameters['diagnostics']
-        del self.input_parameters['diagnostics_potential']
-        del self.input_parameters['diagnostics_omega']
-        del self.input_parameters['diagnostics_distribution']
-        del self.input_parameters['diagnostics_fluxes']
-        del self.input_parameters['diagnostics_moments']
-        del self.input_parameters['kxky_grid_range']
+        self.input_parameters['time_step'].pop('delt_option', None)
+        self.input_parameters['time_step'].pop('delt_max', None)
+        self.input_parameters['time_step'].pop('delt_min', None)
+        self.input_parameters['parallelisation'].pop('mat_gen', None)
+        self.input_parameters['time_trace_options'].pop('nstep', None)
+        self.input_parameters['time_trace_options'].pop('tend', None)
+        self.input_parameters['time_trace_options'].pop('avail_cpu_time', None)
+        self.input_parameters['restart_options'].pop('restart_file', None)
+        self.input_parameters['restart_options'].pop('restart_dir', None)
+        self.input_parameters['initialise_distribution'].pop('phiinit', None)
+        self.input_parameters['initialise_distribution'].pop('initialise_distribution_option', None)
+        self.input_parameters.pop('diagnostics', None)
+        self.input_parameters.pop('diagnostics_potential', None)
+        self.input_parameters.pop('diagnostics_omega', None)
+        self.input_parameters.pop('diagnostics_distribution', None)
+        self.input_parameters.pop('diagnostics_fluxes', None)
+        self.input_parameters.pop('diagnostics_moments', None)
+        self.input_parameters.pop('kxky_grid_range', None)
         if self.input_parameters['gyrokinetic_terms']['include_nonlinear']==True: del self.input_parameters['time_step']['delt'] 
         
         # For linear flux tube simulations, add the input files in the dummy input or merge similar simulations

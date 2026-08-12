@@ -249,19 +249,19 @@ contains
          write (unit, '(A, A, A)') '  lr_debug_option = "', lr_debug_option, '"'
          write (unit, '(A, A, A)') '  krook_option = "', krook_option, '"'
          write (unit, '(A, A, A)') '  zf_option = "', zf_option, '"'
-         write (unit, '(A, L0)') '  ky_solve_real = ', ky_solve_real
+         write (unit, '(A, L1)') '  ky_solve_real = ', ky_solve_real
          write (unit, '(A, I0)') '  ky_solve_radial = ', ky_solve_radial
-         write (unit, '(A, L0)') '  include_pressure_variation = ', include_pressure_variation
-         write (unit, '(A, L0)') '  include_geometric_variation = ', include_geometric_variation
-         write (unit, '(A, L0)') '  smooth_zf = ', smooth_zf
-         write (unit, '(A, L0)') '  rk_step = ', rk_step
+         write (unit, '(A, L1)') '  include_pressure_variation = ', include_pressure_variation
+         write (unit, '(A, L1)') '  include_geometric_variation = ', include_geometric_variation
+         write (unit, '(A, L1)') '  smooth_zf = ', smooth_zf
+         write (unit, '(A, L1)') '  rk_step = ', rk_step
          write (unit, '(A, ES0.4)') '  nu_krook_mb = ', nu_krook_mb
          write (unit, '(A, I0)') '  mb_debug_step = ', mb_debug_step
          write (unit, '(A, ES0.4)') '  krook_exponent = ', krook_exponent
          write (unit, '(A, ES0.4)') '  krook_efold = ', krook_efold
          write (unit, '(A, ES0.4)') '  phi_bound = ', phi_bound
          write (unit, '(A, ES0.4)') '  phi_pow = ', phi_pow
-         write (unit, '(A, L0)') '  use_dirichlet_bc = ', use_dirichlet_bc
+         write (unit, '(A, L1)') '  use_dirichlet_bc = ', use_dirichlet_bc
          write (unit, '(A, I0)') '  boundary_size = ', boundary_size
          write (unit, '(A, I0)') '  krook_size = ', krook_size
          write (unit, '(A)') '/'
@@ -398,13 +398,13 @@ contains
          write (unit, '(A, ES0.4)') '  nu_krook = ', nu_krook
          write (unit, '(A, ES0.4)') '  tcorr_source = ', tcorr_source
          write (unit, '(A, I0)') '  ikxmax_source = ', ikxmax_source
-         write (unit, '(A, L0)') '  krook_odd = ', krook_odd
-         write (unit, '(A, L0)') '  exclude_boundary_regions = ', exclude_boundary_regions
+         write (unit, '(A, L1)') '  krook_odd = ', krook_odd
+         write (unit, '(A, L1)') '  exclude_boundary_regions = ', exclude_boundary_regions
          write (unit, '(A, ES0.4)') '  tcorr_source_qn = ', tcorr_source_qn
-         write (unit, '(A, L0)') '  exclude_boundary_regions_qn = ', exclude_boundary_regions_qn
-         write (unit, '(A, L0)') '  from_zero = ', from_zero
-         write (unit, '(A, L0)') '  conserve_momentum = ', conserve_momentum
-         write (unit, '(A, L0)') '  conserve_density = ', conserve_density
+         write (unit, '(A, L1)') '  exclude_boundary_regions_qn = ', exclude_boundary_regions_qn
+         write (unit, '(A, L1)') '  from_zero = ', from_zero
+         write (unit, '(A, L1)') '  conserve_momentum = ', conserve_momentum
+         write (unit, '(A, L1)') '  conserve_density = ', conserve_density
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
