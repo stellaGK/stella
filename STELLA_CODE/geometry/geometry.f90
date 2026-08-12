@@ -210,13 +210,13 @@ contains
          ! Read the <geo_knobs> namelist in the input file
          call read_namelist_geometry_options (geo_option_switch, q_as_x)
 
-         ! Only read in the geometry file if the geometry_option is set to be an input profile
-         if (geo_option_switch==geo_option_inputprof) then
-            call read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, overwrite_b_dot_gradzeta, &
-                 overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
-                 overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
-                 overwrite_B_times_gradB_dot_gradx, overwrite_geometry)
-         end if
+         ! Read the <geometry_from_txt> namelist. This is independent of <geometry_option>:
+         ! the geometric coefficients produced by Miller/VMEC/z-pinch/input.profiles can all
+         ! be overwritten, column by column, with those in a *.geometry file written by stella.
+         call read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, overwrite_b_dot_gradzeta, &
+              overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
+              overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
+              overwrite_B_times_gradB_dot_gradx, overwrite_geometry)
          ! Use Miller parameters or VMEC to get the geometry needed for stella
          if (geo_option_switch==geo_option_local)     call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_inputprof) call get_geometry_arrays_from_Miller(nalpha)
@@ -955,6 +955,7 @@ contains
       real :: bmag_file, b_dot_gradzeta_file
       real :: grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file
       real :: B_times_gradB_dot_grady_file, B_times_kappa_dot_grady_file, B_times_gradB_dot_gradx_file
+      logical :: geofile_exists
 
       !-------------------------------------------------------------------------
 
@@ -963,9 +964,30 @@ contains
             'gds24 are no longer written to the *.geometry file. Aborting.')
       end if
 
+      ! Make sure the geometry file exists, since <status='old'> would otherwise
+      ! abort with an unhelpful compiler-dependent I/O error message
+      inquire (file=trim(geometry_file), exist=geofile_exists)
+      if (.not. geofile_exists) then
+         call mp_abort('The <geometry_file> = "'//trim(geometry_file)//'" listed in the '// &
+            '<geometry_from_txt> namelist does not exist. Aborting.')
+      end if
+
       ! Open the geometry file
       call get_unused_unit(geofile_unit)
       open (geofile_unit, file=trim(geometry_file), status='old', action='read')
+
+      ! Tell the user which geometric coefficients are read from the *.geometry file
+      write (*, '(A)') ' '
+      write (*, '(A)') 'Overwriting geometric coefficients with those in "'//trim(geometry_file)//'":'
+      if (overwrite_bmag) write (*, '(A)') '   bmag'
+      if (overwrite_b_dot_gradzeta) write (*, '(A)') '   b_dot_gradzeta'
+      if (overwrite_grady_dot_grady) write (*, '(A)') '   grady_dot_grady'
+      if (overwrite_gradx_dot_grady) write (*, '(A)') '   gradx_dot_grady'
+      if (overwrite_gradx_dot_gradx) write (*, '(A)') '   gradx_dot_gradx'
+      if (overwrite_B_times_gradB_dot_grady) write (*, '(A)') '   B_times_gradB_dot_grady'
+      if (overwrite_B_times_kappa_dot_grady) write (*, '(A)') '   B_times_kappa_dot_grady'
+      if (overwrite_B_times_gradB_dot_gradx) write (*, '(A)') '   B_times_gradB_dot_gradx (and B_times_kappa_dot_gradx)'
+      write (*, '(A)') ' '
 
       ! Deal with the first four header lines
       read (geofile_unit, fmt='(A)') dum_char
@@ -999,10 +1021,20 @@ contains
             if (overwrite_b_dot_gradzeta) b_dot_gradz(1, iz) = b_dot_gradzeta_file
 
          end do
+
+         ! Skip the blank line that <write_geometric_coefficients> writes after each alpha block
+         if (ia < nalpha) read (geofile_unit, fmt='(A)') dum_char
+
       end do
-      
+
       ! For any static ideal MHD equilibrium B × κ · ∇ψ = b × ∇B · ∇ψ
-      B_times_kappa_dot_gradx = B_times_gradB_dot_gradx
+      ! Only impose this when B_times_gradB_dot_gradx was actually read from the file,
+      ! otherwise switching on any single overwrite flag would silently clobber
+      ! B_times_kappa_dot_gradx with the equilibrium value of B_times_gradB_dot_gradx
+      if (overwrite_B_times_gradB_dot_gradx) B_times_kappa_dot_gradx = B_times_gradB_dot_gradx
+
+      ! <grad_x> = |∇x| is stored separately from <gradx_dot_gradx> = |∇x|^2, so keep the two consistent
+      if (overwrite_gradx_dot_gradx) grad_x = sqrt(abs(gradx_dot_gradx))
 
       ! Close the geometry file
       close (geofile_unit)
