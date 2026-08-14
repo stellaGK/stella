@@ -494,6 +494,7 @@ $(OBJ_DIR)/diagnostics_stresses.o: \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
@@ -841,12 +842,10 @@ $(OBJ_DIR)/gk_implicit_terms.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/field_equations.o \
 	 $(OBJ_DIR)/field_equations_fullfluxsurface.o \
-	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/gk_ffs_solve.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
@@ -887,7 +886,6 @@ $(OBJ_DIR)/gk_magnetic_drift.o: \
 	 $(OBJ_DIR)/timers.o 
 $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
-	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \

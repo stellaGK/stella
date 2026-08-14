@@ -168,7 +168,7 @@ contains
       ! Incoming pdf is g = <f>.
       ! For EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
-      if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
+      if (include_apar .or. include_bpar) call g_to_h(g, phi, apar, bpar, fphi)
 
       if (include_nonlinear) then
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -293,7 +293,7 @@ contains
          bpar_h_nonlin_kx = 0.
       end if
 
-      if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, -fphi)
+      if (include_apar .or. include_bpar) call g_to_h(g, phi, apar, bpar, -fphi)
 
       !calculate QN operator acting on g. This is mainly for testing the diagnostics.
       call scatter(kxkyz2vmu, g, gvmu)
