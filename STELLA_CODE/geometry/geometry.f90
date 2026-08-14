@@ -80,7 +80,7 @@ module geometry
    public :: jacob, djacdrho, drhodpsi, drhodpsip, drhodpsip_psi0
    public :: dl_over_b, d_dl_over_b_drho
    public :: dBdrho, d2Bdrdth, d_bdotgradz_drho, dIdrho
-   public :: geo_surf, Rmajor, dzetadz
+   public :: geo_surf, Rmajor, dzdzeta
    public :: theta_vmec, zeta, alpha 
    public :: dxdpsi, dydalpha, clebsch_factor
    public :: aref, bref, twist_and_shift_geo_fac
@@ -125,7 +125,7 @@ module geometry
    real :: dqdrho, dIdrho, grho_norm
    real :: drhodpsi, drhodpsip, drhodpsip_psi0, shat, qinp
    real :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
-   real :: b_dot_gradz_avg_eqarc, dzetadz
+   real :: b_dot_gradz_avg_eqarc, dzdzeta
    real :: twist_and_shift_geo_fac, gfac
    integer :: sign_torflux
    integer :: geo_option_switch
@@ -201,7 +201,7 @@ contains
       initialised_geometry = .true.
 
       ! Default is no re-scaling of zed
-      dzetadz = 1.0
+      dzdzeta = 1.0
       
       ! Track the code 
       if (debug) write (*, *) 'geometry::init_geometry'
@@ -212,14 +212,13 @@ contains
          ! Read the <geo_knobs> namelist in the input file
          call read_namelist_geometry_options (geo_option_switch, q_as_x)
 
-         ! Only read in the geometry file if the geometry_option is set to be an input profile
-         if (geo_option_switch==geo_option_inputprof) then
-            call read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, overwrite_b_dot_gradzeta, &
-               overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
-               overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
-               overwrite_B_times_gradB_dot_gradx, overwrite_geometry)
-         end if
-
+         ! Read the <geometry_from_txt> namelist. This is independent of <geometry_option>:
+         ! the geometric coefficients produced by Miller/VMEC/z-pinch/input.profiles can all
+         ! be overwritten, column by column, with those in a *.geometry file written by stella.
+         call read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, overwrite_b_dot_gradzeta, &
+              overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
+              overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
+              overwrite_B_times_gradB_dot_gradx, overwrite_geometry)
          ! Use Miller parameters or VMEC to get the geometry needed for stella
          if (geo_option_switch==geo_option_local)     call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_inputprof) call get_geometry_arrays_from_Miller(nalpha)
@@ -439,7 +438,7 @@ contains
                gds23_alphapsit, gds24_alphapsit, gds25_alphapsit, gds26_alphapsit, & 
                B_times_gradB_dot_gradalpha, B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradalpha, B_times_kappa_dot_gradpsit, &
                gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_gradzeta_RR, &
-               sign_torflux, theta_vmec, dzetadz, aref, bref, alpha, zeta, &
+               sign_torflux, theta_vmec, dzdzeta, aref, bref, alpha, zeta, &
                field_period_ratio, psit_displacement_fac)
 
       ! Flux surface quantities that we need
@@ -901,63 +900,101 @@ contains
 
       use file_utils, only: get_unused_unit
       use grids_z, only: nzgrid
+      use mp, only: mp_abort
 
       implicit none
 
       ! Arguments
       integer, intent(in) :: nalpha
-      
+
       ! Local variables
       integer :: geofile_unit
       character(100) :: dum_char
       real :: dum_real
       integer :: ia, iz
       real :: bmag_file, b_dot_gradzeta_file
-      real :: grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file, gds23_file, gds24_file
+      real :: grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file
       real :: B_times_gradB_dot_grady_file, B_times_kappa_dot_grady_file, B_times_gradB_dot_gradx_file
+      logical :: geofile_exists
 
       !-------------------------------------------------------------------------
+
+      if (overwrite_gds23 .or. overwrite_gds24) then
+         call mp_abort('overwrite_gds23 and overwrite_gds24 are not supported: gds23 and '// &
+            'gds24 are no longer written to the *.geometry file. Aborting.')
+      end if
+
+      ! Make sure the geometry file exists, since <status='old'> would otherwise
+      ! abort with an unhelpful compiler-dependent I/O error message
+      inquire (file=trim(geometry_file), exist=geofile_exists)
+      if (.not. geofile_exists) then
+         call mp_abort('The <geometry_file> = "'//trim(geometry_file)//'" listed in the '// &
+            '<geometry_from_txt> namelist does not exist. Aborting.')
+      end if
 
       ! Open the geometry file
       call get_unused_unit(geofile_unit)
       open (geofile_unit, file=trim(geometry_file), status='old', action='read')
 
-      ! Deal with the first lines
-      read (geofile_unit, fmt=*) dum_char
-      read (geofile_unit, fmt=*) dum_char
-      read (geofile_unit, fmt=*) dum_char
+      ! Tell the user which geometric coefficients are read from the *.geometry file
+      write (*, '(A)') ' '
+      write (*, '(A)') 'Overwriting geometric coefficients with those in "'//trim(geometry_file)//'":'
+      if (overwrite_bmag) write (*, '(A)') '   bmag'
+      if (overwrite_b_dot_gradzeta) write (*, '(A)') '   b_dot_gradzeta'
+      if (overwrite_grady_dot_grady) write (*, '(A)') '   grady_dot_grady'
+      if (overwrite_gradx_dot_grady) write (*, '(A)') '   gradx_dot_grady'
+      if (overwrite_gradx_dot_gradx) write (*, '(A)') '   gradx_dot_gradx'
+      if (overwrite_B_times_gradB_dot_grady) write (*, '(A)') '   B_times_gradB_dot_grady'
+      if (overwrite_B_times_kappa_dot_grady) write (*, '(A)') '   B_times_kappa_dot_grady'
+      if (overwrite_B_times_gradB_dot_gradx) write (*, '(A)') '   B_times_gradB_dot_gradx (and B_times_kappa_dot_gradx)'
+      write (*, '(A)') ' '
+
+      ! Deal with the first four header lines
+      read (geofile_unit, fmt='(A)') dum_char
+      read (geofile_unit, fmt='(A)') dum_char
+      read (geofile_unit, fmt='(A)') dum_char
+      read (geofile_unit, fmt='(A)') dum_char
 
       ! Overwrite the following geometric quantities:
-      !   - bmag, b_dot_gradzeta, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, gds23, gds24,
+      !   - bmag, b_dot_gradzeta, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx,
       !   - B_times_gradB_dot_grady, B_times_kappa_dot_grady, B_times_gradB_dot_gradx, and B_times_kappa_dot_gradx
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
-         
-            ! Read the (alpha,z) point in the geometry file
-            read (geofile_unit, fmt='(13e12.4)') dum_real, dum_real, dum_real, bmag_file, b_dot_gradzeta_file, &
-               grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file, gds23_file, &
-               gds24_file, B_times_gradB_dot_grady_file, B_times_kappa_dot_grady_file, B_times_gradB_dot_gradx_file
-               
+
+            ! Read the (alpha,z) point in the geometry file.
+            ! The bmag_psi0 column is left unread.
+            read (geofile_unit, fmt='(11e13.4)') dum_real, dum_real, dum_real, bmag_file, b_dot_gradzeta_file, &
+               grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file, &
+               B_times_gradB_dot_grady_file, B_times_kappa_dot_grady_file, B_times_gradB_dot_gradx_file
+
             ! If an overwrite flag is turned on, overwrite the geometric quantity
             if (overwrite_bmag) bmag(ia, iz) = bmag_file
             if (overwrite_grady_dot_grady) grady_dot_grady(ia, iz) = grady_dot_grady_file
             if (overwrite_gradx_dot_grady) gradx_dot_grady(ia, iz) = gradx_dot_grady_file
             if (overwrite_gradx_dot_gradx) gradx_dot_gradx(ia, iz) = gradx_dot_gradx_file
-            if (overwrite_gds23) gds23(ia, iz) = gds23_file
-            if (overwrite_gds24) gds24(ia, iz) = gds24_file
             if (overwrite_B_times_gradB_dot_grady) B_times_gradB_dot_grady(ia, iz) = B_times_gradB_dot_grady_file
             if (overwrite_B_times_kappa_dot_grady) B_times_kappa_dot_grady(ia, iz) = B_times_kappa_dot_grady_file
             if (overwrite_B_times_gradB_dot_gradx) B_times_gradB_dot_gradx(ia, iz) = B_times_gradB_dot_gradx_file
-            
-            ! Assume we are only reading in for a single alpha. 
+
+            ! Assume we are only reading in for a single alpha.
             ! Usually, b_dot_gradzeta is the average of all b_dot_gradz values.
             if (overwrite_b_dot_gradzeta) b_dot_gradz(1, iz) = b_dot_gradzeta_file
-            
+
          end do
+
+         ! Skip the blank line that <write_geometric_coefficients> writes after each alpha block
+         if (ia < nalpha) read (geofile_unit, fmt='(A)') dum_char
+
       end do
-      
+
       ! For any static ideal MHD equilibrium B × κ · ∇ψ = b × ∇B · ∇ψ
-      B_times_kappa_dot_gradx = B_times_gradB_dot_gradx
+      ! Only impose this when B_times_gradB_dot_gradx was actually read from the file,
+      ! otherwise switching on any single overwrite flag would silently clobber
+      ! B_times_kappa_dot_gradx with the equilibrium value of B_times_gradB_dot_gradx
+      if (overwrite_B_times_gradB_dot_gradx) B_times_kappa_dot_gradx = B_times_gradB_dot_gradx
+
+      ! <grad_x> = |∇x| is stored separately from <gradx_dot_gradx> = |∇x|^2, so keep the two consistent
+      if (overwrite_gradx_dot_gradx) grad_x = sqrt(abs(gradx_dot_gradx))
 
       ! Close the geometry file
       close (geofile_unit)
@@ -1101,7 +1138,7 @@ contains
       ! Z-grid
       call broadcast(zeta)
       call broadcast(alpha)
-      call broadcast(dzetadz)
+      call broadcast(dzdzeta)
       call broadcast(twist_and_shift_geo_fac)
       call broadcast(grad_x_grad_y_end)
 

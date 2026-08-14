@@ -54,27 +54,33 @@ class Geometry:
     
     # Extra geometry scalars in *.geometry
     @calculate_attributeWhenReadFirstTime
-    def alpha(self):        get_geometryDataExtra(self);    return self.alpha
+    def alpha(self):                    get_geometryDataExtra(self);    return self.alpha
     @calculate_attributeWhenReadFirstTime
-    def zed(self):          get_geometryDataExtra(self);    return self.zed
+    def zed(self):                      get_geometryDataExtra(self);    return self.zed
     @calculate_attributeWhenReadFirstTime
-    def gradpar(self):      get_geometryDataExtra(self);    return self.gradpar
+    def b_dot_gradz(self):              get_geometryDataExtra(self);    return self.b_dot_gradz
     @calculate_attributeWhenReadFirstTime
-    def gds2(self):         get_geometryDataExtra(self);    return self.gds2
+    def b_dot_gradz_avg(self):          get_geometryDataExtra(self);    return self.b_dot_gradz_avg
     @calculate_attributeWhenReadFirstTime
-    def gds21(self):        get_geometryDataExtra(self);    return self.gds21
+    def grady_dot_grady(self):          get_geometryDataExtra(self);    return self.grady_dot_grady
     @calculate_attributeWhenReadFirstTime
-    def gds22(self):        get_geometryDataExtra(self);    return self.gds22
+    def gradx_dot_grady(self):          get_geometryDataExtra(self);    return self.gradx_dot_grady
     @calculate_attributeWhenReadFirstTime
-    def gds23(self):        get_geometryDataExtra(self);    return self.gds23
+    def gradx_dot_gradx(self):          get_geometryDataExtra(self);    return self.gradx_dot_gradx
     @calculate_attributeWhenReadFirstTime
-    def gds24(self):        get_geometryDataExtra(self);    return self.gds24
+    def B_times_gradB_dot_grady(self):  get_geometryDataExtra(self);    return self.B_times_gradB_dot_grady
     @calculate_attributeWhenReadFirstTime
-    def cvdrift(self):      get_geometryDataExtra(self);    return self.cvdrift
+    def B_times_gradB_dot_gradx(self):  get_geometryDataExtra(self);    return self.B_times_gradB_dot_gradx
     @calculate_attributeWhenReadFirstTime
-    def gbdrift0(self):     get_geometryDataExtra(self);    return self.gbdrift0
+    def B_times_kappa_dot_grady(self):  get_geometryDataExtra(self);    return self.B_times_kappa_dot_grady
     @calculate_attributeWhenReadFirstTime
-    def bmag_psi0(self):    get_geometryDataExtra(self);    return self.bmag_psi0
+    def B_times_kappa_dot_gradx(self):  get_geometryDataExtra(self);    return self.B_times_kappa_dot_gradx
+    @calculate_attributeWhenReadFirstTime
+    def gds23(self):                    get_geometryDataExtra(self);    return self.gds23
+    @calculate_attributeWhenReadFirstTime
+    def gds24(self):                    get_geometryDataExtra(self);    return self.gds24
+    @calculate_attributeWhenReadFirstTime
+    def bmag_psi0(self):                get_geometryDataExtra(self);    return self.bmag_psi0
     
     # Basic data in the VMEC file
     @calculate_attributeWhenReadFirstTime

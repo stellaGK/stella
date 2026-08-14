@@ -37,7 +37,7 @@
 !     surface_option = 0
 !     radial_coordinate = 'sgn(psi_t)psi_t'
 !     verbose = .true.
-!     vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+!     vmec_filename = 'wout_w7x_standardConfig.nc'
 !     n_tolerated_test_arrays_inconsistencies = 0
 !   
 !   geometry_zpinch
@@ -55,6 +55,11 @@
 !     overwrite_B_times_gradB_dot_grady = .false.
 !     overwrite_B_times_kappa_dot_grady = .false.
 !     overwrite_B_times_gradB_dot_gradx = .false.
+!
+!   <geometry_file> must be a *.geometry file previously written by stella
+!   itself (write_geometric_coefficients in geometry.f90); overwrite_gds23
+!   and overwrite_gds24 abort at runtime because gds23/gds24 are no longer
+!   among the columns that file contains.
 ! 
 ! Text options for <geometry_option>:
 !    - miller: {default, miller, local}
@@ -505,7 +510,7 @@ contains
          implicit none
 
          ! Default parameters for VMEC
-         vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
+         vmec_filename = 'wout_w7x_standardConfig.nc'
          alpha0 = 0.0
          zeta_center = 0.0
          nfield_periods = -1.0

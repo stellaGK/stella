@@ -152,8 +152,8 @@ def subplot_flux_vs_parameter(
         parameters, simulations = get_parameters(experiment, key, knob)
     
         # Initiate the data
-        satflux = [np.NaN]*len(experiment.simulations)
-        stdflux = [np.NaN]*len(experiment.simulations) 
+        satflux = [np.nan]*len(experiment.simulations)
+        stdflux = [np.nan]*len(experiment.simulations) 
 
         # Get the saturated data
         for i, simulation in enumerate(simulations):  

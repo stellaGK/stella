@@ -84,7 +84,7 @@ def plot_gamma_vs_parameters(\
      
     # Interpolate the data z(x,y) and replace zeros and original nans by nan
     parameters1, parameters2, zdata, filter_zero_and_nans = interpolate_data(parameters1, parameters2, zdata, boolean_maps, interpolate, step)
-    zdata[filter_zero_and_nans] = np.NaN
+    zdata[filter_zero_and_nans] = np.nan
     
     # Get the color map "black-jet" for gamma and "red-white-blue" for omega
     vmin, vmax, norm = get_colorMapNormalization(zdata, c_range, center_at_zero=(z_quantity=="omega"))
