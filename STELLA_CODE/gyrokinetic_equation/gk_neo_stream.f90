@@ -1,16 +1,10 @@
 ! ================================================================================================================================================================================= !
-! --------------------------------- Evolves neoclassical corrections proportional to the z derivative of the gyroaveraged generalised, ∂<Χ_k>/∂z. --------------------------------- !​
+! ----------------------------------------------------------- Evolves neoclassical corrections to parallel streaming. ------------------------------------------------------------- !​
 ! ================================================================================================================================================================================= !
 ! 
 ! This module evolves the following higher order neoclassical corrections: 
 !
 ! =             
-!         
-! Define the neoclassical ∂<Χ_k>/∂z coefficient as: 
-! 
-! <neo_dchidz_coeff> =
-!
-! This must be multiplied by ∂<Χ_k>/∂z and then added to the RHS of the GKE.
 ! 
 ! ================================================================================================================================================================================= !
 
@@ -56,7 +50,7 @@ contains
         ! NEO data.
         use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
         use neoclassical_terms_neo, only: d2neo_h_dmudz
-        use neoclassical_terms_neo, only: neo_zed_fac
+        use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
         use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
         ! Parameters.
@@ -97,12 +91,12 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%zt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) &
-                * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) 
+                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * b_dot_gradz(:, iz) * neo_vpa_fac(iz, ivmu, 1) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) 
             end do
         end do
 
-        ! If apar is also included we need to calculate the corresponding coeffecient. 
+        ! If apar is also included we need to calculate the corresponding coeffecients. 
         if (include_apar) then 
             ! Iterate over velocity space.
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -118,12 +112,12 @@ contains
                     ! Multiply by the neoclassical distribution factor.
                     neo_stream_apar_1(:, iz, ivmu) = neo_stream_apar_1(:, iz, ivmu) * ( dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) )
 
-                    ! The second apar piece is proportional to apar and results from using gneo as the distribution function. 
+                    ! The second apar piece is proportional to apar and results from transforming the distribution function from gbarneo to gneo. 
                     neo_stream_apar_2(:, iz, ivmu) = neostreamknob * code_dt * spec(is)%zt * spec(is)%stm * vpa(iv) * b_dot_gradz(:, iz) &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
 
                     neo_stream_apar_2(:, iz, ivmu) = neo_stream_apar_2(:, iz, ivmu) * ( 0.5 * d2neo_h_dmudz(iz, ivmu, 1) / bmag(:, iz) &
-                    - 0.5 * ( 2.0 * mu(imu) + 1.0 / bmag(:, iz) ) * dbdzed(:, iz) * dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz)  - neo_zed_fac(iz, ivmu, 1) )
+                    - 0.5 * dbdzed(:, iz) * dneo_h_dmu(iz, ivmu, 1) / ( bmag(:, iz) * bmag(:, iz) ) - dneo_h_dz(iz, ivmu, 1) + spec(is)%z * dneo_phi_dz(iz) )
                end do
            end do
         end if

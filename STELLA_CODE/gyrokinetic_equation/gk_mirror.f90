@@ -983,6 +983,14 @@ contains
       use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
       use calculations_gyro_averages, only: gyro_average
 
+      ! Geometry.
+      use geometry, only: bmag
+
+      ! For HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_vpa_fac_global, neo_mu_fac_global
+      use parameters_numerical, only: neoclassical_mirror_implicit
+
       implicit none
 
       ! Arguments
@@ -995,7 +1003,7 @@ contains
       real :: pre_factor
       complex, dimension(:), allocatable :: vpa_scratch
 
-      !-------------------------------------------------------------------------
+      ! ========================================================================================================= !
 
       allocate (vpa_scratch(nvpa))
 
@@ -1007,6 +1015,10 @@ contains
       call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
 
       vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
+
+      if (neoclassical_is_enabled() .and. .not. neoclassical_mirror_implicit) then
+          vpa_scratch = vpa_scratch * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz) )
+      end if
 
       rhs = vpa_scratch
 

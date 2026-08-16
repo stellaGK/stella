@@ -450,7 +450,6 @@ contains
 
     end subroutine deallocate_temp_arrays
 
-    
     end subroutine init_neoclassical_terms_neo
 
 
@@ -943,12 +942,12 @@ contains
                 do imu = 1, nmu
                     do iz = -nzgrid, nzgrid
                         ! Calculate the parallel velocity derivative factor.
-                        neo_vpa_fac_global(iz, iv, imu, is, 1) = 0.5 * dneo_h_dvpa_global(iz, iv, imu, is, 1) / vpa(iv) - neo_h_global(iz, iv, imu, is, 1) &
-                        + spec(is)%z * neo_phi(iz)
+                        neo_vpa_fac_global(iz, iv, imu, is, 1) = dneo_h_dvpa_global(iz, iv, imu, is, 1) - 2.0 * vpa(iv) * neo_h_global(iz, iv, imu, is, 1) &
+                        + 2.0 * vpa(iv) * spec(is)%z * neo_phi(iz)
 
                         ! Calculate the magnetic moment derivative factor.
-                        neo_mu_fac_global(iz, iv, imu, is, 1) = 0.5 * dneo_h_dmu_global(iz, iv, imu, is, 1) / bmag(ia, iz) - neo_h_global(iz, iv, imu, is, 1) &
-                        + spec(is)%z * neo_phi(iz)
+                        neo_mu_fac_global(iz, iv, imu, is, 1) = dneo_h_dmu_global(iz, iv, imu, is, 1) - 2.0 * bmag(ia, iz) * neo_h_global(iz, iv, imu, is, 1) &
+                        + 2.0 * bmag(ia, iz) * spec(is)%z * neo_phi(iz)
                     end do
                 end do
             end do

@@ -1073,13 +1073,13 @@ contains
             is = is_idx(kxkyz_lo, ikxkyz)
 
             ! Calculate (1 - J_0(a_k)²) exp(v²) for each (kx,ky,z).
-            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            g0 = spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
 
             ! Multiply this by (1 + F_1 - dH_1/dμ|_v∥ 0.5/B_0) for each (kx,ky,z). 
-            g0 = g0 * ( 1.0 - neo_mu_fac_global(iz, :, :, is, 1) )
+            g0 = g0 * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
             
             ! Calculate denominator_fields_neo[iky,ikz,iz].
-            wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
+            wgt = spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt
             call integrate_vmu(g0, iz, tmp)
             denominator_fields_neo_gneo(iky, ikx, iz) = denominator_fields_neo_gneo(iky, ikx, iz) + tmp * wgt
          end do
@@ -1185,14 +1185,14 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                ! Calculate the Maxwellian factor.
-                g0 = spread(maxwell_vpa(:, is) * vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu)
 
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) 
+                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
 
                 ! Calculate denominator_fields_neo_12_gneo[iky,ikz,iz].
-                wgt = 2.0 * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp 
+                wgt = spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt * spec(is)%stm 
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_12_gneo(iky, ikx, iz) = denominator_fields_neo_12_gneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1215,14 +1215,15 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                ! Calculate the Maxwellian factor.
-                g0 = spread(maxwell_vpa(:, is) * vpa, 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(vpa, 2, nmu) &
+                * spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa)
 
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) 
+                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
                 
                 ! Calculate denominator_fields_neo_12_gneo[iky,ikz,iz].
-                wgt = 2.0 * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp 
+                wgt = spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt * spec(is)%stm 
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_12_gbarneo(iky, ikx, iz) = denominator_fields_neo_12_gbarneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1245,13 +1246,15 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)                 
 
-                ! Calculate Maxwellian x vpa factor.
-                g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) 
+                ! Calculate velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu) &
+                * spread(aj0v(:, ikxkyz) ** 2 - 1.0, 1, nvpa)
 
-                g0 = g0 * spread(aj0v(:, ikxkyz)**2 - 1.0, 1, nvpa) * neo_mu_fac_global(iz, :, :, is, 1) 
+                ! Multiply by the neoclassical factor. 
+                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
                 
                 ! Calculate denominator_fields_neo_21_gneo[iky,ikz,iz].
-                wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm / spec(is)%temp
+                wgt = 0.5 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt * spec(is)%stm
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_21_gneo(iky, ikx, iz) = denominator_fields_neo_21_gneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1267,33 +1270,31 @@ contains
             !                                                                                                                                                          !     
             ! ======================================================================================================================================================== !
 
-            ! do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                ! it = it_idx(kxkyz_lo, ikxkyz)
-                ! if (it /= 1) cycle
-                ! iky = iky_idx(kxkyz_lo, ikxkyz)
-                ! ikx = ikx_idx(kxkyz_lo, ikxkyz)
-                ! iz = iz_idx(kxkyz_lo, ikxkyz)
-                ! is = is_idx(kxkyz_lo, ikxkyz)
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                it = it_idx(kxkyz_lo, ikxkyz)
+                if (it /= 1) cycle
+                iky = iky_idx(kxkyz_lo, ikxkyz)
+                ikx = ikx_idx(kxkyz_lo, ikxkyz)
+                iz = iz_idx(kxkyz_lo, ikxkyz)
+                is = is_idx(kxkyz_lo, ikxkyz)
 
-                ! g0 = spread(vpa * vpa * maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+                ! Multiply by the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu)
 
-                ! g0 = g0 * ( 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) - 0.5 * dneo_h_dvpa_global(iz, :, :, is, 1) * spread(vpa, 2, nmu) )
+                g0 = g0 * ( spread(vpa, 2, nmu) * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) - dneo_h_dvpa_global(iz, :, :, is, 1) )
 
                 ! Calculate denominator_fields_neo_22_gneo[iky,ikz,iz].            
-                ! wgt = 2.0 * beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
-
-                ! call integrate_vmu(g0, iz, tmp)
-                ! denominator_fields_neo_22_gneo(iky, ikx, iz) = denominator_fields_neo_22_gneo(iky, ikx, iz) + tmp * wgt
-            ! end do
+                wgt = beta * spec(is)%z * spec(is)%dens * spec(is)%z / spec(is)%mass
+                call integrate_vmu(g0, iz, tmp)
+                denominator_fields_neo_22_gneo(iky, ikx, iz) = denominator_fields_neo_22_gneo(iky, ikx, iz) + tmp * wgt
+            end do
 
             ! Sum the values on all processors and send them to <proc0>.
-            ! call sum_allreduce(denominator_fields_neo_22_gneo)
+            call sum_allreduce(denominator_fields_neo_22_gneo)
 
             ! Add the kperp2 factor.
-            ! denominator_fields_neo_22_gneo = denominator_fields_neo_22_gneo + kperp2(:, :, ia, :)
+            denominator_fields_neo_22_gneo = denominator_fields_neo_22_gneo + kperp2(:, :, ia, :)
              
-            denominator_fields_neo_22_gneo = kperp2(:, :, ia, :)
-
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_22_gbarneo is the apar contribution to parallel Amperes law when gbarneo is being used for the distribution function. This is     !
             ! given by:                                                                                                                                                ! 
@@ -1311,13 +1312,15 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread(vpa * maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu)
 
-                g0 = g0 * 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) 
+                ! Multiply by the neoclassical factor.
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) &
+                - dneo_h_dvpa_global(iz, :, :, is, 1) + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
 
                 ! Calculate denominator_fields_neo_22_gbarneo[iky,ikz,iz].            
-                wgt = beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
-               
+                wgt = beta * spec(is)%z * spec(is)%dens * spec(is)%z / spec(is)%mass
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_22_gbarneo(iky, ikx, iz) = denominator_fields_neo_22_gbarneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1345,23 +1348,23 @@ contains
             
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                 it = it_idx(kxkyz_lo, ikxkyz)
-                ! denominator_fields13 does not depend on flux tube index,
-                ! so only compute for one flux tube index
-                ! denominator_fields13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+                ! denominator_fields13 does not depend on flux tube index, so only compute for one flux tube index.
                 if (it /= 1) cycle
                 iky = iky_idx(kxkyz_lo, ikxkyz)
                 ikx = ikx_idx(kxkyz_lo, ikxkyz)
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
             
-                g0 = spread(mu * aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) &
-                * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+                ! Calculate the velocity dependent factor. 
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(mu, 1, nvpa) &
+                * spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa)
             
-                g0 = g0 * ( 1.0 - neo_mu_fac_global(iz, :, :, is, 1) )
+                ! Multiply by the neoclassical factor.
+                g0 = g0 * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0 )
 
-                wgt = - 4.0 * spec(is)%z * spec(is)%dens_psi0
-                call integrate_vmu(g0, iz, tmp)
-   
+                ! Calculate denominator_fields_neo_13_gneo[iky,ikz,iz].
+                wgt = 4.0 * spec(is)%z * spec(is)%dens_psi0
+                call integrate_vmu(g0, iz, tmp)   
                 denominator_fields_neo_13_gneo(iky, ikx, iz) = denominator_fields_neo_13_gneo(iky, ikx, iz) + tmp * wgt
             end do
          
@@ -1382,12 +1385,15 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) * spread(vpa * maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-                * maxwell_fac(is)
-
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu) *spread(mu, 1, nvpa) &
+                * spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa)
+ 
+                ! Multiply by the neoclassical factor.
                 g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
 
-                wgt = 2.0 * beta *spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
+                ! Calculate denominator_fields_neo_23_gneo[iky,ikz,iz].
+                wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_23_gneo(iky, ikx, iz) = denominator_fields_neo_23_gneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1410,11 +1416,14 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread(mu * maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) 
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(mu, 1, nvpa) 
 
-                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) * neo_mu_fac_global(iz, :, :, is, 1) &
-                + spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) ) 
+                ! Multiply by the neoclassical factor. 
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) *  0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
+                + spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) )
 
+                ! Calculate denominator_fields_neo_31_gneo[iky,ikz,iz].
                 wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_31_gneo(iky, ikx, iz) = denominator_fields_neo_31_gneo(iky, ikx, iz) + tmp * wgt
@@ -1438,9 +1447,13 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
-                * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu) * spread(mu, 1, nvpa) 
 
+                ! Multiply by the neoclassical factor.
+                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
+
+                ! Calculate denominator_fields_neo_32_gneo[iky,ikz,iz].
                 wgt = - 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_32_gneo(iky, ikx, iz) = denominator_fields_neo_32_gneo(iky, ikx, iz) + tmp * wgt
@@ -1463,10 +1476,15 @@ contains
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu * maxwell_mu(ia, iz, :, is)), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
-                * spread(vpa, 2, nmu) * neo_mu_fac_global(iz, :, :, is, 1) * spread((1.0 - aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) / bmag(ia, iz)
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu) * spread(mu, 1, nvpa) &
+                * spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz) - 1.0, 1, nvpa)
 
-                wgt = - 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
+                ! Multiply by the neoclassical factor.
+                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+              
+                ! Calculate denominator_fields_neo_32_gbarneo[iky,ikz,iz].
+                wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_32_gbarneo(iky, ikx, iz) = denominator_fields_neo_32_gbarneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1483,22 +1501,22 @@ contains
 
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                 it = it_idx(kxkyz_lo, ikxkyz)
-                ! denominator_fields33 does not depend on flux tube index,
-                ! so only compute for one flux tube index
-                ! denominator_fields33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+                ! denominator_fields33 does not depend on flux tube index, so only compute for one flux tube index.
                 if (it /= 1) cycle
                 iky = iky_idx(kxkyz_lo, ikxkyz)
                 ikx = ikx_idx(kxkyz_lo, ikxkyz)
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                g0 = spread((mu * mu * aj1v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) &
-                * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+                ! Calculate the velocity dependent factor.
+                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(mu * mu, 1, nvpa) &
+                * spread(aj1v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa)
             
-                g0 = g0 * ( 1.0 - neo_mu_fac_global(iz, :, :, is, 1) )
+                ! Multiply by the neoclassical factor.
+                g0 = g0 * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
 
-                wgt = 8.0 * beta * spec(is)%temp * spec(is)%dens_psi0
-            
+                ! Calculate denominator_fields_neo_33_gneo[iky,ikz,iz].
+                wgt = 8.0 * beta * spec(is)%dens_psi0 * spec(is)%temp            
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_33_gneo(iky, ikx, iz) = denominator_fields_neo_33_gneo(iky, ikx, iz) + tmp * wgt
             end do

@@ -137,11 +137,11 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid 
-                wstar1yz(:, iz, ivmu) = - wstar1yknob * dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
-                - wstar1yknob * clebsch_factor * gradx_dot_grady(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * geo_surf%qinp * dxdpsi )
+                wstar1yz(:, iz, ivmu) = wstar1yknob * dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
+                + wstar1yknob * clebsch_factor * gradx_dot_grady(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * geo_surf%qinp * dxdpsi )
                
                 ! Multiply by the F_1 factor.
-                wstar1yz(:, iz, ivmu) = wstar1yz(:, iz, ivmu) * neo_zed_fac(iz, ivmu, 1)
+                wstar1yz(:, iz, ivmu) = - 0.5 * wstar1yz(:, iz, ivmu) * neo_zed_fac(iz, ivmu, 1)
             end do
         end do
 
@@ -242,7 +242,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1xz(:, iz, ivmu) = 0.5 * ( (dxdpsi / clebsch_factor) &
+                wstar1xz(:, iz, ivmu) = 0.5 * ( ( dxdpsi / clebsch_factor ) &
                 - clebsch_factor * gradx_dot_gradx(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * dxdpsi ) ) &
                 / geo_surf%qinp
 
@@ -259,7 +259,7 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1xvpa(:, iz, ivmu) = - mu(imu) * B_times_gradB_dot_gradx(:, iz) * neo_vpa_fac(iz, ivmu, 1) / ( bmag(:, iz) * bmag(:, iz) )
+                wstar1xvpa(:, iz, ivmu) = - 0.5 * mu(imu) * B_times_gradB_dot_gradx(:, iz) * neo_vpa_fac(iz, ivmu, 1) / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) )
             end do
         end do
 

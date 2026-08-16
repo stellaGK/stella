@@ -98,8 +98,7 @@ contains
                 neo_mirror_apar_1(:, iz, ivmu) = neomirrorknob * code_dt * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)  
 
-                neo_mirror_apar_1(:, iz, ivmu) = neo_mirror_apar_1(:, iz, ivmu) &
-                * ( vpa(iv) * dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - 0.5 * d2neo_h_dvpadmu(iz, ivmu, 1) / bmag(:, iz) + 2.0 * vpa(iv) * neo_vpa_fac(iz, ivmu, 1) )
+                neo_mirror_apar_1(:, iz, ivmu) = neo_mirror_apar_1(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 0.5 * d2neo_h_dvpadmu(iz, ivmu, 1) / bmag(:, iz) )
             end do 
 
             do iz = -nzgrid, nzgrid
