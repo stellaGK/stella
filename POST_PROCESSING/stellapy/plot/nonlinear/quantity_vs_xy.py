@@ -99,7 +99,7 @@ def subplot_quantity_vs_xy(ax, simulation, z_quantity, specie, t_range=None, z=N
     
     # Get the range of the color bar
     if log:
-        z_vs_xy[z_vs_xy < 1.E-25] = np.NaN
+        z_vs_xy[z_vs_xy < 1.E-25] = np.nan
         crange = [ np.nanmin(abs(z_vs_xy)), np.nanmax(abs(z_vs_xy)) ]  
         if ordersOfMagnitude: crange[0] = 10**(np.log10(crange[1])-ordersOfMagnitude)
         norm = LogNorm(vmin=crange[0], vmax=crange[1])  

@@ -105,8 +105,8 @@ class LinearData:
         
         # Get the error
         if plot.ydim=="kx" or plot.ydim=="ky":
-            minimum = np.ones((len(modes)))*np.NaN
-            maximum = np.ones((len(modes)))*np.NaN
+            minimum = np.ones((len(modes)))*np.nan
+            maximum = np.ones((len(modes)))*np.nan
         if plot.ydim!="kx" and plot.ydim!="ky":
             minimum = [getattr(mode.lineardata, plot.ydim.split("_")[0]+"_min") if mode.lineardata.unstable else 0 for mode in modes]
             maximum = [getattr(mode.lineardata, plot.ydim.split("_")[0]+"_max") if mode.lineardata.unstable else 0 for mode in modes]

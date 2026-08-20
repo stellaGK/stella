@@ -11,7 +11,7 @@ def get_inputFilesWhoOnlyDifferInResolution(input_files, input_parameters, ignor
     saved_input_files = {1 : {'input_parameters' : input_parameters[0], 'input_files' : [input_files[0]]}}
     
     # Knobs that can't differ since they would definitely represent a 'new' simulation 
-    knobs = ['gyrokinetic_terms', 'adiabatic_electron_response', 'species_options', 'geometry_options', 'geometry_miller', 'geometry_vmec']
+    knobs = ['gyrokinetic_terms', 'adiabatic_electron_response', 'species_options', 'geometry_options', 'geometry_miller', 'geometry_vmec', 'flow_shear']
     knobs += ['species_parameters_'+str(specie) for specie in np.arange(1,5)]
     knobs += include_knobs
     
@@ -30,9 +30,12 @@ def get_inputFilesWhoOnlyDifferInResolution(input_files, input_parameters, ignor
             # Get the input parameters of the saved <input_file> 
             input_parameters_saved = saved_input_files[j]['input_parameters']
             
-            # Check if <input_parameters_new> differs from <input_parameters_saved> in the relevant parameters 
+            # Check if <input_parameters_new> differs from <input_parameters_saved> in the relevant parameters
             for knob in knobs:
-                if input_parameters_new[knob]!=input_parameters_saved[knob]: 
+                # Some species_parameters_N knobs only exist up to nspec;
+                if knob not in input_parameters_new or knob not in input_parameters_saved:
+                    continue
+                if input_parameters_new[knob]!=input_parameters_saved[knob]:
                     break
         
             # If we managed to check all the knobs, the input_file is similar

@@ -67,7 +67,8 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_fluxtube.f90
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_fullfluxsurface.f90 
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_radialvariation.f90
-  ../STELLA_CODE/diagnostics/diagnostics_fluxes.f90 
+  ../STELLA_CODE/diagnostics/diagnostics_fluxes.f90
+  ../STELLA_CODE/diagnostics/diagnostics_stresses.f90
   ../STELLA_CODE/diagnostics/diagnostics_moments.f90
   ../STELLA_CODE/diagnostics/diagnostics_omega.f90
   ../STELLA_CODE/diagnostics/diagnostics_potential.f90

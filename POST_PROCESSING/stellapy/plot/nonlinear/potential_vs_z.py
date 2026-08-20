@@ -11,7 +11,9 @@ Arguments
     folder : pathlib.Path directory where the command has been executed
     x_quantity : {z, pol, tor}
     y_quantity : {phi2, phi, phi_real, phi_imag}
-    geometry : {bmag, gradpar, gds2, gds21, gds22, gds23, gds24, cvdrift, gbdrift0, bmag_psi0} overlayed on the background 
+    geometry : {bmag, b_dot_gradz, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx,
+                B_times_gradB_dot_grady, B_times_gradB_dot_gradx, B_times_kappa_dot_grady,
+                B_times_kappa_dot_gradx, bmag_psi0, gds23, gds24} overlayed on the background
     folderIsExperiment : {False, True} 
     interpolate : {int, False} where <int> (e.g. 20) is the interpolation step
 
@@ -171,16 +173,23 @@ def plot_geometric_quantity(ax, x_quantity, geometry, simulation, maximum, minim
         if interpolate: x, bmag = interpolate_data(x, bmag, interpolate) 
         ax.plot(x, bmag, color="gray")
         add_extra_legend(ax, "gray", "$B$", plot) 
-    elif geometry in ["alpha", "zed", "gradpar", "gds2", "gds21", "gds22", "gds23","gds24", "cvdrift", "gbdrift0", "bmag_psi0"]: 
+    elif geometry in ["alpha", "zed", "b_dot_gradz", "b_dot_gradz_avg",
+                      "grady_dot_grady", "gradx_dot_grady", "gradx_dot_gradx",
+                      "B_times_gradB_dot_grady", "B_times_gradB_dot_gradx",
+                      "B_times_kappa_dot_grady", "B_times_kappa_dot_gradx",
+                      "gds23", "gds24", "bmag_psi0"]:
         x = get_field_line_coordinate(x_quantity, simulation)
-        geometry_data = getattr(simulation.geometry, geometry)
+        geometry_data = getattr(simulation.geometry, geometry, None)
+        if geometry_data is None:
+            print("WARNING: <"+geometry+"> is not available in this run, skipping overlay.")
+            return
         geometry_data = geometry_data/np.max(np.abs(geometry_data))*maximum
-        if interpolate: x, geometry_data = interpolate_data(x, geometry_data, interpolate) 
-        ax.plot(x, geometry_data, color="gray") 
-        add_extra_legend(ax, "gray", geometry+'/max('+geometry+')', plot) 
+        if interpolate: x, geometry_data = interpolate_data(x, geometry_data, interpolate)
+        ax.plot(x, geometry_data, color="gray")
+        add_extra_legend(ax, "gray", geometry+'/max('+geometry+')', plot)
     elif geometry!=None and geometry!=False:
-        print("WARNING: <geometry> = "+geometry+" is not recognized.") 
-    return 
+        print("WARNING: <geometry> = "+geometry+" is not recognized.")
+    return
          
 #-----------------------------
 def get_quantity_versus_z(y_quantity, simulation, specie, tstarts, tends):   
@@ -267,7 +276,7 @@ if __name__ == "__main__":
     if not nonlinear: os.system("python3 $STELLAPY/plot/linear/potential_vs_z.py "+" ".join(sys.argv[1:])); sys.exit()
 
     # Data 
-    bash.add_option('geometry', 'str', 'g', '', 'Plot geometric quantity from {bmag, gradpar, gds2, gds21, gds22, gds23, gds24, cvdrift, gbdrift0, bmag_psi0}.')  
+    bash.add_option('geometry', 'str', 'g', '', 'Plot geometric quantity from {bmag, b_dot_gradz, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx, B_times_kappa_dot_grady, B_times_kappa_dot_gradx, bmag_psi0, gds23, gds24}.')
     
     # Choose the y-quantity
     bash.add_toggleheader("y_quantity")

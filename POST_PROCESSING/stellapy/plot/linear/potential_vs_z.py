@@ -238,16 +238,18 @@ if __name__ == "__main__":
     # Choose the y-quantity
     bash.add_toggleheader("geometry")
     bash.add_toggle('geometry', 'bmag', '', '', 'Plot the magnetic field strength. (DEFAULT)')
-    bash.add_toggle('geometry', 'gradpar', '', '', 'Plot gradpar.')      
-    bash.add_toggle('geometry', 'gds2', '', '', 'Plot gds2.')      
-    bash.add_toggle('geometry', 'gds21', '', '', 'Plot gds21.')      
-    bash.add_toggle('geometry', 'gds22', '', '', 'Plot gds22.')      
-    bash.add_toggle('geometry', 'gds23', '', '', 'Plot gds23.')      
-    bash.add_toggle('geometry', 'gds24', '', '', 'Plot gds24.')      
-    bash.add_toggle('geometry', 'cvdrift', '', '', 'Plot cvdrift.')      
-    bash.add_toggle('geometry', 'gbdrift0', '', '', 'Plot gbdrift0.')      
-    bash.add_toggle('geometry', 'bmag_psi0', '', '', 'Plot bmag_psi0.')      
-    bash.add_togglespace() 
+    bash.add_toggle('geometry', 'b_dot_gradz', '', '', 'Plot b.Gz (replaces gradpar).')
+    bash.add_toggle('geometry', 'grady_dot_grady', '', '', 'Plot |Gy|^2 (replaces gds2).')
+    bash.add_toggle('geometry', 'gradx_dot_grady', '', '', 'Plot Gx.Gy (replaces gds21).')
+    bash.add_toggle('geometry', 'gradx_dot_gradx', '', '', 'Plot |Gx|^2 (replaces gds22).')
+    bash.add_toggle('geometry', 'B_times_gradB_dot_grady', '', '', 'Plot BxGB.Gy (replaces gbdrift).')
+    bash.add_toggle('geometry', 'B_times_gradB_dot_gradx', '', '', 'Plot BxGB.Gx (replaces gbdrift0).')
+    bash.add_toggle('geometry', 'B_times_kappa_dot_grady', '', '', 'Plot Bxkappa.Gy (replaces cvdrift).')
+    bash.add_toggle('geometry', 'B_times_kappa_dot_gradx', '', '', 'Plot Bxkappa.Gx (replaces cvdrift0).')
+    bash.add_toggle('geometry', 'gds23', '', '', 'Plot gds23 (only available for old runs).')
+    bash.add_toggle('geometry', 'gds24', '', '', 'Plot gds24 (only available for old runs).')
+    bash.add_toggle('geometry', 'bmag_psi0', '', '', 'Plot bmag_psi0.')
+    bash.add_togglespace()
     
     # Choose the modes
     bash.add_toggleheader("modes")
@@ -263,7 +265,7 @@ if __name__ == "__main__":
     # Quantities to be plotted
     bash.add_option('x_quantity', 'str', 'z', '', 'Choose the x-quantity from {z, pol, tor}.')  
     bash.add_option('y_quantity', 'str', 'y', '', 'Choose the y-quantity from {phi, phi_real, phi_imag, phi2}.')  
-    bash.add_option('geometry', 'str', 'g', '', 'Choose the geometry from {bmag, gradpar, gds2, gds21, gds22, gds23, gds24, cvdrift, gbdrift0, bmag_psi0, alpha, zed}.')
+    bash.add_option('geometry', 'str', 'g', '', 'Choose the geometry from {bmag, b_dot_gradz, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx, B_times_kappa_dot_grady, B_times_kappa_dot_gradx, bmag_psi0, gds23, gds24, alpha, zed}.')
     
     # Research options 
     bash.add_toggle('ignore_resolution', False, 'i', 'include_resolution', 'Include the resolution (delta t, nzed, ...) between simulations.')   

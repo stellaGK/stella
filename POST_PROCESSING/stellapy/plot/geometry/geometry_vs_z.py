@@ -10,7 +10,9 @@ Arguments
 --------- 
     folder : pathlib.Path directory where the command has been executed
     x_quantity : {z, pol, tor}
-    y_quantity : {bmag, gradpar, gds2, gds21, gds22, gds23, gds24, cvdrift, gbdrift0, bmag_psi0} 
+    y_quantity : {bmag, b_dot_gradz, b_dot_gradz_avg, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx,
+                  B_times_gradB_dot_grady, B_times_gradB_dot_gradx, B_times_kappa_dot_grady,
+                  B_times_kappa_dot_gradx, bmag_psi0, gds23, gds24}
     folderIsExperiment : {False, True} 
     interpolate : {int, False} where <int> (e.g. 20) is the interpolation step
 
@@ -42,7 +44,15 @@ from stellapy.utils.commandprompt.bash import Bash
 #                               Plot geometry(z)                               #
 #===============================================================================
 
-def plot_geometry_vs_z(folder, 
+# Geometric quantities that can be plotted. 
+valid_quantities = ["bmag", "alpha", "zed",
+    "b_dot_gradz", "b_dot_gradz_avg",
+    "grady_dot_grady", "gradx_dot_grady", "gradx_dot_gradx",
+    "B_times_gradB_dot_grady", "B_times_gradB_dot_gradx",
+    "B_times_kappa_dot_grady", "B_times_kappa_dot_gradx",
+    "bmag_psi0", "gds23", "gds24"]
+
+def plot_geometry_vs_z(folder,
         # Quantities to be plotted         
         x_quantity="z", 
         y_quantity="bmag",    
@@ -61,13 +71,13 @@ def plot_geometry_vs_z(folder,
         title=""):     
     
     # Make sure <geometry> is a valid choice
-    if y_quantity not in ["bmag", "alpha", "zed", "gradpar", "gds2", "gds21", "gds22", "gds23","gds24", "cvdrift", "gbdrift0", "bmag_psi0"]:    
+    if y_quantity not in valid_quantities:
         exit_reason = "Error: <y_quantity> = "+y_quantity+" is not a valid geometric quantity. \n"
-        exit_reason += "Choose <y_quantity> from {bmag, gradpar, gds2, gds21, gds22, gds23, gds24, cvdrift, gbdrift0, bmag_psi0, alpha, zed}"
+        exit_reason += "Choose <y_quantity> from {"+", ".join(valid_quantities)+"}"
         exit_program(exit_reason, plot_geometry_vs_z, sys._getframe().f_lineno)
-        
+
     # Create a <research> based on the given <folder>
-    research = create_research(folders=folder, resolutionScan=False, folderIsExperiment=folderIsExperiment) 
+    research = create_research(folders=folder, resolutionScan=False, folderIsExperiment=folderIsExperiment)
             
     # Create a figure
     if y_quantity=="bmag": title = "Magnetic field strength $B$" 
@@ -111,10 +121,10 @@ def subplot_geometry_vs_z(
         color="gray"):   
     
     # Make sure <geometry> is a valid choice
-    if y_quantity not in ["bmag", "alpha", "zed", "gradpar", "gds2", "gds21", "gds22", "gds23","gds24", "cvdrift", "gbdrift0", "bmag_psi0"]:    
+    if y_quantity not in valid_quantities:
         if y_quantity==None: return
         exit_reason = "Error: <y_quantity> = "+str(y_quantity)+" is not a valid geometric quantity. \n"
-        exit_reason += "Choose <y_quantity> from {bmag, gradpar, gds2, gds21, gds22, gds23, gds24, cvdrift, gbdrift0, bmag_psi0, alpha, zed}"
+        exit_reason += "Choose <y_quantity> from {"+", ".join(valid_quantities)+"}"
         exit_program(exit_reason, plot_geometry_vs_z, sys._getframe().f_lineno)
     
     # Keep track of the data
@@ -128,12 +138,18 @@ def subplot_geometry_vs_z(
         
     # Plot the geometry for each simulation
     for simulation in simulations:
-            
+
         # Get the x-coordinate and y-coordinate
-        x = get_field_line_coordinate(x_quantity, simulation) 
-        y = getattr(simulation.geometry, y_quantity)
-        
-        # Make sure there is no alpha dimension 
+        x = get_field_line_coordinate(x_quantity, simulation)
+        y = getattr(simulation.geometry, y_quantity, None)
+
+        # Skip quantities that are not in the geometry file (e.g. gds23/gds24
+        # are no longer written by stella, only present for old runs)
+        if y is None:
+            print("WARNING: <"+y_quantity+"> is not available in this run, skipping "+str(simulation.id)+".")
+            continue
+
+        # Make sure there is no alpha dimension
         if len(np.shape(y))>1: y = y[:,0]
                 
         # Only plot each unique geometry once
@@ -200,18 +216,19 @@ def interpolate_data(x, y, interpolate):
 
 
 #-----------------------------------------------
-def get_labels(geometry, math_mode, maximum): 
+def get_labels(geometry, math_mode, maximum):
     if math_mode:
         labels = {
             "bmag" : "$B$",\
-            "gradpar" : "$\\nabla_{\\parallel}z$",\
-            "gds2" : "$|\\nabla y|^2$",\
-            "gds21" : "$\\nabla x \\cdot \\nabla y$",\
-            "gds22" : "$|\\nabla x|^2$",\
-            "gbdrift" : "$\\mathbf{B} \\times \\nabla B \\cdot \\nabla y$",\
-            "gbdrift0" : "$\\mathbf{B} \\times \\nabla B \\cdot \\nabla x$",\
-            "cvdrift" : "$\\mathbf{B} \\times \\mathbf{\\kappa} \\cdot \\nabla y$",\
-            "cvdrift0" : "$\\mathbf{B} \\times \\mathbf{\\kappa} \\cdot \\nabla x$",\
+            "b_dot_gradz" : "$\\mathbf{b} \\cdot \\nabla z$",\
+            "b_dot_gradz_avg" : "$\\langle\\mathbf{b} \\cdot \\nabla z\\rangle_\\alpha$",\
+            "grady_dot_grady" : "$|\\nabla y|^2$",\
+            "gradx_dot_grady" : "$\\nabla x \\cdot \\nabla y$",\
+            "gradx_dot_gradx" : "$|\\nabla x|^2$",\
+            "B_times_gradB_dot_grady" : "$\\mathbf{B} \\times \\nabla B \\cdot \\nabla y$",\
+            "B_times_gradB_dot_gradx" : "$\\mathbf{B} \\times \\nabla B \\cdot \\nabla x$",\
+            "B_times_kappa_dot_grady" : "$\\mathbf{B} \\times \\mathbf{\\kappa} \\cdot \\nabla y$",\
+            "B_times_kappa_dot_gradx" : "$\\mathbf{B} \\times \\mathbf{\\kappa} \\cdot \\nabla x$",\
             "gds23" : "$((\\nabla y \\cdot \\nabla \\zeta)(\\nabla x \\cdot \\nabla y) - (\\nabla x \\cdot \\nabla \\zeta)|\\nabla y|^2)$",\
             "gds24" : "$((\\nabla y \\cdot \\nabla \\zeta)|\\nabla x|^2 - (\\nabla x \\cdot \\nabla \\zeta)(\\nabla x \\cdot \\nabla y))$",\
             }
@@ -220,14 +237,15 @@ def get_labels(geometry, math_mode, maximum):
     if not math_mode:
         labels = {
             "bmag" : "bmag",\
-            "gradpar" : "gradpar",\
-            "gds2" : "gds2",\
-            "gds21" : "gds21",\
-            "gds22" : "gds22",\
-            "gbdrift" : "gbdrift",\
-            "gbdrift0" : "gbdrift0",\
-            "cvdrift" : "cvdrift",\
-            "cvdrift0" : "cvdrift0",\
+            "b_dot_gradz" : "b_dot_gradz",\
+            "b_dot_gradz_avg" : "b_dot_gradz_avg",\
+            "grady_dot_grady" : "grady_dot_grady",\
+            "gradx_dot_grady" : "gradx_dot_grady",\
+            "gradx_dot_gradx" : "gradx_dot_gradx",\
+            "B_times_gradB_dot_grady" : "B_times_gradB_dot_grady",\
+            "B_times_gradB_dot_gradx" : "B_times_gradB_dot_gradx",\
+            "B_times_kappa_dot_grady" : "B_times_kappa_dot_grady",\
+            "B_times_kappa_dot_gradx" : "B_times_kappa_dot_gradx",\
             "gds23" : "gds23",\
             "gds24" : "gds24",\
             }
@@ -244,18 +262,21 @@ if __name__ == "__main__":
     
     # Choose the y-quantity
     bash.add_toggleheader("y_quantity")
-    bash.add_option('y_quantity', 'str', 'y', '', 'Choose the quantity from {bmag, gradpar, gds2, gds21, gds22, gds23, gds24, cvdrift, gbdrift0, bmag_psi0, alpha, zed}.')
+    bash.add_option('y_quantity', 'str', 'y', '', 'Choose the quantity from {bmag, b_dot_gradz, b_dot_gradz_avg, grady_dot_grady, gradx_dot_grady, gradx_dot_gradx, B_times_gradB_dot_grady, B_times_gradB_dot_gradx, B_times_kappa_dot_grady, B_times_kappa_dot_gradx, bmag_psi0, gds23, gds24, alpha, zed}.')
     bash.add_toggle('y_quantity', 'bmag', '', '', 'Plot the magnetic field strength.')
-    bash.add_toggle('y_quantity', 'gradpar', '', '', 'Plot gradpar.')      
-    bash.add_toggle('y_quantity', 'gds2', '', '', 'Plot gds2.')      
-    bash.add_toggle('y_quantity', 'gds21', '', '', 'Plot gds21.')      
-    bash.add_toggle('y_quantity', 'gds22', '', '', 'Plot gds22.')      
-    bash.add_toggle('y_quantity', 'gds23', '', '', 'Plot gds23.')      
-    bash.add_toggle('y_quantity', 'gds24', '', '', 'Plot gds24.')      
-    bash.add_toggle('y_quantity', 'cvdrift', '', '', 'Plot cvdrift.')      
-    bash.add_toggle('y_quantity', 'gbdrift0', '', '', 'Plot gbdrift0.')      
-    bash.add_toggle('y_quantity', 'bmag_psi0', '', '', 'Plot bmag_psi0.')      
-    bash.add_togglespace() 
+    bash.add_toggle('y_quantity', 'b_dot_gradz', '', '', 'Plot b.Gz (replaces gradpar).')
+    bash.add_toggle('y_quantity', 'b_dot_gradz_avg', '', '', 'Plot the alpha-averaged b.Gz.')
+    bash.add_toggle('y_quantity', 'grady_dot_grady', '', '', 'Plot |Gy|^2 (replaces gds2).')
+    bash.add_toggle('y_quantity', 'gradx_dot_grady', '', '', 'Plot Gx.Gy (replaces gds21).')
+    bash.add_toggle('y_quantity', 'gradx_dot_gradx', '', '', 'Plot |Gx|^2 (replaces gds22).')
+    bash.add_toggle('y_quantity', 'B_times_gradB_dot_grady', '', '', 'Plot BxGB.Gy (replaces gbdrift).')
+    bash.add_toggle('y_quantity', 'B_times_gradB_dot_gradx', '', '', 'Plot BxGB.Gx (replaces gbdrift0).')
+    bash.add_toggle('y_quantity', 'B_times_kappa_dot_grady', '', '', 'Plot Bxkappa.Gy (replaces cvdrift).')
+    bash.add_toggle('y_quantity', 'B_times_kappa_dot_gradx', '', '', 'Plot Bxkappa.Gx (replaces cvdrift0).')
+    bash.add_toggle('y_quantity', 'gds23', '', '', 'Plot gds23 (only available for old runs).')
+    bash.add_toggle('y_quantity', 'gds24', '', '', 'Plot gds24 (only available for old runs).')
+    bash.add_toggle('y_quantity', 'bmag_psi0', '', '', 'Plot bmag_psi0.')
+    bash.add_togglespace()
     
     # Plotting options 
     bash.add_toggleheader("other")

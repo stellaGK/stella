@@ -53,7 +53,11 @@ def write_txtFileForPotentialVsZ(folder, verbose=False):
         nakx, naky = read_numberOfModesFromInputFile(input_file); nakxnaky = nakx*naky
         
         # Read the potential versus time from the output file
-        phi_vs_zkxky, phi2_vs_zkxky = read_potentialVsZ(netcdf_path) 
+        try:
+            phi_vs_zkxky, phi2_vs_zkxky = read_potentialVsZ(netcdf_path)
+        except TypeError:
+            print(status+"   ---> phi(z) skipped (phi_vs_tzkxkyri not in netcdf) for " + potential_path.parent.name+"/"+input_file.name)
+            continue
     
         # h5 file for multiple modes per simulation
         if nakxnaky>1:  

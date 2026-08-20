@@ -18,7 +18,7 @@ class vmec:
         self.mu_0 = 4*np.pi*10**(-7)
 
         # Default input parameters
-        self.vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
+        self.vmec_filename = 'wout_w7x_standardConfig.nc'
         self.alpha0 = 0.0
         self.zeta_center = 0.0
         self.nfield_periods = -1.0

@@ -51,7 +51,7 @@ def calculate_inverseFourierTransform(self, quantity_kxky, axis_kx=2, axis_ky=3)
     ny = self.dim.y;  naky = self.dim.ky
     
     # Initiate the quantity in real space (x,y)
-    quantity_xy = np.ones(dimensions)*np.NaN
+    quantity_xy = np.ones(dimensions)*np.nan
     
     # Calculate the inverse Fourier in two dimensions (kx,ky)
     if len(dimensions)==2:

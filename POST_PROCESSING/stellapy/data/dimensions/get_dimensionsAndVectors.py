@@ -181,9 +181,9 @@ def get_extraZVectors(self):
     nfield_periods = self_object.geometry.nfield_periods
     
     # Initiate the attributes: the time, z and phi2 can differ for each input file
-    vec.zeta = np.ones((dim.z)) * np.NaN
-    vec.pol  = np.ones((dim.z)) * np.NaN
-    vec.tor  = np.ones((dim.z)) * np.NaN
+    vec.zeta = np.ones((dim.z)) * np.nan
+    vec.pol  = np.ones((dim.z)) * np.nan
+    vec.tor  = np.ones((dim.z)) * np.nan
 
     # Read the length of one poloidal turn around the stellarator
     # nfieldperiods(s) = #poloidalturns * #fieldperiods / iota(s)
