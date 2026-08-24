@@ -24,6 +24,10 @@ module gk_mirror
    public :: add_mirror_radial_variation
    public :: mirror_sign
 
+   ! For HO simulations.
+   public :: neo_mirror
+   public :: neo_mirror_sign
+
    private
 
    integer, dimension(:, :), allocatable :: mirror_sign
@@ -35,6 +39,10 @@ module gk_mirror
    integer, dimension(:, :, :, :), allocatable :: mirror_interp_idx_shift
    complex, dimension(:, :, :, :), allocatable :: response_apar_denom
    
+   ! For HO simulations.
+   integer, dimension(:, :), allocatable :: neo_mirror_sign
+   real, dimension(:, :, :, :), allocatable :: neo_mirror
+
    ! Only initialise once
    logical :: initialised_mirror = .false.
 
@@ -60,6 +68,11 @@ contains
       use parameters_physics, only: include_mirror, radial_variation
       use parameters_physics, only: mirrorknob
 
+      ! For HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: dneo_phi_dz
+      use parameters_physics, only: neomirrorknob
+
       implicit none
 
       integer :: iz, ia, imu
@@ -74,6 +87,10 @@ contains
       
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
+
+      ! For HO simulations.
+      if (.not. allocated(neo_mirror)) allocate (neo_mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); neo_mirror = 0.
+      if (.not. allocated(neo_mirror_sign)) allocate (neo_mirror_sign(nalpha, -nzgrid:nzgrid)); neo_mirror_sign = 0
 
       allocate (neoclassical_term(-nzgrid:nzgrid, nspec))
       if (include_neoclassical_terms) then
@@ -99,6 +116,18 @@ contains
 
       deallocate (neoclassical_term)
 
+      ! For HO simulations, the mirror term acquires a correction associated with phi^1_0. 
+      if (neoclassical_is_enabled()) then
+          ! The mirror correction has a sign consistent with being on RHS of GKE; it is the factor multiplying dg/dvpa in the mirror term.
+          do imu = 1, nmu
+              do ia = 1, nalpha
+                  do iz = -nzgrid, nzgrid
+                      neo_mirror(ia, iz, imu, :) = 0.5 * neomirrorknob * code_dt * spec%z * spec%stm_psi0 * b_dot_gradz(ia, iz) * dneo_phi_dz(iz) 
+                  end do
+              end do
+          end do
+      end if
+
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
             allocate (mirror_rad_var(nalpha, -nzgrid:nzgrid, nmu, nspec)); 
@@ -123,6 +152,15 @@ contains
             mirror_sign(ia, iz) = int(sign(1.0, mirror(ia, iz, 1, 1)))
          end do
       end do
+
+      ! For HO simulations.
+      if (neoclassical_is_enabled()) then
+          do ia = 1, nalpha
+              do iz = -nzgrid, nzgrid
+                  neo_mirror_sign(ia, iz) = int(sign(1.0, neo_mirror(ia, iz, 1, 1)))
+              end do
+          end do
+      end if
 
       if (mirror_implicit) then
          if (mirror_semi_lagrange) then
@@ -418,9 +456,16 @@ contains
       use calculations_transforms, only: transform_ky2y
       use calculations_kxky, only: swap_kxky      
 
+      ! HO simulations.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use parameters_numerical, only: mirror_implicit
+      use calculations_tofrom_ghf, only: g_to_h
+      use parameters_physics, only: fphi
+      use arrays_fields, only: phi, apar, bpar
+
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       complex, dimension(:, :, :), allocatable :: g0v
@@ -475,29 +520,64 @@ contains
          call add_mirror_term_ffs(g0x, gout)
          deallocate (dgdv, g_swap)
       else
-         allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-         allocate (g0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         if (.not. mirror_implicit) then
+             allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+             allocate (g0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-         if (.not. fields_kxkyz) then
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-            call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+             if (.not. fields_kxkyz) then
+                 if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+                 call scatter(kxkyz2vmu, g, gvmu)
+                 if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+             end if
+
+             ! Incoming gvmu is g = <f>
+             ! Get dg/dvpa and store in g0v
+             g0v = gvmu
+
+             call get_dgdvpa_explicit(g0v)
+
+             ! Swap layouts so that (z,kx,ky) are local
+             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+             call gather(kxkyz2vmu, g0v, g0x)
+             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+             ! Get mirror term and add to source
+             call add_mirror_term(g0x, gout)
+         else
+             if (neoclassical_is_enabled()) then
+                 allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+                 allocate (g0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+                 ! Correction acts on h, but the incoming distribution is g.
+                 call g_to_h(g, phi, apar, bpar, fphi)
+
+                 if (.not. fields_kxkyz) then
+                     if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+                     call scatter(kxkyz2vmu, g, gvmu)
+                     if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+                 end if
+
+                 ! Incoming gvmu is g = <f>
+                 ! Get dg/dvpa and store in g0v
+                 g0v = gvmu
+
+                 call get_dhdvpa_explicit(g0v)
+
+                 ! Swap layouts so that (z,kx,ky) are local
+                 if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+                 call gather(kxkyz2vmu, g0v, g0x)
+                 if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         
+                 ! Get mirror term and add to source
+                 call add_neo_mirror_term(g0x, gout)
+                  
+                 ! Now transform back to g.
+                 call g_to_h(g, phi, apar, bpar, -fphi)
+             end if
          end if
-
-         ! Incoming gvmu is g = <f>
-         ! Get dg/dvpa and store in g0v
-         g0v = gvmu
-
-         call get_dgdvpa_explicit(g0v)
-
-         ! Swap layouts so that (z,kx,ky) are local
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         call gather(kxkyz2vmu, g0v, g0x)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         ! Get mirror term and add to source
-         call add_mirror_term(g0x, gout)
       end if
-      deallocate (g0x, g0v)
+      
+      if (allocated(g0x)) deallocate (g0x)
+      if (allocated(g0v)) deallocate (g0v)
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
@@ -574,6 +654,49 @@ contains
 
    end subroutine get_dgdvpa_explicit
 
+
+! =================================================================================================================================================================================== !
+! ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! =================================================================================================================================================================================== !
+
+    subroutine get_dhdvpa_explicit(h)
+      ! Parallelisation.
+      use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
+      
+      ! Calculations.
+      use calculations_finite_differences, only: third_order_upwind
+
+      ! Grids. 
+      use grids_velocity, only: nvpa, nmu, dvpa
+
+      implicit none
+
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: h
+
+      integer :: ikxkyz, imu, iz, is
+      complex, dimension(:), allocatable :: tmp
+
+      ! =========================================================================== !
+
+      ! Allocate temporary array.
+      allocate (tmp(nvpa))
+
+      ! Calculate the vpa derivative.
+      ! Iterate over kxkyz.
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iz = iz_idx(kxkyz_lo, ikxkyz)
+         is = is_idx(kxkyz_lo, ikxkyz)
+         do imu = 1, nmu
+            call third_order_upwind(1, h(:, imu, ikxkyz), dvpa, neo_mirror_sign(1, iz), tmp)
+            h(:, imu, ikxkyz) = tmp
+         end do
+      end do
+
+      ! Deallocate temporary arrays. 
+      deallocate (tmp)
+
+   end subroutine get_dhdvpa_explicit
+
    !****************************************************************************
    !                            Add Mirror Term
    !****************************************************************************
@@ -608,6 +731,43 @@ contains
       end do
 
    end subroutine add_mirror_term
+
+
+! ================================================================================================================================================================================== !
+! ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
+! ================================================================================================================================================================================== !
+
+   subroutine add_neo_mirror_term(g, src)
+
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: imu_idx, is_idx
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: nakx
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
+
+      integer :: imu, is, ivmu
+      integer :: it, iz, ikx
+
+      ! =========================================================================================================================== !
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) + neo_mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu)
+               end do
+            end do
+         end do
+      end do
+
+   end subroutine add_neo_mirror_term
+
 
    !****************************************************************************
    !                       Add Mirror Term - Full Flux Surface

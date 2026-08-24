@@ -258,7 +258,7 @@ contains
         use grids_species, only: nspec
 
         ! Conventional mirror term. 
-        use gk_mirror, only: mirror_sign
+        use gk_mirror, only: neo_mirror_sign
 
         implicit none
 
@@ -279,7 +279,7 @@ contains
         do iz = -nzgrid, nzgrid
             do imu = 1, nmu
                 do is = 1, nspec
-                    call third_order_upwind(1, g(iz, :, imu, is, 1), dvpa, mirror_sign(1, iz), tmp)
+                    call third_order_upwind(1, g(iz, :, imu, is, 1), dvpa, neo_mirror_sign(1, iz), tmp)
 
                     dgdvpa_global(iz, :, imu, is, 1) = tmp
                 end do

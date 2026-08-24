@@ -372,6 +372,10 @@ contains
                  call advance_neo_mirror_explicit(apar, rhs)
              end if
 
+             if (include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) then
+                 call advance_mirror_explicit(pdf, rhs)
+             end if
+
              ! Advance the neoclassical parallel streaming correction.
              if (include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) then
                  call advance_neo_stream_explicit(phi, apar, bpar, rhs)

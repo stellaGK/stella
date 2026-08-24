@@ -284,7 +284,6 @@ contains
               is = is_idx(kxkyz_lo, ikxkyz)
             
               ! Integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar.
-              ! TO DO - Is spec(is)%z supposed to be here?
               call gyro_average_j1(spread(mu, 1, nvpa) * g(:, :, ikxkyz), ikxkyz, g0)
               wgt = -2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%temp_psi0
               call integrate_vmu(g0, iz, tmp)
@@ -443,7 +442,7 @@ contains
 ! ------------------------------------------------ Calculate phi and apar for electromagnetic simulations when bpar is not included. --------------------------------------------- !
 ! ================================================================================================================================================================================ !
 
-    subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
+subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         ! Parallelisation.
         use mp, only: proc0, mp_abort
         use job_manage, only: time_message
@@ -457,7 +456,7 @@ contains
 
         ! Grids.
         use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: nakx, naky
+        use grids_kxky, only: nakx, naky, zonal_mode, akx
 
         implicit none
 
@@ -476,12 +475,25 @@ contains
         integer        :: ipiv(2)
         integer        :: info
         external zgesv
+        ! LAPACK variables (condition number estimation).
+        real(8)            :: anorm, rcond
+        real(8)            :: rwork_lapack(4)    
+        complex(8)         :: cwork_lapack(4)    
+        real(8)            :: work_norm(2)       
+        integer            :: info_con
+        real(8), parameter :: rcond_threshold = 1.0e-8   ! ~sqrt(machine epsilon); tune as needed. 
+        external zgecon
+        real(8), external  :: zlange
 
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of bpar, this reduces to a 2 x 2    !
         ! matrix problem where the solution provides phi and apar. This is solved with LAPACK. This could be solved directly using Cramer's rule, as is done for   ! 
         ! the coupling of phi and bpar at leading order. However, this would become algebriaclly cumbersome in the fully electromagnetic case where the matrix     !
         ! becomes 3 x 3. The extension of the LAPACK logic to the fully electromagnetic regime is by comparison much easier.                                       !
+        !                                                                                                                                                          !
+        ! A condition-number estimate (rcond, via zgecon) is used to catch near-singular matrices that zgesv would otherwise solve "successfully" (info=0)         !
+        ! but with a numerically meaningless result. This includes the (kx=0, ky=0) mode, which is expected to be caught by this check rather than handled         !
+        ! explicitly, consistent with the treatment in calculate_neo_phi_apar_and_bpar.                                                                            !
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -515,14 +527,28 @@ contains
                         B_lapack(1,1) = phi(iky,ikx,iz,it)
                         B_lapack(2,1) = apar(iky,ikx,iz,it)
 
+                        ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
+                        anorm = zlange('1', 2, 2, A_lapack, 2, work_norm)
+
                         call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
                         if (info == 0) then
-                            ! Assign solutions to the fields. 
-                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
-                            apar(iky,ikx,iz,it) = B_lapack(2,1)                                
+                            ! No exact zero pivot was hit, but the matrix could still be near-singular. 
+                            ! A_lapack now holds the LU factors from zgesv.
+                            ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A) cheaply.                                         
+                            call zgecon('1', 2, A_lapack, 2, anorm, rcond, cwork_lapack, rwork_lapack, info_con) 
+
+                            if (info_con /= 0 .or. rcond < rcond_threshold) then
+                                ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') at iky,ikx,iz=', iky, ikx, iz
+                                phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
+                                apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                            else
+                                ! Assign solutions to the fields. 
+                                phi(iky,ikx,iz,it)  = B_lapack(1,1)
+                                apar(iky,ikx,iz,it) = B_lapack(2,1)
+                            end if
                         else
-                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
+                            ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix (exact singularity) at iky,ikx,iz=', iky, ikx, iz
                             phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
                             apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                         end if
@@ -629,9 +655,7 @@ contains
     subroutine calculate_neo_phi_apar_and_bpar(phi, apar, bpar, dist, skip_fsa)
         ! Parallelisation.
         use mp, only: proc0, mp_abort
-        use job_manage, only: time_message
-        use timers, only: time_field_solve
-
+  
         ! Arrays.
         use arrays, only: denominator_fields_neo_gneo
         use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
@@ -645,7 +669,7 @@ contains
         
         ! Grids.
         use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: nakx, naky
+        use grids_kxky, only: nakx, naky, zonal_mode, akx
 
         implicit none
 
@@ -664,6 +688,19 @@ contains
         integer           :: ipiv(3)
         integer           :: info
         external zgesv
+        ! For the condition number estimation.
+        real(8)            :: anorm, rcond
+        real(8)            :: rwork_lapack(6)    ! dimension 2*n, n=3
+        complex(8)         :: cwork_lapack(6)    ! dimension 2*n, n=3
+        real(8)            :: work_norm(3)       ! workspace for zlange (infinity-norm path)
+        integer            :: info_con
+        real(8), parameter :: rcond_threshold = 1.0e-8   ! ~sqrt(machine epsilon); tune as needed
+        external zgecon
+        real(8), external  :: zlange
+
+        ! One-time diagnostic flag: prints the rcond value at (kx=0, ky=0) on the first pass through this subroutine,
+        ! regardless of whether it trips rcond_threshold, so the conditioning at that mode can be inspected directly.
+        logical, save      :: k00_diag_printed = .false.
 
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the presence of bpar, this involves a 3 x 3      !
@@ -708,15 +745,44 @@ contains
                         B_lapack(2,1) = apar(iky,ikx,iz,it)
                         B_lapack(3,1) = bpar(iky,ikx,iz,it)
 
+                        ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
+                        anorm = zlange('1', 3, 3, A_lapack, 3, work_norm)
+
                         call zgesv(3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
 
                         if (info == 0) then
-                            ! Assign solutions to the fields. 
-                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
-                            apar(iky,ikx,iz,it) = B_lapack(2,1)
-                            bpar(iky,ikx,iz,it) = B_lapack(3,1)                                
+                            ! No exact zero pivot was hit, but the matrix could still be near-singular. 
+                            ! A_lapack now holds the LU factors from zgesv. 
+                            ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A).                                        
+                            call zgecon('1', 3, A_lapack, 3, anorm, rcond, cwork_lapack, rwork_lapack, info_con)
+
+                            ! One-time diagnostic: report the conditioning at (kx=0, ky=0) regardless of outcome.
+                            ! This way the degree to which field coupling has (or hasn't) lifted the k=0 degeneracy can be inspected.
+                            ! if (.not. k00_diag_printed .and. zonal_mode(iky) .and. akx(ikx) == 0.0) then
+                                ! if (proc0) write(*,*) 'DIAGNOSTIC: (kx=0, ky=0) field matrix rcond=', rcond, ' info_con=', info_con, ' at iz=', iz, ' it=', it
+                                ! k00_diag_printed = .true.
+                            ! end if
+
+                            if (info_con /= 0 .or. rcond < rcond_threshold) then
+                                ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') at iky,ikx,iz=', iky, ikx, iz
+                                phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
+                                apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                                bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                            else
+                                ! Assign solutions to the fields. 
+                                phi(iky,ikx,iz,it)  = B_lapack(1,1)
+                                apar(iky,ikx,iz,it) = B_lapack(2,1)
+                                bpar(iky,ikx,iz,it) = B_lapack(3,1)
+                            end if
                         else
-                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
+                            ! One-time diagnostic for the exact-singularity path too, in case (kx=0, ky=0) lands here
+                            ! rather than the near-singular path — that outcome is itself informative.
+                            ! if (.not. k00_diag_printed .and. zonal_mode(iky) .and. akx(ikx) == 0.0) then
+                                ! if (proc0) write(*,*) 'DIAGNOSTIC: (kx=0, ky=0) field matrix hit exact zero pivot ', '(info=', info, ') at iz=', iz, ' it=', it
+                                ! k00_diag_printed = .true.
+                            ! end if
+
+                            ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix (exact singularity) at iky,ikx,iz=', iky, ikx, iz
                             phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
                             apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                             bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
@@ -725,7 +791,6 @@ contains
                 end do
             end do
         end do
-            
     end subroutine calculate_neo_phi_apar_and_bpar
 
 
@@ -889,7 +954,7 @@ contains
       
         ! Grids
         use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: nakx, naky 
+        use grids_kxky, only: nakx, naky, zonal_mode, akx
       
         implicit none
 
@@ -910,6 +975,15 @@ contains
         integer        :: ipiv(2), jpiv(3)
         integer        :: info
         external zgesv
+        ! LAPACK variables (condition number estimation). 
+        real(8)            :: anorm, rcond
+        real(8)            :: rwork_lapack(6)    
+        complex(8)         :: cwork_lapack(6)    
+        real(8)            :: work_norm(3)       
+        integer            :: info_con
+        real(8), parameter :: rcond_threshold = 1.0d-8   ! ~sqrt(machine epsilon); tune as needed.
+        external zgecon
+        real(8), external  :: zlange
 
         ! Assume we only have one field line
         ia = 1
@@ -932,13 +1006,26 @@ contains
 
                                 B_lapack(1,1) = phi(iky,ikx,iz,it)
                                 B_lapack(2,1) = apar(iky,ikx,iz,it)
-     
+
+                                ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
+                                anorm = zlange('1', 2, 2, A_lapack, 2, work_norm(1:2))
+
                                 call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
-                                if (info == 0) then 
-                                    apar(iky,ikx,iz,it) = B_lapack(2,1)
+                                if (info == 0) then
+                                    ! No exact zero pivot was hit, but the matrix could still be near-singular. 
+                                    ! A_lapack now holds the LU factors from zgesv.
+                                    ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A).
+                                    call zgecon('1', 2, A_lapack, 2, anorm, rcond, cwork_lapack(1:4), rwork_lapack(1:4), info_con)
+
+                                    if (info_con /= 0 .or. rcond < rcond_threshold) then
+                                        ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond, ') in get_apar_neo (2x2) at iky, ikx, iz, it =', iky, ikx, iz, it
+                                        apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                                    else
+                                        apar(iky,ikx,iz,it) = B_lapack(2,1)
+                                    end if
                                 else
-                                    if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
+                                    ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                                 end if
                             end do
@@ -973,12 +1060,25 @@ contains
                                 D_lapack(2,1) = apar(iky,ikx,iz,it)
                                 D_lapack(3,1) = bpar(iky,ikx,iz,it)
 
+                                ! Compute the 1-norm of C before zgesv overwrites it with the LU factors.
+                                anorm = zlange('1', 3, 3, C_lapack, 3, work_norm)
+
                                 call zgesv(3, 1, C_lapack, 3, jpiv, D_lapack, 3, info)
 
                                 if (info == 0) then
-                                    apar(iky,ikx,iz,it) = D_lapack(2,1)
+                                    ! No exact zero pivot was hit, but the matrix could still be near-singular. 
+                                    ! C_lapack now holds the LU factors from zgesv.
+                                    ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(C).
+                                    call zgecon('1', 3, C_lapack, 3, anorm, rcond, cwork_lapack, rwork_lapack, info_con)
+
+                                    if (info_con /= 0 .or. rcond < rcond_threshold) then
+                                        ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') at iky,ikx,iz=', iky, ikx, iz
+                                        apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                                    else
+                                        apar(iky,ikx,iz,it) = D_lapack(2,1)
+                                    end if
                                 else
-                                    if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
+                                    ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix (exact singularity) at iky,ikx,iz=', iky, ikx, iz
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                                 end if
                             end do
@@ -992,7 +1092,7 @@ contains
             end if
         end if
    end subroutine get_apar_neo
-
+       
 
 ! ================================================================================================================================================================================ !
 ! --------------------------------------------  Provides the extended denominator for phi when running electrostatic HO simulations ---------------------------------------------- !

@@ -1815,6 +1815,15 @@ contains
           integer         :: ipiv(2)
           integer         :: info
           external zgesv
+          ! LAPACK variables (condition number estimation).
+          real(8)            :: anorm, rcond
+          real(8)            :: rwork_lapack(4)    
+          complex(8)         :: cwork_lapack(4)    
+          real(8)            :: work_norm(2)       
+          integer            :: info_con
+          real(8), parameter :: rcond_threshold = 1.0e-8   ! ~sqrt(machine epsilon); tune as needed. 
+          external zgecon
+          real(8), external  :: zlange
 
           ! =================================================================================== !
 
@@ -1887,11 +1896,26 @@ contains
                   B_lapack(1,1) = phi(idx)
                   B_lapack(2,1) = apar(idx)
 
+                  ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
+                  anorm = zlange('1', 2, 2, A_lapack, 2, work_norm)
+
                   call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
                   if (info == 0) then
-                      phi(idx)  = B_lapack(1,1)
-                      apar(idx) = B_lapack(2,1)
+                      ! No exact zero pivot was hit, but the matrix could still be near-singular. 
+                      ! A_lapack now holds the LU factors from zgesv.
+                      ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A).                                       
+                      call zgecon('1', 2, A_lapack, 2, anorm, rcond, cwork_lapack, rwork_lapack, info_con) 
+
+                      if (info_con /= 0 .or. rcond < rcond_threshold) then
+                          ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') at iky,ikx,iz=', iky, ikx, iz
+                          phi(idx)  = cmplx(0.0, 0.0)
+                          apar(idx) = cmplx(0.0, 0.0)
+                      else
+                          ! Assign solutions to the fields. 
+                          phi(idx)  = B_lapack(1,1)
+                          apar(idx) = B_lapack(2,1)
+                      end if
                   else
                       if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_and_apar_for_response_matrix_neo at iz=', iz
                       phi(idx)  = cmplx(0.0, 0.0)
@@ -2080,6 +2104,15 @@ contains
           integer         :: ipiv(3)
           integer         :: info
           external zgesv
+          ! LAPACK variables (condition number estimation).
+          real(8)            :: anorm, rcond
+          real(8)            :: rwork_lapack(6)    
+          complex(8)         :: cwork_lapack(6)    
+          real(8)            :: work_norm(3)       
+          integer            :: info_con
+          real(8), parameter :: rcond_threshold = 1.0d-8   ! ~sqrt(machine epsilon); tune as needed
+          external zgecon
+          real(8), external  :: zlange
 
           ! =================================================================================== !
 
@@ -2169,14 +2202,29 @@ contains
                   B_lapack(2,1) = apar(idx)
                   B_lapack(3,1) = bpar(idx)
 
+                  ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
+                  anorm = zlange('1', 3, 3, A_lapack, 3, work_norm)
+
                   call zgesv(3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
 
                   if (info == 0) then
-                      phi(idx)  = B_lapack(1,1)
-                      apar(idx) = B_lapack(2,1)
-                      bpar(idx) = B_lapack(3,1)
+                      ! No exact zero pivot was hit, but the matrix could still be near-singular. 
+                      ! A_lapack now holds the LU factors from zgesv.
+                      ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A) cheaply.                                       
+                      call zgecon('1', 3, A_lapack, 3, anorm, rcond, cwork_lapack, rwork_lapack, info_con)
+
+                      if (info_con /= 0 .or. rcond < rcond_threshold) then
+                          ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') in calculate_phi_apar_and_bpar_for_response_matrix_neo at iz=', iz
+                          phi(idx)  = cmplx(0.0, 0.0)
+                          apar(idx) = cmplx(0.0, 0.0)
+                          bpar(idx) = cmplx(0.0, 0.0)
+                      else
+                          phi(idx)  = B_lapack(1,1)
+                          apar(idx) = B_lapack(2,1)
+                          bpar(idx) = B_lapack(3,1)
+                      end if
                   else
-                      if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_apar_and_bpar_for_response_matrix_neo at iz=', iz
+                      ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix (exact singularity) in calculate_phi_apar_and_bpar_for_response_matrix_neo at iz=', iz
                       phi(idx)  = cmplx(0.0, 0.0)
                       apar(idx) = cmplx(0.0, 0.0)
                       bpar(idx) = cmplx(0.0, 0.0)
@@ -2194,8 +2242,8 @@ contains
           end do
 
          deallocate (gamma11, gamma12, gamma13, gamma21, gamma22, gamma23, gamma31, gamma32, gamma33)
-      end subroutine calculate_phi_apar_and_bpar_for_response_matrix_neo      
-
+      end subroutine calculate_phi_apar_and_bpar_for_response_matrix_neo
+         
    end subroutine solve_field_equations_using_pdf_response
 
    !============================================================================

@@ -96,11 +96,9 @@ contains
 
       ! If NEO's neoclassical corrections are enabled, then ...
       if (neoclassical_is_enabled()) then
-          ! If apar is included, allocate and calculate the coeffecient multiplying apar in the mirror advance.
-          if (include_apar) then          
-              call init_neo_mirror
-          end if 
-
+          ! If apar is included, allocate and calculate the coeffecient multiplying apar in the mirror advance.          
+          call init_neo_mirror
+          
           ! Allocate and calculate the coeffecient multiplying dchi/dz in the HO parallel streaming advance.
           call init_neo_stream
 
@@ -191,12 +189,7 @@ contains
       ! If NEO's neoclassical corrections are enabled, then ...
       if (neoclassical_is_enabled()) then
           call finish_neoclassical_terms_neo
-
-          ! If apar is included, deallocate the mirror correction.
-          if (include_apar) then
-              call finish_neo_mirror
-          end if 
-
+          call finish_neo_mirror
           call finish_neo_stream
           call finish_wstar1y
           call finish_wstar1x

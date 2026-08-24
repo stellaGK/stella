@@ -65,6 +65,7 @@ contains
       
       ! For HO corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use gk_mirror, only: neo_mirror
       use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
       use arrays, only: neo_stream, neo_stream_apar_1, neo_stream_apar_2
       use arrays, only: wstar1y, wstar1x
@@ -190,8 +191,13 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical mirror correction doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. include_apar .and. .not. neoclassical_mirror_implicit) then
-          neo_mirror_max = max( maxval(abs(neo_mirror_apar_1)), maxval(abs(neo_mirror_apar_2)) )
+      if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) then
+          if (include_apar) then
+              neo_mirror_max = max( maxval(abs(neo_mirror)), maxval(abs(neo_mirror_apar_1)), maxval(abs(neo_mirror_apar_2)) )
+          else
+              neo_mirror_max = maxval(abs(neo_mirror))
+          end if          
+
           if (nproc > 1) then
               call max_allreduce(neo_mirror_max)
           end if
@@ -292,7 +298,7 @@ contains
          if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '     wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
-         if (neoclassical_is_enabled() .and. include_apar .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) &
+         if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) &
          write (*, '(A12,ES12.4)') ' neo_mirror: ', cfl_dt_neo_mirror
          if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) write (*, '(A12,ES12.4)') ' neo_stream: ', cfl_dt_neo_stream
          if (neoclassical_is_enabled() .and. include_neoclassical_ydrive .and. .not. neoclassical_drifts_implicit) write (*, '(A12,ES12.4)') '   wstar1y: ', cfl_dt_wstar1y
