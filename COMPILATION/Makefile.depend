@@ -473,6 +473,7 @@ $(OBJ_DIR)/diagnostics_stresses.o: \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/calculations_transforms.o \

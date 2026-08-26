@@ -454,7 +454,8 @@ contains
    !****************************************************************************
    !                          INITIALISE POTENTIAL: RH                         !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
+   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, &
+        den0, upar0, temp0)
 
       use mp, only: proc0
 
@@ -463,6 +464,7 @@ contains
       ! Variables that are read from the input file
       real, intent(out) :: kxmax, kxmin
       real, intent(out) :: imfac, refac
+      real, intent(out) :: den0, upar0, temp0
       
       !-------------------------------------------------------------------------
 
@@ -483,6 +485,11 @@ contains
          imfac = 0.0
          refac = 1.0
 
+         ! defaults reproduce the current pure-density IC
+         den0  = 1.0        
+         upar0 = 0.0
+         temp0 = 0.0
+      
       end subroutine set_default_parameters_initialise_distribution_rh
 
       !---------------------------- Read input file ----------------------------
@@ -491,7 +498,7 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac
+         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac, den0, upar0, temp0
          in_file = input_unit_exist('initialise_distribution_rh', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 
@@ -511,6 +518,9 @@ contains
          write (unit, '(A, ES0.4)') '  kxmax = ', kxmax
          write (unit, '(A, ES0.4)') '  imfac = ', imfac
          write (unit, '(A, ES0.4)') '  refac = ', refac
+         write (unit, '(A, ES0.4)') '  den0 = ', den0
+         write (unit, '(A, ES0.4)') '  upar0 = ', upar0
+         write (unit, '(A, ES0.4)') '  temp0 = ', temp0
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       

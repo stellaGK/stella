@@ -857,6 +857,7 @@ contains
    subroutine initialise_distribution_rh
 
       use mp, only: proc0, broadcast
+      use constants, only: zi
       use grids_species, only: spec
       use arrays_distribution_function, only: gvmu
       use arrays, only: kperp2
@@ -864,49 +865,86 @@ contains
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: vpa, vperp2
       use grids_kxky, only: akx
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_rh
 
       implicit none
 
       integer :: ikxkyz, iky, ikx, iz, is, ia
-      
+
       ! Read the following variables from the input file
       real :: imfac, refac
       real :: kxmax, kxmin
-      
+      real :: den0, upar0, temp0
+
+      ! Velocity-space shape of the seed, and the Maxwellian weight F0
+      complex, dimension(:, :), allocatable :: gshape
+      real, dimension(:, :), allocatable :: maxwellian
+
       !-------------------------------------------------------------------------
-      
+
       ! Read <initialise_distribution_rh> namelist
-      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
-      
+      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac, &
+           den0, upar0, temp0)
+
       ! Broadcast to all processors
       call broadcast(refac)
       call broadcast(imfac)
       call broadcast(kxmax)
       call broadcast(kxmin)
+      call broadcast(den0)
+      call broadcast(upar0)
+      call broadcast(temp0)
 
-      ! initialise g to be a Maxwellian with a constant density perturbation
+      allocate (gshape(nvpa, nmu))
+      allocate (maxwellian(nvpa, nmu))
+
+      ! Initialise g to be a Maxwellian carrying density, parallel-flow and
+      ! temperature perturbations:
+      !
+      !   g = Z * phiinit * kperp2/2 * [ den0*M_den + upar0*M_upar + temp0*M_temp ] * F0
+      !
+      ! The three moments are the orthogonal Hermite/Laguerre pieces, normalised so
+      ! that each coefficient is the corresponding perturbed moment:
+      !
+      !   M_den  = 1                       ->  delta n / n      = den0
+      !   M_upar = 2 * i * vpa             ->  delta upar / vth = upar0
+      !   M_temp = vpa^2 + vperp2 - 3/2    ->  delta T / T      = temp0
+      !
+      ! Note M_temp = (vpa^2 - 1/2) + (vperp2 - 1), i.e. the isotropic sum of the
+      ! tpar and tperp moments used in <initialise_distribution_kpar>.
+      ! den0 = 1, upar0 = temp0 = 0 recovers the original pure-density RH seed.
 
       gvmu = 0.
 
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-         ! only set the first ky mode to be non-zero
-         ! this is because this is meant to test the damping of zonal flow (ky=0)
          iky = iky_idx(kxkyz_lo, ikxkyz); if (iky /= 1) cycle
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
 
          if (abs(akx(ikx)) < kxmax .and. abs(akx(ikx)) > kxmin) then
+            
+            maxwellian = spread(maxwell_vpa(:, is), 2, nmu) &
+                 * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            
+            ! den_moment * den0 + vpar_moment * upar0 + temp_moment * temp0
+            gshape = den0 &
+                 + 2.0 * zi * spread(vpa, 2, nmu) * upar0 &
+                 + (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa) - 1.5) * temp0
+
             gvmu(:, :, ikxkyz) = spec(is)%z * 0.5 * phiinit * kperp2(iky, ikx, ia, iz) &
-                                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+                 * cmplx(refac, imfac) * gshape * maxwellian
          end if
       end do
 
-   end subroutine initialise_distribution_rh
+      deallocate (gshape, maxwellian)
 
+    end subroutine initialise_distribution_rh
+
+    
    !****************************************************************************
    !                      INITIALISE POTENTIAL: REMAP                          !
    !****************************************************************************
