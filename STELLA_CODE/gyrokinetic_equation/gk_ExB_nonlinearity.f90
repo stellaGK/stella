@@ -31,7 +31,7 @@ contains
 
       ! Parallelisation
       use job_manage, only: time_message
-      use mp, only: proc0, min_allreduce
+      use mp, only: proc0, min_allreduce, iproc
       use mp, only: scope, allprocs, subprocs
       use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -95,6 +95,12 @@ contains
       real :: zero, cfl_dt
       logical :: yfirst
 
+      ! --- diagnostics: identify the (rank, mode) that sets the global ExB CFL limit ---
+      real :: cfl_dt_old, cfl_dt_ExB_local
+      integer, dimension(2) :: iloc, worst_iloc
+      integer :: worst_ivmu, worst_imu, worst_is, worst_iz
+      character(len=10) :: worst_term
+
       !-------------------------------------------------------------------------
 
       ! Start timer
@@ -107,6 +113,11 @@ contains
       ! Initialize cfl_dt_ExB and restart_time_step
       cfl_dt_ExB = 10000000.
       restart_time_step = .false.
+
+      ! Initialise diagnostics for the mode that sets this rank's local ExB CFL limit
+      worst_iloc = 0
+      worst_ivmu = -1; worst_imu = -1; worst_is = -1; worst_iz = -999
+      worst_term = 'none'
       
       ! By default, prp_shear_enabled = .false. and thus yfirst = .true., and we Fourier transform y first
       ! If perpendicular flow shear is included, it is important to Fourier transform x first
@@ -189,7 +200,13 @@ contains
                bracket = g0xy * g1xy
 
                ! Estimate the CFL dt due to the above contribution
+               cfl_dt_old = cfl_dt_ExB
                cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
+               if (cfl_dt_ExB < cfl_dt_old) then
+                  worst_iloc = maxloc(abs(g0k))
+                  worst_ivmu = ivmu; worst_imu = imu; worst_is = is; worst_iz = iz
+                  worst_term = 'dchidx'
+               end if
 
                if (radial_variation) then
                   bracket = bracket + gfac * g0xy * g1xy * exb_nonlin_fac_p * spread(rho_clamped, 1, ny)
@@ -200,7 +217,13 @@ contains
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket + g0xy * g1xy
                   ! Estimate the CFL dt due to the above contribution
+                  cfl_dt_old = cfl_dt_ExB
                   cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
+                  if (cfl_dt_ExB < cfl_dt_old) then
+                     worst_iloc = maxloc(abs(g0k))
+                     worst_ivmu = ivmu; worst_imu = imu; worst_is = is; worst_iz = iz
+                     worst_term = 'dchidx_rv'
+                  end if
                end if
 
                ! Compute dg/dx in k-space (= i*kx*g)
@@ -238,7 +261,13 @@ contains
                bracket = bracket - g0xy * g1xy
 
                ! Estimate the CFL dt due to the above contribution
+               cfl_dt_old = cfl_dt_ExB
                cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * akx(ikx_max), zero))
+               if (cfl_dt_ExB < cfl_dt_old) then
+                  worst_iloc = maxloc(abs(g0k))
+                  worst_ivmu = ivmu; worst_imu = imu; worst_is = is; worst_iz = iz
+                  worst_term = 'dchidy'
+               end if
 
                if (radial_variation) then
                   bracket = bracket - gfac * g0xy * g1xy * exb_nonlin_fac_p * spread(rho_clamped, 1, ny)
@@ -249,7 +278,13 @@ contains
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket - g0xy * g1xy
                   ! Estimate the CFL dt due to the above contribution
+                  cfl_dt_old = cfl_dt_ExB
                   cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * akx(ikx_max), zero))
+                  if (cfl_dt_ExB < cfl_dt_old) then
+                     worst_iloc = maxloc(abs(g0k))
+                     worst_ivmu = ivmu; worst_imu = imu; worst_is = is; worst_iz = iz
+                     worst_term = 'dchidy_rv'
+                  end if
                end if
 
                if (yfirst) then
@@ -281,9 +316,27 @@ contains
 
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
 
+      ! Save this rank's local minimum BEFORE the reduction overwrites cfl_dt_ExB
+      ! with the global value, so we can identify the owning rank afterwards.
+      cfl_dt_ExB_local = cfl_dt_ExB
+
       call min_allreduce(cfl_dt_ExB)
 
       if (runtype_option_switch == runtype_multibox) call scope(subprocs)
+
+      ! Diagnostic: report which rank/mode set the *global* ExB CFL constraint.
+      ! MPI_MIN selects the true minimum value bit-for-bit from whichever rank
+      ! supplied it (it does not recompute), so the owning rank's saved local
+      ! value will match the reduced global value exactly. Only that rank
+      ! (or ranks, in the rare case of an exact tie) prints, so this is one
+      ! line per timestep rather than one per rank.
+      ! if (cfl_dt_ExB_local == cfl_dt_ExB .and. worst_term /= 'none') then
+         ! write (*, '(A,I0,A,I0,A,ES10.3,2A,4(A,I0),2(A,ES10.3))') &
+           !  'CFL_ExB winner: iproc=', iproc, ' istep=', istep, ' cfl_dt=', cfl_dt_ExB, &
+           !  ' term=', trim(worst_term), &
+           !  '  ivmu=', worst_ivmu, ' imu=', worst_imu, ' is=', worst_is, ' iz=', worst_iz, &
+           !  '  ky=', aky(worst_iloc(1)), ' kx=', akx(worst_iloc(2))
+      ! end if
 
       ! Check estimated cfl_dt to see if the time step size needs to be changed
       cfl_dt = min(cfl_dt_ExB, cfl_dt_linear)

@@ -117,6 +117,11 @@ module arrays
    public :: denominator_fields_neo_31_gneo
    public :: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
    public :: denominator_fields_neo_33_gneo
+
+   public :: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_11_gbarneo_inv
+   public :: denominator_fields_neo_12_gneo_inv, denominator_fields_neo_12_gbarneo_inv
+   public :: denominator_fields_neo_21_gneo_inv, denominator_fields_neo_21_gbarneo_inv
+   public :: denominator_fields_neo_22_gneo_inv, denominator_fields_neo_22_gbarneo_inv
    
    private
    
@@ -208,6 +213,11 @@ module arrays
    real, dimension(:, :, :), allocatable :: denominator_fields_neo_31_gneo
    real, dimension(:, :, :), allocatable :: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
    real, dimension(:, :, :), allocatable :: denominator_fields_neo_33_gneo
+
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_11_gbarneo_inv
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_12_gneo_inv, denominator_fields_neo_12_gbarneo_inv
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_21_gneo_inv, denominator_fields_neo_21_gbarneo_inv
+   real, dimension(:, :, :), allocatable :: denominator_fields_neo_22_gneo_inv, denominator_fields_neo_22_gbarneo_inv
 
    ! For radial variation simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_dr

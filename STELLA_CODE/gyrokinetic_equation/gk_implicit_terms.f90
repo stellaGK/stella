@@ -962,7 +962,7 @@ contains
          scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
 
-      ! If running with HO corrections, transformation between gbar and g acquires a correction,
+      ! If running with HO corrections, transformation between gbar and g acquires a correction.
       if (neoclassical_is_enabled()) then
           do izext = 1, nz_ext
               iz = iz_from_izext(izext)

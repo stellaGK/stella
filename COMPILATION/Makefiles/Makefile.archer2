@@ -1,13 +1,9 @@
-# Host: ARCHER2 service UK (Cray XC30)
-# Requires the fftw, hdf5, netcdf, scilib modules to be loaded
-
+# Host: ARCHER2 (HPE Cray EX)
+# Requires cray-fftw, cray-hdf5, cray-netcdf, and cray-libsci modules to be loaded
 
 helplocal:
-		# GK_SYSTEM = archer
-		# You are using  Makefile.archer to build gs2 executables on ARCHER.
-		#
-		#   ARCHER defaults : cray compiler, FFTW3, netcdf, MPI
-		#   ARCHER single restart: cray compiler
+		# GK_SYSTEM = archer2
+		# You are using Makefile.archer2 to build stella executables on ARCHER2.
 
 define STANDARD_SYSTEM_CONFIGURATION
 module restore PrgEnv-gnu ;\
@@ -16,8 +12,7 @@ module load cray-hdf5 ;\
 module load cray-libsci ;\
 module load cray-netcdf ;\
 echo Module configuration complete;\
-export MAKEFLAGS='-j -I Makefiles';\
-export TESTEXEC='aprun -N 24 -n 24';
+export MAKEFLAGS='-j -I Makefiles';
 endef
 
 PRGENV_CRAY=$(shell if module is-loaded cpe-cray; then echo true; else echo false; fi;)
@@ -27,10 +22,9 @@ else
       COMPILER=gnu-gfortran
 endif
 
-CHIP=ivy-bridge
 CRAY_SYSTEM=true
 
-# switch on netcdf
+# Switch on netcdf
 ifdef NETCDF_DIR
 	USE_NETCDF = on
 else
@@ -46,20 +40,15 @@ ifdef PGPLOT_DIR
 	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR
 endif
 
-# This line disables the automated checking
-# of the intel version which is slow and 
-# doesn't work in interactive mode
-DBLESIZEOPT = -double-size 128
-
+# Include compiler flags (which might try to set LAPACK_LIB = -llapack)
 include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
+# Use Cray wrappers
 FC=ftn
 CC=cc
 MPIFC=ftn
 MPICC=cc
 
-# For CRAY machines, this convention is always followed. Do not change without 
-# good reason!
 H5CC_par = cc
 H5FC_par = ftn
 HFCC = cc
@@ -76,10 +65,11 @@ endif
 ifeq ($(USE_FFT),fftw3)	
         CPPFLAGS   += -I $$FFTW_INC
 endif	
-ifdef USE_LAPACK
-#archer libraries have LAPACK built in, so do nothing
-	LAPACK_LIB =  
-endif
+
+# Cray wrappers (ftn) link Cray-LibSci automatically.
+# 'override' ensures this variable stays empty even if included sub-makefiles attempt to set it.
+override LAPACK_LIB = 
+
 ifdef USE_NETCDF
   ifdef OWN_NETCDF
 	NETCDF_INC = -I $(NETCDF_DIR)/include/

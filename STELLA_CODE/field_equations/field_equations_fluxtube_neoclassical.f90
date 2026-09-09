@@ -449,10 +449,10 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         use timers, only: time_field_solve
 
         ! Arrays.
-        use arrays, only: denominator_fields_neo_gneo
-        use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
-        use arrays, only: denominator_fields_neo_21_gneo
-        use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
+        use arrays, only: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_11_gbarneo_inv
+        use arrays, only: denominator_fields_neo_12_gneo_inv, denominator_fields_neo_12_gbarneo_inv
+        use arrays, only: denominator_fields_neo_21_gneo_inv, denominator_fields_neo_21_gbarneo_inv
+        use arrays, only: denominator_fields_neo_22_gneo_inv, denominator_fields_neo_22_gbarneo_inv
 
         ! Grids.
         use grids_z, only: nzgrid, ntubes
@@ -467,33 +467,13 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
         ! Local variables.
         integer :: ia, it, ikx, iky, iz
-        logical :: skip_fsa_local
-
-        ! LAPACK Variables.
-        complex(8)        :: A_lapack(2,2)
-        complex(8)        :: B_lapack(2,1)
-        integer        :: ipiv(2)
-        integer        :: info
-        external zgesv
-        ! LAPACK variables (condition number estimation).
-        real(8)            :: anorm, rcond
-        real(8)            :: rwork_lapack(4)    
-        complex(8)         :: cwork_lapack(4)    
-        real(8)            :: work_norm(2)       
-        integer            :: info_con
-        real(8), parameter :: rcond_threshold = 1.0e-8   ! ~sqrt(machine epsilon); tune as needed. 
-        external zgecon
-        real(8), external  :: zlange
+        logical :: skip_fsa_local        
+        complex :: antot1, antot2
 
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of bpar, this reduces to a 2 x 2    !
-        ! matrix problem where the solution provides phi and apar. This is solved with LAPACK. This could be solved directly using Cramer's rule, as is done for   ! 
-        ! the coupling of phi and bpar at leading order. However, this would become algebriaclly cumbersome in the fully electromagnetic case where the matrix     !
-        ! becomes 3 x 3. The extension of the LAPACK logic to the fully electromagnetic regime is by comparison much easier.                                       !
+        ! matrix problem where the solution provides phi and apar.                                                                                                 !
         !                                                                                                                                                          !
-        ! A condition-number estimate (rcond, via zgecon) is used to catch near-singular matrices that zgesv would otherwise solve "successfully" (info=0)         !
-        ! but with a numerically meaningless result. This includes the (kx=0, ky=0) mode, which is expected to be caught by this check rather than handled         !
-        ! explicitly, consistent with the treatment in calculate_neo_phi_apar_and_bpar.                                                                            !
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -501,62 +481,41 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
         ! Assume we only have one field line.
-        ia = 1
+        ia = 1         
 
-        do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-                do ikx = 1, nakx
-                    do iky = 1, naky
-                        if (dist == 'gneo' .or. dist == 'gbarneo') then
-                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
-                            A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
-                            if (dist == 'gneo') then
-                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
-                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
-                            else if (dist == 'gbarneo') then
-                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gbarneo(iky,ikx,iz), 0.0)
-                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0)
-                            end if
-                        else
-                            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_apar. Aborting.'
-                            call mp_abort('Unknown dist option in calculate_neo_phi_and_apar. Aborting.')
-                            return
-                        end if
-
-                        B_lapack(1,1) = phi(iky,ikx,iz,it)
-                        B_lapack(2,1) = apar(iky,ikx,iz,it)
-
-                        ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
-                        anorm = zlange('1', 2, 2, A_lapack, 2, work_norm)
-
-                        call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
-
-                        if (info == 0) then
-                            ! No exact zero pivot was hit, but the matrix could still be near-singular. 
-                            ! A_lapack now holds the LU factors from zgesv.
-                            ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A) cheaply.                                         
-                            call zgecon('1', 2, A_lapack, 2, anorm, rcond, cwork_lapack, rwork_lapack, info_con) 
-
-                            if (info_con /= 0 .or. rcond < rcond_threshold) then
-                                ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') at iky,ikx,iz=', iky, ikx, iz
-                                phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
-                                apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                            else
-                                ! Assign solutions to the fields. 
-                                phi(iky,ikx,iz,it)  = B_lapack(1,1)
-                                apar(iky,ikx,iz,it) = B_lapack(2,1)
-                            end if
-                        else
-                            ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix (exact singularity) at iky,ikx,iz=', iky, ikx, iz
-                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
-                            apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                        end if
+        if (dist == 'gneo') then
+            do it = 1, ntubes
+                do iz = -nzgrid, nzgrid
+                    do ikx = 1, nakx
+                        do iky = 1, naky
+                            antot1 = phi(iky,ikx,iz,it)
+                            antot2 = apar(iky,ikx,iz,it)
+                     
+                            phi(iky,ikx,iz,it) = denominator_fields_neo_11_gneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_12_gneo_inv(iky,ikx,iz)*antot2
+                            apar(iky,ikx,iz,it) = denominator_fields_neo_21_gneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_22_gneo_inv(iky,ikx,iz)*antot2
+                        end do
                     end do
                 end do
             end do
-        end do
+        else if (dist == 'gbarneo') then
+            do it = 1, ntubes
+                do iz = -nzgrid, nzgrid
+                    do ikx = 1, nakx
+                        do iky = 1, naky
+                            antot1 = phi(iky,ikx,iz,it)
+                            antot2 = apar(iky,ikx,iz,it)
 
+                            phi(iky,ikx,iz,it) = denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz)*antot2
+                            apar(iky,ikx,iz,it) = denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz)*antot2
+                        end do
+                    end do
+                end do
+            end do      
+        else
+            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_apar. Aborting.'
+            call mp_abort('Unknown dist option in calculate_neo_phi_and_apar. Aborting.')
+            return
+        end if
     end subroutine calculate_neo_phi_and_apar
 
 
@@ -589,18 +548,9 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         integer :: ia, it, ikx, iky, iz
         logical :: skip_fsa_local
 
-        ! LAPACK Variables.
-        complex(8)        :: A_lapack(2,2)
-        complex(8)        :: B_lapack(2,1)
-        integer           :: ipiv(2)
-        integer           :: info
-        external zgesv
-
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of apar, this reduces to a 2 x 2    !
-        ! matrix problem where the solution provides phi and bpar. This is solved with LAPACK. This could be solved directly using Cramer's rule, as is done for   ! 
-        ! the coupling of phi and bpar at leading order. However, this would become algebriaclly cumbersome in the fully electromagnetic case where the matrix     !
-        ! becomes 3 x 3. The extension of the LAPACK logic to the fully electromagnetic regime is by comparison much easier.                                       !
+        ! matrix problem where the solution provides phi and bpar.                                                                                                 ! 
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -608,42 +558,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
         ! Assume we only have one field line.
-        ia = 1
-
-        do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-                do ikx = 1, nakx
-                    do iky = 1, naky
-                        if (dist == 'gneo') then
-                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
-                            A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(2,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(1,2) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(2,2) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
-                        else
-                            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_bpar. Aborting.'
-                            call mp_abort('Unknown dist option in calculate_neo_phi_and_bpar. Aborting.')
-                            return
-                        end if
-
-                        B_lapack(1,1) = phi(iky,ikx,iz,it)
-                        B_lapack(2,1) = bpar(iky,ikx,iz,it)
-
-                        call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
-
-                        if (info == 0) then
-                            ! Assign solutions to the fields. 
-                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
-                            bpar(iky,ikx,iz,it) = B_lapack(2,1)                                
-                        else
-                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
-                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
-                            bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                        end if
-                    end do
-                end do
-            end do
-        end do
+        ia = 1           
 
     end subroutine calculate_neo_phi_and_bpar
 
@@ -682,29 +597,9 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         integer :: ia, it, ikx, iky, iz
         logical :: skip_fsa_local
 
-        ! LAPACK Variables.
-        complex(8)        :: A_lapack(3,3)
-        complex(8)        :: B_lapack(3,1)
-        integer           :: ipiv(3)
-        integer           :: info
-        external zgesv
-        ! For the condition number estimation.
-        real(8)            :: anorm, rcond
-        real(8)            :: rwork_lapack(6)    ! dimension 2*n, n=3
-        complex(8)         :: cwork_lapack(6)    ! dimension 2*n, n=3
-        real(8)            :: work_norm(3)       ! workspace for zlange (infinity-norm path)
-        integer            :: info_con
-        real(8), parameter :: rcond_threshold = 1.0e-8   ! ~sqrt(machine epsilon); tune as needed
-        external zgecon
-        real(8), external  :: zlange
-
-        ! One-time diagnostic flag: prints the rcond value at (kx=0, ky=0) on the first pass through this subroutine,
-        ! regardless of whether it trips rcond_threshold, so the conditioning at that mode can be inspected directly.
-        logical, save      :: k00_diag_printed = .false.
-
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the presence of bpar, this involves a 3 x 3      !
-        ! matrix problem where the solution provides phi, apar and bpar. This is solved with LAPACK.                                                               !
+        ! matrix problem where the solution provides phi, apar and bpar.                                                                                           !
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -714,83 +609,6 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         ! Assume we only have one field line.
         ia = 1
 
-        do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-                do ikx = 1, nakx
-                    do iky = 1, naky
-                        if (dist == 'gneo' .or. dist == 'gbarneo') then
-                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
-                            A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(3,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
-                            if (dist == 'gneo') then
-                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
-                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
-                                A_lapack(3,2) = cmplx(denominator_fields_neo_32_gneo(iky,ikx,iz), 0.0)
-                            else if (dist == 'gbarneo') then
-                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gbarneo(iky,ikx,iz), 0.0)
-                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0)
-                                A_lapack(3,2) = cmplx(denominator_fields_neo_32_gbarneo(iky,ikx,iz), 0.0)
-                            end if
-                            A_lapack(1,3) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(2,3) = cmplx(denominator_fields_neo_23_gneo(iky,ikx,iz), 0.0)
-                            A_lapack(3,3) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
-                        else
-                            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_apar. Aborting.'
-                            call mp_abort('Unknown dist option in calculate_neo_phi_apar_and_bpar. Aborting.')
-                            return
-                        end if
-
-                        B_lapack(1,1) = phi(iky,ikx,iz,it)
-                        B_lapack(2,1) = apar(iky,ikx,iz,it)
-                        B_lapack(3,1) = bpar(iky,ikx,iz,it)
-
-                        ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
-                        anorm = zlange('1', 3, 3, A_lapack, 3, work_norm)
-
-                        call zgesv(3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
-
-                        if (info == 0) then
-                            ! No exact zero pivot was hit, but the matrix could still be near-singular. 
-                            ! A_lapack now holds the LU factors from zgesv. 
-                            ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A).                                        
-                            call zgecon('1', 3, A_lapack, 3, anorm, rcond, cwork_lapack, rwork_lapack, info_con)
-
-                            ! One-time diagnostic: report the conditioning at (kx=0, ky=0) regardless of outcome.
-                            ! This way the degree to which field coupling has (or hasn't) lifted the k=0 degeneracy can be inspected.
-                            ! if (.not. k00_diag_printed .and. zonal_mode(iky) .and. akx(ikx) == 0.0) then
-                                ! if (proc0) write(*,*) 'DIAGNOSTIC: (kx=0, ky=0) field matrix rcond=', rcond, ' info_con=', info_con, ' at iz=', iz, ' it=', it
-                                ! k00_diag_printed = .true.
-                            ! end if
-
-                            if (info_con /= 0 .or. rcond < rcond_threshold) then
-                                ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') at iky,ikx,iz=', iky, ikx, iz
-                                phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
-                                apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                                bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                            else
-                                ! Assign solutions to the fields. 
-                                phi(iky,ikx,iz,it)  = B_lapack(1,1)
-                                apar(iky,ikx,iz,it) = B_lapack(2,1)
-                                bpar(iky,ikx,iz,it) = B_lapack(3,1)
-                            end if
-                        else
-                            ! One-time diagnostic for the exact-singularity path too, in case (kx=0, ky=0) lands here
-                            ! rather than the near-singular path — that outcome is itself informative.
-                            ! if (.not. k00_diag_printed .and. zonal_mode(iky) .and. akx(ikx) == 0.0) then
-                                ! if (proc0) write(*,*) 'DIAGNOSTIC: (kx=0, ky=0) field matrix hit exact zero pivot ', '(info=', info, ') at iz=', iz, ' it=', it
-                                ! k00_diag_printed = .true.
-                            ! end if
-
-                            ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix (exact singularity) at iky,ikx,iz=', iky, ikx, iz
-                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
-                            apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                            bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                        end if
-                    end do
-                end do
-            end do
-        end do
     end subroutine calculate_neo_phi_apar_and_bpar
 
 
@@ -945,9 +763,8 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         use mp, only: proc0, mp_abort
       
         ! Arrays.
-        use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_12_gneo, denominator_fields_neo_13_gneo
-        use arrays, only: denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo, denominator_fields_neo_23_gneo
-        use arrays, only: denominator_fields_neo_31_gneo, denominator_fields_neo_32_gneo, denominator_fields_neo_33_gneo
+        use arrays, only: denominator_fields_neo_21_gneo_inv
+        use arrays, only: denominator_fields_neo_22_gneo_inv
         
         ! Parameters.
         use parameters_physics, only: include_apar, include_bpar
@@ -966,131 +783,32 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         ! Local variables.
         integer :: ia
         integer :: ikxkyz, iky, ikx, iz, it, is      
+        complex :: antot1, antot2
 
-        ! LAPACK Variables.
-        complex(8)     :: A_lapack(2,2)
-        complex(8)     :: B_lapack(2,1)
-        complex(8)     :: C_lapack(3,3)
-        complex(8)     :: D_lapack(3,1)
-        integer        :: ipiv(2), jpiv(3)
-        integer        :: info
-        external zgesv
-        ! LAPACK variables (condition number estimation). 
-        real(8)            :: anorm, rcond
-        real(8)            :: rwork_lapack(6)    
-        complex(8)         :: cwork_lapack(6)    
-        real(8)            :: work_norm(3)       
-        integer            :: info_con
-        real(8), parameter :: rcond_threshold = 1.0d-8   ! ~sqrt(machine epsilon); tune as needed.
-        external zgecon
-        real(8), external  :: zlange
-
-        ! Assume we only have one field line
+        ! Assume we only have one field line.
         ia = 1
 
         ! ================================================================================================================= !
-      
-        ! We have the sources that we need to get the associated field matrix for apar.
-        ! Note that the implicit mirror advance only uses gneo and so there is no gbarneo dist option here.
-        ! If we are only including apar, only solve the 2x2 matrix.  
-        if (include_apar .and. .not. include_bpar) then 
-            if (dist == 'gneo') then
-                do it = 1, ntubes
-                    do iz = -nzgrid, nzgrid
-                        do ikx = 1, nakx
-                            do iky = 1, naky
-                                A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
-                                A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
-                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
-                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
 
-                                B_lapack(1,1) = phi(iky,ikx,iz,it)
-                                B_lapack(2,1) = apar(iky,ikx,iz,it)
-
-                                ! Compute the 1-norm of A before zgesv overwrites it with the LU factors.
-                                anorm = zlange('1', 2, 2, A_lapack, 2, work_norm(1:2))
-
-                                call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
-
-                                if (info == 0) then
-                                    ! No exact zero pivot was hit, but the matrix could still be near-singular. 
-                                    ! A_lapack now holds the LU factors from zgesv.
-                                    ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(A).
-                                    call zgecon('1', 2, A_lapack, 2, anorm, rcond, cwork_lapack(1:4), rwork_lapack(1:4), info_con)
-
-                                    if (info_con /= 0 .or. rcond < rcond_threshold) then
-                                        ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond, ') in get_apar_neo (2x2) at iky, ikx, iz, it =', iky, ikx, iz, it
-                                        apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                                    else
-                                        apar(iky,ikx,iz,it) = B_lapack(2,1)
-                                    end if
-                                else
-                                    ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
-                                    apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                                end if
-                            end do
+        if (dist == 'gneo') then
+            do it = 1, ntubes
+                do iz = -nzgrid, nzgrid
+                    do ikx = 1, nakx
+                        do iky = 1, naky
+                            antot1 = phi(iky,ikx,iz,it)
+                            antot2 = apar(iky,ikx,iz,it)
+                     
+                            apar(iky,ikx,iz,it) = denominator_fields_neo_21_gneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_22_gneo_inv(iky,ikx,iz)*antot2
                         end do
                     end do
                 end do
-            else  
-                if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
-                call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
-                return      
-            end if     
+            end do
+        else
+            if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
+            call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
+            return
         end if
 
-        ! If we are including apar and bpar, solve the full 3x3 matrix. 
-        if (include_apar .and. include_bpar) then
-            if (dist == 'gneo') then
-                do it = 1, ntubes
-                    do iz = -nzgrid, nzgrid
-                        do ikx = 1, nakx
-                            do iky = 1, naky
-                                C_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(3,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(3,2) = cmplx(denominator_fields_neo_32_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(1,3) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(2,3) = cmplx(denominator_fields_neo_23_gneo(iky,ikx,iz), 0.0)
-                                C_lapack(3,3) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
-
-                                D_lapack(1,1) = phi(iky,ikx,iz,it)
-                                D_lapack(2,1) = apar(iky,ikx,iz,it)
-                                D_lapack(3,1) = bpar(iky,ikx,iz,it)
-
-                                ! Compute the 1-norm of C before zgesv overwrites it with the LU factors.
-                                anorm = zlange('1', 3, 3, C_lapack, 3, work_norm)
-
-                                call zgesv(3, 1, C_lapack, 3, jpiv, D_lapack, 3, info)
-
-                                if (info == 0) then
-                                    ! No exact zero pivot was hit, but the matrix could still be near-singular. 
-                                    ! C_lapack now holds the LU factors from zgesv.
-                                    ! zgecon can reuse them directly to estimate rcond ~ 1/kappa(C).
-                                    call zgecon('1', 3, C_lapack, 3, anorm, rcond, cwork_lapack, rwork_lapack, info_con)
-
-                                    if (info_con /= 0 .or. rcond < rcond_threshold) then
-                                        ! if (proc0) write(*,*) 'WARNING: ill-conditioned field matrix (rcond=', rcond,') at iky,ikx,iz=', iky, ikx, iz
-                                        apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                                    else
-                                        apar(iky,ikx,iz,it) = D_lapack(2,1)
-                                    end if
-                                else
-                                    ! if (proc0) write(*,*) 'WARNING: ill-conditioned matrix (exact singularity) at iky,ikx,iz=', iky, ikx, iz
-                                    apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
-                                end if
-                            end do
-                        end do
-                    end do
-                end do
-            else
-                if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
-                call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
-                return
-            end if
-        end if
    end subroutine get_apar_neo
        
 
@@ -1216,12 +934,14 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
     subroutine init_neo_electromagnetic_fields
         ! Parallelisation.
+        use mp, only: proc0
         use mp, only: sum_allreduce
         use parallelisation_layouts, only: kxkyz_lo
         use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
 
         ! Arrays.
         use arrays, only: kperp2
+        use arrays, only: denominator_fields_neo_gneo
         use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
         use arrays, only: denominator_fields_neo_13_gneo
         use arrays, only: denominator_fields_neo_21_gneo
@@ -1230,6 +950,11 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         use arrays, only: denominator_fields_neo_31_gneo
         use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
         use arrays, only: denominator_fields_neo_33_gneo
+ 
+        use arrays, only: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_11_gbarneo_inv
+        use arrays, only: denominator_fields_neo_12_gneo_inv, denominator_fields_neo_12_gbarneo_inv
+        use arrays, only: denominator_fields_neo_21_gneo_inv, denominator_fields_neo_21_gbarneo_inv
+        use arrays, only: denominator_fields_neo_22_gneo_inv, denominator_fields_neo_22_gbarneo_inv
 
         ! Parameters.
         use parameters_physics, only: include_apar, include_bpar, beta
@@ -1257,9 +982,17 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
         ! Local variables.
         integer :: ikxkyz, iz, it, ikx, iky, is, ia, iv, imu
-        real :: tmp, wgt, denom_tmp
-        real, dimension(:, :), allocatable :: g0
+        real :: tmp, wgt, denom_tmp_neo
+        real, dimension(:, :), allocatable :: g0 
         
+        ! For matrix regulaisation.
+        real :: Minv_gneo(2,2), Minv_gbarneo(2,2)
+        real :: lam_gneo, lam_gbarneo
+        real :: sigma_min_median_gneo, sigma_min_median_gbarneo
+        integer :: n_regularized_gneo, n_regularized_gbarneo
+        real :: divisor_gneo, divisor_gbarneo 
+
+
         if (.not. (include_apar .or. include_bpar)) return
 
         ! Allocate the arrays needed for higher order electromagnetic field solve calculations.
@@ -1370,6 +1103,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
             !                                                                                                                                                          !     
             ! ======================================================================================================================================================== !
 
+             
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                 it = it_idx(kxkyz_lo, ikxkyz)
                 if (it /= 1) cycle
@@ -1418,9 +1152,10 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                 ! Multiply by the neoclassical factor.
                 g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) &
                 - dneo_h_dvpa_global(iz, :, :, is, 1) + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
-
+ 
                 ! Calculate denominator_fields_neo_22_gbarneo[iky,ikz,iz].            
                 wgt = beta * spec(is)%z * spec(is)%dens * spec(is)%z / spec(is)%mass
+                
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_22_gbarneo(iky, ikx, iz) = denominator_fields_neo_22_gbarneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1628,7 +1363,445 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
             ! Deallocate temporary array.
             deallocate (g0)
         end if 
+
+      ! Compute: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_12_gneo_inv, denominator_fields_neo_21_gneo_inv and denominator_fields_neo_22_gneo_inv
+      ! and similiarly for gbarneo.  
+      ! These are the factors that are actually needed in the field solve when we simulate with phi, apar and no bpar. 
+      if (fphi > epsilon(0.0) .and. include_apar .and. .not. include_bpar) then
+
+         divisor_gneo = 0.5      ! 2.0 too lose. 
+         divisor_gbarneo = 100.0
+         n_regularized_gneo = 0
+         n_regularized_gbarneo = 0
+
+         ! First compute the inverse matrix factors associated with the gneo distribution.
+         call compute_lam_from_grid(denominator_fields_neo_gneo, denominator_fields_neo_12_gneo, denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo, &
+         divisor_gneo, 1, 1, lam_gneo, sigma_min_median_gneo)
+
+         if (proc0) then
+             write (*,'(A,ES16.8)') 'gneo grid: median sigma_min (excl. ky=0,kx=0) = ', sigma_min_median_gneo
+             write (*,'(A,ES16.8)') 'gneo grid: divisor_gneo = ', divisor_gneo
+             write (*,'(A,ES16.8)') 'gneo grid: lam_gneo (median/divisor) = ', lam_gneo
+         end if
+
+         do iz = -nzgrid, nzgrid 
+            do ikx = 1, nakx
+               do iky = 1, naky
+
+                     
+                  if (iky == 1 .and. ikx == 1) then
+                     ! stella does not evolve the (ky=0, kx=0) mode --
+                     ! do not invert this matrix, leave the inverse
+                     ! entries at zero (matching how this mode is
+                     ! handled elsewhere in stella -- confirm this
+                     ! convention against existing code rather than
+                     ! assuming it).
+                     denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = 0.0
+                     denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = 0.0
+                     denominator_fields_neo_21_gneo_inv(iky,ikx,iz) = 0.0
+                     denominator_fields_neo_22_gneo_inv(iky,ikx,iz) = 0.0
+                     cycle
+                  end if
+
+                  call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
+                  denominator_fields_neo_22_gneo(iky,ikx,iz), lam_gneo, Minv_gneo, n_regularized_gneo)
+
+                  denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = Minv_gneo(1,1)
+                  denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = Minv_gneo(1,2)
+                  denominator_fields_neo_21_gneo_inv(iky,ikx,iz) = Minv_gneo(2,1)
+                  denominator_fields_neo_22_gneo_inv(iky,ikx,iz) = Minv_gneo(2,2)
+
+                  ! Basic Cramers rule.  
+                  ! Compute denominator_fields_neo_11_gneo_inv.
+                  ! denom_tmp_neo = denominator_fields_neo_gneo(iky,ikx,iz) &
+                  ! - ((denominator_fields_neo_12_gneo(iky,ikx,iz)*denominator_fields_neo_21_gneo(iky,ikx,iz))/denominator_fields_neo_22_gneo(iky,ikx,iz))
+
+                  ! if (denom_tmp_neo < epsilon(0.0)) then
+                     ! denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = 0.0
+                  ! else
+                     ! denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = 1.0/denom_tmp_neo
+                  ! end if
+                  ! Compute denominator_fields_neo_12_gneo_inv, denominator_fields_neo_21_gneo_inv and denominator_fields_neo_22_gneo_inv.  
+                  ! denom_tmp_neo = denominator_fields_neo_gneo(iky,ikx,iz)*denominator_fields_neo_22_gneo(iky,ikx,iz) &
+                  ! - denominator_fields_neo_12_gneo(iky,ikx,iz)*denominator_fields_neo_21_gneo(iky,ikx,iz)
+
+                  ! if (denom_tmp_neo < epsilon(0.0)) then
+                     ! denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = 0.0
+                     ! denominator_fields_neo_21_gneo_inv(iky,ikx,iz) = 0.0
+                     ! denominator_fields_neo_22_gneo_inv(iky,ikx,iz) = 0.0
+                  ! else
+                     ! denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = -denominator_fields_neo_12_gneo(iky,ikx,iz)/denom_tmp_neo
+                     ! denominator_fields_neo_21_gneo_inv(iky,ikx,iz) = -denominator_fields_neo_21_gneo(iky,ikx,iz)/denom_tmp_neo
+                     ! denominator_fields_neo_22_gneo_inv(iky,ikx,iz) = denominator_fields_neo_gneo(iky,ikx,iz)/denom_tmp_neo
+                  ! end if
+               end do
+            end do
+         end do
+
+         ! DIAGNOSTICS. 
+         ! Read out inverse matrix elements. 
+         call write_array_diagnostic(denominator_fields_neo_11_gneo_inv, 'denominator_fields_neo_11_gneo_inv')
+         call write_array_diagnostic(denominator_fields_neo_12_gneo_inv, 'denominator_fields_neo_12_gneo_inv')
+         call write_array_diagnostic(denominator_fields_neo_21_gneo_inv, 'denominator_fields_neo_21_gneo_inv')
+         call write_array_diagnostic(denominator_fields_neo_22_gneo_inv, 'denominator_fields_neo_22_gneo_inv')
+         ! Clamp outliers in the inverse matrix elements.
+         ! call clamp_array_outliers(denominator_fields_neo_11_gneo_inv, 100.0, 'clamp_log_11_gneo.dat')
+         ! call clamp_array_outliers(denominator_fields_neo_12_gneo_inv, 100.0, 'clamp_log_12_gneo.dat')
+         ! call clamp_array_outliers(denominator_fields_neo_21_gneo_inv, 100.0, 'clamp_log_21_gneo.dat')
+         ! call clamp_array_outliers(denominator_fields_neo_22_gneo_inv, 100.0, 'clamp_log_22_gneo.dat')
+
+         if (proc0) then
+             write (*,'(A,I8,A,I8)') 'gneo block: n_regularized = ', n_regularized_gneo, ' out of ', 2*(naky*nakx*(2*nzgrid+1) - (2*nzgrid+1))
+         end if
+
+         ! Now compute the inverse matrix factors associated with the gbarneo distribution. 
+         call compute_lam_from_grid(denominator_fields_neo_gneo, denominator_fields_neo_12_gbarneo, denominator_fields_neo_21_gneo, denominator_fields_neo_22_gbarneo, &
+         divisor_gbarneo, 1, 1, lam_gbarneo, sigma_min_median_gbarneo)
+
+         if (proc0) then
+             write (*,'(A,ES16.8)') 'gbarneo grid: median sigma_min (excl. ky=0,kx=0) = ', sigma_min_median_gbarneo
+             write (*,'(A,ES16.8)') 'gbarneo grid: divisor_gbarneo = ', divisor_gbarneo
+             write (*,'(A,ES16.8)') 'gbarneo grid: lam_gbarneo (median/divisor) = ', lam_gbarneo
+         end if
+
+         do iz = -nzgrid,nzgrid
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  if (iky == 1 .and. ikx == 1) then
+                     ! stella does not evolve the (ky=0, kx=0) mode --
+                     ! do not invert this matrix, leave the inverse
+                     ! entries at zero (matching how this mode is
+                     ! handled elsewhere in stella -- confirm this
+                     ! convention against existing code rather than
+                     ! assuming it).
+                     denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = 0.0
+                     denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = 0.0
+                     denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz) = 0.0
+                     denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz) = 0.0
+                     cycle
+                  end if
+
+                  call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gbarneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
+                       denominator_fields_neo_22_gbarneo(iky,ikx,iz), lam_gbarneo, Minv_gbarneo, n_regularized_gbarneo)
+
+                  denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,1)
+                  denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,2)
+                  denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(2,1)
+                  denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(2,2)
+          
+                  ! Cramer's rule.
+                  ! Compute denominator_fields_neo_11_gbarneo_inv.
+                  ! denom_tmp_neo = denominator_fields_neo_gneo(iky,ikx,iz) &
+                  ! - ((denominator_fields_neo_12_gbarneo(iky,ikx,iz)*denominator_fields_neo_21_gneo(iky,ikx,iz))/denominator_fields_neo_22_gbarneo(iky,ikx,iz))
+
+                  ! if (denom_tmp_neo < epsilon(0.0)) then
+                     ! denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = 0.0
+                  ! else
+                     ! denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = 1.0/denom_tmp_neo
+                  ! end if
+
+                  ! Compute denominator_fields_neo_12_gbarneo_inv, denominator_fields_neo_21_gbarneo_inv and denominator_fields_neo_22_gbarneo_inv.  
+                  ! denom_tmp_neo = denominator_fields_neo_gneo(iky,ikx,iz)*denominator_fields_neo_22_gbarneo(iky,ikx,iz) &
+                  ! - denominator_fields_neo_12_gbarneo(iky,ikx,iz)*denominator_fields_neo_21_gneo(iky,ikx,iz)
+
+                  ! if (denom_tmp_neo < epsilon(0.0)) then
+                     ! denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = 0.0
+                     ! denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz) = 0.0
+                     ! denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz) = 0.0
+                  ! else
+                     ! denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = -denominator_fields_neo_12_gbarneo(iky,ikx,iz)/denom_tmp_neo
+                     ! denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz) = -denominator_fields_neo_21_gneo(iky,ikx,iz)/denom_tmp_neo
+                     ! denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz) = denominator_fields_neo_gneo(iky,ikx,iz)/denom_tmp_neo
+                  ! end if
+               end do
+            end do
+         end do
+      end if
+
+      ! DIAGNOSTICS. 
+      ! Read out inverse matrix elements. 
+      call write_array_diagnostic(denominator_fields_neo_11_gbarneo_inv, 'denominator_fields_neo_11_gbarneo_inv')
+      call write_array_diagnostic(denominator_fields_neo_12_gbarneo_inv, 'denominator_fields_neo_12_gbarneo_inv')
+      call write_array_diagnostic(denominator_fields_neo_21_gbarneo_inv, 'denominator_fields_neo_21_gbarneo_inv')
+      call write_array_diagnostic(denominator_fields_neo_22_gbarneo_inv, 'denominator_fields_neo_22_gbarneo_inv')
+      ! Clamp outliers in the inverse matrix elements.
+      ! call clamp_array_outliers(denominator_fields_neo_11_gbarneo_inv, 100.0, 'clamp_log_11_gbarneo.dat')
+      ! call clamp_array_outliers(denominator_fields_neo_12_gbarneo_inv, 100.0, 'clamp_log_12_gbarneo.dat')
+      ! call clamp_array_outliers(denominator_fields_neo_21_gbarneo_inv, 100.0, 'clamp_log_21_gbarneo.dat')
+      ! call clamp_array_outliers(denominator_fields_neo_22_gbarneo_inv, 100.0, 'clamp_log_22_gbarneo.dat')
+
+      if (proc0) then
+          write (*,'(A,I8,A,I8)') 'gbarneo block: n_regularized = ', n_regularized_gbarneo, ' out of ', 2*(naky*nakx*(2*nzgrid+1) - (2*nzgrid+1))
+      end if
+
     end subroutine init_neo_electromagnetic_fields  
+
+
+! =================================================================================================================================================================================== !
+! --------------------------------------------------------- A diagnostic for reading denom_tmp_neo to highlight potentially bad data. ----------------------------------------------- !
+! =================================================================================================================================================================================== !
+
+  ! subroutine write_denom_diagnostic(denom_tmp, iky, ikx, iz, filename)
+    ! use mp, only: proc0
+
+    ! implicit none
+
+    ! real, intent(in) :: denom_tmp
+    ! integer, intent(in) :: iky, ikx, iz
+    ! character(len=*), intent(in) :: filename
+
+    ! integer, save :: denom_unit = -1
+    ! logical, save :: file_open = .false.
+    ! real, save :: denom_min = huge(0.0)
+    ! integer, save :: iky_min = -1, ikx_min = -1, iz_min = -1
+
+    ! Open the file on the first call for this filename.
+    ! NOTE: because denom_unit/file_open/denom_min are `save` locals, this
+    ! subroutine as written can only track ONE file/diagnostic stream at a
+    ! time. Calling it for both the "11" block and the "12/21/22" block will
+    ! interleave both sets of points into the same running min/file unless
+    ! the state is split -- see caveat below.
+    ! if (.not. file_open) then
+       ! if (proc0) then
+          ! open (newunit=denom_unit, file=trim(filename), status='replace', action='write')
+          ! write (denom_unit,'(A)') '# iky   ikx   iz   denom_tmp'
+       ! end if
+       ! file_open = .true.
+    ! end if
+
+    ! if (proc0) then
+       ! write (denom_unit,'(3(I6,2X),ES16.8)') iky, ikx, iz, denom_tmp
+    ! end if
+
+    ! if (denom_tmp < denom_min) then
+       ! denom_min = denom_tmp
+       ! iky_min = iky; ikx_min = ikx; iz_min = iz
+    ! end if
+
+  ! end subroutine write_denom_diagnostic
+
+
+! =================================================================================================================================================================================== !
+! ---------------------------------------------------- A diagnostic for reading denomninator arrays to highlight potentially bad data. ---------------------------------------------- !
+! =================================================================================================================================================================================== !
+
+  subroutine write_array_diagnostic(array_in, filename)
+    use mp, only: proc0, min_allreduce, max_allreduce
+
+    implicit none
+
+    real, dimension(:,:,:), intent(in) :: array_in
+    character(len=*), intent(in) :: filename
+
+    integer :: iky, ikx, iz
+    integer :: iky_lo, iky_hi, ikx_lo, ikx_hi, iz_lo, iz_hi
+    integer :: array_unit
+    real :: array_min, array_median, array_rms, array_max
+    real, allocatable :: flat(:)
+    integer :: n, idx
+    integer :: iky_max, ikx_max, iz_max
+    real :: abs_val
+
+    iky_lo = lbound(array_in,1); iky_hi = ubound(array_in,1)
+    ikx_lo = lbound(array_in,2); ikx_hi = ubound(array_in,2)
+    iz_lo  = lbound(array_in,3); iz_hi  = ubound(array_in,3)
+
+    n = size(array_in)
+
+    allocate(flat(n))
+    if (proc0) then
+       open (newunit=array_unit, file=trim(filename), status='replace', action='write')
+       write (array_unit,'(A)') '# iky   ikx   iz   value'
+    end if
+
+    idx = 0
+    array_max = -huge(0.0)
+    iky_max = -1; ikx_max = -1; iz_max = -1
+
+    do iz = iz_lo, iz_hi
+       do ikx = ikx_lo, ikx_hi
+          do iky = iky_lo, iky_hi
+             if (proc0) then
+                write (array_unit,'(3(I6,2X),ES16.8)') iky, ikx, iz, array_in(iky,ikx,iz)
+             end if
+
+             idx = idx + 1
+             flat(idx) = array_in(iky,ikx,iz)
+
+             ! Track worst-case magnitude (not signed max) and its location,
+             ! since a large-negative blow-up is just as dangerous as large-positive.
+             abs_val = abs(array_in(iky,ikx,iz))
+             if (abs_val > array_max) then
+                array_max = abs_val
+                iky_max = iky; ikx_max = ikx; iz_max = iz
+             end if
+          end do
+       end do
+    end do
+
+    if (proc0) close (array_unit)
+
+    call compute_stats(flat, array_min, array_median, array_rms)
+
+    ! Reduces the VALUE only, not its (iky,ikx,iz) location -- see caveat below.
+    call min_allreduce(array_min)
+    call max_allreduce(array_max)
+
+    if (proc0) then
+       write (*,'(A,A,A)')             'Diagnostic [', trim(filename), ']:'
+       write (*,'(A,ES16.8)')          '  local-rank min        = ', array_min
+       write (*,'(A,ES16.8)')          '  local-rank median     = ', array_median
+       write (*,'(A,ES16.8)')          '  local-rank rms        = ', array_rms
+       write (*,'(A,ES16.8,3(A,I6))')  '  local-rank max |val|  = ', array_max, &
+            '  at iky=', iky_max, ' ikx=', ikx_max, ' iz=', iz_max
+    end if
+
+    deallocate(flat)
+
+  end subroutine write_array_diagnostic
+                    
+
+  subroutine compute_stats(vals, vmin, vmedian, vrms)
+    implicit none
+
+    real, intent(in) :: vals(:)
+    real, intent(out) :: vmin, vmedian, vrms
+
+    real, allocatable :: sorted(:)
+    integer :: n, mid
+
+    n = size(vals)
+    vmin = minval(vals)
+    vrms = sqrt(sum(vals**2) / real(n))
+
+    allocate(sorted(n))
+    sorted = vals
+    call sort_real_array(sorted)
+
+    mid = n/2
+    if (mod(n,2) == 0) then
+       vmedian = 0.5*(sorted(mid) + sorted(mid+1))
+    else
+       vmedian = sorted(mid+1)
+    end if
+
+    deallocate(sorted)
+
+  end subroutine compute_stats
+
+
+  subroutine sort_real_array(a)
+    ! Simple insertion sort -- fine for naky*nakx*(2*nzgrid+1)-sized arrays.
+    ! Swap for stella's own sort routine if one already exists (check
+    ! utils.f90 or similar) rather than duplicating this.
+    implicit none
+    real, intent(inout) :: a(:)
+    integer :: i, j
+    real :: key
+
+    do i = 2, size(a)
+       key = a(i)
+       j = i - 1
+       do while (j >= 1)
+          if (a(j) <= key) exit
+          a(j+1) = a(j)
+          j = j - 1
+       end do
+       a(j+1) = key
+    end do
+  end subroutine sort_real_array
+
+
+! =================================================================================================================================================================================== !
+! ------------------------------------ Clamp the outliers in the inverse matrix elements array - suspected cause of crashes in finite beta nonlinear runs. -------------------------- !
+! =================================================================================================================================================================================== !
+
+  ! subroutine clamp_array_outliers(array_inout, threshold_factor, log_filename)
+    ! Zeroes any element whose magnitude exceeds threshold_factor * median(|array|).
+    ! This is a quick probe to test whether suppressing extreme inverse-matrix
+    ! outliers stabilizes the CFL-driven crash -- NOT a physically-motivated fix.
+    ! If it works, the follow-up should regularize denom_tmp_neo before inversion
+    ! instead, so all four (11/12/21/22) elements at a point stay mutually
+    ! consistent, rather than zeroing individual elements independently.
+
+    ! use mp, only: proc0
+
+    ! implicit none
+
+    ! real, dimension(:,:,:), intent(inout) :: array_inout
+    ! real, intent(in) :: threshold_factor
+    ! character(len=*), intent(in) :: log_filename
+
+    ! integer :: iky, ikx, iz
+    ! integer :: iky_lo, iky_hi, ikx_lo, ikx_hi, iz_lo, iz_hi
+    ! integer :: n, idx
+    ! real, allocatable :: abs_flat(:)
+    ! real :: median_abs, threshold, orig_val
+    ! integer :: log_unit, n_clamped
+
+    ! iky_lo = lbound(array_inout,1); iky_hi = ubound(array_inout,1)
+    ! ikx_lo = lbound(array_inout,2); ikx_hi = ubound(array_inout,2)
+    ! iz_lo  = lbound(array_inout,3); iz_hi  = ubound(array_inout,3)
+
+    ! n = size(array_inout)
+    ! allocate(abs_flat(n))
+
+    ! Median of |value|, not signed value, since several of these arrays
+    ! (e.g. the 21 elements) are predominantly negative -- a signed median
+    ! would give a misleading (or wrong-signed) reference scale.
+    ! idx = 0
+    ! do iz = iz_lo, iz_hi
+       ! do ikx = ikx_lo, ikx_hi
+          ! do iky = iky_lo, iky_hi
+             ! idx = idx + 1
+             ! abs_flat(idx) = abs(array_inout(iky,ikx,iz))
+          ! end do
+       ! end do
+    ! end do
+
+    ! call sort_real_array(abs_flat)
+    ! if (mod(n,2) == 0) then
+       ! median_abs = 0.5*(abs_flat(n/2) + abs_flat(n/2+1))
+    ! else
+       ! median_abs = abs_flat(n/2+1)
+    ! end if
+
+    ! deallocate(abs_flat)
+
+    ! threshold = threshold_factor * median_abs
+
+    ! if (proc0) then
+       ! open (newunit=log_unit, file=trim(log_filename), status='replace', action='write')
+       ! write (log_unit,'(A)')            '# Outlier clamping log'
+       ! write (log_unit,'(A,ES16.8)')     '# median(|value|) = ', median_abs
+       ! write (log_unit,'(A,ES16.8)')     '# threshold_factor = ', threshold_factor
+       ! write (log_unit,'(A,ES16.8)')     '# threshold (abs)  = ', threshold
+       ! write (log_unit,'(A)')            '# iky   ikx   iz   original_value'
+    ! end if
+
+    ! n_clamped = 0
+    ! do iz = iz_lo, iz_hi
+       ! do ikx = ikx_lo, ikx_hi
+          ! do iky = iky_lo, iky_hi
+
+             ! if (abs(array_inout(iky,ikx,iz)) > threshold) then
+                ! orig_val = array_inout(iky,ikx,iz)
+                ! if (proc0) then
+                   ! write (log_unit,'(3(I6,2X),ES16.8)') iky, ikx, iz, orig_val
+                ! end if
+                ! array_inout(iky,ikx,iz) = 0.0
+                ! n_clamped = n_clamped + 1
+             ! end if
+          ! end do
+       ! end do
+    ! end do
+
+    ! if (proc0) then
+       ! write (log_unit,'(A,I8)') '# total points clamped = ', n_clamped
+       ! close (log_unit)
+       ! write (*,'(A,A,A,I8,A,ES16.8)') 'Clamped [', trim(log_filename), ']: ', n_clamped, ' points, threshold = ', threshold
+    ! end if
+  ! end subroutine clamp_array_outliers
 
 
 ! =================================================================================================================================================================================== !
@@ -1668,6 +1841,11 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         use arrays, only: denominator_fields_neo_31_gneo
         use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
         use arrays, only: denominator_fields_neo_33_gneo
+
+        use arrays, only: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_11_gbarneo_inv
+        use arrays, only: denominator_fields_neo_12_gneo_inv, denominator_fields_neo_12_gbarneo_inv
+        use arrays, only: denominator_fields_neo_21_gneo_inv, denominator_fields_neo_21_gbarneo_inv
+        use arrays, only: denominator_fields_neo_22_gneo_inv, denominator_fields_neo_22_gbarneo_inv
  
         implicit none
 
@@ -1683,6 +1861,22 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
             if (.not. allocated(denominator_fields_neo_22_gbarneo)) &
             then; allocate (denominator_fields_neo_22_gbarneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_22_gbarneo = 0. ; end if
  
+            if (.not. allocated(denominator_fields_neo_11_gneo_inv)) &
+            then; allocate (denominator_fields_neo_11_gneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_11_gneo_inv = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_11_gbarneo_inv)) &
+            then; allocate (denominator_fields_neo_11_gbarneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_11_gbarneo_inv = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_12_gneo_inv)) &
+            then; allocate (denominator_fields_neo_12_gneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12_gneo_inv = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_12_gbarneo_inv)) &
+            then; allocate (denominator_fields_neo_12_gbarneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_12_gbarneo_inv = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_21_gneo_inv)) &
+            then; allocate (denominator_fields_neo_21_gneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_21_gneo_inv = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_21_gbarneo_inv)) &
+            then; allocate (denominator_fields_neo_21_gbarneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_21_gbarneo_inv = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_22_gneo_inv)) &
+            then; allocate (denominator_fields_neo_22_gneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_22_gneo_inv = 0. ; end if
+            if (.not. allocated(denominator_fields_neo_22_gbarneo_inv)) &
+            then; allocate (denominator_fields_neo_22_gbarneo_inv(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_22_gbarneo_inv = 0. ; end if
         end if        
    
         if (include_bpar) then
@@ -1733,6 +1927,10 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
         use arrays, only: denominator_fields_neo_33_gneo
 
+        use arrays, only: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_11_gbarneo_inv
+        use arrays, only: denominator_fields_neo_12_gneo_inv, denominator_fields_neo_12_gbarneo_inv
+        use arrays, only: denominator_fields_neo_21_gneo_inv, denominator_fields_neo_21_gbarneo_inv
+        use arrays, only: denominator_fields_neo_22_gneo_inv, denominator_fields_neo_22_gbarneo_inv
 
         implicit none
 
@@ -1749,7 +1947,237 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         if (allocated(denominator_fields_neo_22_gbarneo)) deallocate(denominator_fields_neo_22_gbarneo)
         if (allocated(denominator_fields_neo_32_gbarneo)) deallocate(denominator_fields_neo_32_gbarneo)
 
+        if (allocated(denominator_fields_neo_11_gneo_inv)) deallocate(denominator_fields_neo_11_gneo_inv)
+        if (allocated(denominator_fields_neo_11_gbarneo_inv)) deallocate(denominator_fields_neo_11_gbarneo_inv)
+        if (allocated(denominator_fields_neo_12_gneo_inv)) deallocate(denominator_fields_neo_12_gneo_inv)
+        if (allocated(denominator_fields_neo_12_gbarneo_inv)) deallocate(denominator_fields_neo_12_gbarneo_inv)
+        if (allocated(denominator_fields_neo_21_gneo_inv)) deallocate(denominator_fields_neo_21_gneo_inv)
+        if (allocated(denominator_fields_neo_21_gbarneo_inv)) deallocate(denominator_fields_neo_21_gbarneo_inv)
+        if (allocated(denominator_fields_neo_22_gneo_inv)) deallocate(denominator_fields_neo_22_gneo_inv)
+        if (allocated(denominator_fields_neo_22_gbarneo_inv)) deallocate(denominator_fields_neo_22_gbarneo_inv)
+
     end subroutine finish_neo_electromagnetic_fields
+
+
+! =================================================================================================================================================================================== !
+! Rigorous (SVD-based) Tikhonov regularization for a 2x2 real matrix inverse.                                                                                                         ! 
+! For M = [[a,b],[c,d]], computes M = U * Sigma * V^T via the M^T M eigen-decomposition (closed form for 2x2), then reconstructs a regularized inverse using                          ! 
+! sigma_i/(sigma_i^2 + lam^2) in place of 1/sigma_i for each singular value. This floors only the direction(s) that are actually near-singular,                                       !
+! unlike flooring the scalar determinant, which floors uniformly regardless of which direction is collapsing.                                                                         !
+! =================================================================================================================================================================================== !
+
+! ============================================================
+! SVD-based Tikhonov regularization for 2x2 field-solve matrices.
+! Paste these subroutines into the CONTAINS section of the module
+! that hosts your field solve. They rely on assumed-shape array
+! arguments and an optional argument, both of which REQUIRE an
+! explicit interface -- i.e. they must be module procedures (as
+! pasted here) or internal procedures, not bare external subroutines
+! in an unconnected file.
+! ============================================================
+
+  subroutine svd_2x2(a, b, c, d, U, sigma1, sigma2, V)
+
+    implicit none
+    real, intent(in)  :: a, b, c, d
+    real, intent(out) :: U(2,2), V(2,2), sigma1, sigma2
+
+    real :: MtM_11, MtM_22, MtM_12
+    real :: phi, Vc, Vs
+    real :: MV1_1, MV1_2, MV2_1, MV2_2  ! columns of M*V
+    real :: eps
+
+    eps = epsilon(1.0)
+
+    MtM_11 = a*a + c*c
+    MtM_22 = b*b + d*d
+    MtM_12 = a*b + c*d
+
+    if (abs(MtM_11 - MtM_22) < eps .and. abs(MtM_12) < eps) then
+       phi = 0.0
+    else
+       phi = 0.5 * atan2(2.0*MtM_12, MtM_11 - MtM_22)
+    end if
+
+    Vc = cos(phi)
+    Vs = sin(phi)
+    V(1,1) = Vc;  V(1,2) = -Vs
+    V(2,1) = Vs;  V(2,2) =  Vc
+
+    ! M * V, columns give sigma_i * u_i
+    MV1_1 = a*V(1,1) + b*V(2,1)
+    MV1_2 = c*V(1,1) + d*V(2,1)
+    MV2_1 = a*V(1,2) + b*V(2,2)
+    MV2_2 = c*V(1,2) + d*V(2,2)
+
+    sigma1 = sqrt(MV1_1**2 + MV1_2**2)
+    sigma2 = sqrt(MV2_1**2 + MV2_2**2)
+
+    if (sigma1 > eps) then
+       U(1,1) = MV1_1 / sigma1
+       U(2,1) = MV1_2 / sigma1
+    else
+       U(1,1) = 1.0; U(2,1) = 0.0
+    end if
+
+    if (sigma2 > eps) then
+       U(1,2) = MV2_1 / sigma2
+       U(2,2) = MV2_2 / sigma2
+    else
+       U(1,2) = 0.0; U(2,2) = 1.0
+    end if
+
+  end subroutine svd_2x2
+
+
+  subroutine regularized_inverse_2x2(a, b, c, d, lam, Minv, n_regularized)
+
+    ! Returns the Tikhonov-regularized inverse of M = [[a,b],[c,d]] in Minv.
+    ! lam sets the regularization scale (same units as a,b,c,d -- i.e. the
+    ! same units as your denominator_fields_neo_* quantities). n_regularized
+    ! is incremented by the caller-visible count of how many of the two
+    ! singular values were meaningfully damped (sigma_i < lam), useful for
+    ! diagnostics identical in spirit to your existing clamp_array_outliers
+    ! logging.
+
+    implicit none
+    real, intent(in)  :: a, b, c, d, lam
+    real, intent(out) :: Minv(2,2)
+    integer, intent(inout), optional :: n_regularized
+
+    real :: U(2,2), V(2,2), sigma1, sigma2, f1, f2
+    real :: Sinv_reg(2,2)
+
+    call svd_2x2(a, b, c, d, U, sigma1, sigma2, V)
+
+    f1 = sigma1 / (sigma1**2 + lam**2)
+    f2 = sigma2 / (sigma2**2 + lam**2)
+
+    if (present(n_regularized)) then
+       if (sigma1 < lam) n_regularized = n_regularized + 1
+       if (sigma2 < lam) n_regularized = n_regularized + 1
+    end if
+
+    Sinv_reg = 0.0
+    Sinv_reg(1,1) = f1
+    Sinv_reg(2,2) = f2
+
+    ! Minv = V * Sinv_reg * U^T
+    Minv = matmul(V, matmul(Sinv_reg, transpose(U)))
+
+  end subroutine regularized_inverse_2x2
+
+
+  subroutine compute_lam_from_grid(a_arr, b_arr, c_arr, d_arr, divisor, iky_zero, ikx_zero, lam_out, sigma_min_median_out)
+
+    ! Computes a data-driven lambda for regularized_inverse_2x2 from the
+    ! actual grid of matrices M(iky,ikx,iz) = [[a,b],[c,d]], rather than
+    ! a hand-picked constant.
+    !
+    ! Method: compute sigma_min(iky,ikx,iz) = min(sigma1,sigma2) at every
+    ! grid point, take the MEDIAN of that distribution (the grid's "typical"
+    ! conditioning scale), then set
+    !
+    !     lam_out = median(sigma_min) / divisor
+    !
+    ! `divisor` translates your earlier empirical finding (outlier
+    ! suppression at ~100x-median on the INVERSE array stopped the CFL
+    ! crash, ~1000x let it back in) into a target on sigma_min itself,
+    ! since inverse magnitude ~ 1/sigma_min. Start with divisor = 100.0
+    ! and treat it exactly like your earlier threshold sweep: check
+    ! n_regularized from regularized_inverse_2x2, confirm the CFL runaway
+    ! stays suppressed, and nudge divisor up/down (larger divisor = looser
+    ! regularization = smaller lam) if needed.
+    !
+    ! NOTE: as with your other diagnostics, this computes a LOCAL-RANK
+    ! median if a_arr/b_arr/c_arr/d_arr are domain-decomposed across MPI
+    ! ranks. If these arrays are not fully replicated on every rank at the
+    ! point you call this, you need a global (cross-rank) median rather
+    ! than this local one -- check with whoever owns the domain
+    ! decomposition in your build before trusting this on a multi-rank run.
+    !
+    ! EXCLUDES (ikx=ikx_zero, iky=iky_zero) at every iz -- stella does not
+    ! evolve the (kx=0, ky=0) mode, so its matrix is not a meaningful part
+    ! of the grid's conditioning statistics and must not be allowed to
+    ! bias the median (and hence lam) computed here.
+
+    implicit none
+
+    real, dimension(:,:,:), intent(in) :: a_arr, b_arr, c_arr, d_arr
+    real, intent(in) :: divisor
+    integer, intent(in) :: iky_zero, ikx_zero   ! grid indices of (ky=0, kx=0)
+    real, intent(out) :: lam_out
+    real, intent(out) :: sigma_min_median_out
+
+    integer :: iky, ikx, iz
+    integer :: iky_lo, iky_hi, ikx_lo, ikx_hi, iz_lo, iz_hi
+    integer :: n, idx, mid
+    real, allocatable :: sigma_min_flat(:)
+    real :: U(2,2), V(2,2), sigma1, sigma2
+
+    iky_lo = lbound(a_arr,1); iky_hi = ubound(a_arr,1)
+    ikx_lo = lbound(a_arr,2); ikx_hi = ubound(a_arr,2)
+    iz_lo  = lbound(a_arr,3); iz_hi  = ubound(a_arr,3)
+
+    n = size(a_arr)
+    allocate(sigma_min_flat(n))
+
+    idx = 0
+    do iz = iz_lo, iz_hi
+       do ikx = ikx_lo, ikx_hi
+          do iky = iky_lo, iky_hi
+
+             if (iky == iky_zero .and. ikx == ikx_zero) cycle   ! skip (ky=0,kx=0)
+
+             call svd_2x2(a_arr(iky,ikx,iz), b_arr(iky,ikx,iz), &
+                          c_arr(iky,ikx,iz), d_arr(iky,ikx,iz), &
+                          U, sigma1, sigma2, V)
+             idx = idx + 1
+             sigma_min_flat(idx) = min(sigma1, sigma2)
+          end do
+       end do
+    end do
+
+    n = idx   ! actual count after excluding the (ky=0,kx=0) points
+
+    call sort_real_array_local(sigma_min_flat(1:n))
+
+    mid = n/2
+    if (mod(n,2) == 0) then
+       sigma_min_median_out = 0.5*(sigma_min_flat(mid) + sigma_min_flat(mid+1))
+    else
+       sigma_min_median_out = sigma_min_flat(mid+1)
+    end if
+
+    lam_out = sigma_min_median_out / divisor
+
+    deallocate(sigma_min_flat)
+
+  end subroutine compute_lam_from_grid
+
+
+  subroutine sort_real_array_local(arr)
+    ! Simple insertion sort -- fine for naky*nakx*(2*nzgrid+1)-sized arrays.
+    ! Swap for stella's own sort routine if one already exists, to avoid
+    ! duplicating logic across modules (this mirrors sort_real_array used
+    ! in the write_array_diagnostic module discussed earlier).
+    implicit none
+    real, intent(inout) :: arr(:)
+    integer :: i, j
+    real :: key
+
+    do i = 2, size(arr)
+       key = arr(i)
+       j = i - 1
+       do while (j >= 1)
+          if (arr(j) <= key) exit
+          arr(j+1) = arr(j)
+          j = j - 1
+       end do
+       arr(j+1) = key
+    end do
+  end subroutine sort_real_array_local
+   
 
 ! =================================================================================================================================================================================== !
 ! ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !

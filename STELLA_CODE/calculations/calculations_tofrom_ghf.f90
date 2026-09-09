@@ -148,7 +148,7 @@ contains
          ! Gyroaverage.
          call gyro_average(field, ikxkyz, gyro_averaged_field)
 
-         ! If neoclassical is enabled, add the HO correction.
+         ! If neoclassical is enabled, add the HO correction. 
          if (neoclassical_is_enabled()) then
              gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
          end if
@@ -733,7 +733,7 @@ contains
              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
          end if
 
-         ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
+         ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution.  
          if (neoclassical_is_enabled() .and. include_apar) then
              facapar = facphi
  
