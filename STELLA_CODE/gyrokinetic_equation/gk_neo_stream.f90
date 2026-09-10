@@ -236,8 +236,8 @@ contains
 
             ! Add the terms to the right-hand-side of the GKE. 
             ! This includes one term proportional to apar and one propotional to the z derivative of apar. 
-            call add_explicit_term(dapar_dz, neo_stream_apar_1(1, :, :), gout)
-            call add_explicit_term(g0, neo_stream_apar_2(1, :, :), gout)
+            call add_explicit_term(dapar_dz, neo_stream(1, :, :), gout)
+            ! call add_explicit_term(g0, neo_stream_apar_2(1, :, :), gout)
         end if
 
 

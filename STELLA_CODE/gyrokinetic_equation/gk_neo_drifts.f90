@@ -301,7 +301,7 @@ contains
                 imu = imu_idx(vmu_lo, ivmu)
 
                 ! Calculate apar factor. 
-                field = vpa(iv) * spec(is)%stm_psi0 * apar
+                field = 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
 
                 do iky = 1, naky
                     field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
@@ -312,7 +312,7 @@ contains
             end do
 
             ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
-            call add_explicit_term(g0y, neo_wdrifty_apar(1, :, :), gout)
+            call add_explicit_term(g0y, neo_wdrifty(1, :, :), gout)
         end if
 
         
@@ -444,7 +444,7 @@ contains
                 imu = imu_idx(vmu_lo, ivmu)
 
                 ! Calculate apar factor. 
-                field = vpa(iv) * spec(is)%stm_psi0 * apar
+                field = 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
 
                 do ikx = 1, nakx
                     field(:, ikx, :, :) = zi * akx(ikx) * field(:, ikx, :, :)
@@ -455,7 +455,7 @@ contains
             end do
 
             ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
-            call add_explicit_term(g0x, neo_wdriftx_apar(1, :, :), gout)
+            call add_explicit_term(g0x, neo_wdriftx(1, :, :), gout)
         end if
 
         

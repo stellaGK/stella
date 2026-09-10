@@ -997,41 +997,12 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
         if (include_apar) then 
             allocate (g0(nvpa, nmu))
-   
-            ! =========================================================================================================================================================== ! 
-            ! denominator_fields_neo_12_gneo is the apar contribution to the QN condition when gneo is being used as the distribution function. This is given by:         !   
-            !                                                                                                                                                             ! 
-            ! denominator_fields_neo_12_gneo[iky,ikz,iz] = 
-            !                                                                                                                                                             ! 	 
-            ! =========================================================================================================================================================== !
-        
-            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                it = it_idx(kxkyz_lo, ikxkyz)
-                if (it /= 1) cycle
-                iky = iky_idx(kxkyz_lo, ikxkyz)
-                ikx = ikx_idx(kxkyz_lo, ikxkyz)
-                iz = iz_idx(kxkyz_lo, ikxkyz)
-                is = is_idx(kxkyz_lo, ikxkyz)
-
-                ! Calculate the velocity dependent factor.
-                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu)
-
-                ! Multiply by the neoclassical factor.
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
-
-                ! Calculate denominator_fields_neo_12_gneo[iky,ikz,iz].
-                wgt = spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt * spec(is)%stm 
-                call integrate_vmu(g0, iz, tmp)
-                denominator_fields_neo_12_gneo(iky, ikx, iz) = denominator_fields_neo_12_gneo(iky, ikx, iz) + tmp * wgt
-            end do
-
-            ! Sum the values on all processors and send them to <proc0>.
-            call sum_allreduce(denominator_fields_neo_12_gneo)
 
             ! =========================================================================================================================================================== ! 
-            ! denominator_fields_neo_12_gbarneo is the apar contribution to the QN condition when gbarneo is being used as the distribution function. This is given by:   !   
+            ! denominator_fields_neo_12_gneo is the apar contribution to the QN condition when when either gneo or gbarneo is being used as the distribution function.    !
+            ! This is given by:                                                                                                                                           !   
             !                                                                                                                                                             ! 
-            ! denominator_fields_neo_12_gbarneo[iky,ikz,iz] =                                                                                                             ! 
+            ! denominator_fields_neo_12_gneo[iky,ikz,iz] =                                                                                                             ! 
             !                                                                                                                                                             ! 	 
             ! =========================================================================================================================================================== !
         
@@ -1053,11 +1024,11 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                 ! Calculate denominator_fields_neo_12_gneo[iky,ikz,iz].
                 wgt = spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt * spec(is)%stm 
                 call integrate_vmu(g0, iz, tmp)
-                denominator_fields_neo_12_gbarneo(iky, ikx, iz) = denominator_fields_neo_12_gbarneo(iky, ikx, iz) + tmp * wgt
+                denominator_fields_neo_12_gneo(iky, ikx, iz) = denominator_fields_neo_12_gneo(iky, ikx, iz) + tmp * wgt
             end do
 
             ! Sum the values on all processors and send them to <proc0>.
-            call sum_allreduce(denominator_fields_neo_12_gbarneo)
+            call sum_allreduce(denominator_fields_neo_12_gneo)
 
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_21_gneo is the phi contribution to parallel Amperes law when gneo is being used as the distribution. This is given by:            ! 
@@ -1076,7 +1047,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
                 ! Calculate velocity dependent factor.
                 g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu) &
-                * spread(aj0v(:, ikxkyz) ** 2 - 1.0, 1, nvpa)
+                * spread(aj0v(:, ikxkyz)**2 - 1.0, 1, nvpa)
 
                 ! Multiply by the neoclassical factor. 
                 g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
@@ -1098,7 +1069,6 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
             !                                                                                                                                                          !     
             ! ======================================================================================================================================================== !
 
-             
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                 it = it_idx(kxkyz_lo, ikxkyz)
                 if (it /= 1) cycle
@@ -1107,13 +1077,16 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                 iz = iz_idx(kxkyz_lo, ikxkyz)
                 is = is_idx(kxkyz_lo, ikxkyz)
 
-                ! Multiply by the velocity dependent factor.
+                ! Calculate the velocity dependent factor.
                 g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu)
 
-                g0 = g0 * ( spread(vpa, 2, nmu) * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) - dneo_h_dvpa_global(iz, :, :, is, 1) )
+                ! Multiply by the neoclassical factor.
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) &
+                - dneo_h_dvpa_global(iz, :, :, is, 1) )
 
                 ! Calculate denominator_fields_neo_22_gneo[iky,ikz,iz].            
                 wgt = beta * spec(is)%z * spec(is)%dens * spec(is)%z / spec(is)%mass
+
                 call integrate_vmu(g0, iz, tmp)
                 denominator_fields_neo_22_gneo(iky, ikx, iz) = denominator_fields_neo_22_gneo(iky, ikx, iz) + tmp * wgt
             end do
@@ -1123,7 +1096,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
             ! Add the kperp2 factor.
             denominator_fields_neo_22_gneo = denominator_fields_neo_22_gneo + kperp2(:, :, ia, :)
-             
+        
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_22_gbarneo is the apar contribution to parallel Amperes law when gbarneo is being used for the distribution function. This is     !
             ! given by:                                                                                                                                                ! 
@@ -1229,7 +1202,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
             end do
 
             call sum_allreduce(denominator_fields_neo_23_gneo)
-
+           
             ! ============================================================================================================================================================ ! 
             ! denominator_fields_neo_31_gneo is the phi contribution to Perpendicular Ampere's law when gneo is being used for the distribution. This is given by:         ! 
             !                                                                                                                                                              ! 
@@ -1262,40 +1235,10 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
             call sum_allreduce(denominator_fields_neo_31_gneo)
 
             ! ======================================================================================================================================================== ! 
-            ! denominator_fields_neo_32_gneo is the apar contribution to Perpendicular Ampere's law when gneo is being used as the distribution function.              !
+            ! denominator_fields_neo_32_gneo is the apar contribution to Perpendicular Ampere's law when gneo or gbarneo is being used as the distribution function.   !
             ! This is given by:                                                                                                                                        ! 
             !                                                                                                                                                          ! 
-            ! denominator_fields_neo_32_gneo[iky,ikz,iz] =                                                                                                             ! 
-            !                                                                                                                                                          !     
-            ! ======================================================================================================================================================== !
-
-            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-                it = it_idx(kxkyz_lo, ikxkyz)
-                if (it /= 1) cycle
-                iky = iky_idx(kxkyz_lo, ikxkyz)
-                ikx = ikx_idx(kxkyz_lo, ikxkyz)
-                iz = iz_idx(kxkyz_lo, ikxkyz)
-                is = is_idx(kxkyz_lo, ikxkyz)
-
-                ! Calculate the velocity dependent factor.
-                g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu) * spread(mu, 1, nvpa) 
-
-                ! Multiply by the neoclassical factor.
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
-
-                ! Calculate denominator_fields_neo_32_gneo[iky,ikz,iz].
-                wgt = - 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
-                call integrate_vmu(g0, iz, tmp)
-                denominator_fields_neo_32_gneo(iky, ikx, iz) = denominator_fields_neo_32_gneo(iky, ikx, iz) + tmp * wgt
-            end do
-
-            call sum_allreduce(denominator_fields_neo_32_gneo)
-
-            ! ======================================================================================================================================================== ! 
-            ! denominator_fields_neo_32_gbarneo is the apar contribution to Perpendicular Ampere's law when gneo is being used as the distribution function.           !
-            ! This is given by:                                                                                                                                        ! 
-            !                                                                                                                                                          ! 
-            ! denominator_fields_neo_32_gbarneo[iky,ikz,iz] =                                                                                                          ! 
+            ! denominator_fields_neo_32_gneo[iky,ikz,iz] =                                                                                                          ! 
             ! ======================================================================================================================================================== !
 
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1313,13 +1256,13 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                 ! Multiply by the neoclassical factor.
                 g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
               
-                ! Calculate denominator_fields_neo_32_gbarneo[iky,ikz,iz].
+                ! Calculate denominator_fields_neo_32_gneo[iky,ikz,iz].
                 wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
                 call integrate_vmu(g0, iz, tmp)
-                denominator_fields_neo_32_gbarneo(iky, ikx, iz) = denominator_fields_neo_32_gbarneo(iky, ikx, iz) + tmp * wgt
+                denominator_fields_neo_32_gneo(iky, ikx, iz) = denominator_fields_neo_32_gneo(iky, ikx, iz) + tmp * wgt
             end do
 
-            call sum_allreduce(denominator_fields_neo_32_gbarneo)
+            call sum_allreduce(denominator_fields_neo_32_gneo)
 
             ! ======================================================================================================================================================== ! 
             ! denominator_fields_neo_33_gneo is the bpar contribution to Quasineutrality when gneo is being for the distribution. This is given by:                    ! 
@@ -1376,7 +1319,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                   end if
 
                   call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
-                  denominator_fields_neo_22_gneo(iky,ikx,iz), 0.005, Minv_gneo)
+                  denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0001, Minv_gneo)
 
                   denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = Minv_gneo(1,1)
                   denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = Minv_gneo(1,2)
@@ -1400,8 +1343,8 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                      cycle
                   end if
 
-                  call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gbarneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
-                       denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0, Minv_gbarneo)
+                  call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
+                  denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0001, Minv_gbarneo)
 
                   denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,1)
                   denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,2)

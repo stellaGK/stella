@@ -103,8 +103,12 @@ contains
 
             do iz = -nzgrid, nzgrid
                 ! This is the term multipling the vpa derivative of apar. 
+                ! neo_mirror_apar_2(:, iz, ivmu) = neomirrorknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
+                ! * ( dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) ) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+
+                ! Test term. 
                 neo_mirror_apar_2(:, iz, ivmu) = neomirrorknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                * ( dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) ) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+                * dneo_h_dvpa(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / vpa(iv)
             end do
         end do
 
@@ -176,20 +180,20 @@ contains
  
         ! Construct 2 v_th vpa <A∥_k>.
         ! Iterate over the (mu,vpa,s) points. 
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
+        ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            ! is = is_idx(vmu_lo, ivmu)
+            ! iv = iv_idx(vmu_lo, ivmu)
+            ! imu = imu_idx(vmu_lo, ivmu)
 
             ! Calculate the apar field. 
-            field = 2.0 * spec(is)%stm * vpa(iv) * apar 
+            ! field = 2.0 * spec(is)%stm * vpa(iv) * apar 
 
             ! Gyroaverage.
-            call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
-        end do
+            ! call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
+        ! end do
 
         ! Add this term to the right-hand-side of the GKE. 
-        call add_explicit_term(g0, neo_mirror_apar_1(1, :, :), gout)
+        ! call add_explicit_term(g0, neo_mirror_apar_1(1, :, :), gout)
 
         ! We now need to add the second term, proportional to the vpa derivative of apar. 
         ! Construct 2 v_th <A∥_k>.

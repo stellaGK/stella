@@ -108,10 +108,6 @@ contains
       ! Geometry.
       use geometry, only: bmag
 
-      ! For HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_mu_fac_global      
-
       implicit none
 
       ! Arguments
@@ -143,15 +139,10 @@ contains
          ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
          ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
          field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 &
-               * spread(vpa, 2, nmu) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+         * spread(vpa, 2, nmu) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
 
          ! Gyroaverage.
          call gyro_average(field, ikxkyz, gyro_averaged_field)
-
-         ! If neoclassical is enabled, add the HO correction. 
-         if (neoclassical_is_enabled()) then
-             gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
-         end if
 
          ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
          g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field
@@ -182,10 +173,6 @@ contains
 
       ! Geometry.
       use geometry, only: bmag
-
-      ! For HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_mu_fac_global
 
       implicit none
 
@@ -219,11 +206,6 @@ contains
 
       ! Gyroaverage.
       call gyro_average(field, imu, ikxkyz, gyro_averaged_field)
-
-      ! If neoclassical is enabled, add the HO correction. 
-      if (neoclassical_is_enabled()) then
-          gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, imu, is, 1) / bmag(ia, iz) )
-      end if 
 
       ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
       g = g - gyro_averaged_field
@@ -284,10 +266,6 @@ contains
       ! Geometry.
       use geometry, only: bmag
 
-      ! For HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_mu_fac
-
       implicit none
 
       ! Arguments
@@ -326,11 +304,6 @@ contains
 
             ! Gyroaverage.
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
-
-            ! If neoclassical is enabled, add the HO correction.
-            if (neoclassical_is_enabled()) then
-                gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
-            end if
 
             ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
             g0(:, :, iz, it) = g0(:, :, iz, it) - gyro_averaged_field
@@ -436,37 +409,65 @@ contains
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field 
       end do
 
-
       ! Add electromagnetic terms.
+      ! First the apar contribution.
+      if (include_apar) then
+          ! This factor determines whether we add or substract the term.
+          facapar = facphi
+
+          ! Iterate over the (it,iz) points
+          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+              iz = iz_idx(kxkyz_lo, ikxkyz)
+              it = it_idx(kxkyz_lo, ikxkyz)
+              ikx = ikx_idx(kxkyz_lo, ikxkyz)
+              iky = iky_idx(kxkyz_lo, ikxkyz)
+              is = is_idx(kxkyz_lo, ikxkyz)
+
+              ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
+              ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
+              field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 &
+              * spread(vpa, 2, nmu) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+
+              ! Gyroaverage by multiplying with J_0.
+              call gyro_average(field, ikxkyz, gyro_averaged_field)
+
+              if (neoclassical_is_enabled()) then
+                  gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+              end if
+
+              ! Add the apar term to g. 
+              g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field
+          end do 
+      end if
+
+      ! Now add the bpar contribution.
       if (include_bpar) then
-      
-         ! This factor determines whether we add or substract the electromagnetic term.
-         facbpar = facphi
+          ! This factor determines whether we add or substract the electromagnetic term.
+          facbpar = facphi
          
-         ! Iterate over the (it,iz) points
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
+          ! Iterate over the (it,iz) points
+          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+              iz = iz_idx(kxkyz_lo, ikxkyz)
+              it = it_idx(kxkyz_lo, ikxkyz)
+              ikx = ikx_idx(kxkyz_lo, ikxkyz)
+              iky = iky_idx(kxkyz_lo, ikxkyz)
+              is = is_idx(kxkyz_lo, ikxkyz)
             
-            ! Calculate <gyro_averaged_field> = 4*mu*<bpar>*Fs*J_1/b_s
-            ! First calculate [4*mu*<bpar>] * F_s
-            field = 4.0 * facbpar * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) & 
-            * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+              ! Calculate <gyro_averaged_field> = 4*mu*<bpar>*Fs*J_1/b_s
+              ! First calculate [4*mu*<bpar>] * F_s
+              field = 4.0 * facbpar * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) & 
+              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
 
-            ! Gyroaverage by multiplying with J_1/b_s
-            call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
+              ! Gyroaverage by multiplying with J_1/b_s
+              call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
 
-            if (neoclassical_is_enabled()) then
-                gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
-            end if
+              if (neoclassical_is_enabled()) then
+                  gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+              end if
 
-            ! Add the apar term to g. 
-            g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field            
-         end do
-         
+              ! Add the bpar term to g. 
+              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field            
+          end do
       end if
       
       ! Deallocate local arrays
@@ -600,10 +601,33 @@ contains
          end do
       end do
 
+      ! Add electromagnetic term: apar. 
+      if (include_apar) then
+          ! This factor determines whether we add or substract the electromagnetic term
+          facapar = facphi
 
-      ! Add electromagnetic terms: 4*mu*<bpar>*Fs*J_1/b_s
+          ! Iterate over the (it,iz) points
+          do it = 1, ntubes
+              do iz = -nzgrid, nzgrid
+                  ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
+                  ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
+                  field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar(:, :, iz, it) &
+                  * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+
+                  ! Gyroaverage by multiplying with J_0.
+                  call gyro_average(field, iz, ivmu, gyro_averaged_field)
+
+                  if (neoclassical_is_enabled()) then
+                      gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+                  end if
+                 
+                  g0(:, :, iz, it) = g0(:, :, iz, it) - gyro_averaged_field
+              end do
+          end do
+      end if
+
+      ! Add electromagnetic term: 4*mu*<bpar>*Fs*J_1/b_s
       if (include_bpar) then
-      
          ! This factor determines whether we add or substract the electromagnetic term
          facbpar = facphi
          

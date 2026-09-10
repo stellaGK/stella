@@ -929,10 +929,6 @@ contains
       ! Geometry.
       use geometry, only: bmag  
 
-      ! HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_mu_fac_global
-
       implicit none
 
       complex, dimension(:), intent(in out) :: scratch2
@@ -961,14 +957,6 @@ contains
          iz = iz_from_izext(izext)
          scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
-
-      ! If running with HO corrections, transformation between gbar and g acquires a correction.
-      if (neoclassical_is_enabled()) then
-          do izext = 1, nz_ext
-              iz = iz_from_izext(izext)
-              scratch2(izext) = scratch2(izext) * ( 1.0 - 0.5 * neo_mu_fac_global(iz, iv, imu, is, 1) / bmag(ia, iz) )
-          end do
-      end if 
 
       call center_zed(iv, scratch2, 1, periodic(iky))
       rhs = rhs + scratch2
@@ -1032,10 +1020,6 @@ contains
       ! Geometry.
       use geometry, only: bmag
 
-      ! HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use neoclassical_terms_neo, only: neo_mu_fac
-
       implicit none
 
       complex, dimension(:), intent(in out) :: pdf
@@ -1073,13 +1057,6 @@ contains
       end do
 
       call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, field, gyro_field)
-
-      if (neoclassical_is_enabled()) then 
-          do izext = 1, nz_ext
-              iz = iz_from_izext(izext)
-              gyro_field(izext) = gyro_field(izext) * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) ) 
-          end do
-      end if
 
       pdf = pdf - gyro_field
 
