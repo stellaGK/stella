@@ -1319,7 +1319,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                   end if
 
                   call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
-                  denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0001, Minv_gneo)
+                  denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0, Minv_gneo)
 
                   denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = Minv_gneo(1,1)
                   denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = Minv_gneo(1,2)
@@ -1344,7 +1344,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
                   end if
 
                   call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
-                  denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0001, Minv_gbarneo)
+                  denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0, Minv_gbarneo)
 
                   denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,1)
                   denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,2)

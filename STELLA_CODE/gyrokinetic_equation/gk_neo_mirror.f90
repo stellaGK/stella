@@ -51,9 +51,7 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! Neoclassical.
-        use neoclassical_terms_neo, only: neo_vpa_fac, neo_mu_fac
-        use neoclassical_terms_neo, only: dneo_h_dmu_global
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
+        use neoclassical_terms_neo, only: neo_vpa_fac
 
         use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
         use arrays, only: initialised_neo_mirror
@@ -65,27 +63,15 @@ contains
 
         ! Local variables. 
         integer :: iz, iv, is, imu, ivmu
-        real, dimension(:, :, :), allocatable :: d2neo_h_dvpadmu
 
         ! Only intialise once.
         if (initialised_neo_mirror) return
         initialised_neo_mirror = .true.
 
-        ! Allocate neo_mirror_apar_1 = neo_mirror_apar_1[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(neo_mirror_apar_1)) then
-            allocate (neo_mirror_apar_1(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_mirror_apar_1 = 0.0
-        end if
-
         ! Allocate neo_mirror_apar_2 = neo_mirror_apar_2[ialpha, iz, i[mu,vpa,s]].
         if (.not. allocated(neo_mirror_apar_2)) then
             allocate (neo_mirror_apar_2(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_mirror_apar_2 = 0.0
         end if
- 
-        ! Allocate the mixed derivative in F_1.
-        allocate(d2neo_h_dvpadmu(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc, 1)); d2neo_h_dvpadmu = 0.0
-
-        ! Get the mixed derivative of F_1, parallelised over the velocity space. 
-        call get_vpa_derivative_explicit(dneo_h_dmu_global, d2neo_h_dvpadmu)
 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -93,27 +79,12 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
 
-            do iz = -nzgrid, nzgrid  
-                ! This is the term multipling apar. 
-                neo_mirror_apar_1(:, iz, ivmu) = neomirrorknob * code_dt * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)  
-
-                neo_mirror_apar_1(:, iz, ivmu) = neo_mirror_apar_1(:, iz, ivmu) * ( dneo_h_dvpa(iz, ivmu, 1) - 0.5 * d2neo_h_dvpadmu(iz, ivmu, 1) / bmag(:, iz) )
-            end do 
-
+            ! This is the term multipling the vpa derivative of apar.
             do iz = -nzgrid, nzgrid
-                ! This is the term multipling the vpa derivative of apar. 
-                ! neo_mirror_apar_2(:, iz, ivmu) = neomirrorknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                ! * ( dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) ) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
-
-                ! Test term. 
                 neo_mirror_apar_2(:, iz, ivmu) = neomirrorknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                * dneo_h_dvpa(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / vpa(iv)
+                * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / vpa(iv)
             end do
         end do
-
-        ! Deallocate temporary array. 
-        deallocate(d2neo_h_dvpadmu)
 
     end subroutine init_neo_mirror
 
@@ -177,23 +148,6 @@ contains
         ! Allocate temporary array for <g0> = <A∥_k>.
         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
         allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
- 
-        ! Construct 2 v_th vpa <A∥_k>.
-        ! Iterate over the (mu,vpa,s) points. 
-        ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            ! is = is_idx(vmu_lo, ivmu)
-            ! iv = iv_idx(vmu_lo, ivmu)
-            ! imu = imu_idx(vmu_lo, ivmu)
-
-            ! Calculate the apar field. 
-            ! field = 2.0 * spec(is)%stm * vpa(iv) * apar 
-
-            ! Gyroaverage.
-            ! call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
-        ! end do
-
-        ! Add this term to the right-hand-side of the GKE. 
-        ! call add_explicit_term(g0, neo_mirror_apar_1(1, :, :), gout)
 
         ! We now need to add the second term, proportional to the vpa derivative of apar. 
         ! Construct 2 v_th <A∥_k>.
@@ -238,68 +192,6 @@ contains
         initialised_neo_mirror = .false.
 
     end subroutine finish_neo_mirror
-
-! ================================================================================================================================================================================= !
-! --------------------------------------------------------------------------------- Utilities. ------------------------------------------------------------------------------------ ! 
-! ================================================================================================================================================================================= !
-
-! ================================================================================================================================================================================= !
-! -- Get the vpa derivative of an array that is local in the velocity data - needed for the explicit mirror advance when apar is included. Uses a third order upwind scheme based - !
-! --------------------------------------------------------------------- on the sign of the mirror coeffecient. -------------------------------------------------------------------- !
-! ================================================================================================================================================================================= !
-
-    subroutine get_vpa_derivative_explicit(g, dgdvpa)
-        ! Parallelisation. 
-        use parallelisation_layouts, only: vmu_lo
-        use neoclassical_terms_neo, only: distribute_vmus_over_procs
-    
-        ! Caclculations. 
-        use calculations_finite_differences, only: third_order_upwind
-
-        ! Grids.
-        use grids_z, only: nzgrid
-        use grids_velocity, only: dvpa, nmu, nvpa
-        use grids_species, only: nspec
-
-        ! Conventional mirror term. 
-        use gk_mirror, only: neo_mirror_sign
-
-        implicit none
-
-        real, dimension(-nzgrid:, :, :, :, :), intent(in) :: g
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:, :), intent(in out) :: dgdvpa
-
-        integer :: iv, imu, is, iz, ia
-        real, dimension(:, :, :, :, :), allocatable :: dgdvpa_global
-        real, dimension(:), allocatable :: tmp
-
-        ia = 1
-        
-        ! =================================================================== !
-
-        allocate (tmp(nvpa))
-        allocate (dgdvpa_global(-nzgrid:nzgrid, nvpa, nmu, nspec, 1))
-
-        do iz = -nzgrid, nzgrid
-            do imu = 1, nmu
-                do is = 1, nspec
-                    call third_order_upwind(1, g(iz, :, imu, is, 1), dvpa, neo_mirror_sign(1, iz), tmp)
-
-                    dgdvpa_global(iz, :, imu, is, 1) = tmp
-                end do
-            end do
-        end do
-
-        ! Parallelise over the velocity space.
-        do iz = -nzgrid, nzgrid
-            call distribute_vmus_over_procs(dgdvpa_global(iz, :, :, :, 1), dgdvpa(iz, :, 1))
-        end do
-
-        deallocate(tmp)
-        deallocate(dgdvpa_global)
-
-   end subroutine get_vpa_derivative_explicit
-
 
 ! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 

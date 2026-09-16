@@ -432,11 +432,11 @@ contains
               call gyro_average(field, ikxkyz, gyro_averaged_field)
 
               if (neoclassical_is_enabled()) then
-                  gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+                  gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
               end if
 
               ! Add the apar term to g. 
-              g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field
+              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
           end do 
       end if
 
@@ -618,10 +618,10 @@ contains
                   call gyro_average(field, iz, ivmu, gyro_averaged_field)
 
                   if (neoclassical_is_enabled()) then
-                      gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+                      gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
                   end if
                  
-                  g0(:, :, iz, it) = g0(:, :, iz, it) - gyro_averaged_field
+                  g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
               end do
           end do
       end if
@@ -704,7 +704,6 @@ contains
       ! For HO simulations. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use neoclassical_terms_neo, only: neo_mu_fac_global, neo_vpa_fac_global
-      use neoclassical_terms_neo, only: dneo_h_dvpa_global, dneo_h_dmu_global
 
       ! Geometry. 
       use geometry, only: bmag
@@ -764,9 +763,12 @@ contains
              field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm &
              * spread(maxwell_vpa(:, is) * vpa, 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
          
-             field = field * ( 0.5 * dneo_h_dvpa_global(iz, :, :, is, 1) / spread(vpa, 2, nmu) - 0.5 * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) )
-     
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field 
+             ! Gyroaverage.
+             call gyro_average(field, ikxkyz, gyro_averaged_field)
+ 
+             ! Add to the distribution.
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field * 0.5 * neo_vpa_fac_global(iz, :, :, is, 1) / spread(vpa, 2, nmu) &
+             - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
          end if
 
          if (neoclassical_is_enabled() .and. include_bpar) then
@@ -897,15 +899,20 @@ contains
                    g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + gyro_averaged_field - field
                end if
 
+
                ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
                if (neoclassical_is_enabled() .and. include_apar) then
                    facapar = facphi
 
-                   field = 2.0 * facapar * apar(:, :, iz, it) * spec(is)%zt * spec(is)%stm * vpa(iv) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) 
+                   field = 2.0 * facapar * apar(:, :, iz, it) * spec(is)%zt * vpa(iv) * spec(is)%stm &
+                   * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
-                   field = field * ( 0.5 * dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) - 0.5 * dneo_h_dmu(iz, ivmu, 1) / bmag(ia, iz) )
+                   ! Gyroaverage.
+                   call gyro_average(field, iz, ivmu, gyro_averaged_field)
 
-                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field
+                   ! Add to the distribution.
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field * 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) &
+                   - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
                end if
 
                if (neoclassical_is_enabled() .and. include_bpar) then
