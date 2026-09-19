@@ -28,6 +28,9 @@ module arrays
    public :: initialised_neo_wdrifty
    public :: initialised_neo_wdriftx
    
+   ! OR MMS TESTING.
+   public :: initialised_neo_mms_source_term
+
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
    !----------------------------------------------------------------------------
@@ -66,20 +69,16 @@ module arrays
    public :: qn_window
    public :: qn_zf_window
 
-   ! For HO phi and bpar corrections. 
+   ! For neoclassical corrections. 
    public :: neo_stream
+   public :: neo_mirror_apar
    public :: wstar1y
    public :: wstar1x
    public :: neo_wdriftx
    public :: neo_wdrifty
 
-   ! For HO apar corrections.
-   public :: neo_mirror_apar_1
-   public :: neo_mirror_apar_2
-   public :: neo_stream_apar_1
-   public :: neo_stream_apar_2
-   public :: neo_wdriftx_apar
-   public :: neo_wdrifty_apar
+   ! OR MMS TESTING. 
+   public :: neo_mms_source_term
 
    !----------------------------------------------------------------------------
    ! For the Field Equations
@@ -134,13 +133,16 @@ module arrays
    logical :: initialised_radial_variation
    logical :: initialised_implicit_drifts
    
-   ! For HO corrections. 
+   ! For neoclassical corrections. 
    logical :: initialised_neo_mirror   
    logical :: initialised_neo_stream
    logical :: initialised_wstar1y
    logical :: initialised_wstar1x
    logical :: initialised_neo_wdrifty
    logical :: initialised_neo_wdriftx
+
+   ! OR MMS TESTING.
+   logical :: initialised_neo_mms_source_term 
 
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -173,15 +175,14 @@ module arrays
    ! For flow shear
    real, dimension(:), allocatable :: shift_state
 
-   ! For HO phi and bpar corrections. 
+   ! For neoclassical corrections. 
    real, dimension(:, :, :), allocatable :: neo_stream
+   real, dimension(:, :, :), allocatable :: neo_mirror_apar
    real, dimension(:, :, :), allocatable :: wstar1y, wstar1x
    real, dimension(:, :, :), allocatable :: neo_wdriftx, neo_wdrifty
 
-   ! For HO phi and bpar corrections. 
-   real, dimension(:, :, :), allocatable :: neo_mirror_apar_1, neo_mirror_apar_2
-   real, dimension(:, :, :), allocatable :: neo_stream_apar_1, neo_stream_apar_2
-   real, dimension(:, :, :), allocatable :: neo_wdriftx_apar, neo_wdrifty_apar
+   ! OR MMS TESTING. 
+   real, dimension(:, :, :), allocatable :: neo_mms_source_term
 
    !----------------------------------------------------------------------------
    ! For the Field Equations

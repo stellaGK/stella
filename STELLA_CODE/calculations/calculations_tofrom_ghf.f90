@@ -751,7 +751,7 @@ contains
          ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
          if (neoclassical_is_enabled()) then
              ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) 
          else
              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
          end if

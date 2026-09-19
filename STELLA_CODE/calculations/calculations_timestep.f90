@@ -51,7 +51,8 @@ contains
       use gk_parallel_streaming, only: stream_rad_var1
       use gk_parallel_streaming, only: stream_rad_var2
       use gk_mirror, only: mirror
-      ! For HO simulations. 
+
+      ! For neoclassical corrections. 
       use parameters_numerical, only: neoclassical_stream_implicit
       use parameters_numerical, only: neoclassical_mirror_implicit
       use parameters_numerical, only: neoclassical_drifts_implicit
@@ -63,14 +64,14 @@ contains
       ! Physics parameters. 
       use parameters_physics, only: include_apar
       
-      ! For HO corrections.
+      ! For neoclassical corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
       use gk_mirror, only: neo_mirror
-      use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
-      use arrays, only: neo_stream, neo_stream_apar_1, neo_stream_apar_2
+      use arrays, only: neo_mirror_apar
+      use arrays, only: neo_stream
       use arrays, only: wstar1y, wstar1x
-      use arrays, only: neo_wdrifty, neo_wdrifty_apar
-      use arrays, only: neo_wdriftx, neo_wdriftx_apar
+      use arrays, only: neo_wdrifty
+      use arrays, only: neo_wdriftx
       use parameters_physics, only: include_neoclassical_parallel_streaming, include_neoclassical_mirror
       use parameters_physics, only: include_neoclassical_xdrive, include_neoclassical_ydrive
       use parameters_physics, only: include_neoclassical_xdrift, include_neoclassical_ydrift
@@ -193,7 +194,7 @@ contains
       ! Check that the introduction of the neoclassical mirror correction doesn't break the CFL condition.
       if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) then
           if (include_apar) then
-              neo_mirror_max = max( maxval(abs(neo_mirror)), maxval(abs(neo_mirror_apar_1)), maxval(abs(neo_mirror_apar_2)) )
+              neo_mirror_max = max( maxval(abs(neo_mirror)), maxval(abs(neo_mirror_apar)))
           else
               neo_mirror_max = maxval(abs(neo_mirror))
           end if          
@@ -208,11 +209,7 @@ contains
 
       ! Check that the introduction of the neoclassical stream coeffecient doesn't break the CFL condition.
       if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) then
-          if (include_apar) then 
-              neo_stream_max = max( maxval(abs(neo_stream)), maxval(abs(neo_stream_apar_1)), maxval(abs(neo_stream_apar_2)) )
-          else
-              neo_stream_max = maxval(abs(neo_stream))
-          end if 
+          neo_stream_max = maxval(abs(neo_stream)) 
 
           if (nproc > 1) then
               call max_allreduce(neo_stream_max)
@@ -249,11 +246,7 @@ contains
 
       ! Check that the introduction of the neoclassical neo_wdrifty doesn't break the CFL condition.
       if (neoclassical_is_enabled() .and. include_neoclassical_ydrift .and. .not. neoclassical_drifts_implicit) then
-          if (include_apar) then 
-              neo_wdrifty_max = max( maxval(abs(neo_wdrifty)), maxval(abs(neo_wdrifty_apar)))
-          else
-              neo_wdrifty_max = maxval(abs(neo_wdrifty))
-          end if
+          neo_wdrifty_max = maxval(abs(neo_wdrifty))
 
           if (nproc > 1) then
               call max_allreduce(neo_wdrifty_max)
@@ -267,11 +260,7 @@ contains
       if (neoclassical_is_enabled() .and. include_neoclassical_xdrift .and. .not. neoclassical_drifts_implicit) then
           ! Only calculate the CFL constaint if there are non-zero akx present. 
           if (maxval(abs(akx)) > epsilon(0.0)) then
-              if (include_apar) then 
-                  neo_wdriftx_max = max(maxval(abs(neo_wdriftx)), maxval(abs(neo_wdriftx_apar)))
-              else
-                  neo_wdriftx_max = maxval(abs(neo_wdriftx))
-              end if
+              neo_wdriftx_max = maxval(abs(neo_wdriftx))
               
               if (nproc > 1) then
                   call max_allreduce(neo_wdriftx_max)
@@ -386,7 +375,7 @@ contains
       initialised_parallel_streaming = .false.
       initialised_qn_source = .false.
 
-      ! For HO corrections. 
+      ! For neoclassical corrections. 
       initialised_neo_stream = .false.
       initialised_neo_mirror = .false.
       initialised_neo_wdrifty = .false.

@@ -29,17 +29,19 @@
 ! ================================================================================================================================================================================= !
 
 module gk_neo_drive
-
-    ! Load debug flags.
-    ! use debug_flags, only: debug => neo_drive_debug
    
     implicit none
 
     ! Make routines available to other modules. 
-    public :: initialised_wstar1y, initialised_wstar1x
-    public :: init_wstar1y, init_wstar1x
-    public :: finish_wstar1y, finish_wstar1x 
-    public :: advance_wstar1y_explicit, advance_wstar1x_explicit 
+    public :: initialised_wstar1y
+    public :: init_wstar1y
+    public :: finish_wstar1y
+    public :: advance_wstar1y_explicit
+
+    public :: initialised_wstar1x
+    public :: init_wstar1x
+    public :: finish_wstar1x 
+    public :: advance_wstar1x_explicit 
 
     private
    
@@ -85,17 +87,14 @@ contains
 
         implicit none
 
-        ! Indices.
+        ! Local variables.
         integer :: is, imu, iv, ivmu, iz
-     
-        ! wstar1y has a component which is proportional to ∂F_1/∂ψ, we will call this wstar1ypsi. 
+        ! wstar1y has a component which is proportional to ∂F_1/∂ψ; we will call this wstar1ypsi. 
         ! Similarly the component proportional to ∂F_1/∂z will be called wstar1yz. 
         ! The component proportional to the parallel velocity derivative is called wstar1yvpa. 
         ! Splitting up the calculation this way should make the maths easier to follow.
         real, dimension(:, :, :), allocatable :: wstar1ypsi, wstar1yz, wstar1yvpa         
-
-        ! To make the calculations easier to follow, we
-        ! calculate <energy> = v_parallel² + 2 mu B for each velocity point
+        ! To make the calculations easier to follow, we also calculate <energy> = v_parallel² + 2 mu B for each velocity point
         real, dimension(:, :), allocatable :: energy
 
         ! Only intialise omega_{*,k,s,1,y} once.
@@ -108,10 +107,10 @@ contains
         end if
 
         ! Allocate the temporary arrays. 
-        allocate (wstar1ypsi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1ypsi = 0.0      
-        allocate (wstar1yz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yz = 0.0
-        allocate (wstar1yvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yvpa = 0.0
-        allocate (energy(nalpha, -nzgrid:nzgrid))
+        allocate(wstar1ypsi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1ypsi = 0.0      
+        allocate(wstar1yz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yz = 0.0
+        allocate(wstar1yvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yvpa = 0.0
+        allocate(energy(nalpha, -nzgrid:nzgrid)); energy = 0.0
 
         ! First calculate the component proportional to the psi derivative of F_1. 
         ! Iterate over velocity space.
@@ -276,8 +275,8 @@ contains
         end do
 
         ! Deallocate temporary arrays. 
-        deallocate (wstar1xz)
-        deallocate (wstar1xvpa)
+        deallocate(wstar1xz)
+        deallocate(wstar1xvpa)
 
     end subroutine init_wstar1x               
 
@@ -286,13 +285,12 @@ contains
 ! -------------------------------------------------------------------------- Advance wstar1y explicitly. -------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_wstar1y_explicit(phi, gout)
+    subroutine advance_wstar1y_explicit(phi, apar, bpar, gout)
         ! Parallelisation.
         use mp, only: proc0
       
         ! Data arrays.
         use arrays, only: wstar1y
-        use arrays_fields, only: apar, bpar
       
         ! Grids.
         use parallelisation_layouts, only: vmu_lo
@@ -309,7 +307,7 @@ contains
 
         implicit none
 
-        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
         complex, dimension(:, :, :, :, :), allocatable :: g0
          
@@ -331,24 +329,22 @@ contains
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
 
-        ! Start timing the time advance due to the driving gradient.
+        ! Start timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1y advance')
 
-        ! Allocate temporary array for <g0> = ∂Χ_k/∂y = i *ky * <Χ_k>.
-        allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        ! Allocate temporary array.
+        allocate(g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       
         ! Calculate <g0>.
-        ! if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
         call get_dchidy(phi, apar, bpar, g0)
 
         ! Add the drive term to the RHS of the gyrokinetic equation. 
-        ! if (debug) write (*, *) 'time_advance::solve_gke::add_wstar1y_term'
         call add_explicit_term(g0, wstar1y(1, :, :), gout)
 
-        ! Deallocate <g0>.
-        deallocate (g0)
+        ! Deallocate temporary array.
+        deallocate(g0)
 
-        ! Stop timing the time advance due to the driving gradient.
+        ! Stop timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1y advance')
  
     end subroutine advance_wstar1y_explicit
@@ -402,24 +398,22 @@ contains
         ! ------------------------------------------------------------------------------------------ !
         ! ========================================================================================== !
 
-        ! Start timing the time advance due to the driving gradient.
+        ! Start timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1x advance')
 
-        ! Allocate temporary array for <g0> = d<Χ_k>/dx  = i * kx * <Χ_k>.
-        allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        ! Allocate temporary array.
+        allocate(g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       
         ! Calculate <g0>.
-        ! if (debug) write (*, *) 'time_advance::solve_gke::get_dchidx'
         call get_dchidx(phi, apar, bpar, g0)
 
         ! Add the drive term to the RHS of the GKE. 
-        ! if (debug) write (*, *) 'time_advance::solve_gke::add_wstar1x_term'
         call add_explicit_term(g0, wstar1x(1, :, :), gout)
 
-        ! Deallocate <g0>.
-        deallocate (g0)
+        ! Deallocate temporary array.
+        deallocate(g0)
 
-        ! Stop timing the time advance due to the driving gradient.
+        ! Stop timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), ' wstar1x advance')
 
     end subroutine advance_wstar1x_explicit
@@ -434,7 +428,7 @@ contains
 
         implicit none
 
-        if (allocated(wstar1y)) deallocate (wstar1y)
+        if (allocated(wstar1y)) deallocate(wstar1y)
         initialised_wstar1y = .false.
 
     end subroutine finish_wstar1y
@@ -449,7 +443,7 @@ contains
 
         implicit none
 
-        if (allocated(wstar1x)) deallocate (wstar1x)
+        if (allocated(wstar1x)) deallocate(wstar1x)
         initialised_wstar1x = .false.
 
     end subroutine finish_wstar1x   

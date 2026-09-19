@@ -13,12 +13,13 @@ module gk_neo_drifts
 
    ! Make routines available to other modules. 
    public :: initialised_neo_wdrifty
-   public :: initialised_neo_wdriftx
    public :: init_neo_wdrifty
-   public :: init_neo_wdriftx
    public :: finish_neo_wdrifty
-   public :: finish_neo_wdriftx
    public :: advance_neo_wdrifty_explicit
+   
+   public :: initialised_neo_wdriftx
+   public :: init_neo_wdriftx
+   public :: finish_neo_wdriftx
    public :: advance_neo_wdriftx_explicit
 
    private
@@ -41,25 +42,21 @@ contains
         ! Grids. 
         use grids_time, only: code_dt
         use grids_species, only: spec
-        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-        use grids_velocity, only: vpa, mu
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vpa, mu
         use grids_z, only: nzgrid
         use grids_kxky, only: nalpha
 
         ! Geometry. 
-        use geometry, only: bmag
-        use geometry, only: B_times_kappa_dot_gradx, B_times_kappa_dot_grady
-        use geometry, only: B_times_gradB_dot_gradx, B_times_gradB_dot_grady
+        use geometry, only: bmag, B_times_kappa_dot_grady, B_times_gradB_dot_grady
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: neo_vpa_fac
-        use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu 
+        use neoclassical_terms_neo, only: neo_vpa_fac 
 
         ! Arrays. 
-        use arrays, only: neo_wdrifty, neo_wdrifty_apar, initialised_neo_wdrifty
+        use arrays, only: neo_wdrifty, initialised_neo_wdrifty
 
-        ! Parameters. 
-        use parameters_physics, only: neoydriftknob, include_apar
+        ! For switching the ydrift on and off.
+        use parameters_physics, only: neoydriftknob
 
         implicit none
 
@@ -74,12 +71,6 @@ contains
             allocate (neo_wdrifty(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_wdrifty = 0.0
         end if
 
-        ! Allocate neo_wdrifty_apar = neo_wdrifty_apar[ialpha, iz, i[mu,vpa,s]] if apar is included in the simulation. 
-        if (.not. allocated(neo_wdrifty_apar) .and. include_apar) then
-            allocate (neo_wdrifty_apar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_wdrifty_apar = 0.0
-        end if
-
-        ! This is the coeffecient for phi and bpar terms. 
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -93,25 +84,6 @@ contains
                 * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
             end do
         end do
-
-        ! If we include apar, we need the correct coeffecient. 
-        if (include_apar) then 
-            ! Iterate over velocity space.
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                is = is_idx(vmu_lo, ivmu)
-                imu = imu_idx(vmu_lo, ivmu)
-                iv = iv_idx(vmu_lo, ivmu)
-
-                do iz = -nzgrid, nzgrid
-                    neo_wdrifty_apar(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_grady(:, iz) + mu(imu) * B_times_gradB_dot_grady(:, iz)
-
-                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * 0.5 * neoydriftknob * code_dt &
-                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) * bmag(:, iz) )
-
-                    neo_wdrifty_apar(:, iz, ivmu) = neo_wdrifty_apar(:, iz, ivmu) * ( dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) )
-                end do
-            end do
-        end if
 
     end subroutine init_neo_wdrifty
 
@@ -134,19 +106,16 @@ contains
         use grids_kxky, only: nalpha
 
         ! Geometry. 
-        use geometry, only: bmag
-        use geometry, only: B_times_kappa_dot_gradx
-        use geometry, only: B_times_gradB_dot_gradx
+        use geometry, only: bmag, B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
 
         ! Neoclassical. 
         use neoclassical_terms_neo, only: neo_vpa_fac
-        use neoclassical_terms_neo, only: dneo_h_dmu, dneo_h_dvpa
 
         ! Arrays. 
-        use arrays, only: neo_wdriftx, neo_wdriftx_apar, initialised_neo_wdriftx
+        use arrays, only: neo_wdriftx, initialised_neo_wdriftx
 
         ! Parameters. 
-        use parameters_physics, only: neoxdriftknob, include_apar
+        use parameters_physics, only: neoxdriftknob
 
         implicit none
 
@@ -161,12 +130,6 @@ contains
             allocate (neo_wdriftx(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_wdriftx = 0.0
         end if
 
-        ! Allocate neo_wdriftx_apar = neo_wdriftx_apar[ialpha, iz, i[mu,vpa,s]] if apar is included in the simulation. 
-        if (.not. allocated(neo_wdriftx_apar) .and. include_apar) then
-            allocate (neo_wdriftx_apar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_wdriftx_apar = 0.0
-        end if
-
-        ! This is the coeffecient for phi and bpar.
         ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -180,26 +143,6 @@ contains
                 * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
             end do
         end do
-
-        if (include_apar) then
-            ! This is the coeffecient for apar.
-            ! Iterate over velocity space.
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                is = is_idx(vmu_lo, ivmu)
-                imu = imu_idx(vmu_lo, ivmu)
-                iv = iv_idx(vmu_lo, ivmu)
-
-                do iz = -nzgrid, nzgrid
-                    neo_wdriftx_apar(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz)
-
-                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * neoxdriftknob * 0.5 * code_dt &
-                    * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) ** 2 )
-
-                    ! Multiply by the neoclassical distribution factor. 
-                    neo_wdriftx_apar(:, iz, ivmu) = neo_wdriftx_apar(:, iz, ivmu) * ( dneo_h_dmu(iz, ivmu, 1) / bmag(:, iz) - dneo_h_dvpa(iz, ivmu, 1) / vpa(iv) )
-                end do
-            end do
-        end if
 
     end subroutine init_neo_wdriftx                  
 
@@ -218,7 +161,7 @@ contains
         use constants, only: zi
 
         ! Data arrays.
-        use arrays, only: neo_wdrifty, neo_wdrifty_apar      
+        use arrays, only: neo_wdrifty   
 
         ! Parameters.
         use parameters_physics, only: fphi, include_apar, include_bpar
@@ -252,9 +195,7 @@ contains
         ! ======================================================================================= !
         !                                                                                         ! 
         ! Here we define the temporary array, g0y. These will hold                                ! 
-        ! <g0y> = ∂<Χ_k>/∂y = i * ky * <Χ_k>.                                                     ! 
-        !                                                                                         !      
-        ! get_dchidy(phi, apar, bpar, g0y)                                                        !
+        ! <g0y> = ∂<Χ_k>/∂y = i * ky * <Χ_k>.                                                     !
         !                                                                                         ! 
         ! We then multiply g0y by neo_wdrifty and add the result to the RHS of the GKE:           !
         !                                                                                         ! 
@@ -264,13 +205,14 @@ contains
         ! --------------------------------------------------------------------------------------- !
         ! ======================================================================================= !
 
-        ! Start timing the time advance.
+        ! Start timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdrifty advance')
 
-        ! Allocate temporary array for <g0y>.
-        allocate (g0y(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+        ! Allocate temporary arrays.
+        allocate(g0y(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate(field(naky, nakx, -nzgrid:nzgrid, ntubes))
        
+        ! Calculate and add the phi contribution.
         ! Iterate over the (mu,vpa,s) points.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -288,7 +230,7 @@ contains
             call gyro_average(field, ivmu, g0y(:, :, :, :, ivmu))
         end do
 
-        ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
+        ! Add the term to the RHS of the GKE by multiplying by the appropriate coeffecient. 
         call add_explicit_term(g0y, neo_wdrifty(1, :, :), gout)
 
 
@@ -316,7 +258,7 @@ contains
         end if
 
         
-        ! Add bpar contribution. 
+        ! Calculate and add the apar contribution if needed. 
         if (include_bpar) then
             ! Iterate over the (mu,vpa,s) points.
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -339,12 +281,13 @@ contains
             call add_explicit_term(g0y, neo_wdrifty(1, :, :), gout)
         end if
 
-        ! Deallocate temporary array.
-        deallocate (g0y)
-        deallocate (field)
+        ! Deallocate temporary arrays.
+        deallocate(g0y)
+        deallocate(field)
 
-        ! Stop timing the time advance.
+        ! Stop timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdrifty advance')
+
     end subroutine advance_neo_wdrifty_explicit
 
 
@@ -362,7 +305,7 @@ contains
         use constants, only: zi
 
         ! Data arrays.
-        use arrays, only: neo_wdriftx, neo_wdriftx_apar      
+        use arrays, only: neo_wdriftx
 
         ! Parameters.
         use parameters_physics, only: fphi, include_apar, include_bpar
@@ -397,7 +340,6 @@ contains
         !                                                                                         ! 
         ! Here we define the temporary array, g0x. This will hold                                 ! 
         ! <g0x> = ∂<Χ_k>/∂x = i * kx * <Χ_k>.                                                     ! 
-        !                                                                                         !      
         !                                                                                         ! 
         ! We then multiply g0x by neo_wdriftx and add the result to the RHS of the GKE:           !
         !                                                                                         ! 
@@ -407,10 +349,10 @@ contains
         ! --------------------------------------------------------------------------------------- !
         ! ======================================================================================= !
 
-        ! Start timing the time advance.
+        ! Start timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdriftx advance')
 
-        ! Allocate temporary array for <g0x>.
+        ! Allocate temporary arrays.
         allocate (g0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
         allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
        
@@ -431,7 +373,7 @@ contains
             call gyro_average(field, ivmu, g0x(:, :, :, :, ivmu))
         end do
 
-        ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
+        ! Add the terms to the RHS of the GKE. 
         call add_explicit_term(g0x, neo_wdriftx(1, :, :), gout)
 
 
@@ -454,7 +396,7 @@ contains
                 call gyro_average(field, ivmu, g0x(:, :, :, :, ivmu))
             end do
 
-            ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
+            ! Add the terms to the RHS of the GKE. 
             call add_explicit_term(g0x, neo_wdriftx(1, :, :), gout)
         end if
 
@@ -478,16 +420,17 @@ contains
                 call gyro_average_j1(field, ivmu, g0x(:, :, :, :, ivmu))
             end do
 
-            ! Add the terms to the RHS of the GKE by multiplying by the appropriate coeffecient. 
+            ! Add the terms to the RHS of the GKE. 
             call add_explicit_term(g0x, neo_wdriftx(1, :, :), gout)
         end if
 
-        ! Deallocate temporary array.
+        ! Deallocate temporary arrays.
         deallocate (g0x)
         deallocate (field)
 
-        ! Stop timing the time advance.
+        ! Stop timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_wdriftx advance')
+
     end subroutine advance_neo_wdriftx_explicit
 
 
@@ -496,12 +439,13 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_wdrifty
-        use arrays, only: neo_wdrifty, neo_wdrifty_apar
+        use arrays, only: neo_wdrifty, initialised_neo_wdrifty
 
         implicit none
 
         if (allocated(neo_wdrifty)) deallocate (neo_wdrifty)
-        if (allocated(neo_wdrifty_apar)) deallocate (neo_wdrifty_apar)
+        initialised_neo_wdrifty = .false.
+
     end subroutine finish_neo_wdrifty
 
 
@@ -510,12 +454,13 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_wdriftx
-        use arrays, only: neo_wdriftx, neo_wdriftx_apar
+        use arrays, only: neo_wdriftx, initialised_neo_wdriftx
 
         implicit none
 
         if (allocated(neo_wdriftx)) deallocate (neo_wdriftx)
-        if (allocated(neo_wdriftx_apar)) deallocate (neo_wdriftx_apar)
+        initialised_neo_wdriftx = .false.
+
     end subroutine finish_neo_wdriftx
 
 

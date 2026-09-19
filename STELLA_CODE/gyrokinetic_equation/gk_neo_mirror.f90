@@ -1,17 +1,7 @@
- ! ================================================================================================================================================================================= !
+ ! ================================================================================================================================================================================ !
 ! -------------------------------------------------------------- Evolves neoclassical corrections proportional to <A∥_k>. --------------------------------------------------------- !​
 ! ================================================================================================================================================================================= !
-! 
-! This module evolves the following higher order neoclassical corrections: 
-!
-! = 
-!         
-! Define the neoclassical apar coefficient as: 
-! 
-! <neo_apar_coeff> =
-!
-! This must be multiplied by <A∥_k> = J₀ * A∥_k and then added to the RHS of the GKE.
-! 
+!                                                                                                                                                                                   !
 ! ================================================================================================================================================================================= !
 
 module gk_neo_mirror
@@ -31,7 +21,7 @@ module gk_neo_mirror
 contains
 
 ! ================================================================================================================================================================================= !
-! -------------------------------------------------------------------- Initialise the neoclassical A∥_k terms. -------------------------------------------------------------------- ! 
+! -------------------------------------------------------------------- Initialise the neoclassical mirror term. ------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
     subroutine init_neo_mirror
@@ -53,7 +43,7 @@ contains
         ! Neoclassical.
         use neoclassical_terms_neo, only: neo_vpa_fac
 
-        use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
+        use arrays, only: neo_mirror_apar
         use arrays, only: initialised_neo_mirror
 
         ! For switching streaming on and off.
@@ -68,9 +58,9 @@ contains
         if (initialised_neo_mirror) return
         initialised_neo_mirror = .true.
 
-        ! Allocate neo_mirror_apar_2 = neo_mirror_apar_2[ialpha, iz, i[mu,vpa,s]].
-        if (.not. allocated(neo_mirror_apar_2)) then
-            allocate (neo_mirror_apar_2(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_mirror_apar_2 = 0.0
+        ! Allocate neo_mirror_apar = neo_mirror_apar[ialpha, iz, i[mu,vpa,s]].
+        if (.not. allocated(neo_mirror_apar)) then
+            allocate (neo_mirror_apar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_mirror_apar = 0.0
         end if
 
         ! Iterate over velocity space.
@@ -79,10 +69,10 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
 
-            ! This is the term multipling the vpa derivative of apar.
             do iz = -nzgrid, nzgrid
-                neo_mirror_apar_2(:, iz, ivmu) = neomirrorknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * mu(imu) * b_dot_gradz(:, iz) * dbdzed(:, iz) &
-                * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / vpa(iv)
+                neo_mirror_apar(:, iz, ivmu) = neomirrorknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * mu(imu) &
+                * b_dot_gradz(:, iz) * dbdzed(:, iz) * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) &
+                * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / vpa(iv)
             end do
         end do
 
@@ -98,9 +88,8 @@ contains
         use parallelisation_layouts, only: vmu_lo
         use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
 
-      
         ! Data arrays.
-        use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
+        use arrays, only: neo_mirror_apar
 
         ! Grids. 
         use grids_z, only: nzgrid, ntubes
@@ -134,20 +123,20 @@ contains
         !                                                                                         !
         ! <g0> = <A∥_k>                                                                           !
         !                                                                                         !
-        ! Mutlipy this by neo_apar_coeff and add to the right-hand-side of the GKE:               !
+        ! Mutlipy this by neo_mirror_apar and add to the right-hand-side of the GKE:              !
         !                                                                                         ! 
-        ! add_explicit_term(g0, neo_apar_coeff(1, :, :), gout)                                    !
+        ! add_explicit_term(g0, neo_mirror_apar(1, :, :), gout)                                   !
         !                                                                                         !
         ! ======================================================================================= !
         ! --------------------------------------------------------------------------------------- !
         ! ======================================================================================= !
 
-        ! Start timing the time advance.
+        ! Start timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_mirror advance')
 
-        ! Allocate temporary array for <g0> = <A∥_k>.
-        allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+        ! Allocate temporary arrays.
+        allocate(g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        allocate(field(naky, nakx, -nzgrid:nzgrid, ntubes))
 
         ! We now need to add the second term, proportional to the vpa derivative of apar. 
         ! Construct 2 v_th <A∥_k>.
@@ -165,13 +154,13 @@ contains
         end do
 
         ! Add this term to the right-hand-side of the GKE. 
-        call add_explicit_term(g0, neo_mirror_apar_2(1, :, :), gout)
+        call add_explicit_term(g0, neo_mirror_apar(1, :, :), gout)
 
-        ! Deallocate <g0>.
-        deallocate (g0)
-        deallocate (field)
+        ! Deallocate temporary arrays.
+        deallocate(g0)
+        deallocate(field)
 
-        ! Stop timing the time advance.
+        ! Stop timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_mirror advance')
 
     end subroutine advance_neo_mirror_explicit
@@ -182,13 +171,11 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_mirror
-        use arrays, only: neo_mirror_apar_1, neo_mirror_apar_2
-        use arrays, only: initialised_neo_mirror
+        use arrays, only: neo_mirror_apar, initialised_neo_mirror
 
         implicit none
 
-        if (allocated(neo_mirror_apar_1)) deallocate (neo_mirror_apar_1)
-        if (allocated(neo_mirror_apar_2)) deallocate (neo_mirror_apar_2)
+        if (allocated(neo_mirror_apar)) deallocate(neo_mirror_apar)
         initialised_neo_mirror = .false.
 
     end subroutine finish_neo_mirror
