@@ -343,7 +343,7 @@ contains
         ! end if
         
         ! OR MMS TESTING.
-        ! call mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global, neo_phi, neo_grid)
+        call mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global, neo_phi, neo_grid)
 
         ! Deallocate all temporary arrays.
         call deallocate_temp_arrays

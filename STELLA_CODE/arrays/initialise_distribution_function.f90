@@ -191,13 +191,16 @@ contains
       ! Initialise the guiding-center distribution function <gvmu>(nvpa, nmu, -kxkyzs-layout-)
       if (debug) write (6, *) "stella::init_stella::init_distribution_function_vs_muvpa"
       call init_distribution_function_vs_muvpa(restarted, istep0)
-      
+
       ! Initialise the guiding-center distribution function <gnew>(kx, ky, z, -vpamus-layout-)
       ! Use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
       ! This distribution function is stored in <gnew> and copied to <gold>
       if (debug) write (6, *) "stella::init_stella::init_distribution_function_vs_kxkyz"
       call init_distribution_function_vs_kxkyz(restarted)
       
+      ! OR MMS TEST.
+      call overwrite_distribution_mms
+
    end subroutine init_distribution_function
 
    !****************************************************************************
@@ -1051,5 +1054,51 @@ contains
       initialised_distribution_function_vs_kxkyz = .false.
 
    end subroutine finish_distribution_function
+
+
+   ! OR MMS TEST.
+   subroutine overwrite_distribution_mms
+       ! MP.
+       use mp, only: proc0
+
+       ! Parallelisation.
+       use parallelisation_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
+
+       ! Arrays.
+       use arrays_distribution_function, only: gvmu
+
+       ! Grids.
+       use grids_z, only: nzgrid, zed, ntubes
+       use grids_kxky, only: akx, aky, nakx, naky, zed0
+       use grids_velocity, only: nvpa, nmu, vpa, maxwell_vpa, maxwell_mu, maxwell_fac
+       use grids_species, only: spec
+
+       implicit none
+
+       ! Local variables.
+       integer :: ikxkyz, iz, ikx, iky, is, ia, it
+
+       ! ================================================================================================ !
+
+       ! Assume we only have a single field line.
+       ia = 1
+     
+       if (proc0) write (*, *) '*** overwrite_distribution_mms called ***' 
+
+       gvmu = 0.
+
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+       iz  = iz_idx(kxkyz_lo, ikxkyz)
+       ikx = ikx_idx(kxkyz_lo, ikxkyz)
+       iky = iky_idx(kxkyz_lo, ikxkyz)
+       is  = is_idx(kxkyz_lo, ikxkyz)
+
+           ! Calculate intial g manufactured solution.
+           gvmu(:, :, ikxkyz) = akx(ikx) * aky(iky) * exp(-(zed(iz) - zed0(1,1))**2) &
+           * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+       end do
+                     
+   end subroutine overwrite_distribution_mms
+
 
 end module initialise_distribution_function

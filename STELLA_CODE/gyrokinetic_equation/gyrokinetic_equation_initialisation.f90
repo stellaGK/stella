@@ -59,7 +59,10 @@ contains
       use gk_neo_stream, only: init_neo_stream
       use gk_neo_drive, only: init_wstar1y, init_wstar1x
       use gk_neo_drifts, only: init_neo_wdrifty, init_neo_wdriftx
-                                                                                   
+
+      ! OR MMS TESTING.
+      use gk_neo_mms_source_term, only: init_neo_mms_source_term         
+
       implicit none
 
       !-------------------------------------------------------------------------
@@ -109,6 +112,9 @@ contains
           ! Allocate and calculate the neoclassical grad-B and curvature drift corrections. 
           call init_neo_wdrifty
           call init_neo_wdriftx
+
+          ! OR MMS TESTING.
+          call init_neo_mms_source_term
       end if
       
       ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
@@ -172,6 +178,9 @@ contains
       use gk_neo_drive, only: finish_wstar1y, finish_wstar1x
       use gk_neo_drifts, only: finish_neo_wdrifty, finish_neo_wdriftx
 
+      ! OR MMS TESTING.
+      use gk_neo_mms_source_term, only: finish_neo_mms_source_term
+
       implicit none
 
       !-------------------------------------------------------------------------
@@ -195,6 +204,9 @@ contains
           call finish_wstar1x
           call finish_neo_wdrifty
           call finish_neo_wdriftx
+
+          ! OR MMS TESTING.
+          call finish_neo_mms_source_term
       end if
 
       initialised_gyrokinetic_equation = .false.

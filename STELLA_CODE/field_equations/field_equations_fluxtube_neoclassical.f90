@@ -350,6 +350,11 @@ contains
         use grids_species, only: adiabatic_option_switch
         use grids_species, only: adiabatic_option_fieldlineavg
       
+        ! OR MMS TESTING.
+        use grids_kxky, only: akx, aky, zed0
+        use grids_z, only: zed
+        use grids_time, only: code_time
+
         ! Geometry.
         use geometry, only: dl_over_b
 
@@ -369,6 +374,10 @@ contains
         complex :: tmp
         logical :: skip_fsa_local
         logical :: has_elec, adia_elec
+ 
+        ! OR MMS TESTING.
+        integer :: iky, iz
+        real    :: pi = acos(-1.0)
 
         ! ============================================================== !
       
@@ -401,6 +410,19 @@ contains
         ! the prefactor for phi in QN is also zero.                                                                                                         !
         !                                                                                                                                                   !
         ! ================================================================================================================================================= !     
+
+        ! OR MMS test.
+        ! Add modification to QN.
+        do ikx = 1, nakx
+            do iky = 1, naky
+                do iz = -nzgrid, nzgrid
+                    do it = 1, ntubes
+                        phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) &
+                        + 5.0 * cos(2.0 * pi * code_time) * aky(1) * akx(1) * exp(-(zed(iz) - zed0(1,1))**2) / 4.0
+                    end do
+                end do
+            end do
+        end do 
 
         if (dist == 'gneo') then  
             allocate (denominator_fields_t_neo(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -435,6 +457,19 @@ contains
                 call mp_abort('unknown dist option in calcuate_neo_phi. aborting')
             end if
         end if
+
+        ! OR MMS TEST.
+        ! Decouple GKE from QN by prescribing a chosen analytical form here. 
+        ! do ikx = 1, nakx
+            ! do iky = 1, naky
+                ! do iz = -nzgrid, nzgrid
+                    ! do it = 1, ntubes
+                        ! phi(iky, ikx, iz, it) = cos(2.0 * pi * code_time) * aky(1) * akx(1) * exp(-(zed(iz) - zed0(1,1))**2)
+                    ! end do
+                ! end do
+            ! end do
+        ! end do 
+
    end subroutine calculate_neo_phi
 
 
@@ -818,7 +853,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
    subroutine init_neo_electrostatic_fields
       ! Parallelisation.
-      use mp, only: sum_allreduce
+      use mp, only: sum_allreduce, proc0
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays.
@@ -921,6 +956,9 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
          if (.not. has_electron_species(spec)) then
              denominator_fields_neo_gneo = denominator_fields_neo_gneo + efac
          end if
+
+         if (proc0) write (*,*) 'denominator_fields_neo_gneo(1,1,1) = ', denominator_fields_neo_gneo(1, 1, 1)
+         if (proc0) write (*,*) 'efac = ', efac
 
          ! Deallocate temporary arrays.
          if (allocated(g0)) deallocate (g0)

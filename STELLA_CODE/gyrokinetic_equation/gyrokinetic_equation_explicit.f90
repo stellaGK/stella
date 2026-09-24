@@ -234,6 +234,9 @@ contains
       use gk_neo_drive, only: advance_wstar1y_explicit, advance_wstar1x_explicit
       use gk_neo_drifts, only: advance_neo_wdrifty_explicit, advance_neo_wdriftx_explicit
 
+      ! OR MMS TESTING.
+      use gk_neo_mms_source_term, only: advance_neo_mms_source_term_explicit
+
       implicit none
 
       ! Arguments
@@ -383,7 +386,7 @@ contains
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
              if (include_neoclassical_ydrive .and. .not. neoclassical_drifts_implicit) then
-                 call advance_wstar1y_explicit(phi, rhs)
+                 call advance_wstar1y_explicit(phi, apar, bpar, rhs)
              end if
              
              if (include_neoclassical_xdrive .and. .not. neoclassical_drifts_implicit) then
@@ -398,6 +401,9 @@ contains
              if (include_neoclassical_xdrift .and. .not. neoclassical_drifts_implicit) then
                  call advance_neo_wdriftx_explicit(phi, apar, bpar, rhs)  
              end if
+
+             ! OR MMS TESTING.
+             call advance_neo_mms_source_term_explicit(rhs)
          end if
 
          ! If simulating a full flux surface (flux annulus), all terms to this point have been calculated

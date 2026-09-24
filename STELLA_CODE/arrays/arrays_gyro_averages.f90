@@ -168,7 +168,11 @@ contains
             ! Calculate the Bessel functions with arg = a_k = k_perp*rho_s
             aj0v(imu, ikxkyz) = j0(arg)
             aj1v(imu, ikxkyz) = j1(arg)
-            
+
+            ! OR MMS TESTING.
+            aj0v(imu, ikxkyz) = 0.5
+            aj1v(imu, ikxkyz) = 0.5
+
          end do
       end do
       
@@ -245,6 +249,9 @@ contains
                      aj0x(iky, ikx, iz, ivmu) = j0(arg)
                      aj1x(iky, ikx, iz, ivmu) = j1(arg)
                      
+                     ! OR MMS TESTING.
+                     aj0x(iky, ikx, iz, ivmu) = 0.5
+                     aj1x(iky, ikx, iz, ivmu) = 0.5
                   end do
                end do
             end do
