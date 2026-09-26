@@ -383,7 +383,7 @@ contains
 
              ! Advance the neoclassical equilibrium gradient drive terms. 
              if (include_neoclassical_ydrive .and. .not. neoclassical_drifts_implicit) then
-                 call advance_wstar1y_explicit(phi, rhs)
+                 call advance_wstar1y_explicit(phi, apar, bpar, rhs)
              end if
              
              if (include_neoclassical_xdrive .and. .not. neoclassical_drifts_implicit) then

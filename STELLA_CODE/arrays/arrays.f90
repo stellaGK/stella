@@ -106,6 +106,7 @@ module arrays
 
    ! Arrays for calculating the fields for HO electrostatic simulations. 
    public :: denominator_fields_neo_gneo
+   public :: denominator_fields_neo_MBR
 
    ! Arrays for calculating the fields for HO electromagnetic simulations. 
    public :: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
@@ -197,6 +198,7 @@ module arrays
 
    ! Arrays for calculating the fields for HO electrostatic simulations.
    real, dimension(:, :, :), allocatable :: denominator_fields_neo_gneo
+   real, dimension(:, :), allocatable :: denominator_fields_neo_MBR
 
    ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_inv11

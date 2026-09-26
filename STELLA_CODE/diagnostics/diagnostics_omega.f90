@@ -261,7 +261,6 @@ contains
                write (*, '(A, I0, A)') 'EXITING STELLA BECAUSE (OMEGA, GAMMA) HAS SATURATED OVER ', navg, ' TIMESTEPS'
                stop_stella = .true.
             end if
-      
          end if
       end if
 

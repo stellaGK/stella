@@ -334,10 +334,8 @@ contains
         use timers, only: time_field_solve
       
         ! Arrays.
-        use arrays, only: denominator_fields
-        use arrays, only: denominator_fields_MBR
-        use arrays, only: denominator_fields_h
-        use arrays, only: denominator_fields_MBR_h
+        use arrays, only: denominator_fields_neo_gneo
+        use arrays, only: denominator_fields_neo_MBR
       
         ! Grids.
         use grids_z, only: nzgrid, ntubes
@@ -352,9 +350,6 @@ contains
       
         ! Geometry.
         use geometry, only: dl_over_b
-
-        ! HO corrections. 
-        use arrays, only: denominator_fields_neo_gneo 
 
         implicit none
 
@@ -427,7 +422,7 @@ contains
                 do ikx = 1, nakx
                     do it = 1, ntubes
                         tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
-                        phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
+                        phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_neo_MBR(ikx, :)
                     end do
                 end do
             else
@@ -435,6 +430,7 @@ contains
                 call mp_abort('unknown dist option in calcuate_neo_phi. aborting')
             end if
         end if
+
    end subroutine calculate_neo_phi
 
 
@@ -442,21 +438,21 @@ contains
 ! ------------------------------------------------ Calculate phi and apar for electromagnetic simulations when bpar is not included. --------------------------------------------- !
 ! ================================================================================================================================================================================ !
 
-subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
+    subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         ! Parallelisation.
         use mp, only: proc0, mp_abort
         use job_manage, only: time_message
         use timers, only: time_field_solve
 
         ! Arrays.
-        use arrays, only: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_11_gbarneo_inv
-        use arrays, only: denominator_fields_neo_12_gneo_inv, denominator_fields_neo_12_gbarneo_inv
-        use arrays, only: denominator_fields_neo_21_gneo_inv, denominator_fields_neo_21_gbarneo_inv
-        use arrays, only: denominator_fields_neo_22_gneo_inv, denominator_fields_neo_22_gbarneo_inv
+        use arrays, only: denominator_fields_neo_gneo
+        use arrays, only: denominator_fields_neo_12_gneo
+        use arrays, only: denominator_fields_neo_21_gneo
+        use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
 
         ! Grids.
         use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: nakx, naky, zonal_mode, akx
+        use grids_kxky, only: nakx, naky
 
         implicit none
 
@@ -467,13 +463,20 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
         ! Local variables.
         integer :: ia, it, ikx, iky, iz
-        logical :: skip_fsa_local        
-        complex :: antot1, antot2
+        logical :: skip_fsa_local
+
+        ! LAPACK Variables.
+        complex(8)        :: A_lapack(2,2)
+        complex(8)        :: B_lapack(2,1)
+        integer        :: ipiv(2)
+        integer        :: info
+        external zgesv
 
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of bpar, this reduces to a 2 x 2    !
-        ! matrix problem where the solution provides phi and apar.                                                                                                 !
-        !                                                                                                                                                          !
+        ! matrix problem where the solution provides phi and apar. This is solved with LAPACK. This could be solved directly using Cramer's rule, as is done for   ! 
+        ! the coupling of phi and bpar at leading order. However, this would become algebriaclly cumbersome in the fully electromagnetic case where the matrix     !
+        ! becomes 3 x 3. The extension of the LAPACK logic to the fully electromagnetic regime is by comparison much easier.                                       !
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -481,41 +484,46 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
         ! Assume we only have one field line.
-        ia = 1         
+        ia = 1
 
-        if (dist == 'gneo') then
-            do it = 1, ntubes
-                do iz = -nzgrid, nzgrid
-                    do ikx = 1, nakx
-                        do iky = 1, naky
-                            antot1 = phi(iky,ikx,iz,it)
-                            antot2 = apar(iky,ikx,iz,it)
-                     
-                            phi(iky,ikx,iz,it) = denominator_fields_neo_11_gneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_12_gneo_inv(iky,ikx,iz)*antot2
-                            apar(iky,ikx,iz,it) = denominator_fields_neo_21_gneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_22_gneo_inv(iky,ikx,iz)*antot2
-                        end do
+        do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+                do ikx = 1, nakx
+                    do iky = 1, naky
+                        if (dist == 'gneo' .or. dist == 'gbarneo') then
+                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
+                            A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
+                            if (dist == 'gneo') then
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
+                            else if (dist == 'gbarneo') then
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0)
+                            end if
+                        else
+                            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_apar. Aborting.'
+                            call mp_abort('Unknown dist option in calculate_neo_phi_and_apar. Aborting.')
+                            return
+                        end if
+
+                        B_lapack(1,1) = phi(iky,ikx,iz,it)
+                        B_lapack(2,1) = apar(iky,ikx,iz,it)
+
+                        call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                        if (info == 0) then
+                            ! Assign solutions to the fields. 
+                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
+                            apar(iky,ikx,iz,it) = B_lapack(2,1)                                
+                        else
+                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
+                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
+                            apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                        end if
                     end do
                 end do
             end do
-        else if (dist == 'gbarneo') then
-            do it = 1, ntubes
-                do iz = -nzgrid, nzgrid
-                    do ikx = 1, nakx
-                        do iky = 1, naky
-                            antot1 = phi(iky,ikx,iz,it)
-                            antot2 = apar(iky,ikx,iz,it)
-
-                            phi(iky,ikx,iz,it) = denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz)*antot2
-                            apar(iky,ikx,iz,it) = denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz)*antot2
-                        end do
-                    end do
-                end do
-            end do      
-        else
-            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_apar. Aborting.'
-            call mp_abort('Unknown dist option in calculate_neo_phi_and_apar. Aborting.')
-            return
-        end if
+        end do
     end subroutine calculate_neo_phi_and_apar
 
 
@@ -548,9 +556,18 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         integer :: ia, it, ikx, iky, iz
         logical :: skip_fsa_local
 
+        ! LAPACK Variables.
+        complex(8)        :: A_lapack(2,2)
+        complex(8)        :: B_lapack(2,1)
+        integer           :: ipiv(2)
+        integer           :: info
+        external zgesv
+
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the abscence of apar, this reduces to a 2 x 2    !
-        ! matrix problem where the solution provides phi and bpar.                                                                                                 ! 
+        ! matrix problem where the solution provides phi and bpar. This is solved with LAPACK. This could be solved directly using Cramer's rule, as is done for   ! 
+        ! the coupling of phi and bpar at leading order. However, this would become algebriaclly cumbersome in the fully electromagnetic case where the matrix     !
+        ! becomes 3 x 3. The extension of the LAPACK logic to the fully electromagnetic regime is by comparison much easier.                                       !
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -558,7 +575,42 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
         ! Assume we only have one field line.
-        ia = 1           
+        ia = 1
+
+        do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+                do ikx = 1, nakx
+                    do iky = 1, naky
+                        if (dist == 'gneo') then
+                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
+                            A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(2,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(1,2) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(2,2) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
+                        else
+                            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_bpar. Aborting.'
+                            call mp_abort('Unknown dist option in calculate_neo_phi_and_bpar. Aborting.')
+                            return
+                        end if
+
+                        B_lapack(1,1) = phi(iky,ikx,iz,it)
+                        B_lapack(2,1) = bpar(iky,ikx,iz,it)
+
+                        call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                        if (info == 0) then
+                            ! Assign solutions to the fields. 
+                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
+                            bpar(iky,ikx,iz,it) = B_lapack(2,1)                                
+                        else
+                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
+                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
+                            bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                        end if
+                    end do
+                end do
+            end do
+        end do
 
     end subroutine calculate_neo_phi_and_bpar
 
@@ -570,21 +622,23 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
     subroutine calculate_neo_phi_apar_and_bpar(phi, apar, bpar, dist, skip_fsa)
         ! Parallelisation.
         use mp, only: proc0, mp_abort
-  
+        use job_manage, only: time_message
+        use timers, only: time_field_solve
+
         ! Arrays.
         use arrays, only: denominator_fields_neo_gneo
-        use arrays, only: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
+        use arrays, only: denominator_fields_neo_12_gneo
         use arrays, only: denominator_fields_neo_13_gneo
         use arrays, only: denominator_fields_neo_21_gneo
         use arrays, only: denominator_fields_neo_22_gneo, denominator_fields_neo_22_gbarneo
         use arrays, only: denominator_fields_neo_23_gneo
         use arrays, only: denominator_fields_neo_31_gneo
-        use arrays, only: denominator_fields_neo_32_gneo, denominator_fields_neo_32_gbarneo
+        use arrays, only: denominator_fields_neo_32_gneo
         use arrays, only: denominator_fields_neo_33_gneo
         
         ! Grids.
         use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: nakx, naky, zonal_mode, akx
+        use grids_kxky, only: nakx, naky
 
         implicit none
 
@@ -597,9 +651,16 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         integer :: ia, it, ikx, iky, iz
         logical :: skip_fsa_local
 
+        ! LAPACK Variables.
+        complex(8)        :: A_lapack(3,3)
+        complex(8)        :: B_lapack(3,1)
+        integer           :: ipiv(3)
+        integer           :: info
+        external zgesv
+
         ! ======================================================================================================================================================== ! 
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the presence of bpar, this involves a 3 x 3      !
-        ! matrix problem where the solution provides phi, apar and bpar.                                                                                           !
+        ! matrix problem where the solution provides phi, apar and bpar. This is solved with LAPACK.                                                               !
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -609,6 +670,53 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         ! Assume we only have one field line.
         ia = 1
 
+        do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+                do ikx = 1, nakx
+                    do iky = 1, naky
+                        if (dist == 'gneo' .or. dist == 'gbarneo') then
+                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
+                            A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(1,3) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
+                            if (dist == 'gneo') then
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
+                            else if (dist == 'gbarneo') then
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0)
+                            end if
+                            A_lapack(2,3) = cmplx(denominator_fields_neo_23_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(3,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(3,2) = cmplx(denominator_fields_neo_32_gneo(iky,ikx,iz), 0.0)
+                            A_lapack(3,3) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
+                        else
+                            if (proc0) write (*, *) 'Unknown dist option in calculate_neo_phi_and_apar. Aborting.'
+                            call mp_abort('Unknown dist option in calculate_neo_phi_apar_and_bpar. Aborting.')
+                            return
+                        end if
+
+                        B_lapack(1,1) = phi(iky,ikx,iz,it)
+                        B_lapack(2,1) = apar(iky,ikx,iz,it)
+                        B_lapack(3,1) = bpar(iky,ikx,iz,it)
+
+                        call zgesv(3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
+
+                        if (info == 0) then
+                            ! Assign solutions to the fields. 
+                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
+                            apar(iky,ikx,iz,it) = B_lapack(2,1)
+                            bpar(iky,ikx,iz,it) = B_lapack(3,1)                                
+                        else
+                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
+                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
+                            apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                            bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                        end if
+                    end do
+                end do
+            end do
+        end do
+            
     end subroutine calculate_neo_phi_apar_and_bpar
 
 
@@ -763,15 +871,16 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         use mp, only: proc0, mp_abort
       
         ! Arrays.
-        use arrays, only: denominator_fields_neo_21_gneo_inv
-        use arrays, only: denominator_fields_neo_22_gneo_inv
+        use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_12_gneo, denominator_fields_neo_13_gneo
+        use arrays, only: denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo, denominator_fields_neo_23_gneo
+        use arrays, only: denominator_fields_neo_31_gneo, denominator_fields_neo_32_gneo, denominator_fields_neo_33_gneo
         
         ! Parameters.
         use parameters_physics, only: include_apar, include_bpar
       
         ! Grids
         use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: nakx, naky, zonal_mode, akx
+        use grids_kxky, only: nakx, naky 
       
         implicit none
 
@@ -783,32 +892,96 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         ! Local variables.
         integer :: ia
         integer :: ikxkyz, iky, ikx, iz, it, is      
-        complex :: antot1, antot2
 
-        ! Assume we only have one field line.
+        ! LAPACK Variables.
+        complex(8)     :: A_lapack(2,2)
+        complex(8)     :: B_lapack(2,1)
+        complex(8)     :: C_lapack(3,3)
+        complex(8)     :: D_lapack(3,1)
+        integer        :: ipiv(2), jpiv(3)
+        integer        :: info
+        external zgesv
+
+        ! Assume we only have one field line
         ia = 1
 
         ! ================================================================================================================= !
+      
+        ! We have the sources that we need to get the associated field matrix for apar.
+        ! Note that the implicit mirror advance only uses gneo and so there is no gbarneo dist option here.
+        ! If we are only including apar, only solve the 2x2 matrix.  
+        if (include_apar .and. .not. include_bpar) then 
+            if (dist == 'gneo') then
+                do it = 1, ntubes
+                    do iz = -nzgrid, nzgrid
+                        do ikx = 1, nakx
+                            do iky = 1, naky
+                                A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
+                                A_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
+                                A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
+                                A_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
 
-        if (dist == 'gneo') then
-            do it = 1, ntubes
-                do iz = -nzgrid, nzgrid
-                    do ikx = 1, nakx
-                        do iky = 1, naky
-                            antot1 = phi(iky,ikx,iz,it)
-                            antot2 = apar(iky,ikx,iz,it)
-                     
-                            apar(iky,ikx,iz,it) = denominator_fields_neo_21_gneo_inv(iky,ikx,iz)*antot1 + denominator_fields_neo_22_gneo_inv(iky,ikx,iz)*antot2
+                                B_lapack(1,1) = phi(iky,ikx,iz,it)
+                                B_lapack(2,1) = apar(iky,ikx,iz,it)
+     
+                                call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                                if (info == 0) then 
+                                    apar(iky,ikx,iz,it) = B_lapack(2,1)
+                                else
+                                    if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
+                                    apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                                end if
+                            end do
                         end do
                     end do
                 end do
-            end do
-        else
-            if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
-            call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
-            return
+            else  
+                if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
+                call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
+                return      
+            end if     
         end if
 
+        ! If we are including apar and bpar, solve the full 3x3 matrix. 
+        if (include_apar .and. include_bpar) then
+            if (dist == 'gneo') then
+                do it = 1, ntubes
+                    do iz = -nzgrid, nzgrid
+                        do ikx = 1, nakx
+                            do iky = 1, naky
+                                C_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(2,1) = cmplx(denominator_fields_neo_21_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(3,1) = cmplx(denominator_fields_neo_31_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(2,2) = cmplx(denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(3,2) = cmplx(denominator_fields_neo_32_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(1,3) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(2,3) = cmplx(denominator_fields_neo_23_gneo(iky,ikx,iz), 0.0)
+                                C_lapack(3,3) = cmplx(denominator_fields_neo_33_gneo(iky,ikx,iz), 0.0)
+
+                                D_lapack(1,1) = phi(iky,ikx,iz,it)
+                                D_lapack(2,1) = apar(iky,ikx,iz,it)
+                                D_lapack(3,1) = bpar(iky,ikx,iz,it)
+
+                                call zgesv(3, 1, C_lapack, 3, jpiv, D_lapack, 3, info)
+
+                                if (info == 0) then
+                                    apar(iky,ikx,iz,it) = D_lapack(2,1)
+                                else
+                                    if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
+                                    apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                                end if
+                            end do
+                        end do
+                    end do
+                end do
+            else
+                if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
+                call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
+                return
+            end if
+        end if
    end subroutine get_apar_neo
        
 
@@ -822,7 +995,8 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
       use parallelisation_layouts, only: kxkyz_lo, iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays.
-      use arrays, only: denominator_fields_neo_gneo, efac
+      use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_MBR
+      use arrays, only: efac
       use arrays_gyro_averages, only: aj0v
 
       ! Parameters.
@@ -867,7 +1041,6 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
       ! Calculate the denominators needed for electrostatic neoclassical simulations.
       if (fphi > epsilon(0.0)) then
-      
          ! Allocate temporary arrays.
          allocate (g0(nvpa, nmu))
 
@@ -910,16 +1083,24 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
             denominator_fields_neo_gneo(1, 1, :) = 0.0
          end if
 
-         ! ======================================================================================================================================================== ! 
-         !                                                                                                                                                          ! 
-         ! When using adiabatic electrons, denominator_fields_gneo acquires a factor associated with the adiabatic response:                                        !
-         !                                                                                                                                                          ! 
-         ! denominator_fields_neo[iky,ikz,iz] = denominator_fields_neo[iky,ikz,iz] + efac                                                                           !
-         !                                                                                                                                                          !
-         ! ======================================================================================================================================================== !
-
+         ! When using adiabatic electrons, denominator_fields_gneo acquires a factor associated with the adiabatic response.                                        !
          if (.not. has_electron_species(spec)) then
              denominator_fields_neo_gneo = denominator_fields_neo_gneo + efac
+         end if
+
+         ! For the Modified Boltzmann Response (MBR) we need to consider the flux-surface average contribution. 
+         if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+             if (zonal_mode(1)) then
+                 do ikx = 1, nakx
+                     tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields_neo_gneo(1, ikx, :))
+                     denominator_fields_neo_MBR(ikx, :) = 1./(denominator_fields_neo_gneo(1, ikx, :) * tmp)
+                 end do
+                  
+                 ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway. 
+                 if (akx(1) < epsilon(0.)) then
+                     denominator_fields_neo_MBR(1, :) = 0.0
+                 end if
+             end if
          end if
 
          ! Deallocate temporary arrays.
@@ -964,7 +1145,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
         use geometry, only: bmag
 
         ! Grids.
-        use grids_kxky, only : nakx, naky
+        use grids_kxky, only : nakx, naky, zonal_mode, akx
         use grids_z, only: nzgrid
         use grids_species, only: spec
         use grids_velocity, only: vpa, mu, nvpa, nmu
@@ -1309,7 +1490,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
          do iz = -nzgrid, nzgrid 
             do ikx = 1, nakx
                do iky = 1, naky
-                  if (iky == 1 .and. ikx == 1) then
+                  if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
                      ! stella does not evolve the (ky=0, kx=0) mode.
                      denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = 0.0
                      denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = 0.0
@@ -1334,7 +1515,7 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
          do iz = -nzgrid,nzgrid
             do ikx = 1, nakx
                do iky = 1, naky
-                  if (iky == 1 .and. ikx == 1) then
+                  if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
                      ! stella does not evolve the (ky=0, kx=0) mode.
                      denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = 0.0
                      denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = 0.0
@@ -1368,10 +1549,12 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
 
         ! Arrays. 
         use arrays, only: denominator_fields_neo_gneo
+        use arrays, only: denominator_fields_neo_MBR
 
         implicit none
 
         if (.not. allocated(denominator_fields_neo_gneo)) then; allocate (denominator_fields_neo_gneo(naky, nakx, -nzgrid:nzgrid)); denominator_fields_neo_gneo = 0. ; end if 
+        if (.not. allocated(denominator_fields_neo_MBR)) then; allocate (denominator_fields_neo_MBR(nakx, -nzgrid:nzgrid)); denominator_fields_neo_MBR = 0. ; end if
     end subroutine allocate_neo_electrostatic_fields
 
 ! =================================================================================================================================================================================== !
@@ -1458,11 +1641,12 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
     subroutine finish_neo_electrostatic_fields
         ! Arrays.
         use arrays, only: denominator_fields_neo_gneo
+        use arrays, only: denominator_fields_neo_MBR
         
         implicit none
 
         if (allocated(denominator_fields_neo_gneo)) deallocate(denominator_fields_neo_gneo)
-
+        if (allocated(denominator_fields_neo_MBR)) deallocate(denominator_fields_neo_MBR)
     end subroutine finish_neo_electrostatic_fields
 
 

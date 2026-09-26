@@ -1799,27 +1799,31 @@ contains
           use grids_species, only: spec
        
           ! Arrays. 
-          use arrays, only: denominator_fields_neo_11_gneo_inv
-          use arrays, only: denominator_fields_neo_12_gneo_inv
-          use arrays, only: denominator_fields_neo_21_gneo_inv
-          use arrays, only: denominator_fields_neo_22_gneo_inv
+          use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_12_gneo
+          use arrays, only: denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo
 
           implicit none
 
           ! Local variables.
           integer :: idx, iseg, ikx, iz, ia
           integer :: izl_offset, izup
-          real, dimension(:), allocatable :: gammainv11, gammainv12, gammainv21, gammainv22
-          complex :: antot1, antot2
+          real, dimension(:), allocatable :: gamma11, gamma12, gamma21, gamma22
+          
+          ! LAPACK Variables.
+          complex(8)      :: A_lapack(2,2)
+          complex(8)      :: B_lapack(2,1)
+          integer         :: ipiv(2)
+          integer         :: info
+          external zgesv
 
           ! =================================================================================== !
 
           ia = 1
 
-          allocate (gammainv11(-nzgrid:nzgrid))
-          allocate (gammainv12(-nzgrid:nzgrid))
-          allocate (gammainv21(-nzgrid:nzgrid))
-          allocate (gammainv22(-nzgrid:nzgrid))
+          allocate (gamma11(-nzgrid:nzgrid))
+          allocate (gamma12(-nzgrid:nzgrid))
+          allocate (gamma21(-nzgrid:nzgrid))
+          allocate (gamma22(-nzgrid:nzgrid))
 
           idx = 0
           izl_offset = 0
@@ -1843,16 +1847,15 @@ contains
 
           ! ===================================================================== !
           ! ----------------- Divide by the correct field factor. --------------- !
-          ! ===================================================================== !       
-
+          ! ===================================================================== !
+       
           ! Loop over all connected segments in a chain.
-          do iseg = 1, nsegments(ie, iky)         
+          do iseg = 1, nsegments(ie, iky)
               ! Make sure the boundary points are being treated correctly depending
               ! on whether the mode is periodic or not. Here, define <izup> as the 
               ! upper zed value within a segment. If the mode is periodic, then 
               ! reduce the upper bound by one, as this is a repeated point so it is 
               ! obtained using the periodicity condition. This avoids and double-counting.
-           
               if (periodic(iky)) then
                   izup = iz_up(iseg) - 1
               else
@@ -1863,36 +1866,49 @@ contains
               ! <ikx> value on the local domain given our position on the extended domain.
               ikx = ikxmod(iseg, ie, iky)
 
-             ! For the given value of ky, kx, store the appropriate denominators from 
-             ! the field equations (Quasineutrality and perpendicular Amperes law) for 
-             ! this this segment. 
-             gammainv11 = denominator_fields_neo_11_gneo_inv(iky, ikx, :)
-             gammainv12 = denominator_fields_neo_12_gneo_inv(iky, ikx, :)
-             gammainv21 = denominator_fields_neo_21_gneo_inv(iky, ikx, :)
-             gammainv22 = denominator_fields_neo_22_gneo_inv(iky, ikx, :)
+              ! For the given value of ky, kx, store the appropriate matrix elements from 
+              ! the field equations (Quasineutrality and parallel Amperes law) for this segment. 
+               
+              gamma11 = denominator_fields_neo_gneo(iky, ikx, :)
+              gamma12 = denominator_fields_neo_12_gneo(iky, ikx, :)
+              gamma21 = denominator_fields_neo_21_gneo(iky, ikx, :)
+              gamma22 = denominator_fields_neo_22_gneo(iky, ikx, :)
 
-             ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-             ! iz is only cycling through the zed location within a given segment. 
-             do iz = iz_low(iseg) + izl_offset, izup
-                 idx = idx + 1
+              ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
+              ! iz is only cycling through the zed location within a given segment. 
+              do iz = iz_low(iseg) + izl_offset, izup
+                  idx = idx + 1
+                  
+                  A_lapack(1,1) = cmplx(gamma11(iz), 0.0)
+                  A_lapack(2,1) = cmplx(gamma21(iz), 0.0)
+                  A_lapack(1,2) = cmplx(gamma12(iz), 0.0)
+                  A_lapack(2,2) = cmplx(gamma22(iz), 0.0)
 
-                 antot1 = phi(idx)
-                 antot2 = apar(idx)
+                  B_lapack(1,1) = phi(idx)
+                  B_lapack(2,1) = apar(idx)
 
-                 phi(idx) = antot1 * gammainv11(iz) + antot2 * gammainv12(iz)
-                 apar(idx) = antot1 * gammainv21(iz) + antot2 * gammainv22(iz)
-            end do
+                  call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
-            ! Treat the periodic point correct by dividing by the phase shift.
-            if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
-            if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
+                  if (info == 0) then
+                      phi(idx)  = B_lapack(1,1)
+                      apar(idx) = B_lapack(2,1)
+                  else
+                      if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_and_apar_for_response_matrix_neo at iz=', iz
+                      phi(idx)  = cmplx(0.0, 0.0)
+                      apar(idx) = cmplx(0.0, 0.0)
+                  end if
+              end do
+
+              ! Treat the periodic point correct by dividing by the phase shift.
+              if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
+              if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
             
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
-         end do             
+              ! Set the offset to 1 - all other connected segments need to start one point
+              ! displaced as they share a point with the previous segment. 
+              if (izl_offset == 0) izl_offset = 1
+          end do
 
-         deallocate (gammainv11, gammainv12, gammainv21, gammainv22)
+         deallocate (gamma11, gamma12, gamma21, gamma22)
       end subroutine calculate_phi_and_apar_for_response_matrix_neo
 
 
@@ -1924,7 +1940,14 @@ contains
           integer :: idx, iseg, ikx, iz, ia
           integer :: izl_offset, izup
           real, dimension(:), allocatable :: gamma11, gamma13, gamma31, gamma33
-         
+          
+          ! LAPACK Variables.
+          complex(8)      :: A_lapack(2,2)
+          complex(8)      :: B_lapack(2,1)
+          integer         :: ipiv(2)
+          integer         :: info
+          external zgesv
+
           ! =================================================================================== !
 
           ia = 1
@@ -1983,6 +2006,31 @@ contains
               gamma31 = denominator_fields_neo_31_gneo(iky, ikx, :)
               gamma33 = denominator_fields_neo_33_gneo(iky, ikx, :)
 
+              ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
+              ! iz is only cycling through the zed location within a given segment. 
+              do iz = iz_low(iseg) + izl_offset, izup
+                  idx = idx + 1
+                  
+                  A_lapack(1,1) = cmplx(gamma11(iz), 0.0)
+                  A_lapack(2,1) = cmplx(gamma31(iz), 0.0)
+                  A_lapack(1,2) = cmplx(gamma13(iz), 0.0)
+                  A_lapack(2,2) = cmplx(gamma33(iz), 0.0)
+
+                  B_lapack(1,1) = phi(idx)
+                  B_lapack(2,1) = bpar(idx)
+
+                  call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
+
+                  if (info == 0) then
+                      phi(idx)  = B_lapack(1,1)
+                      bpar(idx) = B_lapack(2,1)
+                  else
+                      if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_and_bpar_for_response_matrix_neo at iz=', iz
+                      phi(idx)  = cmplx(0.0, 0.0)
+                      bpar(idx) = cmplx(0.0, 0.0)
+                  end if
+              end do
+
               ! Treat the periodic point correct by dividing by the phase shift.
               if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
               if (periodic(iky)) bpar(nz_ext) = bpar(1) / phase_shift(iky)
@@ -2025,6 +2073,13 @@ contains
           integer :: idx, iseg, ikx, iz, ia
           integer :: izl_offset, izup
           real, dimension(:), allocatable :: gamma11, gamma12, gamma13, gamma21, gamma22, gamma23, gamma31, gamma32, gamma33
+          
+          ! LAPACK Variables.
+          complex(8)      :: A_lapack(3,3)
+          complex(8)      :: B_lapack(3,1)
+          integer         :: ipiv(3)
+          integer         :: info
+          external zgesv
 
           ! =================================================================================== !
 
@@ -2095,6 +2150,39 @@ contains
               gamma32 = denominator_fields_neo_32_gneo(iky, ikx, :)
               gamma33 = denominator_fields_neo_33_gneo(iky, ikx, :)
 
+              ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
+              ! iz is only cycling through the zed location within a given segment. 
+              do iz = iz_low(iseg) + izl_offset, izup
+                  idx = idx + 1
+                  
+                  A_lapack(1,1) = cmplx(gamma11(iz), 0.0)
+                  A_lapack(2,1) = cmplx(gamma21(iz), 0.0)
+                  A_lapack(3,1) = cmplx(gamma31(iz), 0.0)
+                  A_lapack(1,2) = cmplx(gamma12(iz), 0.0)
+                  A_lapack(2,2) = cmplx(gamma22(iz), 0.0)
+                  A_lapack(3,2) = cmplx(gamma32(iz), 0.0)
+                  A_lapack(1,3) = cmplx(gamma13(iz), 0.0)
+                  A_lapack(2,3) = cmplx(gamma23(iz), 0.0)
+                  A_lapack(3,3) = cmplx(gamma33(iz), 0.0)
+
+                  B_lapack(1,1) = phi(idx)
+                  B_lapack(2,1) = apar(idx)
+                  B_lapack(3,1) = bpar(idx)
+
+                  call zgesv(3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
+
+                  if (info == 0) then
+                      phi(idx)  = B_lapack(1,1)
+                      apar(idx) = B_lapack(2,1)
+                      bpar(idx) = B_lapack(3,1)
+                  else
+                      if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_apar_and_bpar_for_response_matrix_neo at iz=', iz
+                      phi(idx)  = cmplx(0.0, 0.0)
+                      apar(idx) = cmplx(0.0, 0.0)
+                      bpar(idx) = cmplx(0.0, 0.0)
+                  end if
+              end do
+
               ! Treat the periodic point correct by dividing by the phase shift.
               if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
               if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
@@ -2106,7 +2194,7 @@ contains
           end do
 
          deallocate (gamma11, gamma12, gamma13, gamma21, gamma22, gamma23, gamma31, gamma32, gamma33)
-      end subroutine calculate_phi_apar_and_bpar_for_response_matrix_neo
+      end subroutine calculate_phi_apar_and_bpar_for_response_matrix_neo      
          
    end subroutine solve_field_equations_using_pdf_response
 
