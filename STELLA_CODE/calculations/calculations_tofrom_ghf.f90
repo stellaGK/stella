@@ -411,7 +411,7 @@ contains
 
       ! Add electromagnetic terms.
       ! First the apar contribution.
-      if (include_apar) then
+      if (include_apar .and. neoclassical_is_enabled()) then
           ! This factor determines whether we add or substract the term.
           facapar = facphi
 
@@ -431,10 +431,9 @@ contains
               ! Gyroaverage by multiplying with J_0.
               call gyro_average(field, ikxkyz, gyro_averaged_field)
 
-              if (neoclassical_is_enabled()) then
-                  gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
-              end if
-
+              ! Multiply by the neoclassical factor. 
+              gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
+              
               ! Add the apar term to g. 
               g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
           end do 
@@ -602,7 +601,7 @@ contains
       end do
 
       ! Add electromagnetic term: apar. 
-      if (include_apar) then
+      if (include_apar .and. neoclassical_is_enabled()) then
           ! This factor determines whether we add or substract the electromagnetic term
           facapar = facphi
 
@@ -617,9 +616,8 @@ contains
                   ! Gyroaverage by multiplying with J_0.
                   call gyro_average(field, iz, ivmu, gyro_averaged_field)
 
-                  if (neoclassical_is_enabled()) then
-                      gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
-                  end if
+                  ! Multiply by the neoclassical factor. 
+                  gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
                  
                   g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
               end do
