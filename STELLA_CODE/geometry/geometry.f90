@@ -227,7 +227,9 @@ contains
          ! Overwrite the selected geometric coefficients
          if (overwrite_geometry) call overwrite_selected_geometric_coefficients(nalpha)
 
-         geo_surf%shat = shat
+         if (overwrite_shat) then 
+            geo_surf%shat = shat
+         end if
 
          ! <exb_nonlin_fac> = -(0.5/C)*Bref*(dx/dpsi)(dy/dalpha) = - 0.5 * (1/<clebsch_factor>) * <dxdpsi> * <dydalpha>
          exb_nonlin_fac = -0.5 / clebsch_factor * dxdpsi * dydalpha
