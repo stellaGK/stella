@@ -56,10 +56,8 @@
   overwrite_gradx_dot_grady = .false.
   overwrite_gradx_dot_gradx = .false.
   overwrite_B_times_gradB_dot_grady = .false.
-  overwrite_B_times_kappa_dot_gradx = .false.
+  overwrite_B_times_kappa_dot_grady = .false.
   overwrite_B_times_gradB_dot_gradx = .false.
-  overwrite_gds23 = .false.
-  overwrite_gds24 = .false.
 /
 
 !===============================================================================
