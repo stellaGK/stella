@@ -137,6 +137,9 @@ contains
       !    <wdrifty_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdrifty> + <wgbdrifty>)
       !-------------------------------------------------------------------------
 
+      ! Check shear
+      write (*, *) 'shat in wdrift module = ', geo_surf%shat
+
       ! Allocate temporary arrays
       allocate (wcvdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))

@@ -277,6 +277,9 @@ contains
       
          !----------------------------------------------------------------------
 
+         ! Check shat value
+         write (*, *) 'shat in grids module = ', geo_surf%shat
+
          ! Recall that we are in "range" mode and not in "box" mode
          box = .false.
          
