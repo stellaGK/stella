@@ -156,7 +156,7 @@ module geometry
    real, dimension(:, :), allocatable :: b_dot_gradzeta_RR
 
    ! The geometric quantities can be read from an old geometry file
-   logical :: overwrite_bmag, overwrite_b_dot_gradzeta, overwrite_geometry
+   logical :: overwrite_shat, overwrite_bmag, overwrite_b_dot_gradzeta, overwrite_geometry
    logical :: overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx
    logical :: overwrite_gds23, overwrite_gds24, overwrite_B_times_gradB_dot_grady
    logical :: overwrite_B_times_kappa_dot_grady, overwrite_B_times_gradB_dot_gradx, q_as_x
@@ -213,7 +213,7 @@ contains
          ! Read the <geometry_from_txt> namelist. This is independent of <geometry_option>:
          ! the geometric coefficients produced by Miller/VMEC/z-pinch/input.profiles can all
          ! be overwritten, column by column, with those in a *.geometry file written by stella.
-         call read_namelist_geometry_from_txt(geometry_file, overwrite_bmag, overwrite_b_dot_gradzeta, &
+         call read_namelist_geometry_from_txt(geometry_file, overwrite_shat, overwrite_bmag, overwrite_b_dot_gradzeta, &
               overwrite_grady_dot_grady, overwrite_gradx_dot_grady, overwrite_gradx_dot_gradx, overwrite_gds23, overwrite_gds24, &
               overwrite_B_times_gradB_dot_grady, overwrite_B_times_kappa_dot_grady, &
               overwrite_B_times_gradB_dot_gradx, overwrite_geometry)
@@ -226,6 +226,8 @@ contains
          
          ! Overwrite the selected geometric coefficients
          if (overwrite_geometry) call overwrite_selected_geometric_coefficients(nalpha)
+
+         geo_surf%shat = shat
 
          ! <exb_nonlin_fac> = -(0.5/C)*Bref*(dx/dpsi)(dy/dalpha) = - 0.5 * (1/<clebsch_factor>) * <dxdpsi> * <dydalpha>
          exb_nonlin_fac = -0.5 / clebsch_factor * dxdpsi * dydalpha
@@ -627,7 +629,7 @@ contains
 
             ! dkx/dky * jtwist = -2*pi*P * (dψ/dx) (dy/dα) * (drho/dψ) * hat{s} (iota/rho)
             if (print_extra_info_to_terminal) then; write (*, *) ' '; write (*, *) 'Standard twist and shift BC selected'; end if 
-            twist_and_shift_geo_fac = -2. * pi * field_period_ratio * dpsidx * dydalpha * drhodpsi * shat * iota / rho  
+            twist_and_shift_geo_fac = -2. * pi * field_period_ratio * dpsidx * dydalpha * drhodpsi * geo_surf%shat * iota / rho  
 
          end select
 
@@ -949,10 +951,10 @@ contains
 
       ! Local variables
       integer :: geofile_unit
-      character(100) :: dum_char
+      character(200) :: dum_char
       real :: dum_real
       integer :: ia, iz
-      real :: bmag_file, b_dot_gradzeta_file
+      real :: shat_file, bmag_file, b_dot_gradzeta_file
       real :: grady_dot_grady_file, gradx_dot_grady_file, gradx_dot_gradx_file
       real :: B_times_gradB_dot_grady_file, B_times_kappa_dot_grady_file, B_times_gradB_dot_gradx_file
       logical :: geofile_exists
@@ -979,6 +981,7 @@ contains
       ! Tell the user which geometric coefficients are read from the *.geometry file
       write (*, '(A)') ' '
       write (*, '(A)') 'Overwriting geometric coefficients with those in "'//trim(geometry_file)//'":'
+      if (overwrite_shat) write (*, '(A)') '   shat'
       if (overwrite_bmag) write (*, '(A)') '   bmag'
       if (overwrite_b_dot_gradzeta) write (*, '(A)') '   b_dot_gradzeta'
       if (overwrite_grady_dot_grady) write (*, '(A)') '   grady_dot_grady'
@@ -989,10 +992,22 @@ contains
       if (overwrite_B_times_gradB_dot_gradx) write (*, '(A)') '   B_times_gradB_dot_gradx (and B_times_kappa_dot_gradx)'
       write (*, '(A)') ' '
 
-      ! Deal with the first four header lines
+      ! Skip the comment header line for the scalar row
       read (geofile_unit, fmt='(A)') dum_char
+
+      ! Read the actual scalar data line (still starts with '#')
       read (geofile_unit, fmt='(A)') dum_char
+
+      ! Strip the leading '#' character, then parse the remaining numbers
+      read (dum_char(2:), fmt=*) dum_real, dum_real, shat_file, dum_real, dum_real, dum_real, &
+                dum_real, dum_real, dum_real, dum_real, dum_real
+
+      if (overwrite_shat) shat = shat_file
+
+      ! Skip the blank line
       read (geofile_unit, fmt='(A)') dum_char
+      
+      ! Skip the second comment header
       read (geofile_unit, fmt='(A)') dum_char
 
       ! Overwrite the following geometric quantities:
@@ -1451,7 +1466,7 @@ contains
       write (geometry_unit, '(a1,a12,11a13)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', &
          'aref', 'bref', 'dxdpsi', 'dydalpha', 'exb_nonlin', 'flux_fac', '1/Grho'
       write (geometry_unit, '(a1,e12.4,11e13.4)') '#', geo_surf%rhoc, geo_surf%qinp, &
-         geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac, one_over_nablarho
+         shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac, one_over_nablarho
       write (geometry_unit, *)
 
       ! Write the most important geometric arrays to a text file
