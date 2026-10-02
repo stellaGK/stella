@@ -618,7 +618,7 @@ contains
 ! ================================================================================================================================================================================ !
 ! ------------------------------------------------------- Calculate phi, apar and bpar for fully electromagnetic simulations. ---------------------------------------------------- !
 ! ================================================================================================================================================================================ !
-
+            
     subroutine calculate_neo_phi_apar_and_bpar(phi, apar, bpar, dist, skip_fsa)
         ! Parallelisation.
         use mp, only: proc0, mp_abort
@@ -635,7 +635,7 @@ contains
         use arrays, only: denominator_fields_neo_31_gneo
         use arrays, only: denominator_fields_neo_32_gneo
         use arrays, only: denominator_fields_neo_33_gneo
-        
+
         ! Grids.
         use grids_z, only: nzgrid, ntubes
         use grids_kxky, only: nakx, naky
@@ -651,16 +651,46 @@ contains
         integer :: ia, it, ikx, iky, iz
         logical :: skip_fsa_local
 
-        ! LAPACK Variables.
+        ! LAPACK variables.
         complex(8)        :: A_lapack(3,3)
         complex(8)        :: B_lapack(3,1)
         integer           :: ipiv(3)
-        integer           :: info
-        external zgesv
+        integer           :: info, info_equ
+        external zgetrf, zgetrs
+        external zgeequ
 
-        ! ======================================================================================================================================================== ! 
+        ! Equilibration variables (row/column scaling via zgeequ).
+        real(8)           :: r_scale(3), c_scale(3), rowcnd, colcnd, amax_val
+        integer           :: irow, icol
+
+        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+        ! Equilibration-verification diagnostics. These do NOT gate the solve or discard any points -- every point is still solved via the       !
+        ! equilibrated system regardless of what these report. They exist purely to let us confirm, at every point actually present in this       !
+        ! run, whether zgeequ found real scale disparity to correct (rowcnd/colcnd << 1) and whether equilibration actually improved the           !
+        ! estimated reciprocal condition number (rcond_equ vs rcond_orig). This is a linear run with a single (ky, kx) mode, so no ikx/aky         !
+        ! filter is needed -- every point the loops reach is written out, with iky/ikx/it recorded alongside iz to keep each row unambiguous.      !
+        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+        logical, parameter :: WRITE_EQUILIBRATION_DIAGNOSTICS = .true.
+        logical            :: diagnose_this_point
+        complex(8)         :: A_lapack_orig(3,3), A_lapack_for_rcond(3,3)
+        integer            :: ipiv_diag(3), info_diag
+        real(8)            :: anorm_orig, anorm_equ, rcond_orig, rcond_equ
+        complex(8)         :: cwork(6)
+        real(8)            :: rwork(3)
+        integer            :: iunit_diag
+        logical, save      :: diag_file_opened = .false.
+        external zgecon
+        real(8), external :: zlange
+
+        ! ======================================================================================================================================================== !
         ! Due to the presence of F_1, all fluctuating fields now couple to one another in the field equations. In the presence of bpar, this involves a 3 x 3      !
         ! matrix problem where the solution provides phi, apar and bpar. This is solved with LAPACK.                                                               !
+        !                                                                                                                                                          !
+        ! Before factorizing, the matrix is equilibrated via zgeequ: row scale factors r(i) and column scale factors c(j) are computed such that the rescaled     !
+        ! matrix Ahat = R * A * C (R = diag(r), C = diag(c)) has entries closer to unit magnitude. We solve Ahat * y = R * b for y, then recover the true          !
+        ! solution as x(j) = c(j) * y(j). This is an exact reformulation (not an approximation) -- it only changes the floating-point path taken to reach the      !
+        ! same solution, and is intended to fix cases where poor relative scaling between matrix entries (rather than genuine near-degeneracy) was degrading the   !
+        ! accuracy of the solve.                                                                                                                                   !
         ! ======================================================================================================================================================== !
 
         ! Used for the Dougherty collision operator.
@@ -670,12 +700,20 @@ contains
         ! Assume we only have one field line.
         ia = 1
 
+        ! Open the diagnostic file once (proc0 only), with a header row.
+        ! if (WRITE_EQUILIBRATION_DIAGNOSTICS .and. proc0 .and. .not. diag_file_opened) then
+            ! open (newunit=iunit_diag, file='diagnostic_equilibration.txt', status='replace', action='write')
+            ! write (iunit_diag, '(A)') '# it  iky  ikx   iz   rowcnd        colcnd        amax          rcond_orig    rcond_equ'
+            ! close (iunit_diag)
+            ! diag_file_opened = .true.
+        ! end if
+
         do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                 do ikx = 1, nakx
                     do iky = 1, naky
                         if (dist == 'gneo' .or. dist == 'gbarneo') then
-                            ! Promote real matrix elements to complex numbers to be solved with zgesv. 
+                            ! Promote real matrix elements to complex numbers to be solved with zgesv.
                             A_lapack(1,1) = cmplx(denominator_fields_neo_gneo(iky,ikx,iz), 0.0)
                             A_lapack(1,2) = cmplx(denominator_fields_neo_12_gneo(iky,ikx,iz), 0.0)
                             A_lapack(1,3) = cmplx(denominator_fields_neo_13_gneo(iky,ikx,iz), 0.0)
@@ -699,25 +737,95 @@ contains
                         B_lapack(2,1) = apar(iky,ikx,iz,it)
                         B_lapack(3,1) = bpar(iky,ikx,iz,it)
 
-                        call zgesv(3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
+                        ! diagnose_this_point = WRITE_EQUILIBRATION_DIAGNOSTICS .and. proc0
 
-                        if (info == 0) then
-                            ! Assign solutions to the fields. 
-                            phi(iky,ikx,iz,it)  = B_lapack(1,1)
-                            apar(iky,ikx,iz,it) = B_lapack(2,1)
-                            bpar(iky,ikx,iz,it) = B_lapack(3,1)                                
-                        else
-                            if (proc0) write(*,*) 'WARNING: ill-conditioned matrix at iky,ikx,iz=', iky, ikx, iz
+                        ! Keep an undestroyed copy of the as-built matrix for the diagnostic (pre-equilibration) rcond estimate.
+                        ! if (diagnose_this_point) A_lapack_orig = A_lapack
+
+                        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                        ! Compute row/column scale factors from the ORIGINAL (unfactorized) matrix.                                                              !
+                        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                        call zgeequ(3, 3, A_lapack, 3, r_scale, c_scale, rowcnd, colcnd, amax_val, info_equ)
+
+                        if (info_equ /= 0) then
+                            ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
+                            if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') &
+                                ' WARNING: zgeequ failed with info=', info_equ, &
+                                ' (singular field matrix) at iky=', iky, ', ikx=', ikx, ', iz=', iz
                             phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
                             apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                             bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                            cycle
                         end if
+
+                        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                        ! Diagnostic-only: estimate rcond of the ORIGINAL (pre-equilibration) matrix, for comparison against the post-equilibration value        !
+                        ! computed below. This uses a separate scratch copy so it cannot interfere with the actual solve.                                        !
+                        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                        ! if (diagnose_this_point) then
+                            ! A_lapack_for_rcond = A_lapack_orig
+                            ! anorm_orig = zlange('1', 3, 3, A_lapack_for_rcond, 3, rwork)
+                            ! call zgetrf(3, 3, A_lapack_for_rcond, 3, ipiv_diag, info_diag)
+                            ! if (info_diag == 0) then
+                                ! call zgecon('1', 3, A_lapack_for_rcond, 3, anorm_orig, rcond_orig, cwork, rwork, info_diag)
+                            ! else
+                                ! rcond_orig = 0.0d0
+                            ! end if
+                        ! end if
+
+                        ! Apply the equilibration: Ahat(i,j) = r(i) * A(i,j) * c(j), bhat(i) = r(i) * b(i).
+                        do icol = 1, 3
+                            do irow = 1, 3
+                                A_lapack(irow,icol) = r_scale(irow) * A_lapack(irow,icol) * c_scale(icol)
+                            end do
+                        end do
+                        do irow = 1, 3
+                            B_lapack(irow,1) = r_scale(irow) * B_lapack(irow,1)
+                        end do
+
+                        ! Diagnostic-only: 1-norm of the equilibrated matrix, needed for the post-equilibration rcond estimate below.
+                        ! Grabbed here (before zgetrf overwrites A_lapack) so the real solve is unaffected.
+                        ! if (diagnose_this_point) anorm_equ = zlange('1', 3, 3, A_lapack, 3, rwork)
+
+                        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                        ! Factorize and solve the equilibrated system Ahat * y = bhat.                                                                           !
+                        ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                        call zgetrf(3, 3, A_lapack, 3, ipiv, info)
+
+                        if (info == 0) then
+                            ! Diagnostic-only: estimate rcond of the EQUILIBRATED matrix, reusing the LU factors just computed for the real solve.
+                            ! if (diagnose_this_point) then
+                                ! call zgecon('1', 3, A_lapack, 3, anorm_equ, rcond_equ, cwork, rwork, info_diag)
+                            ! end if
+
+                            call zgetrs('N', 3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
+
+                            ! Recover the true solution: x(j) = c(j) * y(j).
+                            phi(iky,ikx,iz,it)  = c_scale(1) * B_lapack(1,1)
+                            apar(iky,ikx,iz,it) = c_scale(2) * B_lapack(2,1)
+                            bpar(iky,ikx,iz,it) = c_scale(3) * B_lapack(3,1)
+                        else
+                            ! Genuinely singular (exact zero pivot found during LU factorization of the equilibrated matrix).
+                            if (proc0) write(*,'(A,I0,A,I0,A,I0)') &
+                                ' WARNING: singular field matrix at iky=', iky, ', ikx=', ikx, ', iz=', iz
+                            phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
+                            apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                            bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                            ! if (diagnose_this_point) rcond_equ = 0.0d0
+                        end if
+
+                        ! Append this point's diagnostics to the file.
+                        ! if (diagnose_this_point) then
+                            ! open (newunit=iunit_diag, file='diagnostic_equilibration.txt', status='old', ! action='write', position='append')
+                            ! write (iunit_diag, '(I4,1X,I4,1X,I4,1X,I5,1X,ES13.5,1X,ES13.5,1X,ES13.5,1X,ES13.5,1X,ES13.5)') 
+                            ! it, iky, ikx, iz, rowcnd, colcnd, amax_val, rcond_orig, rcond_equ
+                            ! close (iunit_diag)
+                       !  end if
                     end do
                 end do
             end do
         end do
-            
-    end subroutine calculate_neo_phi_apar_and_bpar
+    end subroutine calculate_neo_phi_apar_and_bpar                   
 
 
 ! ================================================================================================================================================================================ !
@@ -869,19 +977,19 @@ contains
     subroutine get_apar_neo(phi, apar, bpar, dist)
         ! Parallelisation.
         use mp, only: proc0, mp_abort
-      
+
         ! Arrays.
         use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_12_gneo, denominator_fields_neo_13_gneo
         use arrays, only: denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo, denominator_fields_neo_23_gneo
         use arrays, only: denominator_fields_neo_31_gneo, denominator_fields_neo_32_gneo, denominator_fields_neo_33_gneo
-        
+
         ! Parameters.
         use parameters_physics, only: include_apar, include_bpar
-      
+
         ! Grids
         use grids_z, only: nzgrid, ntubes
-        use grids_kxky, only: nakx, naky 
-      
+        use grids_kxky, only: nakx, naky
+
         implicit none
 
         ! Arguments.
@@ -891,7 +999,7 @@ contains
 
         ! Local variables.
         integer :: ia
-        integer :: ikxkyz, iky, ikx, iz, it, is      
+        integer :: ikxkyz, iky, ikx, iz, it, is
 
         ! LAPACK Variables.
         complex(8)     :: A_lapack(2,2)
@@ -899,18 +1007,25 @@ contains
         complex(8)     :: C_lapack(3,3)
         complex(8)     :: D_lapack(3,1)
         integer        :: ipiv(2), jpiv(3)
-        integer        :: info
-        external zgesv
+        integer        :: info, info_equ
+        external zgesv, zgetrf, zgetrs
+        external zgeequ
+
+        ! Equilibration variables (row/column scaling via zgeequ) -- 3x3 (phi, apar, bpar) solve only -- see
+        ! calculate_neo_phi_apar_and_bpar for the same logic and further discussion.
+        ! Not applied to the 2x2 (phi, apar) solve for now.
+        real(8)        :: r_scale(3), c_scale(3), rowcnd, colcnd, amax_val
+        integer        :: irow, icol
 
         ! Assume we only have one field line
         ia = 1
 
         ! ================================================================================================================= !
-      
+
         ! We have the sources that we need to get the associated field matrix for apar.
         ! Note that the implicit mirror advance only uses gneo and so there is no gbarneo dist option here.
-        ! If we are only including apar, only solve the 2x2 matrix.  
-        if (include_apar .and. .not. include_bpar) then 
+        ! If we are only including apar, only solve the 2x2 matrix.
+        if (include_apar .and. .not. include_bpar) then
             if (dist == 'gneo') then
                 do it = 1, ntubes
                     do iz = -nzgrid, nzgrid
@@ -923,10 +1038,10 @@ contains
 
                                 B_lapack(1,1) = phi(iky,ikx,iz,it)
                                 B_lapack(2,1) = apar(iky,ikx,iz,it)
-     
+
                                 call zgesv(2, 1, A_lapack, 2, ipiv, B_lapack, 2, info)
 
-                                if (info == 0) then 
+                                if (info == 0) then
                                     apar(iky,ikx,iz,it) = B_lapack(2,1)
                                 else
                                     if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
@@ -936,14 +1051,14 @@ contains
                         end do
                     end do
                 end do
-            else  
+            else
                 if (proc0) write (*, *) 'Unknown dist option in get_apar_neo. Aborting.'
                 call mp_abort('Unknown dist option in get_apar_neo. Aborting.')
-                return      
-            end if     
+                return
+            end if
         end if
 
-        ! If we are including apar and bpar, solve the full 3x3 matrix. 
+        ! If we are including apar and bpar, solve the full 3x3 matrix.
         if (include_apar .and. include_bpar) then
             if (dist == 'gneo') then
                 do it = 1, ntubes
@@ -964,12 +1079,45 @@ contains
                                 D_lapack(2,1) = apar(iky,ikx,iz,it)
                                 D_lapack(3,1) = bpar(iky,ikx,iz,it)
 
-                                call zgesv(3, 1, C_lapack, 3, jpiv, D_lapack, 3, info)
+                                ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                                ! Equilibrate C_lapack x = D_lapack before factorizing, rather than checking rcond and discarding ill-conditioned-but-not-singular       !
+                                ! points. zgeequ computes row scales r(i) and column scales c(j) from the as-built matrix; we solve the rescaled system Chat y = Rb      !
+                                ! (Chat = R * C_lapack * C, R = diag(r), C = diag(c)) and recover the true solution as x(j) = c(j) * y(j). This is an exact              !
+                                ! reformulation -- see calculate_neo_phi_apar_and_bpar for further discussion.                                                          !
+                                ! -------------------------------------------------------------------------------------------------------------------------------------- !
+
+                                call zgeequ(3, 3, C_lapack, 3, r_scale, c_scale, rowcnd, colcnd, amax_val, info_equ)
+
+                                if (info_equ /= 0) then
+                                    ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
+                                    if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0,A,I0)') &
+                                        ' WARNING: zgeequ failed with info=', info_equ, &
+                                        ' (singular matrix) in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
+                                    apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
+                                    cycle
+                                end if
+
+                                ! Apply the equilibration: Chat(i,j) = r(i) * C_lapack(i,j) * c(j), Dhat(i) = r(i) * D_lapack(i).
+                                do icol = 1, 3
+                                    do irow = 1, 3
+                                        C_lapack(irow,icol) = r_scale(irow) * C_lapack(irow,icol) * c_scale(icol)
+                                    end do
+                                end do
+                                do irow = 1, 3
+                                    D_lapack(irow,1) = r_scale(irow) * D_lapack(irow,1)
+                                end do
+
+                                call zgetrf(3, 3, C_lapack, 3, jpiv, info)
 
                                 if (info == 0) then
-                                    apar(iky,ikx,iz,it) = D_lapack(2,1)
+                                    call zgetrs('N', 3, 1, C_lapack, 3, jpiv, D_lapack, 3, info)
+
+                                    ! Recover the true solution: x(j) = c(j) * y(j). Only apar is needed by this routine.
+                                    apar(iky,ikx,iz,it) = c_scale(2) * D_lapack(2,1)
                                 else
-                                    if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in get_apar_neo at iky, ikx, iz, it =', iky, ikx, iz, it
+                                    ! Genuinely singular (exact zero pivot found during LU factorization of the equilibrated matrix).
+                                    if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') &
+                                        ' WARNING: singular matrix in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                                 end if
                             end do
@@ -982,8 +1130,8 @@ contains
                 return
             end if
         end if
+
    end subroutine get_apar_neo
-       
 
 ! ================================================================================================================================================================================ !
 ! --------------------------------------------  Provides the extended denominator for phi when running electrostatic HO simulations ---------------------------------------------- !
@@ -1482,60 +1630,7 @@ contains
             ! Deallocate temporary array.
             deallocate (g0)
         end if 
-
-      ! Compute: denominator_fields_neo_11_gneo_inv, denominator_fields_neo_12_gneo_inv, denominator_fields_neo_21_gneo_inv and denominator_fields_neo_22_gneo_inv
-      ! and similiarly for gbarneo.  
-      ! These are the factors that are actually needed in the field solve when we simulate with phi, apar and no bpar. 
-      if (fphi > epsilon(0.0) .and. include_apar .and. .not. include_bpar) then
-         do iz = -nzgrid, nzgrid 
-            do ikx = 1, nakx
-               do iky = 1, naky
-                  if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
-                     ! stella does not evolve the (ky=0, kx=0) mode.
-                     denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = 0.0
-                     denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = 0.0
-                     denominator_fields_neo_21_gneo_inv(iky,ikx,iz) = 0.0
-                     denominator_fields_neo_22_gneo_inv(iky,ikx,iz) = 0.0
-                     cycle
-                  end if
-
-                  call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
-                  denominator_fields_neo_22_gneo(iky,ikx,iz), 0.0, Minv_gneo)
-
-                  denominator_fields_neo_11_gneo_inv(iky,ikx,iz) = Minv_gneo(1,1)
-                  denominator_fields_neo_12_gneo_inv(iky,ikx,iz) = Minv_gneo(1,2)
-                  denominator_fields_neo_21_gneo_inv(iky,ikx,iz) = Minv_gneo(2,1)
-                  denominator_fields_neo_22_gneo_inv(iky,ikx,iz) = Minv_gneo(2,2)
-               end do
-            end do
-         end do
-
-         ! Compute: denominator_fields_neo_11_gbarneo_inv, denominator_fields_neo_12_gbarneo_inv, denominator_fields_neo_21_gbarneo_inv and denominator_fields_neo_22_gbarneo_inv.
-         ! These are the factors that are actually needed in the field solve when we simulate with phi, apar and no bpar.
-         do iz = -nzgrid,nzgrid
-            do ikx = 1, nakx
-               do iky = 1, naky
-                  if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
-                     ! stella does not evolve the (ky=0, kx=0) mode.
-                     denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = 0.0
-                     denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = 0.0
-                     denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz) = 0.0
-                     denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz) = 0.0
-                     cycle
-                  end if
-
-                  call regularized_inverse_2x2(denominator_fields_neo_gneo(iky,ikx,iz), denominator_fields_neo_12_gneo(iky,ikx,iz), denominator_fields_neo_21_gneo(iky,ikx,iz), &
-                  denominator_fields_neo_22_gbarneo(iky,ikx,iz), 0.0, Minv_gbarneo)
-
-                  denominator_fields_neo_11_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,1)
-                  denominator_fields_neo_12_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(1,2)
-                  denominator_fields_neo_21_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(2,1)
-                  denominator_fields_neo_22_gbarneo_inv(iky,ikx,iz) = Minv_gbarneo(2,2)
-               end do
-            end do
-         end do
-      end if
-
+        
     end subroutine init_neo_electromagnetic_fields  
 
 

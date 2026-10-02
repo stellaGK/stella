@@ -2043,16 +2043,15 @@ contains
          deallocate (gamma11, gamma13, gamma31, gamma33)
       end subroutine calculate_phi_and_bpar_for_response_matrix_neo
 
-
       ! ================================================================================================================================================================== !
-      ! ----------------------------------------- Get the correct factors for the coupled phi, apar and bpar fields for HO simulations. ---------------------------------- ! 
+      ! ----------------------------------------- Get the correct factors for the coupled phi, apar and bpar fields for HO simulations. ---------------------------------- !
       ! ================================================================================================================================================================== !
 
       subroutine calculate_phi_apar_and_bpar_for_response_matrix_neo
-          ! MP. 
+          ! MP.
           use mp, only: mp_abort, proc0
 
-          ! Grids. 
+          ! Grids.
           use grids_z, only: nzgrid
           use grids_kxky, only: zonal_mode, akx
           use grids_species, only: has_electron_species
@@ -2061,8 +2060,8 @@ contains
           use grids_extended_zgrid, only: nsegments
           use grids_extended_zgrid, only: periodic, phase_shift
           use grids_species, only: spec
-       
-          ! Arrays. 
+
+          ! Arrays.
           use arrays, only: denominator_fields_neo_gneo, denominator_fields_neo_12_gneo, denominator_fields_neo_13_gneo
           use arrays, only: denominator_fields_neo_21_gneo, denominator_fields_neo_22_gneo, denominator_fields_neo_23_gneo
           use arrays, only: denominator_fields_neo_31_gneo, denominator_fields_neo_32_gneo, denominator_fields_neo_33_gneo
@@ -2073,13 +2072,19 @@ contains
           integer :: idx, iseg, ikx, iz, ia
           integer :: izl_offset, izup
           real, dimension(:), allocatable :: gamma11, gamma12, gamma13, gamma21, gamma22, gamma23, gamma31, gamma32, gamma33
-          
+
           ! LAPACK Variables.
           complex(8)      :: A_lapack(3,3)
           complex(8)      :: B_lapack(3,1)
           integer         :: ipiv(3)
-          integer         :: info
-          external zgesv
+          integer         :: info, info_equ
+          external zgesv, zgetrf, zgetrs
+          external zgeequ
+
+          ! Equilibration variables (row/column scaling via zgeequ) -- see calculate_neo_phi_apar_and_bpar for the same
+          ! logic and further discussion.
+          real(8)         :: r_scale(3), c_scale(3), rowcnd, colcnd, amax_val
+          integer         :: irow, icol
 
           ! =================================================================================== !
 
@@ -2102,10 +2107,10 @@ contains
           ! -------------------------- iky = ikx = 0 mode. ---------------------- !
           ! ===================================================================== !
           ! Stella does not evolve the iky = ikx = 0 mode. Need to identify this  !
-          ! mode and make sure it is set to zero.                                 ! 
+          ! mode and make sure it is set to zero.                                 !
           ! ===================================================================== !
 
-          ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
+          ! Get the appropriate indecies. Here, the <ikxmod> routine returns the
           ! <ikx> value on the local domain given our position on the extended domain.
           iseg = 1
           ikx = ikxmod(iseg, ie, iky)
@@ -2119,13 +2124,13 @@ contains
           ! ===================================================================== !
           ! ----------------- Divide by the correct field factor. --------------- !
           ! ===================================================================== !
-       
+
           ! Loop over all connected segments in a chain.
           do iseg = 1, nsegments(ie, iky)
               ! Make sure the boundary points are being treated correctly depending
-              ! on whether the mode is periodic or not. Here, define <izup> as the 
-              ! upper zed value within a segment. If the mode is periodic, then 
-              ! reduce the upper bound by one, as this is a repeated point so it is 
+              ! on whether the mode is periodic or not. Here, define <izup> as the
+              ! upper zed value within a segment. If the mode is periodic, then
+              ! reduce the upper bound by one, as this is a repeated point so it is
               ! obtained using the periodicity condition. This avoids and double-counting.
               if (periodic(iky)) then
                   izup = iz_up(iseg) - 1
@@ -2133,13 +2138,13 @@ contains
                   izup = iz_up(iseg)
               end if
 
-              ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
+              ! Get the appropriate indecies. Here, the <ikxmod> routine returns the
               ! <ikx> value on the local domain given our position on the extended domain.
               ikx = ikxmod(iseg, ie, iky)
 
-              ! For the given value of ky, kx, store the appropriate matrix elements from 
-              ! the field equations (Quasineutrality and parallel Amperes law) for this segment. 
-               
+              ! For the given value of ky, kx, store the appropriate matrix elements from
+              ! the field equations (Quasineutrality and parallel Amperes law) for this segment.
+
               gamma11 = denominator_fields_neo_gneo(iky, ikx, :)
               gamma12 = denominator_fields_neo_12_gneo(iky, ikx, :)
               gamma13 = denominator_fields_neo_13_gneo(iky, ikx, :)
@@ -2150,11 +2155,11 @@ contains
               gamma32 = denominator_fields_neo_32_gneo(iky, ikx, :)
               gamma33 = denominator_fields_neo_33_gneo(iky, ikx, :)
 
-              ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-              ! iz is only cycling through the zed location within a given segment. 
+              ! The <idx> index keeps track of the location on the extended zed grid, whereas the
+              ! iz is only cycling through the zed location within a given segment.
               do iz = iz_low(iseg) + izl_offset, izup
                   idx = idx + 1
-                  
+
                   A_lapack(1,1) = cmplx(gamma11(iz), 0.0)
                   A_lapack(2,1) = cmplx(gamma21(iz), 0.0)
                   A_lapack(3,1) = cmplx(gamma31(iz), 0.0)
@@ -2169,14 +2174,51 @@ contains
                   B_lapack(2,1) = apar(idx)
                   B_lapack(3,1) = bpar(idx)
 
-                  call zgesv(3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
+                  ! -------------------------------------------------------------------------------------------------------------------------------------- !
+                  ! Equilibrate A_lapack x = B_lapack before factorizing, rather than checking rcond and discarding ill-conditioned-but-not-singular         !
+                  ! points. zgeequ computes row scales r(i) and column scales c(j) from the as-built matrix; we solve the rescaled system Ahat y = Rb        !
+                  ! (Ahat = R * A_lapack * C, R = diag(r), C = diag(c)) and recover the true solution as x(j) = c(j) * y(j). This is an exact reformulation  !
+                  ! -- see calculate_neo_phi_apar_and_bpar for further discussion.                                                                          !
+                  ! Note: idx (the extended-zed-grid position, used to index phi/apar/bpar) and iz (the local-segment zed index, used to index gamma_ij)    !
+                  ! are DIFFERENT indices here -- both are reported in the diagnostics below to make each flagged point unambiguous to locate.              !
+                  ! -------------------------------------------------------------------------------------------------------------------------------------- !
+
+                  call zgeequ(3, 3, A_lapack, 3, r_scale, c_scale, rowcnd, colcnd, amax_val, info_equ)
+
+                  if (info_equ /= 0) then
+                      ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
+                      if (proc0) write(*,'(A,I0,A,I0,A,I0)') &
+                          ' WARNING: zgeequ failed with info=', info_equ, &
+                          ' (singular matrix) in calculate_phi_apar_and_bpar_for_response_matrix_neo at idx=', idx, ', iz=', iz
+                      phi(idx)  = cmplx(0.0, 0.0)
+                      apar(idx) = cmplx(0.0, 0.0)
+                      bpar(idx) = cmplx(0.0, 0.0)
+                      cycle
+                  end if
+
+                  ! Apply the equilibration: Ahat(i,j) = r(i) * A_lapack(i,j) * c(j), Bhat(i) = r(i) * B_lapack(i).
+                  do icol = 1, 3
+                      do irow = 1, 3
+                          A_lapack(irow,icol) = r_scale(irow) * A_lapack(irow,icol) * c_scale(icol)
+                      end do
+                  end do
+                  do irow = 1, 3
+                      B_lapack(irow,1) = r_scale(irow) * B_lapack(irow,1)
+                  end do
+
+                  call zgetrf(3, 3, A_lapack, 3, ipiv, info)
 
                   if (info == 0) then
-                      phi(idx)  = B_lapack(1,1)
-                      apar(idx) = B_lapack(2,1)
-                      bpar(idx) = B_lapack(3,1)
+                      call zgetrs('N', 3, 1, A_lapack, 3, ipiv, B_lapack, 3, info)
+
+                      ! Recover the true solution: x(j) = c(j) * y(j).
+                      phi(idx)  = c_scale(1) * B_lapack(1,1)
+                      apar(idx) = c_scale(2) * B_lapack(2,1)
+                      bpar(idx) = c_scale(3) * B_lapack(3,1)
                   else
-                      if (proc0) write(*,*) 'WARNING: ill-conditioned matrix in calculate_phi_apar_and_bpar_for_response_matrix_neo at iz=', iz
+                      ! Genuinely singular (exact zero pivot found during LU factorization of the equilibrated matrix).
+                      if (proc0) write(*,'(A,I0,A,I0)') &
+                          ' WARNING: singular matrix in calculate_phi_apar_and_bpar_for_response_matrix_neo at idx=', idx, ', iz=', iz
                       phi(idx)  = cmplx(0.0, 0.0)
                       apar(idx) = cmplx(0.0, 0.0)
                       bpar(idx) = cmplx(0.0, 0.0)
@@ -2187,14 +2229,16 @@ contains
               if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
               if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
               if (periodic(iky)) bpar(nz_ext) = bpar(1) / phase_shift(iky)
-            
+
               ! Set the offset to 1 - all other connected segments need to start one point
-              ! displaced as they share a point with the previous segment. 
+              ! displaced as they share a point with the previous segment.
               if (izl_offset == 0) izl_offset = 1
           end do
 
          deallocate (gamma11, gamma12, gamma13, gamma21, gamma22, gamma23, gamma31, gamma32, gamma33)
-      end subroutine calculate_phi_apar_and_bpar_for_response_matrix_neo      
+      end subroutine calculate_phi_apar_and_bpar_for_response_matrix_neo
+
+ 
          
    end subroutine solve_field_equations_using_pdf_response
 
