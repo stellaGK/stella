@@ -1468,7 +1468,7 @@ contains
       write (geometry_unit, '(a1,a12,11a13)') '#', 'rhoc', 'qinp', 'shat', 'rhotor', &
          'aref', 'bref', 'dxdpsi', 'dydalpha', 'exb_nonlin', 'flux_fac', '1/Grho'
       write (geometry_unit, '(a1,e12.4,11e13.4)') '#', geo_surf%rhoc, geo_surf%qinp, &
-         shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac, one_over_nablarho
+         geo_surf%shat, geo_surf%rhotor, aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac, one_over_nablarho
       write (geometry_unit, *)
 
       ! Write the most important geometric arrays to a text file
