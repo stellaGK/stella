@@ -445,7 +445,6 @@ contains
         ! if (allocated(neo_u_par_left)) deallocate(neo_u_par_left)
         ! if (allocated(neo_u_par_right)) deallocate(neo_u_par_right)
         
-
         ! DIAGNOSTICS.
         ! if (allocated(neo_dens_vpa_deriv)) deallocate(neo_dens_vpa_deriv)
         ! if (allocated(neo_dens_mu_deriv)) deallocate(neo_dens_mu_deriv)
