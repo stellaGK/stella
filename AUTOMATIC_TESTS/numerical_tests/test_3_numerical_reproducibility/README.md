@@ -45,18 +45,13 @@ bit-for-bit identical when a simulation is repeated. Perturbing a single input p
 Known bugs
 ----------
 
-The MPI invariance tests are marked as strict expected failures (xfail) for two input
-files, since the results depend on the number of processors (see `known_mpi_bugs` in
-`reproducibility_settings.py`):
-
-- `collisions_dougherty_implicit.in`: implicit Dougherty collisions with momentum and
-  energy conservation and more than one species (relative differences of about 1e-3).
-- `collisions_fokker_planck_implicit.in`: implicit Fokker-Planck collisions (relative
-  differences of about 1e-6, growing with the number of processors).
-
-Once such a bug is fixed, the test reports an XPASS which makes it fail, as a reminder
-to remove the input file from `known_mpi_bugs` (and to recreate its expected output if
-the single-processor result has changed).
+If the results of an input file depend on the number of processors because of a known
+bug, add the input file to `known_mpi_bugs` in `reproducibility_settings.py`. Its MPI
+invariance tests are then marked as strict expected failures (xfail). Once the bug is
+fixed, the test reports an XPASS which makes it fail, as a reminder to remove the input
+file from `known_mpi_bugs` (and to recreate its expected output if the single-processor
+result has changed). There are currently no known bugs; the implicit Dougherty and
+Fokker-Planck collision operators used to depend on the number of processors.
 
 
 Intended changes of the numerics

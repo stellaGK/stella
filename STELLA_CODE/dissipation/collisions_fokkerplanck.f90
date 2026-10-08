@@ -4205,7 +4205,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
-      complex, dimension(:, :, :, :, :), allocatable :: flds
+      complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:, :, :), allocatable :: g_in
       complex, dimension(:, :), allocatable :: gvmutr
       complex, dimension(:), allocatable :: ghrs
@@ -4315,6 +4315,11 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       end if
 
       ! AVB: obtain phi^{n+1} and psijlm^{n+1} from response matrix
+      ! The response matrix is only applied on the processor that owns is = 1 for each
+      ! (ky,kx,z,tube) point, so store the solution in <flds_solved>, which is summed over
+      ! all processors below. Note that <flds> contains the inhomogeneous fields on every
+      ! processor, so summing <flds> itself would add these for every other processor.
+      allocate (flds_solved(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse)); flds_solved = 0.
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -4324,11 +4329,16 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          ! no need to compute multiple times
          is = is_idx(kxkyz_lo, ikxkyz); if (is /= 1) cycle
          call lu_back_substitution(fp_response(:, :, ikxkyz), diff_idx(:, ikxkyz), flds(iky, ikx, iz, it, :))
+         flds_solved(iky, ikx, iz, it, :) = flds(iky, ikx, iz, it, :)
       end do
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       if (advfield_coll) then
          phi(:, :, :, :) = flds(:, :, :, :, 1)
-         call sum_allreduce(phi)
       end if
 
       g = g_in
