@@ -1,5 +1,5 @@
  
-! Numerical reproducibility test (test 9): parallel streaming and mirror term treated explicitly.
+! Numerical reproducibility test (test 3): parallel streaming and mirror term treated explicitly.
 ! Identical to es_nonlinear.in except for:
 !     &numerical_algorithms: stream_implicit = .false.
 !     &numerical_algorithms: mirror_implicit = .false.

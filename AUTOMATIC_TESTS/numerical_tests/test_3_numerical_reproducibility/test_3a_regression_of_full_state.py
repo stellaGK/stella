@@ -11,7 +11,7 @@
 # Each input file switches on a different numerical scheme (see the top of each
 # input file), so that optimisations of the memory usage or speed of stella can
 # be checked against all of them. The simulations are run on a single processor,
-# the dependence on the number of processors is tested in test_9b.
+# the dependence on the number of processors is tested in test_3b.
 #
 # If a change of the numerics is intended, recreate the expected output with:
 #     python3 create_expected_output.py

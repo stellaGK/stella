@@ -33,25 +33,25 @@ numerical-tests-2: check-tests-dependencies $(PROJECT_DIR)/stella
 	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_2_geometry
 numerical-tests-3: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 3"
-	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_3_gyrokinetic_equation
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_3_numerical_reproducibility
 numerical-tests-4: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 4"
-	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_4_fluxtube
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_4_gyrokinetic_equation
 numerical-tests-5: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 5"
-	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_5_diagnostics
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_5_fluxtube
 numerical-tests-6: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 6"
-	@python3 -m pytest -v -rF -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_6_full_flux_surface
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_6_diagnostics
 numerical-tests-7: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 7"
-	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_7_electromagnetic
+	@python3 -m pytest -v -rF -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_7_full_flux_surface
 numerical-tests-8: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 8"
-	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_8_restarting
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_8_electromagnetic
 numerical-tests-9: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 9"
-	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_9_numerical_reproducibility
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_9_restarting
 numerical-tests-system:
 	@python3 $(TEST_DIR)/system_information.py
 	

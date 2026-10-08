@@ -1,10 +1,8 @@
  
-! Numerical reproducibility test (test 9): explicit Dougherty collisions with momentum and energy conservation.
+! Numerical reproducibility test (test 3): implicit mirror term without the semi-Lagrange scheme.
 ! Identical to es_nonlinear.in except for:
-!     &dissipation_and_collisions_options: include_collisions = .true.
-!     &dissipation_and_collisions_options: vnew_ref = 0.01
-!     &dissipation_and_collisions_options: collision_model = 'dougherty'
-!     &dissipation_and_collisions_options: collisions_implicit = .false.
+!     &numerical_algorithms: mirror_implicit = .true.
+!     &numerical_algorithms: mirror_semi_lagrange = .false.
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -45,10 +43,7 @@
 /
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
-  include_collisions = .true.
-  vnew_ref = 0.01
-  collision_model = 'dougherty'
-  collisions_implicit = .false.
+  include_collisions = .false.
 /
 
 !===============================================================================
@@ -135,6 +130,8 @@
 /
 &numerical_algorithms
   explicit_algorithm = 'rk3'
+  mirror_implicit = .true.
+  mirror_semi_lagrange = .false.
 /
 &debug_flags
   print_extra_info_to_terminal = .false.

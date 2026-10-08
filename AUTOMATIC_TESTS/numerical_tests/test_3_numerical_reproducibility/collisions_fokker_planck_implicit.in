@@ -1,7 +1,11 @@
  
-! Numerical reproducibility test (test 9): flip_flop = .true. (alternate the order of the operator splitting).
+! Numerical reproducibility test (test 3): implicit Fokker-Planck collisions (test particle operator).
 ! Identical to es_nonlinear.in except for:
-!     &numerical_algorithms: flip_flop = .true.
+!     &dissipation_and_collisions_options: include_collisions = .true.
+!     &dissipation_and_collisions_options: vnew_ref = 0.01
+!     &dissipation_and_collisions_options: collision_model = 'fokker-planck'
+!     &dissipation_and_collisions_options: collisions_implicit = .true.
+!     &collisions_fokker_planck: nvel_local = 64
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -42,7 +46,10 @@
 /
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
-  include_collisions = .false.
+  include_collisions = .true.
+  vnew_ref = 0.01
+  collision_model = 'fokker-planck'
+  collisions_implicit = .true.
 /
 
 !===============================================================================
@@ -95,6 +102,10 @@
   nvgrid = 4
 /
 
+&collisions_fokker_planck
+  nvel_local = 64
+/
+
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================
@@ -129,7 +140,6 @@
 /
 &numerical_algorithms
   explicit_algorithm = 'rk3'
-  flip_flop = .true.
 /
 &debug_flags
   print_extra_info_to_terminal = .false.

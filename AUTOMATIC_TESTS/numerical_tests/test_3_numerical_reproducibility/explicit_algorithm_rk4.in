@@ -1,11 +1,7 @@
  
-! Numerical reproducibility test (test 9): implicit Fokker-Planck collisions (test particle operator).
+! Numerical reproducibility test (test 3): explicit_algorithm = 'rk4'.
 ! Identical to es_nonlinear.in except for:
-!     &dissipation_and_collisions_options: include_collisions = .true.
-!     &dissipation_and_collisions_options: vnew_ref = 0.01
-!     &dissipation_and_collisions_options: collision_model = 'fokker-planck'
-!     &dissipation_and_collisions_options: collisions_implicit = .true.
-!     &collisions_fokker_planck: nvel_local = 64
+!     &numerical_algorithms: explicit_algorithm = 'rk4'
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -46,10 +42,7 @@
 /
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
-  include_collisions = .true.
-  vnew_ref = 0.01
-  collision_model = 'fokker-planck'
-  collisions_implicit = .true.
+  include_collisions = .false.
 /
 
 !===============================================================================
@@ -102,10 +95,6 @@
   nvgrid = 4
 /
 
-&collisions_fokker_planck
-  nvel_local = 64
-/
-
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================
@@ -139,7 +128,7 @@
   delt = 0.01
 /
 &numerical_algorithms
-  explicit_algorithm = 'rk3'
+  explicit_algorithm = 'rk4'
 /
 &debug_flags
   print_extra_info_to_terminal = .false.

@@ -3,7 +3,7 @@
 #          Create the expected output for the reproducibility tests            #
 ################################################################################
 # Only run this script when a change of the numerics of stella is intended, and
-# document the reason in the commit message. It runs every input file of test 9
+# document the reason in the commit message. It runs every input file of test 3
 # on a single processor and stores the compared quantities, compressed, in
 # EXPECTED_OUTPUT.<input_file>.out.nc. Usage, from this folder:
 #     python3 create_expected_output.py [input_file.in ...]

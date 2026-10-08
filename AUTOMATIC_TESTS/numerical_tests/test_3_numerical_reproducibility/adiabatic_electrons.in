@@ -1,7 +1,12 @@
  
-! Numerical reproducibility test (test 9): explicit_algorithm = 'rk4'.
+! Numerical reproducibility test (test 3): adiabatic electrons (field-line-average-term) with implicit Dougherty collisions.
 ! Identical to es_nonlinear.in except for:
-!     &numerical_algorithms: explicit_algorithm = 'rk4'
+!     &species_options: nspec = 1
+!     &adiabatic_electron_response: adiabatic_option = 'field-line-average-term'
+!     &dissipation_and_collisions_options: include_collisions = .true.
+!     &dissipation_and_collisions_options: vnew_ref = 0.01
+!     &dissipation_and_collisions_options: collision_model = 'dougherty'
+!     &dissipation_and_collisions_options: collisions_implicit = .true.
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -42,7 +47,10 @@
 /
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
-  include_collisions = .false.
+  include_collisions = .true.
+  vnew_ref = 0.01
+  collision_model = 'dougherty'
+  collisions_implicit = .true.
 /
 
 !===============================================================================
@@ -50,7 +58,7 @@
 !===============================================================================
 
 &species_options
-  nspec = 2
+  nspec = 1
 /
 &species_parameters_1
   dens = 1.0
@@ -95,6 +103,10 @@
   nvgrid = 4
 /
 
+&adiabatic_electron_response
+  adiabatic_option = 'field-line-average-term'
+/
+
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================
@@ -128,7 +140,7 @@
   delt = 0.01
 /
 &numerical_algorithms
-  explicit_algorithm = 'rk4'
+  explicit_algorithm = 'rk3'
 /
 &debug_flags
   print_extra_info_to_terminal = .false.

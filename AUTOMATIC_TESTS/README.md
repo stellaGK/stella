@@ -12,7 +12,10 @@ main sets of test:
 The numerical tests are performed in a logical order. First it is tested whether stella runs
 and produces output files, since if this test fails all subsequent tests will fail as well. 
 Next, the different geometry options (Miller, VMEC) are tested, since errors in the geometry
-will make all subsequent tests fails. Finally it is tested whether the potential remains 
+will make all subsequent tests fails. Then the numerical reproducibility is tested: the full 
+state of short nonlinear simulations (fields, moments, fluxes and distribution functions) is
+compared with a tight tolerance, and it is checked that the results do not depend on the number
+of MPI processes. Finally it is tested whether the potential remains 
 constant if none of the gyrokinetic terms nor dissipation are included, and whether the 
 potential (and distribution function) are initialized the same in the current stella version
 compared to a previous run, seeing that the time evolution will differ if the initialization has
@@ -56,9 +59,9 @@ Before and after optimising the memory usage or speed of stella, run the numeric
 reproducibility tests, which compare the full state of the simulations (fields, moments, 
 fluxes and distribution functions) with a tight tolerance, and check that the results do 
 not depend on the number of MPI processes, see 
-[`numerical_tests/test_9_numerical_reproducibility`](numerical_tests/test_9_numerical_reproducibility/README.md):
+[`numerical_tests/test_3_numerical_reproducibility`](numerical_tests/test_3_numerical_reproducibility/README.md):
 
-    make numerical-tests-9
+    make numerical-tests-3
     
 (TODO-HT) Besides the numerical tests create a package for quick
 and slow physics tests, used as benchmarks.

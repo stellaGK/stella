@@ -1,10 +1,7 @@
  
-! Numerical reproducibility test (test 9): electromagnetic (apar and bpar), beta = 0.01.
+! Numerical reproducibility test (test 3): flip_flop = .true. (alternate the order of the operator splitting).
 ! Identical to es_nonlinear.in except for:
-!     &gyrokinetic_terms: include_electromagnetic = .true.
-!     &electromagnetic: include_apar = .true.
-!     &electromagnetic: include_bpar = .true.
-!     &electromagnetic: beta = 0.01
+!     &numerical_algorithms: flip_flop = .true.
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -42,7 +39,6 @@
   include_ydrift = .true.
   include_drive = .true.
   include_nonlinear = .true.
-  include_electromagnetic = .true.
 /
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
@@ -99,12 +95,6 @@
   nvgrid = 4
 /
 
-&electromagnetic
-  include_apar = .true.
-  include_bpar = .true.
-  beta = 0.01
-/
-
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================
@@ -139,6 +129,7 @@
 /
 &numerical_algorithms
   explicit_algorithm = 'rk3'
+  flip_flop = .true.
 /
 &debug_flags
   print_extra_info_to_terminal = .false.

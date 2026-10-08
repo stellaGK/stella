@@ -1,7 +1,9 @@
  
-! Numerical reproducibility test (test 9): explicit_algorithm = 'euler'.
-! Identical to es_nonlinear.in except for:
-!     &numerical_algorithms: explicit_algorithm = 'euler'
+! Base input file for the numerical reproducibility tests (test 3).
+! Nonlinear, flux-tube, shaped Miller geometry, kinetic ions and electrons,
+! all gyrokinetic terms switched on, hyper dissipation, and all diagnostics.
+! The other input files in this folder are derived from this one, by changing
+! only the namelist variables listed at the top of each file.
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -128,7 +130,7 @@
   delt = 0.01
 /
 &numerical_algorithms
-  explicit_algorithm = 'euler'
+  explicit_algorithm = 'rk3'
 /
 &debug_flags
   print_extra_info_to_terminal = .false.

@@ -1,11 +1,10 @@
  
-! Numerical reproducibility test (test 9): explicit Fokker-Planck collisions (test particle operator).
+! Numerical reproducibility test (test 3): electromagnetic (apar and bpar), beta = 0.01.
 ! Identical to es_nonlinear.in except for:
-!     &dissipation_and_collisions_options: include_collisions = .true.
-!     &dissipation_and_collisions_options: vnew_ref = 0.01
-!     &dissipation_and_collisions_options: collision_model = 'fokker-planck'
-!     &dissipation_and_collisions_options: collisions_implicit = .false.
-!     &collisions_fokker_planck: nvel_local = 64
+!     &gyrokinetic_terms: include_electromagnetic = .true.
+!     &electromagnetic: include_apar = .true.
+!     &electromagnetic: include_bpar = .true.
+!     &electromagnetic: beta = 0.01
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -43,13 +42,11 @@
   include_ydrift = .true.
   include_drive = .true.
   include_nonlinear = .true.
+  include_electromagnetic = .true.
 /
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
-  include_collisions = .true.
-  vnew_ref = 0.01
-  collision_model = 'fokker-planck'
-  collisions_implicit = .false.
+  include_collisions = .false.
 /
 
 !===============================================================================
@@ -102,8 +99,10 @@
   nvgrid = 4
 /
 
-&collisions_fokker_planck
-  nvel_local = 64
+&electromagnetic
+  include_apar = .true.
+  include_bpar = .true.
+  beta = 0.01
 /
 
 !===============================================================================

@@ -1,9 +1,10 @@
  
-! Base input file for the numerical reproducibility tests (test 9).
-! Nonlinear, flux-tube, shaped Miller geometry, kinetic ions and electrons,
-! all gyrokinetic terms switched on, hyper dissipation, and all diagnostics.
-! The other input files in this folder are derived from this one, by changing
-! only the namelist variables listed at the top of each file.
+! Numerical reproducibility test (test 3): implicit Dougherty collisions with momentum and energy conservation.
+! Identical to es_nonlinear.in except for:
+!     &dissipation_and_collisions_options: include_collisions = .true.
+!     &dissipation_and_collisions_options: vnew_ref = 0.01
+!     &dissipation_and_collisions_options: collision_model = 'dougherty'
+!     &dissipation_and_collisions_options: collisions_implicit = .true.
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -44,7 +45,10 @@
 /
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
-  include_collisions = .false.
+  include_collisions = .true.
+  vnew_ref = 0.01
+  collision_model = 'dougherty'
+  collisions_implicit = .true.
 /
 
 !===============================================================================

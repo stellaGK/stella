@@ -167,43 +167,43 @@ jobs:
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-2
           
-      - name: Python tests 3 - Gyrokinetic equation
+      - name: Python tests 3 - Numerical reproducibility
         if: success() || failure() 
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-3
           
-      - name: Python tests 4 - Flux tube
+      - name: Python tests 4 - Gyrokinetic equation
         if: success() || failure() 
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-4
           
-      - name: Python tests 5 - Diagnostics
+      - name: Python tests 5 - Flux tube
         if: success() || failure() 
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-5
           
-      - name: Python tests 6 - Full Flux Surface
+      - name: Python tests 6 - Diagnostics
         if: success() || failure() 
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-6
           
-      - name: Python tests 7 - Electromagnetic effects
+      - name: Python tests 7 - Full Flux Surface
         if: success() || failure() 
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-7
           
-      - name: Python tests 8 - Restart simulations
+      - name: Python tests 8 - Electromagnetic effects
         if: success() || failure() 
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-8
           
-      - name: Python tests 9 - Numerical reproducibility
+      - name: Python tests 9 - Restart simulations
         if: success() || failure() 
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
@@ -274,13 +274,13 @@ jobs:
         config:
           - name: "1 - Does stella run "
           - name: "2 - Geometry"
-          - name: "3 - Gyrokinetic equation"
-          - name: "4 - Flux tube"
-          - name: "5 - Diagnostics"
-          - name: "6 - Full Flux Surface"
-          - name: "7 - Electromagnetic effects"
-          - name: "8 - Restart simulations"
-          - name: "9 - Numerical reproducibility"
+          - name: "3 - Numerical reproducibility"
+          - name: "4 - Gyrokinetic equation"
+          - name: "5 - Flux tube"
+          - name: "6 - Diagnostics"
+          - name: "7 - Full Flux Surface"
+          - name: "8 - Electromagnetic effects"
+          - name: "9 - Restart simulations"
 
     steps:
 
@@ -364,29 +364,29 @@ jobs:
         if: success() || failure() 
         run: make numerical-tests-2
           
-      - name: Python tests 3 - Gyrokinetic equation
-        if: success() || failure() 
-        run: make numerical-tests-3
-          
-      - name: Python tests 4 - Flux tube
+      - name: Python tests 4 - Gyrokinetic equation
         if: success() || failure() 
         run: make numerical-tests-4
           
-      - name: Python tests 5 - Diagnostics
+      - name: Python tests 5 - Flux tube
         if: success() || failure() 
         run: make numerical-tests-5
           
-      - name: Python tests 6 - Full Flux Surface
+      - name: Python tests 6 - Diagnostics
         if: success() || failure() 
         run: make numerical-tests-6
           
-      - name: Python tests 7 - Electromagnetic effects"
+      - name: Python tests 7 - Full Flux Surface
         if: success() || failure() 
         run: make numerical-tests-7
           
-      - name: Python tests 8 - Restart simulations"
+      - name: Python tests 8 - Electromagnetic effects
         if: success() || failure() 
         run: make numerical-tests-8
+          
+      - name: Python tests 9 - Restart simulations
+        if: success() || failure() 
+        run: make numerical-tests-9
 
 #-----------------------------------------------------------------------
 #                          Build in debug mode                          
