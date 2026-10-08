@@ -20,9 +20,6 @@ with open(module_path, 'r') as file: exec(file.read())
 # Global variables
 input_filename = 'miller_nonlinear.in'  
 input_file_stem = input_filename.replace(".in","")
-stella_local_run_directory = 'Not/Run/Yet'
-local_netcdf_file = 'Not/Run/Yet'
-expected_netcdf_file = 'Not/Run/Yet'
 
 #-------------------------------------------------------------------------------
 #                           Get the stella version                             #
@@ -34,20 +31,19 @@ def stella_version(pytestconfig):
 #-------------------------------------------------------------------------------
 #                  Check whether the diagnostics are working                   #
 #-------------------------------------------------------------------------------
-def test_whether_potential_diagnostics_are_correct(tmp_path, stella_version):
-
-    # Save the temporary folder <tmp_path> as a global variable so the
-    # other tests can access the output files from the local stella run.
-    global stella_local_run_directory
-    stella_local_run_directory = tmp_path
-    
-    # Run a local stella simulation
+@pytest.fixture(scope="module")
+def nonlinear_run(tmp_path_factory, stella_version):
+    '''Run the nonlinear simulation, which is shared by all the tests below, so that 
+    each test can also be run on its own. Returns the run directory and the netcdf files.'''
+    stella_local_run_directory = tmp_path_factory.mktemp('miller_nonlinear')
     run_local_stella_simulation(input_filename, stella_local_run_directory, stella_version)
-     
-    # File names  
-    global local_netcdf_file, expected_netcdf_file
     local_netcdf_file = stella_local_run_directory / input_filename.replace('.in', '.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.out.nc'    
+    return stella_local_run_directory, local_netcdf_file, expected_netcdf_file
+
+#-------------------------------------------------------------------------------
+def test_whether_potential_diagnostics_are_correct(nonlinear_run):
+    stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
     
     # Check whether the potential data matches in the netcdf file
     # We only test the electrostatic quantities, EM stella will be tested later
@@ -57,7 +53,8 @@ def test_whether_potential_diagnostics_are_correct(tmp_path, stella_version):
     return
 
 #-------------------------------------------------------------------------------
-def test_whether_final_fields_diagnostics_are_correct(error=False):
+def test_whether_final_fields_diagnostics_are_correct(nonlinear_run, error=False):
+    stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
     
     # Txt file names 
     local_file = stella_local_run_directory / f'{input_file_stem}.final_fields' 
@@ -65,6 +62,7 @@ def test_whether_final_fields_diagnostics_are_correct(error=False):
 
     local_fields_data = np.loadtxt(local_file, dtype='float', skiprows=2)
     expected_fields_data = np.loadtxt(expected_file, dtype='float', skiprows=2)
+    assert_same_shape(local_fields_data, expected_fields_data, 'final fields')
 
     # Check whether the txt files match  
     for i in range(len(local_fields_data[0,:])):
@@ -84,7 +82,8 @@ def test_whether_final_fields_diagnostics_are_correct(error=False):
     return 
     
 #-------------------------------------------------------------------------------
-def test_whether_fluxes_diagnostics_are_correct(error=False):  
+def test_whether_fluxes_diagnostics_are_correct(nonlinear_run, error=False):
+    stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
 
     # Txt file names 
     local_file = stella_local_run_directory / f'{input_file_stem}.fluxes' 
@@ -101,6 +100,7 @@ def test_whether_fluxes_diagnostics_are_correct(error=False):
     # Read the fluxes text files
     local_flux_data = np.loadtxt(local_file, dtype='float').reshape(-1, 1+3*dim_species) 
     expected_flux_data = np.loadtxt(expected_file_fixed_fluxes, dtype='float').reshape(-1, 1+3*dim_species)  
+    assert_same_shape(local_flux_data, expected_flux_data, 'fluxes')
     
     # At time step 0 the fluxes are calculated but they are not defined yet
     local_flux_data[0,:] = 0.0
@@ -133,7 +133,8 @@ def test_whether_fluxes_diagnostics_are_correct(error=False):
 
     
 #-------------------------------------------------------------------------------
-def test_whether_moments_diagnostics_are_correct(error=False): 
+def test_whether_moments_diagnostics_are_correct(nonlinear_run, error=False):
+    stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
     
     # Check whether the netCDF data matches 
     keys = ['density', 'upar', 'temperature', 'spitzer2', 'dens_x', 'upar_x', 'temp_x']
@@ -144,7 +145,8 @@ def test_whether_moments_diagnostics_are_correct(error=False):
     return 
     
 #-------------------------------------------------------------------------------
-def test_whether_distribution_function_diagnostics_are_correct(error=False):    
+def test_whether_distribution_function_diagnostics_are_correct(nonlinear_run, error=False):
+    stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
     
     # Check whether the netCDF data matches 
     keys = ['gvmus', 'gzvs']
@@ -159,9 +161,6 @@ def test_whether_distribution_function_diagnostics_are_correct(error=False):
 #-------------------------------------------------------------------------------
 def test_whether_omega_diagnostics_are_correct(tmp_path, stella_version, error=False):
 
-    # Save the temporary folder <tmp_path> as a global variable so the
-    # other tests can access the output files from the local stella run.
-    global stella_local_run_directory
     stella_local_run_directory = tmp_path
     input_filename = 'miller_linear.in'
     input_file_stem = input_filename.replace(".in","")
@@ -176,6 +175,7 @@ def test_whether_omega_diagnostics_are_correct(tmp_path, stella_version, error=F
     expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.omega'  
     local_omega_data = np.loadtxt(local_file, dtype='float').reshape(-1, 7) 
     expected_omega_data = np.loadtxt(expected_file, dtype='float').reshape(-1, 7)  
+    assert_same_shape(local_omega_data, expected_omega_data, 'omega')
     for i in range(len(local_omega_data[0,:])):
         if not np.allclose(local_omega_data[:,i], expected_omega_data[:,i], rtol = 0.0, atol = 1e-12, equal_nan=True):
             print(f'\nERROR: The omega arrays do not match in the txt files.'); error = True

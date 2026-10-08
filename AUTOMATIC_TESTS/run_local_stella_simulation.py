@@ -88,7 +88,7 @@ def run_local_stella_simulation(input_file, tmp_path, stella_version, vmec_file=
     
     # Make sure the selected stella version is implemented
     if stella_version not in ['master', '0.5', '0.6', '0.7']: 
-        print(f'ABORT: Wrong stella version: {stella_version}'); sys.exit()
+        raise ValueError(f'Wrong stella version: {stella_version}, choose from master, 0.5, 0.6 or 0.7.')
         
     # Copy the input file from the automatic tests folder to a temp folder
     path_input_file = copy_input_file(input_file, tmp_path)
@@ -211,6 +211,7 @@ def compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file,
         release = platform.release()
                      
         # Check whether the quantity matches
+        assert_same_shape(local_quantity, expected_quantity, key)
         if not (np.allclose(local_quantity, expected_quantity, rtol=1e-8, atol=1e-100)):
         
             # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes
@@ -277,6 +278,8 @@ def compare_local_potential_with_expected_potential(local_netcdf_file='', expect
         expected_phi2 = expected_netcdf['phi2'] 
                      
         # Check whether we have the same time and potential data
+        assert_same_shape(local_time, expected_time, 't')
+        assert_same_shape(local_phi2, expected_phi2, 'phi2')
         if not (np.allclose(local_time, expected_time, equal_nan=True, rtol=1e-05, atol=1e-20)):
             print('\nERROR: The time axis does not match in the netCDF files.'); error = True
             print('\nCompare the time arrays in the local and expected netCDF files:')
@@ -324,6 +327,10 @@ def compare_local_potential_with_expected_potential_em(local_netcdf_file='', exp
            expected_bpar2 = expected_netcdf['bpar2']
         
         # Check whether we have the same time and potential data
+        assert_same_shape(local_time, expected_time, 't')
+        assert_same_shape(local_phi2, expected_phi2, 'phi2')
+        if check_apar: assert_same_shape(local_apar2, expected_apar2, 'apar2')
+        if check_bpar: assert_same_shape(local_bpar2, expected_bpar2, 'bpar2')
         if not (np.allclose(local_time, expected_time, equal_nan=True, atol=1e-20)):
             print('\nERROR: The time axis does not match in the netCDF files.'); error = True
             print('\nCompare the time arrays in the local and expected netCDF files:')
@@ -380,6 +387,17 @@ def compare_netcdf_quantities_normwise(local_netcdf_file, expected_netcdf_file, 
     assert not failed, f'The quantities {failed} differ by more than rtol = {rtol:.0e} ({label}).'
     return
 
+#-------------------------------------------------------------------------------
+def assert_same_shape(local_array, expected_array, name):
+    '''np.allclose() broadcasts arrays, so e.g. a simulation which only wrote a single time 
+    step would match any time trace. Therefore, check the shapes before comparing arrays.'''
+    local_shape = np.shape(local_array); expected_shape = np.shape(expected_array)
+    if local_shape != expected_shape:
+        print(f'\nERROR: The {name} array has shape {local_shape} instead of {expected_shape}.')
+        print(f'       Check whether the simulation finished, and whether the diagnostics changed.')
+    assert local_shape == expected_shape, f'The {name} array has shape {local_shape} instead of {expected_shape}.'
+    return
+    
 #-------------------------------------------------------------------------------
 def convert_byte_array(array):
     '''Tool to convert netcdf text arrays, to a text string that we can compare.'''
@@ -445,6 +463,19 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
     # Check whether the geometry data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf: 
         
+        # Quantities which have been renamed or redefined: old key -> (new key, conversion to the old definition)
+        new_definitions = {
+            'b_dot_grad_z': ('b_dot_gradz', lambda new, netcdf: new),
+            'gradpar': ('b_dot_gradz_avg', lambda new, netcdf: new),
+            'gds2': ('grady_dot_grady', lambda new, netcdf: new),
+            'gds21': ('gradx_dot_grady', lambda new, netcdf: new * netcdf['shat']),
+            'gds22': ('gradx_dot_gradx', lambda new, netcdf: new * netcdf['shat']**2),
+            'gbdrift': ('B_times_gradB_dot_grady', lambda new, netcdf: new * 2),
+            'cvdrift': ('B_times_kappa_dot_grady', lambda new, netcdf: new * 2),
+            'gbdrift0': ('B_times_gradB_dot_gradx', lambda new, netcdf: new * 2 * netcdf['shat']),
+            'cvdrift0': ('B_times_kappa_dot_gradx', lambda new, netcdf: new * 2 * netcdf['shat']),
+        }
+        
         # Relevant keys for the geometry
         geometry_keys = ["bmag", "b_dot_grad_z", "gradpar", "gbdrift", "gbdrift0", "cvdrift", "cvdrift0", "kperp2", \
             "gds2", "gds21", "gds22", "grho", "jacob", "djacdrho", "q", "shat", "d2qdr2", "drhodpsi", "d2psidr2", "jtwist"]  
@@ -480,84 +511,25 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             # Compare data arrays 
             else: 
                 
-                # Changed definitions
-                if key in ["gbdrift0", "cvdrift0", "gbdrift", "cvdrift", "gds22", "gds21", "gds2", "b_dot_grad_z", "gradpar"]:
-                    if (key=="b_dot_gradz_avg"):
-                        b_dot_gradz_old = expected_netcdf["gradpar"]
-                        b_dot_gradz_new = local_netcdf["b_dot_gradz_avg"]
-                        if not (np.allclose(b_dot_gradz_old, b_dot_gradz_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(b_dot_gradz_old, b_dot_gradz_new)
-                    if (key=="b_dot_gradz"):
-                        b_dot_gradz_old = expected_netcdf["b_dot_grad_z"]
-                        b_dot_gradz_new = local_netcdf["b_dot_gradz"]
-                        if not (np.allclose(b_dot_gradz_old, b_dot_gradz_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(b_dot_gradz_old, b_dot_gradz_new)
-                    if (key=="gds2"):
-                        gds2_old = expected_netcdf["gds2"]
-                        gds2_new = local_netcdf["grady_dot_grady"]
-                        if not (np.allclose(gds2_old, gds2_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(gds2_old, gds2_new)
-                    if (key=="gds21"):
-                        gds21_old =  expected_netcdf["gds21"]
-                        gradx_dot_grady_new = local_netcdf["gradx_dot_grady"]
-                        gds21_new = gradx_dot_grady_new * local_netcdf["shat"]
-                        if not (np.allclose(gds21_old, gds21_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(gds21_old, gds21_new)
-                    if (key=="gds22"):
-                        gds22_old =  expected_netcdf["gds22"]
-                        gradx_dot_gradx_new = local_netcdf["gradx_dot_gradx"]
-                        gds22_new = gradx_dot_gradx_new * local_netcdf["shat"] * local_netcdf["shat"]
-                        if not (np.allclose(gds22_old, gds22_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(gds22_old, gds22_new)
-                    if (key=="gbdrift"):
-                        gbdrift_old =  expected_netcdf["gbdrift"]
-                        B_times_gradB_dot_grady_new = local_netcdf["B_times_gradB_dot_grady"]
-                        gbdrift_new = B_times_gradB_dot_grady_new * 2
-                        if not (np.allclose(gbdrift_old, gbdrift_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(gbdrift_old, gbdrift_new)
-                    if (key=="cvdrift"):
-                        cvdrift_old =  expected_netcdf["cvdrift"]
-                        B_times_kappa_dot_grady_new = local_netcdf["B_times_kappa_dot_grady"]
-                        cvdrift_new = B_times_kappa_dot_grady_new * 2
-                        if not (np.allclose(cvdrift_old, cvdrift_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(cvdrift_old, cvdrift_new)
-                    if (key=="gbdrift0"):
-                        gbdrift0_old =  expected_netcdf["gbdrift0"]
-                        B_times_gradB_dot_gradx_new = local_netcdf["B_times_gradB_dot_gradx"] 
-                        gbdrift0_new = B_times_gradB_dot_gradx_new * 2 * local_netcdf["shat"]
-                        if not (np.allclose(gbdrift0_old, gbdrift0_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(gbdrift0_old, gbdrift0_new)
-                    elif (key=="cvdrift0"):
-                        cvdrift0_old =  expected_netcdf["cvdrift0"]
-                        B_times_kappa_dot_gradx_new = local_netcdf["B_times_kappa_dot_gradx"] 
-                        cvdrift0_new = B_times_kappa_dot_gradx_new * 2 * local_netcdf["shat"]
-                        if not (np.allclose(cvdrift0_old, cvdrift0_new, equal_nan=True)):
-                            print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                            print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                            compare_local_array_with_expected_array(cvdrift0_old, cvdrift0_new)
-            
-                # Compare data arrays 
+                # Some quantities have been renamed or redefined in newer stella versions, 
+                # if the local file uses the new definition, convert it to the old one
+                if key in new_definitions and new_definitions[key][0] in local_netcdf.variables:
+                    new_key, conversion = new_definitions[key]
+                    local_quantity = np.asarray(conversion(local_netcdf[new_key], local_netcdf))
+                elif key in local_netcdf.variables:
+                    local_quantity = local_netcdf[key].values
                 else:
-                    if not (np.allclose(local_netcdf[key], expected_netcdf[key], equal_nan=True)):
-                        print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                        print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                        compare_local_array_with_expected_array(local_netcdf[key], expected_netcdf[key])  
+                    print(f'ERROR: The quantity <{key}> is missing in the local netcdf file.'); error = True; continue
+                expected_quantity = expected_netcdf[key].values
+                
+                # Compare the arrays (np.allclose() broadcasts, so check the shapes first)
+                if np.shape(local_quantity) != np.shape(expected_quantity):
+                    print(f'ERROR: The quantity <{key}> has shape {np.shape(local_quantity)} instead of {np.shape(expected_quantity)}.'); error = True
+                elif not (np.allclose(local_quantity, expected_quantity, equal_nan=True)):
+                    print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
+                    print(f'\nCompare the {key} arrays in the local and expected netCDF files:')
+                    compare_local_array_with_expected_array(local_quantity, expected_quantity, name=key)  
+                    
                     
         # Print "AssertionError: <error message>" if an error was encountered
         assert (not error), f'Some Miller geometry arrays in the netcdf file did not match the previous run.'  
@@ -569,7 +541,13 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
 #                  Routines to compare geometry in Miller files                #
 ################################################################################
 
-def compare_geometry_files(local_geometry_file, expected_geometry_file, error=False, with_btor=True, digits=2):
+def compare_geometry_files(local_geometry_file, expected_geometry_file, error=False, with_btor=None, rtol=2e-3):
+    '''Compare the *.geometry text files. These files are written with 4 significant digits, 
+    hence the quantities which are converted from the new to the old definitions (which involve
+    a multiplication with <shat>, also read with 4 digits) are compared with a relative tolerance 
+    <rtol>, and with an absolute tolerance relative to the maximum of each column, to allow for 
+    elements which are zero up to round-off errors. The old *.geometry files contain 15 columns 
+    if btor was written, and 14 otherwise; this is detected automatically (<with_btor> is ignored).'''
 
     def process_error(variable):
         print(f'\nERROR: {variable} does not match in the *.geometry file.\n'); 
@@ -593,8 +571,8 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     exb_nonlin_p_old = float(variables[9])
     
     # Read arrays in old *.geometry file
-    if with_btor: data = np.loadtxt(expected_geometry_file,skiprows=4,dtype='float').reshape(-1, 15)
-    if not with_btor: data = np.loadtxt(expected_geometry_file,skiprows=4,dtype='float').reshape(-1, 14)
+    data = np.loadtxt(expected_geometry_file,skiprows=4,dtype='float')
+    with_btor = (data.shape[-1] == 15)
     alpha_old = data[:,0]
     zed_old = data[:,1]
     zeta_old = data[:,2]
@@ -646,49 +624,47 @@ def compare_geometry_files(local_geometry_file, expected_geometry_file, error=Fa
     
     # New definitions
     gds2_new = grady_dot_grady_new
-    gbdrift0_new = B_times_gradB_dot_gradx_new * 2 * shat_new
-    gbdrift0_new = np.round(gbdrift0_new, digits)
-    gbdrift0_old = np.round(gbdrift0_old, digits)
-    cvdrift_new = B_times_kappa_dot_grady_new * 2
-    cvdrift_new = np.round(cvdrift_new, digits)
-    cvdrift_old = np.round(cvdrift_old, digits)
-    gds22_new = gradx_dot_gradx_new * shat_new * shat_new
-    gds22_new = np.round(gds22_new, digits)
-    gds22_old = np.round(gds22_old, digits)
-    if digits >= 2: digits = digits - 1
-    gbdrift_new = B_times_gradB_dot_grady_new * 2
-    gbdrift_new = np.round(gbdrift_new, digits)
-    gbdrift_old = np.round(gbdrift_old, digits)
-    if digits >= 1: digits = digits - 1
     gds21_new = gradx_dot_grady_new * shat_new
-    gds21_new = np.round(gds21_new, digits)
-    gds21_old = np.round(gds21_old, digits)
+    gds22_new = gradx_dot_gradx_new * shat_new * shat_new
+    gbdrift_new = B_times_gradB_dot_grady_new * 2
+    cvdrift_new = B_times_kappa_dot_grady_new * 2
+    gbdrift0_new = B_times_gradB_dot_gradx_new * 2 * shat_new
+    
+    # Compare quantities at the precision with which they are written
+    def matches(old, new, rtol=1e-5):
+        old = np.asarray(old, dtype=float); new = np.asarray(new, dtype=float)
+        if old.shape != new.shape: return False
+        atol = 1e-6 * np.max(np.abs(old)) if old.size else 0
+        return np.allclose(new, old, rtol=rtol, atol=atol, equal_nan=True)
     
     # Compare values
-    if not (np.allclose(rhoc_old, rhoc_new, equal_nan=True)): error = process_error('rhoc')
-    if not (np.allclose(qinp_old, qinp_new, equal_nan=True)): error = process_error('qinp')
-    if not (np.allclose(shat_old, shat_new, equal_nan=True)): error = process_error('shat')
-    if not (np.allclose(aref_old, aref_new, equal_nan=True)): error = process_error('aref')
-    if not (np.allclose(bref_old, bref_new, equal_nan=True)): error = process_error('bref')
-    if not (np.allclose(dxdpsi_old, dxdpsi_new, equal_nan=True)): error = process_error('dxdpsi')
-    if not (np.allclose(dydalpha_old, dydalpha_new, equal_nan=True)): error = process_error('dydalpha')
-    if not (np.allclose(exb_nonlin_old, exb_nonlin_new, equal_nan=True)): error = process_error('exb_nonlin')
+    if not matches(rhoc_old, rhoc_new): error = process_error('rhoc')
+    if not matches(qinp_old, qinp_new): error = process_error('qinp')
+    if not matches(shat_old, shat_new): error = process_error('shat')
+    if not matches(aref_old, aref_new): error = process_error('aref')
+    if not matches(bref_old, bref_new): error = process_error('bref')
+    if not matches(dxdpsi_old, dxdpsi_new): error = process_error('dxdpsi')
+    if not matches(dydalpha_old, dydalpha_new): error = process_error('dydalpha')
+    if not matches(exb_nonlin_old, exb_nonlin_new): error = process_error('exb_nonlin')
     
     # Do not compare rhotor, it was defined badly in the past
     #if not (np.allclose(rhotor_old, rhotor_new, equal_nan=True)): error = process_error('rhotor')
     
-    # Compare arrays
-    if not (np.allclose(alpha_old, alpha_new, equal_nan=True)): error = process_error('alpha')
-    if not (np.allclose(zed_old, zed_new, equal_nan=True)): error = process_error('zed')
-    if not (np.allclose(zeta_old, zeta_new, equal_nan=True)): error = process_error('zeta')
-    if not (np.allclose(bmag_old, bmag_new, equal_nan=True)): error = process_error('bmag')
-    if not (np.allclose(b_dot_gradz_new, b_dot_gradz_new, equal_nan=True)): error = process_error('b_dot_gradz')
-    if not (np.allclose(gds2_old, gds2_new, equal_nan=True)): error = process_error('gds2')
-    if not (np.allclose(gds21_old, gds21_new, equal_nan=True)): error = process_error('gds21')
-    if not (np.allclose(gbdrift_old, gbdrift_new, equal_nan=True)): error = process_error('gbdrift')
-    if not (np.allclose(cvdrift_old, cvdrift_new, equal_nan=True)): error = process_error('cvdrift')
-    if not (np.allclose(gbdrift0_old, gbdrift0_new, equal_nan=True)): error = process_error('gbdrift0')
-    if not (np.allclose(bmag_psi0_old, bmag_psi0_new, equal_nan=True)): error = process_error('bmag_psi0')
+    # Compare arrays which are written directly
+    if not matches(alpha_old, alpha_new): error = process_error('alpha')
+    if not matches(zed_old, zed_new): error = process_error('zed')
+    if not matches(zeta_old, zeta_new): error = process_error('zeta')
+    if not matches(bmag_old, bmag_new): error = process_error('bmag')
+    if not matches(b_dot_gradz_old, b_dot_gradz_new): error = process_error('b_dot_gradz')
+    if not matches(gds2_old, gds2_new): error = process_error('gds2')
+    if not matches(bmag_psi0_old, bmag_psi0_new): error = process_error('bmag_psi0')
+    
+    # Compare arrays which have been redefined, at the precision of the written data
+    if not matches(gds21_old, gds21_new, rtol): error = process_error('gds21')
+    if not matches(gds22_old, gds22_new, rtol): error = process_error('gds22')
+    if not matches(gbdrift_old, gbdrift_new, rtol): error = process_error('gbdrift')
+    if not matches(cvdrift_old, cvdrift_new, rtol): error = process_error('cvdrift')
+    if not matches(gbdrift0_old, gbdrift0_new, rtol): error = process_error('gbdrift0')
     assert (not error), f'The geometry data does not match in the *.geometry file.'
     
     # Do not compare gds23 and gds24 it was badly defined in Miller and VMEC
@@ -781,6 +757,7 @@ def compare_miller_input_files(local_file, expected_file, error=False):
     if not (np.allclose(kappa_old, kappa_new, equal_nan=True)): error = process_error('kappa')
     if not (np.allclose(kapprim_old, kapprim_new, equal_nan=True)): error = process_error('kapprim')
     if not (np.allclose(tri_old, tri_new, equal_nan=True)): error = process_error('tri')
+    if not (np.allclose(triprim_old, triprim_new, equal_nan=True)): error = process_error('triprim')
     if not (np.allclose(betaprim_old, betaprim_new, equal_nan=True)): error = process_error('betaprim')
     if not (np.allclose(dpsitordrho_old, dpsitordrho_new, equal_nan=True)): error = process_error('dpsitordrho')
     if not (np.allclose(drhotordrho_old, drhotordrho_new, equal_nan=True)): error = process_error('drhotordrho')
@@ -1023,7 +1000,11 @@ def compare_miller_output_files(local_file, expected_file, shat, error=False):
     
     
 #-------------------------------------------------------------------------------
-def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=False):
+def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=False, expected_uses_old_psi_sign=True, rtol=2e-3):
+    '''Compare the *.vmec.geo text files, which are written with 4 significant digits. The sign of psi
+    was changed in stella, if the expected file was created before this change, the sign of the
+    psi-components is flipped (<expected_uses_old_psi_sign>). The quantities that are converted from
+    the new to the old definitions are compared with a relative tolerance <rtol>.'''
 
     def process_error(variable):
         print(f'\nERROR: {variable} does not match in the *.vmec.geo file.\n'); 
@@ -1096,51 +1077,49 @@ def compare_vmecgeo_files(local_geometry_file, expected_geometry_file, error=Fal
     B_sub_zeta_new = data[:,16]
     
     # New definitions (psi changed to -psi)
-    gd_alph_psi_new = -gd_alph_psi_new
-    B_times_gradB_dot_gradx_psi_new = - B_times_gradB_dot_gradx_psi_new
-    B_times_kappa_dot_gradx_psi_new = - B_times_kappa_dot_gradx_psi_new
+    if expected_uses_old_psi_sign:
+        gd_alph_psi_new = -gd_alph_psi_new
+        B_times_gradB_dot_gradx_psi_new = - B_times_gradB_dot_gradx_psi_new
+        B_times_kappa_dot_gradx_psi_new = - B_times_kappa_dot_gradx_psi_new
     
     # New definitions
-    digits = 4
     gbdrift0_new = B_times_gradB_dot_gradx_psi_new * 2 * shat_new
-    gbdrift0_new = np.round(gbdrift0_new, digits)
-    gbdrift0_old = np.round(gbdrift0_old, digits)
     cvdrift0_new = B_times_kappa_dot_gradx_psi_new * 2 * shat_new
-    cvdrift0_new = np.round(cvdrift0_new, digits)
-    cvdrift0_old = np.round(cvdrift0_old, digits)
-    digits = 3
     cvdrift_new = B_times_kappa_dot_grady_new * 2
-    cvdrift_new = np.round(cvdrift_new, digits)
-    cvdrift_old = np.round(cvdrift_old, digits)
     gbdrift_new = B_times_gradB_dot_grady_new * 2
-    gbdrift_new = np.round(gbdrift_new, digits)
-    gbdrift_old = np.round(gbdrift_old, digits)
+    
+    # Compare quantities at the precision with which they are written
+    def matches(old, new, rtol=1e-5):
+        old = np.asarray(old, dtype=float); new = np.asarray(new, dtype=float)
+        if old.shape != new.shape: return False
+        atol = 1e-6 * np.max(np.abs(old)) if old.size else 0
+        return np.allclose(new, old, rtol=rtol, atol=atol, equal_nan=True)
     
     # Compare values
-    if not (np.allclose(rhotor_old, rhotor_new, equal_nan=True)): error = process_error('rhotor')
-    if not (np.allclose(qinp_old, qinp_new, equal_nan=True)): error = process_error('qinp')
-    if not (np.allclose(shat_old, shat_new, equal_nan=True)): error = process_error('shat')
-    if not (np.allclose(aref_old, aref_new, equal_nan=True)): error = process_error('aref')
-    if not (np.allclose(bref_old, bref_new, equal_nan=True)): error = process_error('bref')
-    if not (np.allclose(z_scalefac_old, z_scalefac_new, equal_nan=True)): error = process_error('z_scalefac')
+    if not matches(rhotor_old, rhotor_new): error = process_error('rhotor')
+    if not matches(qinp_old, qinp_new): error = process_error('qinp')
+    if not matches(shat_old, shat_new): error = process_error('shat')
+    if not matches(aref_old, aref_new): error = process_error('aref')
+    if not matches(bref_old, bref_new): error = process_error('bref')
+    if not matches(z_scalefac_old, z_scalefac_new): error = process_error('z_scalefac')
     
     # Compare arrays
-    if not (np.allclose(alpha_old, alpha_new, equal_nan=True)): error = process_error('alpha')
-    if not (np.allclose(zeta_old, zeta_new, equal_nan=True)): error = process_error('zeta')
-    if not (np.allclose(bmag_old, bmag_new, equal_nan=True)): error = process_error('bmag')
-    if not (np.allclose(b_dot_gradz_old, b_dot_gradz_new, equal_nan=True)): error = process_error('b_dot_gradz')
-    if not (np.allclose(bdot_grad_z_old, bdot_grad_z_new, equal_nan=True)): error = process_error('b_dot_gradz')
-    if not (np.allclose(grad_alpha2_old, grad_alpha2_new, equal_nan=True)): error = process_error('grad_alpha2')
-    if not (np.allclose(gd_alph_psi_old, gd_alph_psi_new, equal_nan=True)): error = process_error('gd_alph_psi')
-    if not (np.allclose(grad_psi2_old, grad_psi2_new, equal_nan=True)): error = process_error('grad_psi2')
-    if not (np.allclose(gbdrift_old, gbdrift_new, equal_nan=True)): error = process_error('gbdrift')
-    if not (np.allclose(gbdrift0_old, gbdrift0_new, equal_nan=True)): error = process_error('gbdrift0')
-    if not (np.allclose(cvdrift_old, cvdrift_new, equal_nan=True)): error = process_error('cvdrift')
-    if not (np.allclose(cvdrift0_old, cvdrift0_new, equal_nan=True)): error = process_error('cvdrift0')
-    if not (np.allclose(theta_vmec_old, theta_vmec_new, equal_nan=True)): error = process_error('theta_vmec')
-    if not (np.allclose(B_sub_theta_old, B_sub_theta_new, equal_nan=True)): error = process_error('B_sub_theta')
-    if not (np.allclose(B_sub_zeta_old, B_sub_zeta_new, equal_nan=True)): error = process_error('B_sub_zeta')
-    assert (not error), f'The geometry data does not match in the *.geometry file.'
+    if not matches(alpha_old, alpha_new): error = process_error('alpha')
+    if not matches(zeta_old, zeta_new): error = process_error('zeta')
+    if not matches(bmag_old, bmag_new): error = process_error('bmag')
+    if not matches(b_dot_gradz_old, b_dot_gradz_new): error = process_error('b_dot_gradz')
+    if not matches(bdot_grad_z_old, bdot_grad_z_new): error = process_error('bdot_grad_z')
+    if not matches(grad_alpha2_old, grad_alpha2_new): error = process_error('grad_alpha2')
+    if not matches(gd_alph_psi_old, gd_alph_psi_new): error = process_error('gd_alph_psi')
+    if not matches(grad_psi2_old, grad_psi2_new): error = process_error('grad_psi2')
+    if not matches(gbdrift_old, gbdrift_new, rtol): error = process_error('gbdrift')
+    if not matches(gbdrift0_old, gbdrift0_new, rtol): error = process_error('gbdrift0')
+    if not matches(cvdrift_old, cvdrift_new, rtol): error = process_error('cvdrift')
+    if not matches(cvdrift0_old, cvdrift0_new, rtol): error = process_error('cvdrift0')
+    if not matches(theta_vmec_old, theta_vmec_new): error = process_error('theta_vmec')
+    if not matches(B_sub_theta_old, B_sub_theta_new): error = process_error('B_sub_theta')
+    if not matches(B_sub_zeta_old, B_sub_zeta_new): error = process_error('B_sub_zeta')
+    assert (not error), f'The geometry data does not match in the *.vmec.geo file.'
     
     # Dont compare gds23 and gds24 since it was actually broken in old stella
     #if not (np.allclose(gds23_old, gds23_new, equal_nan=True)): error = process_error('gds23')
