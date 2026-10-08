@@ -202,6 +202,12 @@ jobs:
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
           make numerical-tests-8
+          
+      - name: Python tests 9 - Numerical reproducibility
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ] || [ ${{ matrix.os }} == 'macos-15' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-9
 
 #-----------------------------------------------------------------------
 #                              Quick build                              
@@ -274,6 +280,7 @@ jobs:
           - name: "6 - Full Flux Surface"
           - name: "7 - Electromagnetic effects"
           - name: "8 - Restart simulations"
+          - name: "9 - Numerical reproducibility"
 
     steps:
 
@@ -311,6 +318,7 @@ jobs:
           if ${{ contains(matrix.config.name, '6 -') }}; then make numerical-tests-6; fi
           if ${{ contains(matrix.config.name, '7 -') }}; then make numerical-tests-7; fi
           if ${{ contains(matrix.config.name, '8 -') }}; then make numerical-tests-8; fi
+          if ${{ contains(matrix.config.name, '9 -') }}; then make numerical-tests-9; fi
 
 
   # Perform python on 1 processor.

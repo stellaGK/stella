@@ -52,6 +52,14 @@ If you would like to see more information while running the tests run:
     
     make numerical-tests-verbose
     
+Before and after optimising the memory usage or speed of stella, run the numerical 
+reproducibility tests, which compare the full state of the simulations (fields, moments, 
+fluxes and distribution functions) with a tight tolerance, and check that the results do 
+not depend on the number of MPI processes, see 
+[`numerical_tests/test_9_numerical_reproducibility`](numerical_tests/test_9_numerical_reproducibility/README.md):
+
+    make numerical-tests-9
+    
 (TODO-HT) Besides the numerical tests create a package for quick
 and slow physics tests, used as benchmarks.
 
