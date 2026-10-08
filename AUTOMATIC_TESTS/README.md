@@ -55,6 +55,11 @@ If you would like to see more information while running the tests run:
     
     make numerical-tests-verbose
     
+Slow tests, such as the KBM and TAE benchmarks of electromagnetic stella, are marked with
+`@pytest.mark.slow` and are skipped by default. Run them with:
+    
+    make numerical-tests-slow
+    
 Before and after optimising the memory usage or speed of stella, run the numerical 
 reproducibility tests, which compare the full state of the simulations (fields, moments, 
 fluxes and distribution functions) with a tight tolerance, and check that the results do 

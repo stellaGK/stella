@@ -7,6 +7,10 @@
 # This input has been benchmarked against GS2. The resolution has been greatly
 # reduced for the efficiency of automatic testing, but the physics is still
 # captured.
+#
+# This test is slow, so it is skipped by default. Run it with:
+#     make numerical-tests-slow
+# The code paths are covered quickly by test_8d_short_KBM_and_TAE_runs.py.
 ################################################################################
 
 # Python modules
@@ -35,6 +39,7 @@ def stella_version(pytestconfig):
 #-------------------------------------------------------------------------------
 #           Check whether the potential data for the TAE mode matches          #
 #-------------------------------------------------------------------------------
+@pytest.mark.slow
 def test_TAE_physics_for_Electromagnetic_stella(tmp_path, stella_version):
     
     # Save the temporary folder <tmp_path> as a global variable so the

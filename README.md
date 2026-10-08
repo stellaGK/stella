@@ -194,7 +194,7 @@ To ensure that the $\texttt{stella}$ code is functioning correctly, a suite of n
 - **Test 5**: Tests the **parallel boundary conditions**: (1) standard twist-and-shift, (2) stellarator-symmetric, (3) periodic, and (4) zero boundary conditions. Additionally, multiple input flags are tested simultaneously. In the future, each input parameter would be tested individually.
 - **Test 6**: Validates the **diagnostics**, including growth rates, fluxes, density and temperature, distribution function, and electrostatic potential.
 - **Test 7**: Checks the electrostatic **full-flux-surface** version of $\texttt{stella}$. Geometric quantities are verified first, followed by each term of the gyrokinetic equation.
-- **Test 8**: Tests the **electromagnetic** flux-tube version, verifying each term of the gyrokinetic equation and simulating a KBM and TAE instability.
+- **Test 8**: Tests the **electromagnetic** flux-tube version, verifying each term of the gyrokinetic equation. Short runs of a KBM and TAE instability check the corresponding code paths, while the full KBM and TAE benchmarks (against GS2) are slow, hence they are only run with `make numerical-tests-slow`.
 - **Test 9**: Checks whether a simulation can succesfully be **restarted**.
 
 
@@ -229,6 +229,10 @@ make numerical-tests-6
 make numerical-tests-7
 make numerical-tests-8
 make numerical-tests-9
+```
+The slow physics benchmarks (KBM and TAE) are skipped by default, they can be run with:
+```
+make numerical-tests-slow
 ```
 
 
