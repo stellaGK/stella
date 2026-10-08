@@ -121,7 +121,9 @@ def test_whether_fluxes_diagnostics_are_correct(nonlinear_run, error=False):
     # Note that 'pflx_vs_kxky', 'qflx_vs_kxky', 'vflx_vs_kxky' wont match since old stella calculated
     # flux(kx,ky) as the sum over z, while new stella takes the field line average
     keys = ['pflx', 'qflx', 'vflx', 'pflx_kxky', 'qflx_kxky', 'vflx_kxky', 'pflux_x', 'vflux_x', 'qflux_x'] # Old keys
-    keys = ['pflux_vs_s', 'qflux_vs_s', 'vflux_vs_s', 'pflux_x', 'vflux_x', 'qflux_x'] # New keys
+    # The radial fluxes (pflux_x, vflux_x, qflux_x) are only written for simulations
+    # with radial variation, even when write_all = .true.
+    keys = ['pflux_vs_s', 'qflux_vs_s', 'vflux_vs_s'] # New keys
     keys += ['pflux_vs_kxkyzs', 'qflux_vs_kxkyzs', 'vflux_vs_kxkyzs'] # New keys
     for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, \
                             expected_netcdf_file_fixed_fluxes, key=key, error=False) 
@@ -137,7 +139,9 @@ def test_whether_moments_diagnostics_are_correct(nonlinear_run, error=False):
     stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
     
     # Check whether the netCDF data matches 
-    keys = ['density', 'upar', 'temperature', 'spitzer2', 'dens_x', 'upar_x', 'temp_x']
+    # The radial moments (dens_x, upar_x, temp_x) are only written for simulations
+    # with radial variation, even when write_all = .true.
+    keys = ['density', 'upar', 'temperature', 'spitzer2']
     for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False) 
 
     # If we made it here the test was run correctly 
