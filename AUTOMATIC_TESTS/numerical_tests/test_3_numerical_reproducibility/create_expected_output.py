@@ -17,7 +17,10 @@ import tempfile
 import numpy as np
 import xarray as xr
 
-# Package to run stella
+# Package to run stella. Rename this script first, since convert_inputFile.py (which is executed
+# by run_local_stella_simulation.py) converts all input files in the current folder when it is
+# executed as __main__, which would create *_downgraded.in files in this folder.
+__name__ = 'create_expected_output'
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
 with open(module_path, 'r') as file: exec(file.read())
 
