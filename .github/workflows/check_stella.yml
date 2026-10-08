@@ -421,19 +421,37 @@ jobs:
       - name: Build stella in debug mode
         run: make -j 4
 
-      # Run the numerical reproducibility tests with the debug executable, which checks
-      # array bounds (-fcheck=all), traps invalid floating point operations, and
-      # initialises variables to unusual values, to catch memory errors. These tests
-      # only use Miller geometries, so they are not affected by the VMEC issue above.
-      # TODO: remove <continue-on-error> once the uninitialised <initialised_*> flags
-      # (grids_kxky.f90, arrays.f90) and the out-of-bounds access of <apar> in
-      # advance_mirror_implicit (gk_mirror.f90) have been fixed.
-      - name: Python tests 3 - Numerical reproducibility (debug mode)
-        continue-on-error: true
+      # Run the flux tube tests with the debug executable, which checks array bounds
+      # (-fcheck=all), traps invalid floating point operations, and initialises variables
+      # to unusual values, to catch memory errors. Tests 2 and 5 are skipped, since they
+      # read VMEC equilibria, see the issue above (they do pass in debug mode locally).
+      - name: Install python packages
         run: |
           pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
           sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini
-          make numerical-tests-3
+
+      - name: Python tests 1 - Does stella run (debug mode)
+        run: make numerical-tests-1
+
+      - name: Python tests 3 - Numerical reproducibility (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-3
+
+      - name: Python tests 4 - Gyrokinetic equation (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-4
+
+      - name: Python tests 6 - Diagnostics (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-6
+
+      - name: Python tests 8 - Electromagnetic effects (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-8
+
+      - name: Python tests 9 - Restart simulations (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-9
 
 
 # If the operating system is changed, we can check where modules are installed

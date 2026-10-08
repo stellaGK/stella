@@ -154,3 +154,19 @@ def test_whether_correct_quantities_are_present_in_netcdf_file(local_stella_run_
     return 
      
     
+
+#-------------------------------------------------------------------------------
+#          Check whether the simulation did not produce NaN or Inf values      #
+#-------------------------------------------------------------------------------
+def test_whether_netcdf_file_contains_only_finite_values(local_stella_run_directory, stella_version):
+    '''The other tests in this module only check whether the output exists, so also check
+    that the simulation itself is healthy, e.g. a division by zero for the (kx,ky) = (0,0)
+    mode once turned all fields into NaN after the first time step.'''
+    if stella_version != 'master': pytest.skip('Only checked for the master branch of stella.')
+    local_netcdf_file = local_stella_run_directory / input_filename.replace('.in', '.out.nc')
+    with xr.open_dataset(local_netcdf_file) as local_netcdf:
+        keys = [key for key in local_netcdf.variables if local_netcdf[key].dtype.kind in 'fc']
+        not_finite = [key for key in keys if not np.all(np.isfinite(local_netcdf[key].values))]
+    assert not not_finite, f'The netcdf file contains NaN or Inf values in {not_finite}.'
+    print(f'  -->  All {len(keys)} quantities in the netcdf file are finite.')
+    return
