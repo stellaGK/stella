@@ -136,7 +136,6 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'time_advance_knobs:wstarknob:1.0'          : 'scale_gyrokinetic_terms:wstarknob:1.0',
         'scale_gyrokinetic_terms:suppress_zonal_interaction:DOESNT EXIST YET' : 'scale_gyrokinetic_terms:suppress_zonal_interaction:False',
         #------------------- physics_flags --> gyrokinetic_terms ------------------
-        'physics_flags:radial_variation:False'      : 'gyrokinetic_terms:include_radial_variation:False',
         'physics_flags:include_parallel_nonlinearity:False' : 'gyrokinetic_terms:include_parallel_nonlinearity:False',
         'physics_flags:include_parallel_streaming:True' : 'gyrokinetic_terms:include_parallel_streaming:True',
         'physics_flags:include_mirror:True'         : 'gyrokinetic_terms:include_mirror:True',
@@ -274,7 +273,6 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'parameters_physics:ydriftknob:1.0'         : 'scale_gyrokinetic_terms:ydriftknob:1.0',
         'parameters_physics:wstarknob:1.0'          : 'scale_gyrokinetic_terms:wstarknob:1.0',
         'parameters_physics:suppress_zonal_interaction:DOESNT EXIST YET' : 'scale_gyrokinetic_terms:suppress_zonal_interaction:False',
-        'parameters_physics:radial_variation:False'      : 'gyrokinetic_terms:include_radial_variation:False',
         'parameters_physics:include_parallel_nonlinearity:False' : 'gyrokinetic_terms:include_parallel_nonlinearity:False',
         'parameters_physics:include_parallel_streaming:True' : 'gyrokinetic_terms:include_parallel_streaming:True',
         'parameters_physics:include_mirror:True'         : 'gyrokinetic_terms:include_mirror:True',

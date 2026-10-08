@@ -177,9 +177,9 @@ def calculate_stellaVariables(input_parameters):
     # Calculate <y0> for a full flux surface simulation
     if input_parameters['gyrokinetic_terms']['include_nonlinear'] == True:
         if input_parameters['kxky_grid_box']['y0'] == -1.0:
-            if input_parameters['gyrokinetic_terms']['include_full_flux_annulus'] == False:
+            if not is_full_flux_surface(input_parameters):
                 print('WARNING: When simulating a flux tube, y0 needs to be set in the input file.')
-            if input_parameters['gyrokinetic_terms']['include_full_flux_annulus'] == True:
+            if is_full_flux_surface(input_parameters):
                 input_parameters['kxky_grid_box']['y0'] = '1./(rhostar*geo_surf%rhotor)'
     
     # Return the input parameters
@@ -216,7 +216,7 @@ def calculate_extraInputParametersFromWout(input_parameters, path_input_file):
 
     # Step size in real space
     y0 = input_parameters['kxky_grid_box']['y0']
-    if input_parameters['gyrokinetic_terms']['include_full_flux_annulus']==True:
+    if is_full_flux_surface(input_parameters):
         y0 = np.sqrt(input_parameters['geometry_vmec']['torflux'])/input_parameters['physics_inputs']['rhostar']
         input_parameters['kxky_grid_box']['y0'] = y0
         if input_parameters['geometry_options']['geometry_option']!='vmec':
@@ -392,7 +392,7 @@ def read_fullFluxSurfaceFromInputFile(path_input_file):
     input_parameters_read = json.loads(json.dumps(input_parameters_read))
     input_parameters = load_defaultInputParameters() 
     input_parameters = update_input_parameters('gyrokinetic_terms', input_parameters, input_parameters_read)
-    return input_parameters['gyrokinetic_terms']['include_full_flux_annulus']
+    return is_full_flux_surface(input_parameters)
  
 def read_linearNonlinearFromInputFile(path_input_file):
     input_parameters_read = f90nml.read(path_input_file)
@@ -406,7 +406,7 @@ def read_nonlinearFullFluxSurfaceFromInputFile(path_input_file):
     input_parameters_read = json.loads(json.dumps(input_parameters_read))
     input_parameters = load_defaultInputParameters() 
     input_parameters = update_input_parameters('gyrokinetic_terms', input_parameters, input_parameters_read)
-    return input_parameters['gyrokinetic_terms']['include_nonlinear'], input_parameters['gyrokinetic_terms']['include_full_flux_annulus']
+    return input_parameters['gyrokinetic_terms']['include_nonlinear'], is_full_flux_surface(input_parameters)
  
 def read_vmecFileNameFromInputFile(path_input_file):
     input_parameters_read = f90nml.read(path_input_file)
@@ -566,6 +566,13 @@ def read_parameterFromIniFile(section, parameter, default_value):
     return 
  
 #--------------------------------------------
+#-----------------------------------------
+def is_full_flux_surface(input_parameters):
+    '''A full flux surface (full flux annulus) simulation is selected through
+    <simulation_domain> in the <gyrokinetic_terms> namelist of stella.'''
+    simulation_domain = str(input_parameters['gyrokinetic_terms']['simulation_domain']).strip().lower()
+    return simulation_domain in ['full_flux_annulus', 'ffa']
+
 def update_input_parameters(knob, input_parameters, input_parameters_read):
     try: input_parameters[knob].update(input_parameters_read[knob])
     except: pass # The knob was not in the input file
