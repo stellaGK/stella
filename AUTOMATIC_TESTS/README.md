@@ -68,6 +68,27 @@ not depend on the number of MPI processes, see
 
     make numerical-tests-3
     
+To catch memory errors (out-of-bounds array accesses, uninitialised variables and invalid
+floating point operations), these tests can also be run with a debug build of stella. Build
+it in a separate copy of the repository (so the normal executable is not overwritten) with
+`export STELLA_SYSTEM=gnu_ubuntu_debug; make`, and point the tests to it:
+
+    STELLA_EXE_PATH=/path/to/debug/copy/stella make numerical-tests-3
+    
+To quantify optimisations, measure the run time and memory usage of stella before and after
+a change. This runs the electrostatic and electromagnetic flux tube cases of test 3 at a higher
+resolution, and records the wall time, the peak memory of each MPI process, and the timers that
+stella reports itself (e.g. the time spent in each term of the gyrokinetic equation):
+
+    make performance-baseline      # writes performance_baseline.json
+    # ... modify stella and recompile ...
+    make performance-compare       # compares with performance_baseline.json
+
+Run both on the same, otherwise idle, machine. Timings can vary by tens of percent between runs
+on a laptop, so each case is run 3 times and the fastest run is kept; memory usage is much more
+reproducible. More options (number of processors, resolution, cases, repeats) are available
+through `python3 AUTOMATIC_TESTS/performance/measure_performance.py --help`.
+    
 (TODO-HT) Besides the numerical tests create a package for quick
 and slow physics tests, used as benchmarks.
 

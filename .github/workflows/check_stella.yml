@@ -421,6 +421,20 @@ jobs:
       - name: Build stella in debug mode
         run: make -j 4
 
+      # Run the numerical reproducibility tests with the debug executable, which checks
+      # array bounds (-fcheck=all), traps invalid floating point operations, and
+      # initialises variables to unusual values, to catch memory errors. These tests
+      # only use Miller geometries, so they are not affected by the VMEC issue above.
+      # TODO: remove <continue-on-error> once the uninitialised <initialised_*> flags
+      # (grids_kxky.f90, arrays.f90) and the out-of-bounds access of <apar> in
+      # advance_mirror_implicit (gk_mirror.f90) have been fixed.
+      - name: Python tests 3 - Numerical reproducibility (debug mode)
+        continue-on-error: true
+        run: |
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini
+          make numerical-tests-3
+
 
 # If the operating system is changed, we can check where modules are installed
 # by reading the CMake cache file:
