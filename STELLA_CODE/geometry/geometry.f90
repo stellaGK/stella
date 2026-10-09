@@ -1171,6 +1171,7 @@ contains
       implicit none
 
       ! Flags
+      call broadcast(geo_option_switch)
       call broadcast(q_as_x)
 
       ! Switch between coordinates
