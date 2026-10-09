@@ -548,9 +548,12 @@ contains
       ! Count the iterations
       counter = 1
 
-      ! SSP rk3 algorithm to advance explicit part of code
+      ! SSP rk3 algorithm (Shu & Osher 1988) to advance explicit part of code
       ! if GK equation written as dg/dt = rhs - vpar . grad h,
       ! add_explicit_gyrokinetic_terms returns rhs*dt
+      !     g1 = g0 + dt*rhs(g0)
+      !     g2 = 3/4 g0 + 1/4 (g1 + dt*rhs(g1))
+      !     g^{n+1} = 1/3 g0 + 2/3 (g2 + dt*rhs(g2))
       do while (counter <= 3)
       
          ! Third order Runge-Kutta Scheme
@@ -562,7 +565,7 @@ contains
             if (rk_step) call mb_communicate(g1)
             call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
          case (3)
-            g2 = g1 + g2
+            g2 = 0.75 * g0 + 0.25 * (g1 + g2)
             if (rk_step) call mb_communicate(g2)
             call add_explicit_gyrokinetic_terms(g2, g, restart_time_step, istep)
          end select
@@ -577,7 +580,7 @@ contains
       end do
 
       ! This is g at intermediate time level
-      g = g0 / 3.+0.5 * g1 + (g2 + g) / 6.
+      g = g0 / 3. + 2. / 3. * (g2 + g)
 
    end subroutine advance_explicit_rk3
 
