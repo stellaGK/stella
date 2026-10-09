@@ -104,7 +104,7 @@ contains
 
       ! Re-impose the twist-and-shift chain joins on the updated distribution function
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         call enforce_chain_joins(g(:, :, :, :, ivmu))
+         call enforce_chain_joins(g(:, :, :, :, ivmu), end_of_step=.true.)
       end do
 
       ! If the fields are not already updated, then update them
@@ -687,8 +687,12 @@ contains
    ! independently and drift apart. Here we impose the same relation as
    ! <map_from_extended_zgrid>, g(iseg, -nzgrid) = g(iseg-1, +nzgrid) * <phase_shift>,
    ! keeping the copy in the later segment and overwriting the copy in the earlier one.
+   ! With implicit streaming, the explicit terms can also leave the copies different at
+   ! the end of a time step if the explicit part is done last (<flip_flop> = True). In that
+   ! case, the joins are only re-imposed at the end of the explicit part, keeping the copy
+   ! in the earlier segment, which is the one <map_to_extended_zgrid> uses.
    !****************************************************************************
-   subroutine enforce_chain_joins(fld)
+   subroutine enforce_chain_joins(fld, end_of_step)
 
       use parameters_physics, only: full_flux_surface
       use parameters_numerical, only: stream_implicit
@@ -702,15 +706,21 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: fld
+      logical, intent(in), optional :: end_of_step
 
       integer :: iky, ie, iseg, it, itmod
+      logical :: last
 
       !-------------------------------------------------------------------------
 
-      ! Only needed for flux tubes with linked boundary conditions and explicit streaming
-      if (stream_implicit .or. full_flux_surface) return
+      last = .false.
+      if (present(end_of_step)) last = end_of_step
+
+      ! Only needed for flux tubes with linked boundary conditions
+      if (full_flux_surface) return
       if (boundary_option_switch /= boundary_option_linked .and. &
           boundary_option_switch /= boundary_option_linked_stellarator) return
+      if (stream_implicit .and. .not. last) return
 
       do iky = 1, naky
          if (periodic(iky)) cycle
@@ -718,8 +728,13 @@ contains
             do it = 1, ntubes
                itmod = it
                do iseg = 2, nsegments(ie, iky)
-                  fld(iky, ikxmod(iseg - 1, ie, iky), nzgrid, itmod) = &
-                     fld(iky, ikxmod(iseg, ie, iky), -nzgrid, it_right(itmod)) / phase_shift(iky)
+                  if (stream_implicit) then
+                     fld(iky, ikxmod(iseg, ie, iky), -nzgrid, it_right(itmod)) = &
+                        fld(iky, ikxmod(iseg - 1, ie, iky), nzgrid, itmod) * phase_shift(iky)
+                  else
+                     fld(iky, ikxmod(iseg - 1, ie, iky), nzgrid, itmod) = &
+                        fld(iky, ikxmod(iseg, ie, iky), -nzgrid, it_right(itmod)) / phase_shift(iky)
+                  end if
                   itmod = it_right(itmod)
                end do
             end do
