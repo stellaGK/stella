@@ -513,7 +513,12 @@ contains
             apar = 0.0
          end where
       else if (dist == 'gbar') then
-         apar = apar / spread(apar_denom, 4, ntubes)
+         ! For beta = 0, apar_denom = kperp2 vanishes for the (kx,ky) = (0,0) mode
+         where (spread(apar_denom, 4, ntubes) > epsilon(0.0))
+            apar = apar / spread(apar_denom, 4, ntubes)
+         elsewhere
+            apar = 0.0
+         end where
       else
          if (proc0) write (*, *) 'unknown dist option in get_apar. aborting'
          call mp_abort('unkown dist option in get_apar. aborting')

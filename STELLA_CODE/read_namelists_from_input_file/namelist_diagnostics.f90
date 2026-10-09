@@ -57,7 +57,7 @@
 !   
 !   diagnostics_moments
 !     write_moments = .false.
-!     write_radial_moments = .false.
+!     write_radial_moments = radial_variation
 !   
 !   diagnostics_stresses
 !     write_stresses = .false.
@@ -598,11 +598,14 @@ contains
       !---------------------------- Check variables ----------------------------
       subroutine check_inputs_diagnostics_fluxes
 
+         use parameters_physics, only: radial_variation
+
          implicit none
 
+         ! The radial fluxes are only defined for simulations with radial variation
          if (write_all_fluxes) then
              write_fluxes_vs_time = .true.
-             write_radial_fluxes = .true.
+             write_radial_fluxes = radial_variation
              write_fluxes_kxkyz = .true.
              write_fluxes_kxky = .true.
          end if
@@ -683,11 +686,14 @@ contains
       !---------------------------- Check variables ----------------------------
       subroutine check_inputs_diagnostics_moments
 
+         use parameters_physics, only: radial_variation
+
          implicit none
 
+         ! The radial moments are only defined for simulations with radial variation
          if (write_all_moments) then
              write_moments = .true.
-             write_radial_moments = .true.
+             write_radial_moments = radial_variation
          end if
 
       end subroutine check_inputs_diagnostics_moments
