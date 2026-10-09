@@ -7,8 +7,8 @@ gmin = np.arange(ntime,dtype=float)
 for i in range(ntime):
     gmax[i] = np.absolute(gzvs[i,0,:,:].max())
 gmin[:] = 0.0
-ylabel = '$v_{\parallel}$'
+ylabel = '$v_{\\parallel}$'
 xlabel = '$z$'
-title = '$\int d\mu \int d^2 \mathbf{R} g^2$'
+title = '$\\int d\\mu \\int d^2 \\mathbf{R} g^2$'
 movie_file = 'gzvs.mp4'
 movie_2d(gzvs[:,0,:,:],zed,vpa,gmin,gmax,ntime-1,movie_file,xlabel,ylabel,title,cmp='YlGnBu')

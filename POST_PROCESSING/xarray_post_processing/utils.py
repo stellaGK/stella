@@ -346,7 +346,7 @@ def plot_fields_kyspectra_with_time_nc(filename):
         ylab_list = [str(round_sig(ky[iky],3)) for iky in range(0,nky)]
         
         plot_1d_semilog_list_pdf (xlist,ylist,marker_list,xlab, pdf,
-          title='$A_{\|}^2 (k_y)$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
+          title='$A_{\\|}^2 (k_y)$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
           markersize=5, legend_title=legend_title, use_legend=True,loc_opt='upper right', ylab_list = ylab_list,
           bbox_to_anchor_opt=(0.95, 0.95), legend_fontsize=10, ncol_opt=1,
           legend_shadow=False,legend_frame=False)
@@ -358,7 +358,7 @@ def plot_fields_kyspectra_with_time_nc(filename):
         ylab_list = [str(round_sig(ky[iky],3)) for iky in range(0,nky)]
         
         plot_1d_semilog_list_pdf (xlist,ylist,marker_list,xlab, pdf,
-          title='$B_{\|}^2 (k_y)$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
+          title='$B_{\\|}^2 (k_y)$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
           markersize=5, legend_title=legend_title, use_legend=True,loc_opt='upper right', ylab_list = ylab_list,
           bbox_to_anchor_opt=(0.95, 0.95), legend_fontsize=10, ncol_opt=1,
           legend_shadow=False,legend_frame=False)
@@ -408,7 +408,7 @@ def plot_fields_fluxes_spectra_nc(filename):
         ylist = [apar2_vs_ky]
         
         plot_1d_semilog_list_pdf (xlist,ylist,marker_list,xlab, pdf,
-          title='$\\langle A_{\|}^2 (k_y) \\rangle_{t}$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
+          title='$\\langle A_{\\|}^2 (k_y) \\rangle_{t}$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
           markersize=5, legend_title="", use_legend=False,loc_opt='upper right', ylab_list = None,
           bbox_to_anchor_opt=(0.95, 0.95), legend_fontsize=10, ncol_opt=1,
           legend_shadow=False,legend_frame=False)
@@ -419,7 +419,7 @@ def plot_fields_fluxes_spectra_nc(filename):
         ylist = [bpar2_vs_ky]
         
         plot_1d_semilog_list_pdf (xlist,ylist,marker_list,xlab, pdf,
-          title='$\\langle B_{\|}^2 (k_y) \\rangle_{t}$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
+          title='$\\langle B_{\\|}^2 (k_y) \\rangle_{t}$',ylab='',xlims=None,ylims=None,aspx=9,aspy=6, xticks = None, yticks = None,
           markersize=5, legend_title="", use_legend=False,loc_opt='upper right', ylab_list = None,
           bbox_to_anchor_opt=(0.95, 0.95), legend_fontsize=10, ncol_opt=1,
           legend_shadow=False,legend_frame=False)

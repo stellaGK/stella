@@ -10,7 +10,7 @@ def plot_gavg_vs_zvpa():
 
     cmap = 'YlGnBu'
     xlab = '$z$'
-    ylab = '$v_{\parallel}$'
+    ylab = '$v_{\\parallel}$'
     title = 'avg $|g|^2$'
 
     gzvs_avg = np.arange(sd.zed.size*sd.vpa.size,dtype=float).reshape(sd.vpa.size,sd.zed.size)

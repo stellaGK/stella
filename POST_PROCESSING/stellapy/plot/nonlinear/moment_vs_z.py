@@ -170,7 +170,7 @@ def subplot_moment_vs_z(
             # Interpolate moment(z) 
             if interpolate: x, y = interpolate_data(x, y, interpolate) 
             if normalize_to_one: rescale_factor = np.max(np.abs(y)); y = y/rescale_factor; 
-            if normalize_to_one: style["label"] = style["label"]+"$\,/\,"+"{:.2f}".format(rescale_factor)+"$"
+            if normalize_to_one: style["label"] = style["label"]+"$\\,/\\,"+"{:.2f}".format(rescale_factor)+"$"
             
             # Plot moment(z)
             ax.plot(x, y, **style) 

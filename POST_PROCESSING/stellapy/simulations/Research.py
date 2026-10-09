@@ -152,7 +152,7 @@ class Research:
                 for simulation in experiment.simulations:  
                     index_i = self.input_files.index(simulation.input_file)
                     self.e_id[index_i] = experiment.id
-                    self.s_id[index_i] = simulation.marker_label.replace("$","").replace("\,"," ") 
+                    self.s_id[index_i] = simulation.marker_label.replace("$","").replace("\\,"," ") 
                         
         # Now get the unique folders
         self.unique_folders = list(set(self.folders))
@@ -179,7 +179,7 @@ class Research:
                 if self.creationDetails.key1!='vmec_filename':
                     value = inputobject.inputParameters[self.creationDetails.knob1][self.creationDetails.key1]  
                     variable, value = change_stellaParametersForLabels(simulation, self.creationDetails.knob1, self.creationDetails.key1, value)
-                    experiment_id = variable + "$\,=\,$" + str(value)
+                    experiment_id = variable + "$\\,=\\,$" + str(value)
                 if self.creationDetails.key1=='vmec_filename': 
                     experiment_id = str(recognize_device(inputobject.vmec_filename))  
                 
@@ -188,7 +188,7 @@ class Research:
                     if self.creationDetails.key2!='vmec_filename':
                         value = inputobject.inputParameters[self.creationDetails.knob2][self.creationDetails.key2]   
                         variable, value = change_stellaParametersForLabels(simulation, self.creationDetails.knob2, self.creationDetails.key2, value)
-                        experiment_id += "; " + variable + "$\,=\,$" + str(value) 
+                        experiment_id += "; " + variable + "$\\,=\\,$" + str(value) 
                     if self.creationDetails.key2=='vmec_filename': 
                         experiment_id += "; " + str(recognize_device(inputobject.vmec_filename))  
                         
