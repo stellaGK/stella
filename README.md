@@ -268,6 +268,7 @@ It is the responsibility of the respective authors to list their contributions t
 - The automatic testing infrastructure has been implemented by H. Thienpondt in July 2024.
 - The $\texttt{stella}$ code has been reorganized and cleaned up by H. Thienpondt and G. Acton in October 2025.
 - The shared-memory domains for the response matrix can now be parallelized over NUMA domains rather than over nodes. This is particularly useful on supercomputers with multiple sockets per node, where inter-socket communication can be relatively slow. To enable this feature, set `SPLIT_BY_NUMA = on` in the makefile and ensure that `--ntasks-per-socket` is specified in the sbatch script. This has been implemented by H. Thienpondt in December 2025.
+- More automatic tests have been added by H. Thienpondt in October 2026 to test the full numerical reproducibility of the code
 
 ### Diagnostics
 
@@ -286,4 +287,7 @@ It is the responsibility of the respective authors to list their contributions t
 
 - September 2024: Fixed masking of the `omega` data in the NetCDF output (H. Thienpondt).
 - December 2025: Fixed an integer-overflow bug in the MPI shared-memory implementation for the response matrix. The shared-window size and associated pointers were previously defined using 32-bit integers, limiting the usable shared memory to approximately 8–9 GB and leading to segmentation faults for larger problems. These quantities are now defined using 64-bit integers, removing this artificial limitation and enabling reliable handling of response matrices of at least ~40 GB (and likely larger). The maximum supported size is now determined by the available node RAM rather than by internal stella integer limits (H. Thienpondt).
+- May 2026: Fixed the dependence of the implicit collision operators on the number of MPI processes. The response matrix is only solved on the processor that owns `is = 1` for each `(kx, ky, z, tube)` point, but the other processors kept using the fields from before the solve, and `phi` was summed over all processors. The solution is now collected from all processors, so the results no longer depend on the number of processes (G. Acton).
+- October 2026: Fixed a bug in electromagnetic $\texttt{stella}$: the $B_\parallel$ contribution to the explicit $x$-component of the magnetic drift was gyro-averaged with $J_0$ instead of $J_1/a$. This affected all simulations with `include_bpar = .true.`, explicit magnetic drifts and nonzero $k_x$ (H. Thienpondt).
+
 
