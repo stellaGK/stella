@@ -51,7 +51,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'geo_knobs:q_as_x:False'                    : 'geometry_options:q_as_x:False',
         #------------------- geo_knobs --> geometry_from_txt ------------------
         'geo_knobs:overwrite_bmag:False'            : 'geometry_from_txt:overwrite_bmag:False',
-        'geo_knobs:overwrite_gradpar:False'         : 'geometry_from_txt:overwrite_b_dot_grad_zeta:False',
+        'geo_knobs:overwrite_gradpar:False'         : 'geometry_from_txt:overwrite_b_dot_gradzeta:False',
         'geo_knobs:overwrite_gds2:False'            : 'geometry_from_txt:overwrite_grady_dot_grady:False',
         'geo_knobs:overwrite_gds21:False'           : 'geometry_from_txt:overwrite_gradx_dot_grady:False',
         'geo_knobs:overwrite_gds22:False'           : 'geometry_from_txt:overwrite_gradx_dot_gradx:False',
@@ -60,7 +60,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'geo_knobs:overwrite_gbdrift0:False'        : 'geometry_from_txt:overwrite_b_times_gradb_dot_gradx:False',
         'geo_knobs:overwrite_gds23:False'           : 'geometry_from_txt:overwrite_gds23:False',
         'geo_knobs:overwrite_gds24:False'           : 'geometry_from_txt:overwrite_gds24:False',
-        'geo_knobs:set_bmag_const:False'            : 'geometry_from_txt:set_bmag_const:DEPRECATED',
+        'geo_knobs:set_bmag_const:False'            : 'geo_knobs:set_bmag_const:DEPRECATED',
         'geo_knobs:geo_file:input.geometry'         : 'geometry_from_txt:geometry_file:input.geometry',
         #------------------- vmec_parameters --> geometry_vmec ------------------
         'vmec_parameters:vmec_filename:wout*.nc'    : 'geometry_vmec:vmec_filename:wout*.nc',
@@ -109,7 +109,12 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     
     # Deal with stella v0.8
     renamed_variables = { 
-        'geo_knobs:overwrite_b_dot_grad_zeta:False'  : 'geometry_from_txt:overwrite_b_dot_grad_zeta:False',
+        'geo_knobs:overwrite_b_dot_grad_zeta:False'  : 'geometry_from_txt:overwrite_b_dot_gradzeta:False',
+        'vmec_parameters:zgrid_refinement_factor:1'  : 'geometry_vmec:z_grid_refinement_factor:1',
+        'vmec_parameters:radial_coordinate:sgn(psi_t) psi_t' : 'geometry_vmec:radial_coordinate:sgn(psi_t) psi_t',
+        'vmec_parameters:n_tolerated_test_arrays_inconsistencies:0' : 'geometry_vmec:n_tolerated_test_arrays_inconsistencies:0',
+        'vmec_parameters:rectangular_cross_section:False' : 'geometry_vmec:rectangular_cross_section:False',
+        'zpinchgeo_parameters:betaprim:0.0'          : 'geometry_zpinch:betaprim:0.0',
         }
         
     # Replace variables
@@ -247,6 +252,15 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
                 del input_parameters['parameters_physics']['full_flux_surface']
                 if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
                 input_parameters['gyrokinetic_terms']['simulation_domain'] = value_old
+        # Radial variation is now selected with simulation_domain = 'multibox'
+        for namelist in ['physics_flags', 'parameters_physics']:
+            if namelist in input_parameters.keys():
+                if 'radial_variation' in input_parameters[namelist].keys():
+                    value_old = input_parameters[namelist]['radial_variation']
+                    del input_parameters[namelist]['radial_variation']
+                    if value_old==True:
+                        if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+                        input_parameters['gyrokinetic_terms']['simulation_domain'] = 'multibox'
     if downgrade:
         if 'gyrokinetic_terms' in input_parameters.keys():
             if 'simulation_domain' in input_parameters['gyrokinetic_terms'].keys():
@@ -294,12 +308,22 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'parameters_physics:prp_shear_enabled:DOESNT EXIST YET' : 'flow_shear:prp_shear_enabled:False',
         'parameters_physics:hammett_flow_shear:DOESNT EXIST YET' : 'flow_shear:hammett_flow_shear:True',
         'parameters_physics:nitt:DOESNT EXIST YET'        : 'flux_annulus:nitt:1',
+        'parameters_physics:include_apar:False'             : 'electromagnetic:include_apar:False',
+        'parameters_physics:include_bpar:False'             : 'electromagnetic:include_bpar:False',
         'parameters_physics:irhostar:-1.0'                  : 'parameters:irhostar:DEPRECATED',
         }
         
     # Replace variables
     if upgrade:
         input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
+    
+    # Deal with input files older than stella v0.5
+    if upgrade:
+        if 'dist_fn_knobs' in input_parameters.keys():
+            if 'adiabatic_option' in input_parameters['dist_fn_knobs'].keys():
+                if 'adiabatic_electron_response' not in input_parameters.keys(): input_parameters['adiabatic_electron_response'] = {}
+                input_parameters['adiabatic_electron_response']['adiabatic_option'] = input_parameters['dist_fn_knobs']['adiabatic_option']
+                del input_parameters['dist_fn_knobs']['adiabatic_option']
     
     #===============================================================================
     #                                 Kinetic species                                  
@@ -390,6 +414,17 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     
     # Replace variables
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
+    
+    # Deal with input files older than stella v0.5, where stellarator-symmetric 
+    # boundary conditions were selected with <twist_shift_option>
+    if upgrade:
+        if 'zgrid_parameters' in input_parameters.keys():
+            if 'twist_shift_option' in input_parameters['zgrid_parameters'].keys():
+                value_old = input_parameters['zgrid_parameters']['twist_shift_option']
+                del input_parameters['zgrid_parameters']['twist_shift_option']
+                if value_old=='stellarator':
+                    if 'z_boundary_condition' not in input_parameters.keys(): input_parameters['z_boundary_condition'] = {}
+                    input_parameters['z_boundary_condition']['boundary_option'] = 'stellarator'
     
     # Deal with stella version 0.8
     renamed_variables = { 
@@ -534,10 +569,38 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
                 input_parameters['stella_diagnostics_knobs']['write_moments'] = write_all
                 input_parameters['stella_diagnostics_knobs']['write_radial_moments'] = write_all
                 input_parameters['stella_diagnostics_knobs']['write_fluxes_kxkyz'] = write_all
-        
-    
+
+    # Deal with stella v0.8, where the diagnostics flags already have their new names
+    renamed_variables = {
+        'stella_diagnostics_knobs:write_all:False'                : 'diagnostics:write_all:False',
+        'stella_diagnostics_knobs:write_phi2_vs_time:True'        : 'diagnostics_potential:write_phi2_vs_time:True',
+        'stella_diagnostics_knobs:write_apar2_vs_time:True'       : 'diagnostics_potential:write_apar2_vs_time:True',
+        'stella_diagnostics_knobs:write_bpar2_vs_time:True'       : 'diagnostics_potential:write_bpar2_vs_time:True',
+        'stella_diagnostics_knobs:write_phi_vs_kxkyz:False'       : 'diagnostics_potential:write_phi_vs_kxkyz:False',
+        'stella_diagnostics_knobs:write_apar_vs_kxkyz:False'      : 'diagnostics_potential:write_apar_vs_kxkyz:False',
+        'stella_diagnostics_knobs:write_bpar_vs_kxkyz:False'      : 'diagnostics_potential:write_bpar_vs_kxkyz:False',
+        'stella_diagnostics_knobs:write_phi2_vs_kxky:False'       : 'diagnostics_potential:write_phi2_vs_kxky:False',
+        'stella_diagnostics_knobs:write_apar2_vs_kxky:False'      : 'diagnostics_potential:write_apar2_vs_kxky:False',
+        'stella_diagnostics_knobs:write_bpar2_vs_kxky:False'      : 'diagnostics_potential:write_bpar2_vs_kxky:False',
+        'stella_diagnostics_knobs:write_g2_vs_vpamus:False'       : 'diagnostics_distribution:write_g2_vs_vpamus:False',
+        'stella_diagnostics_knobs:write_g2_vs_zvpas:False'        : 'diagnostics_distribution:write_g2_vs_zvpas:False',
+        'stella_diagnostics_knobs:write_g2_vs_zmus:False'         : 'diagnostics_distribution:write_g2_vs_zmus:False',
+        'stella_diagnostics_knobs:write_g2_vs_kxkyzs:False'       : 'diagnostics_distribution:write_g2_vs_kxkyzs:False',
+        'stella_diagnostics_knobs:write_g2_vs_zvpamus:False'      : 'diagnostics_distribution:write_g2_vs_zvpamus:False',
+        'stella_diagnostics_knobs:write_distribution_g:True'      : 'diagnostics_distribution:write_distribution_g:True',
+        'stella_diagnostics_knobs:write_distribution_h:False'     : 'diagnostics_distribution:write_distribution_h:False',
+        'stella_diagnostics_knobs:write_distribution_f:False'     : 'diagnostics_distribution:write_distribution_f:False',
+        'stella_diagnostics_knobs:write_omega_vs_kxky:False'      : 'diagnostics_omega:write_omega_vs_kxky:False',
+        'stella_diagnostics_knobs:write_omega_avg_vs_kxky:False'  : 'diagnostics_omega:write_omega_avg_vs_kxky:False',
+        'stella_diagnostics_knobs:write_fluxes_vs_time:True'      : 'diagnostics_fluxes:write_fluxes_vs_time:True',
+        'stella_diagnostics_knobs:write_fluxes_kxky:False'        : 'diagnostics_fluxes:write_fluxes_kxky:False',
+        }
+    if upgrade:
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
+
+
     #===============================================================================
-    #                                Initialise potential                                  
+    #                                Initialise potential
     #===============================================================================
     
     renamed_variables = { 
@@ -679,6 +742,16 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     # Replace variables
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
+    # Deal with stella v0.6 and v0.7, which had more time step options in &knobs
+    renamed_variables = {
+        'knobs:cfl_cushion_upper:0.5'               : 'time_step:cfl_cushion_upper:0.5',
+        'knobs:cfl_cushion_middle:0.25'             : 'time_step:cfl_cushion_middle:0.25',
+        'knobs:cfl_cushion_lower:1e-05'             : 'time_step:cfl_cushion_lower:1e-05',
+        'knobs:delt_min:1e-10'                      : 'time_step:delt_min:1e-10',
+        }
+    if upgrade:
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
+    
     # Add the default variables
     if add_default_variables:
         if 'electromagnetic' not in input_parameters.keys(): input_parameters['electromagnetic'] = {}
@@ -750,6 +823,17 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'parameters_numerical:rng_seed:-1'                         : 'initialise_distribution_noise:rng_seed:-1',
         'parameters_numerical:ky_solve_radial:0'                   : 'multibox_parameters:ky_solve_radial:0',
         'parameters_numerical:ky_solve_real:False'                 : 'multibox_parameters:ky_solve_real:False',
+        'parameters_numerical:explicit_option:rk3'                 : 'numerical_algorithms:explicit_algorithm:rk3',
+        'parameters_numerical:flip_flop:False'                     : 'numerical_algorithms:flip_flop:False',
+        'parameters_numerical:stream_iterative_implicit:False'     : 'numerical_algorithms:stream_iterative_implicit:False',
+        'parameters_numerical:use_deltaphi_for_response_matrix:False' : 'numerical_algorithms:use_deltaphi_for_response_matrix:False',
+        'parameters_numerical:split_parallel_dynamics:True'        : 'numerical_algorithms:split_parallel_dynamics:True',
+        'parameters_numerical:maxwellian_normalization:False'      : 'parameters_numerical:maxwellian_normalization:DEPRECATED',
+        'parameters_numerical:print_extra_info_to_terminal:True'   : 'debug_flags:print_extra_info_to_terminal:True',
+        'parameters_numerical:nitt:1'                              : 'flux_annulus:nitt:1',
+        'kt_grids_range_parameters:kyspacing_option:default'       : 'kxky_grid_range:kyspacing_option:default',
+        'zgrid_parameters:dkx_over_dky:-1.0'                       : 'z_boundary_condition:dkx_over_dky:-1.0',
+        'layouts_knobs:kymus_layout:kymus'                         : 'parallelisation:kymus_layout:kymus',
         }
         
     # Replace variables
@@ -769,6 +853,12 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         #------------------- dissipation --> hyper_dissipation ------------------
         'hyper:d_hyper:0.05'                        : 'hyper_dissipation:d_hyper:0.05',
         'dissipation:d_hyper:0.05'                  : 'hyper_dissipation:d_hyper:0.05',
+        'hyper:d_zed:0.05'                          : 'hyper_dissipation:d_zed:0.05',
+        'hyper:d_vpa:0.05'                          : 'hyper_dissipation:d_vpa:0.05',
+        'hyper:hyp_zed:False'                       : 'hyper_dissipation:hyp_zed:False',
+        'hyper:hyp_vpa:False'                       : 'hyper_dissipation:hyp_vpa:False',
+        'hyper:use_physical_ksqr:True'              : 'hyper_dissipation:use_physical_ksqr:True',
+        'hyper:scale_to_outboard:False'             : 'hyper_dissipation:scale_to_outboard:False',
         'hyper_dissipation:d_zed:DOESNT EXIST YET'  : 'hyper_dissipation:d_zed:0.05',
         'hyper_dissipation:d_vpa:DOESNT EXIST YET'  : 'hyper_dissipation:d_vpa:0.05',
         'hyper_dissipation:hyp_zed:DOESNT EXIST YET': 'hyper_dissipation:hyp_zed:False',
@@ -833,6 +923,12 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'dissipation:collisions_implicit:True'      : 'dissipation_and_collisions_options:collisions_implicit:True',
         #------------------- dissipation --> hyper_dissipation ------------------
         'dissipation:d_hyper:0.05'                  : 'hyper_dissipation:d_hyper:0.05',
+        'hyper:d_zed:0.05'                          : 'hyper_dissipation:d_zed:0.05',
+        'hyper:d_vpa:0.05'                          : 'hyper_dissipation:d_vpa:0.05',
+        'hyper:hyp_zed:False'                       : 'hyper_dissipation:hyp_zed:False',
+        'hyper:hyp_vpa:False'                       : 'hyper_dissipation:hyp_vpa:False',
+        'hyper:use_physical_ksqr:True'              : 'hyper_dissipation:use_physical_ksqr:True',
+        'hyper:scale_to_outboard:False'             : 'hyper_dissipation:scale_to_outboard:False',
         'hyper_dissipation:d_zed:DOESNT EXIST YET'  : 'hyper_dissipation:d_zed:0.05',
         'hyper_dissipation:d_vpa:DOESNT EXIST YET'  : 'hyper_dissipation:d_vpa:0.05',
         'hyper_dissipation:hyp_zed:DOESNT EXIST YET': 'hyper_dissipation:hyp_zed:False',
@@ -987,6 +1083,36 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     #                                   Extra rules                                  
     #===============================================================================
     
+    if upgrade:
+
+        # stella only includes apar and bpar if include_electromagnetic = .true.
+        if 'electromagnetic' in input_parameters.keys():
+            if input_parameters['electromagnetic'].get('include_apar', False) or input_parameters['electromagnetic'].get('include_bpar', False):
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+                input_parameters['gyrokinetic_terms']['include_electromagnetic'] = True
+
+        # In stella v0.8, <autostop> was read from stella_diagnostics_knobs (the one in parameters_numerical was not used)
+        if 'stella_diagnostics_knobs' in input_parameters.keys():
+            if 'autostop' in input_parameters['stella_diagnostics_knobs'].keys():
+                if 'time_trace_options' not in input_parameters.keys(): input_parameters['time_trace_options'] = {}
+                input_parameters['time_trace_options']['autostop'] = input_parameters['stella_diagnostics_knobs']['autostop']
+                del input_parameters['stella_diagnostics_knobs']['autostop']
+
+        # The Krook and projection sources are now selected with <source_option>
+        if 'sources' in input_parameters.keys():
+            if input_parameters['sources'].pop('include_krook_operator', False) == True:
+                input_parameters['sources']['source_option'] = 'krook'
+            if input_parameters['sources'].pop('remove_zero_projection', False) == True:
+                input_parameters['sources']['source_option'] = 'projection'
+
+        # Remove variables which are no longer read by stella, since stella aborts on unknown variables
+        removed_variables = ['multibox_parameters:comm_at_init', 'numerical_algorithms:maxwellian_normalization',
+            'debug_flags:ffs_solve_debug', 'debug_flags:fs_solve_debug']
+        for namelist_variable in removed_variables:
+            namelist, variable = namelist_variable.split(':')
+            if namelist in input_parameters.keys():
+                input_parameters[namelist].pop(variable, None)
+
     # For old stella versions, always turn off apar and radial_moments
     if downgrade:
         if 'knobs' not in input_parameters.keys(): input_parameters['knobs'] = {}
