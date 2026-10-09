@@ -4228,12 +4228,14 @@ contains
       real, intent(out) :: yint
       integer :: n, ierr
       real :: dum1, dum2, sigma
-      real, dimension(:), allocatable :: ypp, dum3
+      real, dimension(:), allocatable :: ypp, dum3, y_contiguous
       n = size(x)
       allocate (ypp(n), dum3(n))
+      ! fitp_curv1 and fitp_curv2 require contiguous arrays, while <y> can be an array slice
+      y_contiguous = y
       sigma = 1.0
-      call fitp_curv1(n, x, y, dum1, dum2, 3, ypp, dum3, sigma, ierr)
-      yint = fitp_curv2(xint, n, x, y, ypp, sigma)
+      call fitp_curv1(n, x, y_contiguous, dum1, dum2, 3, ypp, dum3, sigma, ierr)
+      yint = fitp_curv2(xint, n, x, y_contiguous, ypp, sigma)
       deallocate (ypp, dum3)
    end subroutine geo_spline_real
 
@@ -4243,15 +4245,17 @@ contains
       real, dimension(:), intent(out) :: yint
       integer :: n, ierr, ix
       real :: dum1, dum2, sigma
-      real, dimension(:), allocatable :: ypp, dum3
+      real, dimension(:), allocatable :: ypp, dum3, y_contiguous
       real :: zero 
       
       n = size(x)
       allocate (ypp(n), dum3(n))
+      ! fitp_curv1 and fitp_curv2 require contiguous arrays, while <y> can be an array slice
+      y_contiguous = y
       sigma = 1.0
-      call fitp_curv1(n, x, y, dum1, dum2, 3, ypp, dum3, sigma, ierr)
+      call fitp_curv1(n, x, y_contiguous, dum1, dum2, 3, ypp, dum3, sigma, ierr)
       do ix = 1, size(xint)
-         yint(ix) = fitp_curv2(xint(ix), n, x, y, ypp, sigma)
+         yint(ix) = fitp_curv2(xint(ix), n, x, y_contiguous, ypp, sigma)
       end do
 
       zero = 1000 * epsilon(0.0)

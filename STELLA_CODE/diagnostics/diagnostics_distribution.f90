@@ -320,6 +320,7 @@ contains
       use calculations_volume_averages, only: mode_fac
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
+      use grids_species, only: nspec
       use grids_kxky, only: nakx, naky
 
       ! Calculations
@@ -349,6 +350,7 @@ contains
       ! Arrays needed to perform calculations
       real, dimension(:, :, :), allocatable :: g2_vs_ztubeivmus, g2nozonal_vs_ztubeivmus 
       real, dimension(:, :), allocatable :: g2_vs_ztube, g2_vs_vpamu
+      real, dimension(:, :), allocatable :: g2_vs_vpas, g2_vs_mus
       integer :: ivmus, ia, iz, it, ikx, iky, izp, is, iv, imu, ikxkyzs
 
       !---------------------------------------------------------------------- 
@@ -431,15 +433,23 @@ contains
       ! There is a sum_reduce() inside of the velocity integration, so <g2_vs_tzmus> holds the total sum
       if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::write_g2_vs_zvpas .or. write_g2_vs_zmus'
       if (write_g2_vs_zvpas .or. write_g2_vs_zmus) then
+         allocate (g2_vs_vpas(nvpa, nspec), g2_vs_mus(nmu, nspec))
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                izp = iz + nzgrid + 1
-               if (write_g2_vs_zvpas) call integrate_mu(iz, g2_vs_ztubeivmus(iz, it, :), g2_vs_zvpas(it, izp, :, :))
-               if (write_g2_vs_zmus) call integrate_vpa(g2_vs_ztubeivmus(iz, it, :), g2_vs_tzmus(it, izp, :, :))
-               if (write_g2_vs_zvpas) call integrate_mu(iz, g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_zvpas(it, izp, :, :))
-               if (write_g2_vs_zmus) call integrate_vpa(g2nozonal_vs_ztubeivmus(iz, it, :), g2nozonal_vs_tzmus(it, izp, :, :))
+               ! Integrate into the contiguous arrays <g2_vs_vpas> and <g2_vs_mus>, since the slices
+               ! g2_vs_zvpas(it, izp, :, :) are not contiguous, which would create array temporaries
+               if (write_g2_vs_zvpas) then
+                  call integrate_mu(iz, g2_vs_ztubeivmus(iz, it, :), g2_vs_vpas); g2_vs_zvpas(it, izp, :, :) = g2_vs_vpas
+                  call integrate_mu(iz, g2nozonal_vs_ztubeivmus(iz, it, :), g2_vs_vpas); g2nozonal_vs_zvpas(it, izp, :, :) = g2_vs_vpas
+               end if
+               if (write_g2_vs_zmus) then
+                  call integrate_vpa(g2_vs_ztubeivmus(iz, it, :), g2_vs_mus); g2_vs_tzmus(it, izp, :, :) = g2_vs_mus
+                  call integrate_vpa(g2nozonal_vs_ztubeivmus(iz, it, :), g2_vs_mus); g2nozonal_vs_tzmus(it, izp, :, :) = g2_vs_mus
+               end if
             end do
          end do
+         deallocate (g2_vs_vpas, g2_vs_mus)
       end if
 
       ! For the field line average normalise to account for contributions from multiple flux tubes

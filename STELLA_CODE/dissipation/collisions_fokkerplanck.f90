@@ -3169,7 +3169,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       implicit none
 
       integer, intent(in) :: jj, nn, ll, isa, isb
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid), intent(out) :: deltj
+      real, dimension(:, :, -nzgrid:), intent(out) :: deltj
       real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: deltajm1_n, deltajm1_j
       integer :: iv, imu, iz, ia
       real :: v
@@ -3211,7 +3211,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       implicit none
 
       integer, intent(in) :: jj, ll
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid), intent(out) :: vLj
+      real, dimension(:, :, -nzgrid:), intent(out) :: vLj
       integer :: iv, imu, iz, ia
       real :: v
 

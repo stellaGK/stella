@@ -515,6 +515,8 @@ contains
    
       implicit none
       
+      integer :: is
+      
       !----------------------------------------------------------------------
 
       ! Calculate the vpa part of the v-space Maxwellian
@@ -526,7 +528,9 @@ contains
       end if
       
       ! <ztmax> is the Maxwellian in <vpa>, multiplied by charge number over normalized temperature
-      ztmax = spread(spec%zt, 1, nvpa) * maxwell_vpa
+      do is = 1, nspec
+         ztmax(:, is) = spec(is)%zt * maxwell_vpa(:, is)
+      end do
    
       ! Calculate the mu part of the v-space Maxwellian
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &

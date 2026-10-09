@@ -171,7 +171,7 @@ contains
       ! Grids
       use grids_kxky, only: naky, nakx
       use grids_z, only: nzgrid, ntubes
-      use grids_species, only: spec
+      use grids_species, only: spec, nspec
       use grids_velocity, only: vpa, vperp2
       
       ! Maxwellian
@@ -200,6 +200,10 @@ contains
       
       ! The moments are returned with dimensions (ky, kx, z, tube, s)
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: density, temperature, upar, spitzer2_vs_kykxzts
+
+      ! Local copy of the species weights, since passing the components of <spec>, e.g. <spec%dens_psi0>,
+      ! which are not contiguous in memory, creates an array temporary
+      real, dimension(nspec) :: weights
 
       ! Local variables
       integer :: ivmu, iv, imu, is, ia
@@ -236,7 +240,8 @@ contains
       end do
       
       ! Calculate <dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
-      call integrate_vmu(integrand, spec%dens_psi0, density)
+      weights = spec%dens_psi0
+      call integrate_vmu(integrand, weights, density)
 
       !=========================================================================
       !                   TURBULENT TEMPERATURE FLUCTUATIONS                   !
@@ -260,7 +265,8 @@ contains
       end do
       
       ! Calculate <temp> = tilde{T_s}/tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
-      call integrate_vmu(integrand, spec%temp_psi0 * spec%dens_psi0, temperature)
+      weights = spec%temp_psi0 * spec%dens_psi0
+      call integrate_vmu(integrand, weights, temperature)
       
       !=========================================================================
       !                                 SPITZER                                !      
@@ -274,7 +280,8 @@ contains
          integrand(:,:,:,:,ivmu) = g(:,:,:,:,ivmu) * ( vpa(iv) * (vpa(iv)**2 + &
             spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2. * vpa(iv) )
       end do
-      call integrate_vmu(integrand, spec%stm, spitzer2_vs_kykxzts) ! AVB: stm is the thermal speed
+      weights = spec%stm
+      call integrate_vmu(integrand, weights, spitzer2_vs_kykxzts) ! AVB: stm is the thermal speed
 
       !=========================================================================
       !                                  UPAR                                  !
@@ -285,7 +292,8 @@ contains
          is = is_idx(vmu_lo, ivmu)
          integrand(:, :, :, :, ivmu) = vpa(iv) * g_gyro(:, :, :, :, ivmu)
       end do
-      call integrate_vmu(integrand, spec%stm_psi0, upar)
+      weights = spec%stm_psi0
+      call integrate_vmu(integrand, weights, upar)
 
    end subroutine get_moments_fluxtube
  
