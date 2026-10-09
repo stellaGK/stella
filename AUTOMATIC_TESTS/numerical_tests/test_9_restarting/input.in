@@ -11,10 +11,15 @@
   nwrite = 10
   nsave = 10
   save_for_restart = .true.
+  write_all_potential = .true.
+  write_all_distribution = .true.
+/
+&diagnostics_moments
+  write_moments = .true.
 /
 &restart_options
   restart_dir = 'restart'
-  save_many = .false.
+  save_many = .true.
 /
 &gyrokinetic_terms
   include_nonlinear = .true.
