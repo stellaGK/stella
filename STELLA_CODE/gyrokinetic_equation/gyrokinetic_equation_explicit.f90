@@ -102,6 +102,11 @@ contains
          call advance_explicit_rk4(g, restart_time_step, istep)
       end select
 
+      ! Re-impose the twist-and-shift chain joins on the updated distribution function
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call enforce_chain_joins(g(:, :, :, :, ivmu))
+      end do
+
       ! If the fields are not already updated, then update them
       if (include_apar) then
          call advance_fields(g, phi, apar, bpar, dist='gbar')
@@ -162,7 +167,7 @@ contains
       use parameters_physics, only: include_parallel_nonlinearity
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: include_mirror
-      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: include_nonlinear
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: radial_variation
@@ -218,6 +223,11 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Re-impose the twist-and-shift chain joins on the input of every Runge-Kutta stage
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call enforce_chain_joins(pdf(:, :, :, :, ivmu))
+      end do
+
       ! Initialise the right-hand-side of the gyrokinetic equation to zero
       rhs_ky = 0.
 
@@ -251,6 +261,11 @@ contains
       else
          call advance_fields(pdf, phi, apar, bpar, dist='g')
       end if
+
+      ! The fields are obtained locally in (kx,z), so also re-impose the chain joins on the fields
+      call enforce_chain_joins(phi)
+      if (include_apar) call enforce_chain_joins(apar)
+      if (include_bpar) call enforce_chain_joins(bpar)
 
       if (radial_variation) call get_radial_correction(pdf, phi, dist='gbar')
 
@@ -660,5 +675,57 @@ contains
       g = g0 + g1 / 6.
 
    end subroutine advance_explicit_rk4
+
+   !****************************************************************************
+   !                     RE-IMPOSE THE TWIST-AND-SHIFT JOINS
+   !****************************************************************************
+   ! With linked boundary conditions, each join between two connected 2pi segments
+   ! is stored twice: at z = +nzgrid in segment iseg-1 and at z = -nzgrid in segment iseg.
+   ! The implicit streaming solve rewrites both copies from a single element of the
+   ! extended zed grid every time step (<map_to_extended_zgrid> and <map_from_extended_zgrid>),
+   ! but when parallel streaming is treated explicitly, the two copies are advanced
+   ! independently and drift apart. Here we impose the same relation as
+   ! <map_from_extended_zgrid>, g(iseg, -nzgrid) = g(iseg-1, +nzgrid) * <phase_shift>,
+   ! keeping the copy in the later segment and overwriting the copy in the earlier one.
+   !****************************************************************************
+   subroutine enforce_chain_joins(fld)
+
+      use parameters_physics, only: full_flux_surface
+      use parameters_numerical, only: stream_implicit
+      use grids_z, only: nzgrid, ntubes
+      use grids_z, only: boundary_option_switch
+      use grids_z, only: boundary_option_linked, boundary_option_linked_stellarator
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: neigen, nsegments, ikxmod, it_right
+      use grids_extended_zgrid, only: periodic, phase_shift
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: fld
+
+      integer :: iky, ie, iseg, it, itmod
+
+      !-------------------------------------------------------------------------
+
+      ! Only needed for flux tubes with linked boundary conditions and explicit streaming
+      if (stream_implicit .or. full_flux_surface) return
+      if (boundary_option_switch /= boundary_option_linked .and. &
+          boundary_option_switch /= boundary_option_linked_stellarator) return
+
+      do iky = 1, naky
+         if (periodic(iky)) cycle
+         do ie = 1, neigen(iky)
+            do it = 1, ntubes
+               itmod = it
+               do iseg = 2, nsegments(ie, iky)
+                  fld(iky, ikxmod(iseg - 1, ie, iky), nzgrid, itmod) = &
+                     fld(iky, ikxmod(iseg, ie, iky), -nzgrid, it_right(itmod)) / phase_shift(iky)
+                  itmod = it_right(itmod)
+               end do
+            end do
+         end do
+      end do
+
+   end subroutine enforce_chain_joins
 
 end module gyrokinetic_equation_explicit
