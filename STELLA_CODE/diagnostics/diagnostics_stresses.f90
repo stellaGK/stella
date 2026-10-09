@@ -118,6 +118,7 @@ contains
       
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :), allocatable :: g0k, g0a
+      complex, dimension(:, :), allocatable :: apar_kykx, bpar_kykx
       complex, dimension(:, :), allocatable :: prefac, g0xky
       complex, dimension(:, :), allocatable :: g0kxy
       complex, dimension(:, :), allocatable :: g0k_swap
@@ -140,6 +141,8 @@ contains
       ! Allocate arrays
       allocate (g0k(naky, nakx))
       allocate (g0a(naky, nakx))
+      allocate (apar_kykx(naky, nakx)); apar_kykx = 0.
+      allocate (bpar_kykx(naky, nakx)); bpar_kykx = 0.
       allocate (g0xy(ny, nx))
       allocate (g1xy(ny, nx))
       allocate (bracket_phi_h(ny, nx))
@@ -176,16 +179,19 @@ contains
             is = is_idx(vmu_lo, ivmu)
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
+                  ! Get the fields (to avoid indexing arrays which aren't allocated)
+                  if (include_apar) apar_kykx = apar(:, :, iz, it)
+                  if (include_bpar) bpar_kykx = bpar(:, :, iz, it)
                   ! Compute i*ky*g
                   call get_dgdy(g(:, :, iz, it, ivmu), g0k)
                   ! Take the FFT to get dg/dy in (y,x) space
                   call forward_transform(g0k, g0xy)                  
                   ! Compute i*kx*<phi>
-                  call get_dfielddx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k, 'phi')
+                  call get_dfielddx(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k, 'phi')
                   ! If running with equilibrium flow shear, make adjustment to
                   ! The term multiplying dg/dy
                   if (prp_shear_enabled .and. hammett_flow_shear) then
-                     call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0a)
+                     call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0a)
                      g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                   end if
                   ! Take the FFT to get d<phi>/dx in (y,x) space
@@ -197,7 +203,7 @@ contains
                   bracket_phi_h = g0xy * g1xy
                   
                   !repeat the same calculation for apar and bpar terms:
-                  call get_dfielddx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k, 'apar')
+                  call get_dfielddx(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k, 'apar')
                   if (prp_shear_enabled .and. hammett_flow_shear) then
                      g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                   end if
@@ -205,7 +211,7 @@ contains
                   g1xy = g1xy * exb_nonlin_fac
                   bracket_apar_h = g0xy * g1xy
                   
-                  call get_dfielddx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k, 'bpar')
+                  call get_dfielddx(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k, 'bpar')
                   if (prp_shear_enabled .and. hammett_flow_shear) then
                      g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
                   end if
@@ -223,7 +229,7 @@ contains
                   ! Take the FFT to get dg/dx in (y,x) space
                   call forward_transform(g0k, g0xy)
                   ! Compute d<phi>/dy in k-space
-                  call get_dfielddy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k, 'phi')
+                  call get_dfielddy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k, 'phi')
                   ! Take the FFT to get d<chi>/dy in (y,x) space
                   call forward_transform(g0k, g1xy)
                   ! Multiply by the geometric factor appearing in the Poisson bracket
@@ -233,12 +239,12 @@ contains
                   bracket_phi_h = bracket_phi_h - g0xy * g1xy
 
                   !repeat the same calculation for apar and bpar:
-                  call get_dfielddy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k, 'apar')
+                  call get_dfielddy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k, 'apar')
                   call forward_transform(g0k, g1xy)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket_apar_h = bracket_apar_h - g0xy * g1xy
 
-                  call get_dfielddy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k, 'bpar')
+                  call get_dfielddy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k, 'bpar')
       	      	  call forward_transform(g0k, g1xy)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket_bpar_h = bracket_bpar_h - g0xy * g1xy
@@ -301,6 +307,7 @@ contains
       gint(:,:) = temp(1,:,:,1)
 
       deallocate(g0k, g0a, g0xy, g1xy, bracket_phi_h, bracket_apar_h, bracket_bpar_h)
+      deallocate(apar_kykx, bpar_kykx)
       deallocate(temp, prefac, phi_h_nonlin_k, apar_h_nonlin_k, bpar_h_nonlin_k)
 
 

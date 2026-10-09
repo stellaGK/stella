@@ -284,6 +284,7 @@ contains
       
       ! Physics flags
       use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_apar, include_bpar
       
       ! Calculations
       use calculations_kxky_derivatives, only: get_dchidy
@@ -299,6 +300,7 @@ contains
 
       ! Local variables
       complex, dimension(:, :), allocatable :: g0k
+      complex, dimension(:, :), allocatable :: apar_kykx, bpar_kykx
       integer :: ivmu, iz, it, ia
 
       !-------------------------------------------------------------------------
@@ -308,6 +310,8 @@ contains
 
       ! Allocate temporary arrays
       allocate (g0k(naky, nakx))
+      allocate (apar_kykx(naky, nakx)); apar_kykx = 0.
+      allocate (bpar_kykx(naky, nakx)); bpar_kykx = 0.
 
       ! Abort for full-flux-surface simulations
       if (full_flux_surface) then
@@ -320,9 +324,13 @@ contains
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
             
+               ! Get the fields (to avoid indexing arrays which aren't allocated)
+               if (include_apar) apar_kykx = apar(:, :, iz, it)
+               if (include_bpar) bpar_kykx = bpar(:, :, iz, it)
+
                ! Take the derivate w.r.t. y in Fourier space
                ! <g0k> = i ky J_0 ϕ_k = d<chi>_theta/dy = get_dchidy(iz, ivmu, phi, apar, bpar, g0)
-               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
 
                ! Add, - omega_{zeta,k,s} * J0 * phi to the right-hand-side of the gyrokinetic equation
                ! TODO - check the sign of this term?
@@ -333,7 +341,7 @@ contains
       end do
 
       ! Deallocate temporary arrays
-      deallocate (g0k)
+      deallocate (g0k, apar_kykx, bpar_kykx)
 
    end subroutine advance_parallel_flow_shear
 
