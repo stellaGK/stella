@@ -150,6 +150,15 @@ def test_whether_all_output_files_are_gerenated_when_running_stella(local_stella
     ...
 ```
 
+The helpers `compare_local_potential_with_expected_potential` (and its `_em` version) compare
+the time traces of |phi|^2 (|apar|^2, |bpar|^2), and also the full state of the simulation (the
+fields on the full grid, the moments and the distribution function in velocity space) when the
+expected output was created with `numerical_tests/create_expected_output.py`. To use this, switch
+on the corresponding diagnostics in the input file (`write_all_potential`, `write_moments` and
+`write_g2_vs_vpamus`), and create the expected output with:
+
+    python3 AUTOMATIC_TESTS/numerical_tests/create_expected_output.py <test_folder>/<input_file>.in
+
 Some things to keep in mind when comparing data:
 
 - `np.allclose()` broadcasts arrays, so a simulation which wrote a single time step 

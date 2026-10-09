@@ -30,7 +30,7 @@
   beta = 999
 /
 &physics_inputs
-  rhostar = 999
+  rhostar = 0.0 ! Not useless: for rhostar > 0, phase_shift_angle of the parallel boundary condition depends on rhostar
 /
 
 !===============================================================================
@@ -89,6 +89,13 @@
 &diagnostics
   nsave = 10
   nwrite = 1
+  write_all_potential = .true.
+/
+&diagnostics_moments
+  write_moments = .true.
+/
+&diagnostics_distribution
+  write_g2_vs_vpamus = .true.
 /
 
 !===============================================================================

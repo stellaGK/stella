@@ -70,6 +70,7 @@ def test_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path, stella_ve
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'  
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry when toggling usefull flags ({int(local_netcdf["nproc"])} CPUs).')
     return
@@ -108,6 +109,7 @@ def test_whether_a_mistake_was_introduced_in_an_extra_flag_2(tmp_path, stella_ve
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry when toggling usefull flags ({int(local_netcdf["nproc"])} CPUs).')
     return
