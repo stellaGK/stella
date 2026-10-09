@@ -77,7 +77,6 @@
   include_nonlinear = .false.
   include_parallel_nonlinearity = .false.
   include_electromagnetic = .false.
-  include_radial_variation = .false.
 /
 
 &scale_gyrokinetic_terms

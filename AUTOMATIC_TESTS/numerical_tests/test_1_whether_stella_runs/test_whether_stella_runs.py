@@ -19,7 +19,6 @@ with open(module_path, 'r') as file: exec(file.read())
 
 # Global variables
 input_filename = 'miller_nonlinear_CBC.in'
-local_stella_run_directory = 'Not/Run/Yet'
 
 #-------------------------------------------------------------------------------
 #                           Get the stella version                             #
@@ -31,23 +30,24 @@ def stella_version(pytestconfig):
 #-------------------------------------------------------------------------------
 #                         Run local stella simulation                          #
 #-------------------------------------------------------------------------------
-def test_whether_we_can_run_a_local_stella_simulation(tmp_path, stella_version):
-    '''Run a local stella simulation in a temporary folder <tmp_path>.'''
-
-    # Save the temporary folder <tmp_path> as a global variable so the
-    # other tests can access the output files from the local stella run.
-    global local_stella_run_directory, input_filename
-    local_stella_run_directory = tmp_path
-
-    # Run stella inside of <tmp_path> based on <input_filename>
+@pytest.fixture(scope="module")
+def local_stella_run_directory(tmp_path_factory, stella_version):
+    '''Run a local stella simulation in a temporary folder, which is shared by all
+    the tests in this module, so that each test can also be run on its own.'''
+    tmp_path = tmp_path_factory.mktemp('stella_run')
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
+    return tmp_path
+
+def test_whether_we_can_run_a_local_stella_simulation(local_stella_run_directory):
+    '''Check that the local stella simulation has written its netcdf file.'''
+    assert (local_stella_run_directory / input_filename.replace('.in', '.out.nc')).exists(), 'stella did not write a netcdf file.'
     print('\n  -->  Successfully ran a local stella simulation.')
-    return 
-    
+    return
+
 #-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_all_output_files_are_gerenated_when_running_stella(error=False):  
+def test_whether_all_output_files_are_gerenated_when_running_stella(local_stella_run_directory, error=False):
     '''To ensure that stella ran correctly, check that all output files are generated.'''
     
     # Gather the output files generated during the local stella run inside <tmp_path>
@@ -77,7 +77,7 @@ def test_whether_all_output_files_are_gerenated_when_running_stella(error=False)
 #-------------------------------------------------------------------------------
 #         Check whether all quantities are present in the netcdf file          #
 #-------------------------------------------------------------------------------
-def test_whether_correct_quantities_are_present_in_netcdf_file(stella_version, error=False):
+def test_whether_correct_quantities_are_present_in_netcdf_file(local_stella_run_directory, stella_version, error=False):
     '''Check whether the correct quantities are present in the netcdf output file.''' 
     
     # Find the netcdf output file which was generated during our local stella run
@@ -119,7 +119,7 @@ def test_whether_correct_quantities_are_present_in_netcdf_file(stella_version, e
             expected_dimensions.remove('char200')
             expected_dimensions.remove('ri')
         else:
-            print(f'ABORT: the stella version "{stella_version}" does not exist'); sys.exit()
+            pytest.fail(f'The stella version "{stella_version}" does not exist.')
         
         # Check whether all the dimensions are present in the netcdf file
         for key in expected_dimensions:
@@ -154,3 +154,19 @@ def test_whether_correct_quantities_are_present_in_netcdf_file(stella_version, e
     return 
      
     
+
+#-------------------------------------------------------------------------------
+#          Check whether the simulation did not produce NaN or Inf values      #
+#-------------------------------------------------------------------------------
+def test_whether_netcdf_file_contains_only_finite_values(local_stella_run_directory, stella_version):
+    '''The other tests in this module only check whether the output exists, so also check
+    that the simulation itself is healthy, e.g. a division by zero for the (kx,ky) = (0,0)
+    mode once turned all fields into NaN after the first time step.'''
+    if stella_version != 'master': pytest.skip('Only checked for the master branch of stella.')
+    local_netcdf_file = local_stella_run_directory / input_filename.replace('.in', '.out.nc')
+    with xr.open_dataset(local_netcdf_file) as local_netcdf:
+        keys = [key for key in local_netcdf.variables if local_netcdf[key].dtype.kind in 'fc']
+        not_finite = [key for key in keys if not np.all(np.isfinite(local_netcdf[key].values))]
+    assert not not_finite, f'The netcdf file contains NaN or Inf values in {not_finite}.'
+    print(f'  -->  All {len(keys)} quantities in the netcdf file are finite.')
+    return
