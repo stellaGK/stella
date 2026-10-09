@@ -783,6 +783,11 @@ contains
          ! sgn > 0 corresponds to negative advection speed
          ! upwind at boundary requires taking information from right
          df(i) = (f(i + 1) - f(i)) / del
+      else if (iseg == 1 .and. .not. periodic) then
+         ! sgn < 0 corresponds to positive advection speed, so this is the incoming end:
+         ! use the same row as <third_order_upwind_zed>, so that the zero incoming boundary
+         ! condition acts consistently on g and <phi>, as it does in the implicit scheme
+         df(i) = f(i) / del
       else
          df(i) = 0.5 * (f(i + 1) - fl(2)) / del
       end if
@@ -792,6 +797,9 @@ contains
          ! sgn < 0 corresponds to positive advection speed
          ! upwind at boundary requires taking information from left
          df(i) = (f(i) - f(i - 1)) / del
+      else if (iseg == nseg .and. .not. periodic) then
+         ! sgn > 0 corresponds to negative advection speed, so this is the incoming end
+         df(i) = -f(i) / del
       else
          df(i) = 0.5 * (fr(1) - f(i - 1)) / del
       end if
@@ -799,6 +807,16 @@ contains
       do i = llim + 1, ulim - 1
          df(i) = 0.5 * (f(i + 1) - f(i - 1)) / del
       end do
+
+      ! The second point from the incoming end also uses the row of <third_order_upwind_zed>
+      if (iseg == 1 .and. sgn < 0 .and. .not. periodic) then
+         i = llim + 1
+         df(i) = (2. * f(i + 1) + 3. * f(i) - 6. * f(i - 1)) / (6. * del)
+      end if
+      if (iseg == nseg .and. sgn > 0 .and. .not. periodic) then
+         i = ulim - 1
+         df(i) = -(2. * f(i - 1) + 3. * f(i) - 6. * f(i + 1)) / (6. * del)
+      end if
 
    end subroutine second_order_centered_zed_real
 
@@ -845,6 +863,11 @@ contains
          ! sgn > 0 corresponds to negative advection speed
          ! upwind at boundary requires taking information from right
          df(i) = (f(i + 1) - f(i)) / del
+      else if (iseg == 1 .and. .not. periodic) then
+         ! sgn < 0 corresponds to positive advection speed, so this is the incoming end:
+         ! use the same row as <third_order_upwind_zed>, so that the zero incoming boundary
+         ! condition acts consistently on g and <phi>, as it does in the implicit scheme
+         df(i) = f(i) / del
       else
          df(i) = 0.5 * (f(i + 1) - fl(2)) / del
       end if
@@ -854,6 +877,9 @@ contains
          ! sgn < 0 corresponds to positive advection speed
          ! upwind at boundary requires taking information from left
          df(i) = (f(i) - f(i - 1)) / del
+      else if (iseg == nseg .and. .not. periodic) then
+         ! sgn > 0 corresponds to negative advection speed, so this is the incoming end
+         df(i) = -f(i) / del
       else
          df(i) = 0.5 * (fr(1) - f(i - 1)) / del
       end if
@@ -861,6 +887,16 @@ contains
       do i = llim + 1, ulim - 1
          df(i) = 0.5 * (f(i + 1) - f(i - 1)) / del
       end do
+
+      ! The second point from the incoming end also uses the row of <third_order_upwind_zed>
+      if (iseg == 1 .and. sgn < 0 .and. .not. periodic) then
+         i = llim + 1
+         df(i) = (2. * f(i + 1) + 3. * f(i) - 6. * f(i - 1)) / (6. * del)
+      end if
+      if (iseg == nseg .and. sgn > 0 .and. .not. periodic) then
+         i = ulim - 1
+         df(i) = -(2. * f(i - 1) + 3. * f(i) - 6. * f(i + 1)) / (6. * del)
+      end if
 
    end subroutine second_order_centered_zed_complex
 
