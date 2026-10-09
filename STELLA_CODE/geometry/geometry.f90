@@ -922,6 +922,7 @@ contains
       
       ! Note that psi here is meaningless
       drhodpsi = 1./dpsipdrho
+      drhodpsip = 1./dpsipdrho
       drhodpsip_psi0 = 1./dpsipdrho_psi0
       dxdpsi = 1.0
       dydalpha = 1.0
@@ -1260,6 +1261,8 @@ contains
       call broadcast(geo_surf%rhotor)
       call broadcast(geo_surf%psitor_lcfs)
       call broadcast(geo_surf%drhotordrho)
+      call broadcast(geo_surf%d2psitordrho2)
+      call broadcast(geo_surf%zed0_fac)
 
       ! Reference quantities
       call broadcast(aref)

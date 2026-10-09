@@ -43,33 +43,35 @@ module common_types
       integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
    end type kymus_layout_type
    
+   ! Not all quantities are calculated for every geometry (e.g. the Miller parameters and the radial
+   ! derivatives for VMEC), so initialise them to zero to avoid using uninitialised values
    type :: flux_surface_type
-      real :: rmaj
-      real :: rgeo
-      real :: kappa
-      real :: kapprim
-      real :: tri
-      real :: triprim
-      real :: rhoc
-      real :: dr
-      real :: shift
-      real :: qinp
-      real :: shat
-      real :: betaprim
-      real :: betadbprim
-      real :: d2qdr2
-      real :: d2psidr2
-      real :: dpsitordrho
-      real :: d2psitordrho2
-      real :: rhotor
-      real :: drhotordrho
-      real :: psitor_lcfs
-      real :: zed0_fac
+      real :: rmaj = 0.0
+      real :: rgeo = 0.0
+      real :: kappa = 0.0
+      real :: kapprim = 0.0
+      real :: tri = 0.0
+      real :: triprim = 0.0
+      real :: rhoc = 0.0
+      real :: dr = 0.0
+      real :: shift = 0.0
+      real :: qinp = 0.0
+      real :: shat = 0.0
+      real :: betaprim = 0.0
+      real :: betadbprim = 0.0
+      real :: d2qdr2 = 0.0
+      real :: d2psidr2 = 0.0
+      real :: dpsitordrho = 0.0
+      real :: d2psitordrho2 = 0.0
+      real :: rhotor = 0.0
+      real :: drhotordrho = 0.0
+      real :: psitor_lcfs = 0.0
+      real :: zed0_fac = 0.0
       
       ! The next few variables are for multibox simulations
-      real :: rhoc_psi0
-      real :: qinp_psi0
-      real :: shat_psi0
+      real :: rhoc_psi0 = 0.0
+      real :: qinp_psi0 = 0.0
+      real :: shat_psi0 = 0.0
    end type flux_surface_type
 
    type spec_type
