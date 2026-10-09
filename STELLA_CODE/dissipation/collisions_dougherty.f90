@@ -1814,10 +1814,6 @@ contains
          phi(iky, ikx, iz, it) = flds(iky, ikx, iz, it, 1)
       end do
 
-      ! Collect the solution of the response matrix from all processors
-      call sum_allreduce(flds_solved)
-      flds = flds_solved
-      deallocate (flds_solved)
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -1847,13 +1843,21 @@ contains
             call lu_back_substitution(vpadiff_response(:, :, ikxkyz), vpadiff_idx(:, ikxkyz), &
                                       tmp2)
 
+            ! The flux-surface-averaged phi changes all components of the solution, i.e. also
+            ! the parallel flow and temperature used in the conservation terms below
             phi(1, ikx, iz, it) = phi(1, ikx, iz, it) + tmp2(1)
+            flds_solved(1, ikx, iz, it, :) = flds_solved(1, ikx, iz, it, :) + tmp2
          end do
          deallocate (tmp2)
 
       end if
 
       call sum_allreduce(phi)
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       g = g_in
 
@@ -2001,10 +2005,6 @@ contains
          phi(iky, ikx, iz, it) = flds(iky, ikx, iz, it, 1)
       end do
 
-      ! Collect the solution of the response matrix from all processors
-      call sum_allreduce(flds_solved)
-      flds = flds_solved
-      deallocate (flds_solved)
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -2033,13 +2033,21 @@ contains
             call lu_back_substitution(mudiff_response(:, :, ikxkyz), mudiff_idx(:, ikxkyz), &
                                       tmp2)
 
+            ! The flux-surface-averaged phi changes all components of the solution, i.e. also
+            ! the parallel flow and temperature used in the conservation terms below
             phi(1, ikx, iz, it) = phi(1, ikx, iz, it) + tmp2(1)
+            flds_solved(1, ikx, iz, it, :) = flds_solved(1, ikx, iz, it, :) + tmp2
          end do
          deallocate (tmp2)
 
       end if
 
       call sum_allreduce(phi)
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       g = g_in
 

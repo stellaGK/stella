@@ -2495,6 +2495,15 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       !  end if
       !end do
 
+      ! If <advfield_coll> = False, the electrostatic potential terms are disabled in the field particle
+      ! operator, so decouple phi from the field particle terms in the response matrix. Otherwise the
+      ! (unused) phi component of the right-hand side would contaminate the field particle terms.
+      if (.not. advfield_coll) then
+         fp_response(1, :, :) = 0.
+         fp_response(:, 1, :) = 0.
+         fp_response(1, 1, :) = 1.
+      end if
+
       ! LU decomposition for response
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          call lu_decomposition(fp_response(:, :, ikxkyz), diff_idx(:, ikxkyz), dum2)
@@ -4282,6 +4291,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       if (advfield_coll) then
          call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h')
          flds(:, :, :, :, 1) = phi
+      else
+         ! phi is decoupled from the field particle terms in the response matrix (see init_fp_conserve)
+         flds(:, :, :, :, 1) = 0.
       end if
 
       ! next get the psi^{s1s2,jlm}_inh^{n+1}
