@@ -76,8 +76,6 @@
   include_nonlinear = .false.
   include_parallel_nonlinearity = .false.
   include_electromagnetic = .false.
-  include_full_flux_annulus = .false.
-  include_radial_variation = .false.
 /
 
 &scale_gyrokinetic_terms
@@ -364,7 +362,7 @@
 
 &numerical_algorithms
   explicit_algorithm = 'rk3'
-  flip_flop = .false.  
+  flip_flop = .true.   
   stream_implicit = .true.
   stream_iterative_implicit = .false.
   stream_matrix_inversion = .false.

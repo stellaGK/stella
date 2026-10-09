@@ -521,7 +521,7 @@ contains
       use grids_kxky, only: akx
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
-      use calculations_gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use arrays_distribution_function, only: phi_gyro
       use calculations_kxky_derivatives, only: get_dgdx
@@ -603,9 +603,9 @@ contains
          ! add vM . grad x d<phi>/dx term to equation
          call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
          if (include_bpar) then
-               ! get <dbpar/dx> in k-space
+               ! get <dbpar/dx> in k-space, bpar is gyro-averaged with J1/a (as for the y-drift)
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               call gyro_average(dbpardx, ivmu, g0k(:, :, :, :, ivmu))
+               call gyro_average_j1(dbpardx, ivmu, g0k(:, :, :, :, ivmu))
                end do
                ! add vM . grad x ( 4 mu d<bpar>/dx ) term to equation
                call add_explicit_term(g0k, wdriftx_bpar(1, :, :), gout)

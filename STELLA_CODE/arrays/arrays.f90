@@ -87,11 +87,11 @@ module arrays
    !----------------------------------------------------------------------------
 
    ! Keep track of which routines have been initialised
-   logical :: initialised_wdrift
-   logical :: initialised_wstar
-   logical :: initialised_parallel_streaming
-   logical :: initialised_radial_variation
-   logical :: initialised_implicit_drifts
+   logical :: initialised_wdrift = .false.
+   logical :: initialised_wstar = .false.
+   logical :: initialised_parallel_streaming = .false.
+   logical :: initialised_radial_variation = .false.
+   logical :: initialised_implicit_drifts = .false.
    
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation

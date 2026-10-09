@@ -348,6 +348,9 @@ contains
          
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(phi)
+         
+         ! Stop timer
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ] / [ sum_s (Z_s² n_s/T_s) (1 - Gamma0) ]
          ! by dividing with denominator_fields[iky,ikz,iz] = sum_s (Z_s² n_s/T_s) (1 - Gamma0) in the calculate_phi() routine
