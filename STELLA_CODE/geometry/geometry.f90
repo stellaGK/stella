@@ -315,9 +315,13 @@ contains
       ! If the magnetic |∇x . ∇y| is almost zero, override parallel boundary 
       ! condition so that it is periodic if using the stellarator symmetric
       !twist and shift bc, in which kx_shift is proportional to |∇x . ∇y|
-      ! TODO: this will fail for Miller + boundary_option_linked_stellarator since grad_x_grad_y_end isn't set
+      ! Note that <grad_x_grad_y_end> is only calculated for VMEC, so for the other
+      ! geometries the stellarator symmetric twist and shift bc falls back to periodic bc
       case (boundary_option_linked_stellarator)
-         if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) then
+         if (geo_option_switch /= geo_option_vmec) then
+            write (*, *) 'Using periodic boundary conditions as boundary_option = "stellarator" is only implemented for VMEC'
+            boundary_option_switch = boundary_option_self_periodic
+         else if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) then
             write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
             boundary_option_switch = boundary_option_self_periodic 
          end if
