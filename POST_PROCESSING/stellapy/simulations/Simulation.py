@@ -9,7 +9,7 @@ from stellapy.utils.files.keep_simulationsWithOutputFiles import keep_simulation
 from stellapy.simulations.utils.get_simulationIdentifier import get_simulationsIdentifier 
 
 # Input file
-from stellapy.data.input.read_inputFile import read_inputFile, read_numberOfModesFromInputFile 
+from stellapy.data.input.read_inputFile import read_inputFile, read_numberOfModesFromInputFile, is_full_flux_surface 
 
 # Data
 from stellapy.data.potential import load_potentialObject
@@ -83,7 +83,7 @@ class Simulation:
         self.input_parameters = self.inputParameters = input_parameters 
         self.linear = not self.input_parameters['gyrokinetic_terms']['include_nonlinear']
         self.nonlinear = self.input_parameters['gyrokinetic_terms']['include_nonlinear']
-        self.full_flux_surface = self.input_parameters['gyrokinetic_terms']['include_full_flux_annulus']
+        self.full_flux_surface = is_full_flux_surface(self.input_parameters)
         self.nakxnaky = self.input_parameters['kxky_grid_range']['nakx']*self.input_parameters['kxky_grid_range']['naky'] if self.input_parameters['kxky_grid_option']['grid_option']=='range' else self.input_parameters['kxky_grid_box']['nx']*self.input_parameters['kxky_grid_box']['ny']
         
         # Remove some input parameters that may vary between simulations without affecting the simulation (much)

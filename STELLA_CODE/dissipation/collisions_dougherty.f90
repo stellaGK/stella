@@ -1750,7 +1750,7 @@ contains
       integer :: imu
       integer :: idx
       real, dimension(:, :), allocatable :: tmp
-      complex, dimension(:, :, :, :, :), allocatable :: flds
+      complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:), allocatable :: tmp2
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
@@ -1790,6 +1790,11 @@ contains
       ! Get temp_inh^{n+1}
       if (energy_conservation) call get_temp(g, flds(:, :, :, :, idx:idx + nspec - 1))
 
+      ! The response matrix is only applied on the processor that owns is = 1 for each
+      ! (ky,kx,z,tube) point, so store the solution in <flds_solved>, which is summed over
+      ! all processors below, since the conservation terms need it for every species
+      allocate (flds_solved(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse_vpa)); flds_solved = 0.
+
       phi = 0.0
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -1801,12 +1806,18 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz); if (is /= 1) cycle
          call lu_back_substitution(vpadiff_response(:, :, ikxkyz), vpadiff_idx(:, ikxkyz), &
                                    flds(iky, ikx, iz, it, :))
+         flds_solved(iky, ikx, iz, it, :) = flds(iky, ikx, iz, it, :)
          if (.not. has_electron_species(spec) .and. zonal_mode(iky) &
              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             flds_zf(ikx, it, :) = flds_zf(ikx, it, :) + dl_over_b(ia, iz) * flds(iky, ikx, iz, it, :)
          end if
          phi(iky, ikx, iz, it) = flds(iky, ikx, iz, it, 1)
       end do
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -1926,7 +1937,7 @@ contains
       integer :: idx
       real, dimension(:, :), allocatable :: tmp
       complex, dimension(:), allocatable :: tmp2
-      complex, dimension(:, :, :, :, :), allocatable :: flds
+      complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
       !----------------------------------------------------------------------
@@ -1966,6 +1977,11 @@ contains
       ! Get temp_inh^{n+1}
       if (energy_conservation) call get_temp_mu(g, flds(:, :, :, :, idx:idx + nspec - 1))
 
+      ! The response matrix is only applied on the processor that owns is = 1 for each
+      ! (ky,kx,z,tube) point, so store the solution in <flds_solved>, which is summed over
+      ! all processors below, since the conservation terms need it for every species
+      allocate (flds_solved(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse_mu)); flds_solved = 0.
+
       phi = 0.0
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -1977,12 +1993,18 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz); if (is /= 1) cycle
          call lu_back_substitution(mudiff_response(:, :, ikxkyz), mudiff_idx(:, ikxkyz), &
                                    flds(iky, ikx, iz, it, :))
+         flds_solved(iky, ikx, iz, it, :) = flds(iky, ikx, iz, it, :)
          if (.not. has_electron_species(spec) .and. zonal_mode(iky) &
              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             flds_zf(ikx, it, :) = flds_zf(ikx, it, :) + dl_over_b(ia, iz) * flds(iky, ikx, iz, it, :)
          end if
          phi(iky, ikx, iz, it) = flds(iky, ikx, iz, it, 1)
       end do
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
