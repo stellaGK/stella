@@ -104,6 +104,7 @@ contains
 
       use grids_z, only: boundary_option_switch
       use grids_z, only: boundary_option_self_periodic
+      use grids_z, only: boundary_option_zero
       use grids_z, only: boundary_option_linked
       use grids_z, only: boundary_option_linked_stellarator
       use grids_z, only: nperiod, nzgrid, nzed, ntubes
@@ -141,6 +142,13 @@ contains
       ! have an effect for global simulations and simulations with low
       ! magnetic shear that use periodic boundary conditions everywhere
       phase_shift = exp(zi * aky * phase_shift_angle)
+
+      ! For unconnected boundary conditions ('default', 'zero' or 'unconnected') the
+      ! 2pi segments tile one contiguous field line at fixed kx, so the segment joins
+      ! are interior points (z = +-pi, +-3pi, ...) and no phase shift belongs there.
+      ! Applying it would corrupt the parallel derivative at these joins whenever
+      ! rhostar > 0, since <phase_shift_angle> is then set from rhostar in grids_kxky.
+      if (boundary_option_switch == boundary_option_zero) phase_shift = (1.0, 0.0)
 
       if (debug) write (*, *) 'extended_zgrid::boundary_option_switch'  
       if (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator) then
