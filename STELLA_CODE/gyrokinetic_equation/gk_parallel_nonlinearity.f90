@@ -328,7 +328,8 @@ contains
             advect_sign = int(sign(1.0, advect_speed(imu, ixyz)))
             call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, advect_sign, dgdv)
             gxy_vmulocal(:, imu, ixyz) = dgdv * advect_speed(imu, ixyz)
-            cfl_dt_parallel = min(cfl_dt_parallel, dvpa / abs(advect_speed(imu, ixyz)))
+            ! A zero advection speed does not limit the time step (avoid dividing by zero)
+            if (abs(advect_speed(imu, ixyz)) > 0.) cfl_dt_parallel = min(cfl_dt_parallel, dvpa / abs(advect_speed(imu, ixyz)))
          end do
       end do
 

@@ -285,7 +285,7 @@ contains
       dl_over_b(:, nzgrid) = 0.
 
       ! Correction to flux-surface-averaging for adiabatic electrons
-      ! FLAG COOKIE TO GEORGIA - <djacdrho> is not defined for VMEC?
+      ! Note that <djacdrho> = 0 for VMEC, where radial variation is not implemented
       d_dl_over_b_drho = spread(delzed, 1, nalpha) * djacdrho
       d_dl_over_b_drho(:, nzgrid) = 0
       d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b * spread(sum(d_dl_over_b_drho, dim=2) / sum(dl_over_b, dim=2), 2, 2 * nzgrid + 1)
@@ -440,6 +440,7 @@ contains
    subroutine get_geometry_arrays_from_VMEC(nalpha, naky)
 
       use mp, only: mp_abort
+      use parameters_physics, only: radial_variation
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry
       use vmec_geometry, only: radial_coordinate_switch, radial_coordinate_sgnpsitpsit
       use vmec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r
@@ -471,6 +472,12 @@ contains
       ! Pretty sure q_as_x is not implemented for VMEC
       if (q_as_x) then
          call mp_abort('q_as_x = True is not implemented for VMEC. Aborting.')
+      end if 
+      
+      ! The radial derivatives of the geometric quantities (e.g. <djacdrho>, <dBdrho>)
+      ! are not calculated for VMEC, so radial variation is not implemented for VMEC
+      if (radial_variation) then
+         call mp_abort('radial_variation = True is not implemented for VMEC. Aborting.')
       end if 
       
       ! Read the <vmec_parameters> namelist in the input file

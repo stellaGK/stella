@@ -21,7 +21,7 @@
 !   
 !   numerical_algorithms
 !     explicit_algorithm = 'rk3'
-!     flip_flop = .false.  
+!     flip_flop = .true.   
 !     stream_implicit = .true.
 !     stream_iterative_implicit = .false.
 !     stream_matrix_inversion = .false.
@@ -305,7 +305,7 @@ contains
          implicit none
 
          explicit_algorithm = 'rk3'
-         flip_flop = .false.
+         flip_flop = .true.
          stream_implicit = .true.
          stream_iterative_implicit = .false.
          stream_matrix_inversion = .false.
