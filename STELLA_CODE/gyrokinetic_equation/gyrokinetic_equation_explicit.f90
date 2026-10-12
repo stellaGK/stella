@@ -102,15 +102,9 @@ contains
          call advance_explicit_rk4(g, restart_time_step, istep)
       end select
 
-      ! Update the fields so that they correspond to the advanced distribution function.
-      ! With <flip_flop> = True the explicit terms are advanced last on every second time step,
-      ! and without this update <phi> would still be the field of the last Runge-Kutta stage.
-      ! That stale <phi> is used by the omega diagnostic and is saved as <phi_old> at the
-      ! start of the next time step, which made omega and gamma wrong (and autostop fail).
+      ! If the fields are not already updated, then update them
       if (include_apar) then
          call advance_fields(g, phi, apar, bpar, dist='gbar')
-      else
-         call advance_fields(g, phi, apar, bpar, dist='g')
       end if
       
       ! Later, the implicit solve will use <g> rather than <gbar> to advance the 
