@@ -182,6 +182,7 @@ contains
 
       ! Flags
       use parameters_multibox, only: include_geometric_variation
+      use debug_flags, only: print_extra_info_to_terminal
 
       ! Routines
       use namelist_geometry, only: read_namelist_geometry_from_txt, read_namelist_geometry_options
@@ -228,7 +229,34 @@ contains
          if (overwrite_geometry) call overwrite_selected_geometric_coefficients(nalpha)
 
          if (overwrite_shat) then 
-            geo_surf%shat = shat
+            
+            ! Recalculate the <twist_and_shift_geo_fac> needed for the boundary conditions
+            select case (boundary_option_switch)
+
+            ! Stellarator symmetric twist-and-shift BC (see Martin et al, 2018)
+            case (boundary_option_linked_stellarator)
+
+                ! The twist_and_shift_geo_fac is unchanged
+                twist_and_shift_geo_fac = twist_and_shift_geo_fac
+                ! Print this factor to the output file
+                if (print_extra_info_to_terminal) write (*, *) 'Stellarator symmetric twist-and-shift BC, &
+                        twist_and_shift_geo_fac is unchanged: ', twist_and_shift_geo_fac; write (*, *) ' '
+
+
+            ! Standard twist-and-shift boundary conditions or unconnected BC (then twist_and_shift_geo_fac doesn't matter)
+            case default
+
+                ! The twist_and_shift_geo_fac needs to be multiplied by the new shat and divided by the old one
+                twist_and_shift_geo_fac = twist_and_shift_geo_fac / geo_surf%shat * shat
+                ! Print this factor to the output file
+                if (print_extra_info_to_terminal) write (*, *) 'Standard twist-and-shift BC, &
+                        twist_and_shift_geo_fac changed: ', twist_and_shift_geo_fac; write (*, *) ' '
+
+            end select
+         
+         ! Overwrite geo_surf%shat too
+         geo_surf%shat = shat
+         
          end if
 
          ! <exb_nonlin_fac> = -(0.5/C)*Bref*(dx/dpsi)(dy/dalpha) = - 0.5 * (1/<clebsch_factor>) * <dxdpsi> * <dydalpha>
