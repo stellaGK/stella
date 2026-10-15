@@ -1,0 +1,146 @@
+! Cross-scheme consistency test input for the explicit time integrators.
+!
+! Identical to integrator_regression.in except:
+!   - <nstep> is reduced and <nwrite> = 1 so the full <phi2>(t) trace is stored
+!     (the cross-scheme test compares the trajectories, not a single value).
+!   - <explicit_algorithm> is 'ssp93' (a representative higher-order scheme);
+!     the other schemes are run on copies of this file with that one line
+!     changed. See test_3f_explicit_integrator_consistency.py.
+!
+! The test asserts that all six new schemes (ssp32/ssp42/ssp52/ssp43/ssp93/rk64)
+! reproduce the same potential <phi2>(t) within a loose tolerance, which directly
+! validates the ported Runge-Kutta coefficients (a mistyped coefficient would
+! shift the trajectory).
+
+!===============================================================================
+!                               Magnetic Geometry
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
+
+!===============================================================================
+!                                    Physics
+!===============================================================================
+
+&gyrokinetic_terms
+  include_parallel_streaming = .true.
+  include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .false.
+  include_drive = .false.
+  include_nonlinear = .false.
+/
+
+!===============================================================================
+!                                Kinetic species
+!===============================================================================
+
+&species_options
+  nspec = 2
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
+  nx = 6
+  ny = 9
+  y0 = 15
+/
+&z_grid
+  nzed = 12
+/
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
+/
+
+!===============================================================================
+!                                  Diagnostics
+!===============================================================================
+
+&diagnostics
+  nsave = 100
+  nwrite = 1
+/
+
+!===============================================================================
+!                              initialise potential
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.01
+/
+
+&initialise_distribution_maxwellian
+  width0 = 1.0
+/
+
+!===============================================================================
+!                                    Numerics
+!===============================================================================
+
+&time_trace_options
+  nstep = 20
+/
+
+&time_step
+  delt_option = 'set_by_hand'
+  delt = 0.0005
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'ssp93'
+  stream_implicit = .false.
+  mirror_implicit = .false.
+  drifts_implicit = .false.
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
