@@ -81,6 +81,8 @@ module namelist_parameters_numerical
    ! Parameters need to be public (explicit_algorithm)
    public :: explicit_algorithm_rk3, explicit_algorithm_rk2
    public :: explicit_algorithm_rk4, explicit_algorithm_euler
+   public :: explicit_algorithm_ssp32, explicit_algorithm_ssp42, explicit_algorithm_ssp52
+   public :: explicit_algorithm_ssp43, explicit_algorithm_ssp93, explicit_algorithm_rk64
 
    private
 
@@ -93,6 +95,12 @@ module namelist_parameters_numerical
    integer, parameter :: explicit_algorithm_rk2 = 2
    integer, parameter :: explicit_algorithm_rk4 = 3
    integer, parameter :: explicit_algorithm_euler = 4
+   integer, parameter :: explicit_algorithm_ssp32 = 5
+   integer, parameter :: explicit_algorithm_ssp42 = 6
+   integer, parameter :: explicit_algorithm_ssp52 = 7
+   integer, parameter :: explicit_algorithm_ssp43 = 8
+   integer, parameter :: explicit_algorithm_ssp93 = 9
+   integer, parameter :: explicit_algorithm_rk64 = 10
 
    ! These variables are used in every single subroutine, so make them global
    integer :: in_file
@@ -336,12 +344,18 @@ contains
          integer :: ierr
          
          ! Link text options for <explicit_algorithm> to an integer value
-         type(text_option), dimension(5), parameter :: explicitopts = &
+         type(text_option), dimension(11), parameter :: explicitopts = &
            (/text_option('default', explicit_algorithm_rk3), &
            text_option('rk3', explicit_algorithm_rk3), &
            text_option('rk2', explicit_algorithm_rk2), &
            text_option('rk4', explicit_algorithm_rk4), &
-           text_option('euler', explicit_algorithm_euler)/)
+           text_option('euler', explicit_algorithm_euler), &
+           text_option('ssp32', explicit_algorithm_ssp32), &
+           text_option('ssp42', explicit_algorithm_ssp42), &
+           text_option('ssp52', explicit_algorithm_ssp52), &
+           text_option('ssp43', explicit_algorithm_ssp43), &
+           text_option('ssp93', explicit_algorithm_ssp93), &
+           text_option('rk64', explicit_algorithm_rk64)/)
            
          ! Variables in the <numerical_algorithms> namelist
          namelist /numerical_algorithms/ explicit_algorithm, flip_flop, &

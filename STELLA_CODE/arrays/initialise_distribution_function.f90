@@ -216,12 +216,15 @@ contains
       ! Distribution functions that are allocated here
       use arrays_distribution_function, only: gnew, gold, phi_gyro
       use arrays_distribution_function, only: gvmu, g_kymus
-      use arrays_distribution_function, only: g0, g1, g2, g3
-      
+      use arrays_distribution_function, only: g0, g1, g2, g3, g4
+
       ! Numerical flags
       use parameters_numerical, only: split_parallel_dynamics
       use parameters_numerical, only: explicit_algorithm_switch
       use parameters_numerical, only: explicit_algorithm_rk4
+      use parameters_numerical, only: explicit_algorithm_ssp52
+      use parameters_numerical, only: explicit_algorithm_ssp43
+      use parameters_numerical, only: explicit_algorithm_ssp93
       
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -284,7 +287,19 @@ contains
          end if
          g3 = 0.
       end if
-      
+
+      ! Only allocate <g4> if a 5-stage / 3rd order SSP scheme is utilised
+      if (.not. allocated(g4)) then
+         if (explicit_algorithm_switch == explicit_algorithm_ssp52 .or. &
+             explicit_algorithm_switch == explicit_algorithm_ssp43 .or. &
+             explicit_algorithm_switch == explicit_algorithm_ssp93) then
+            allocate (g4(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         else
+            allocate (g4(1, 1, 1, 1, 1))
+         end if
+         g4 = 0.
+      end if
+
    end subroutine init_arrays_distribution_function
    
    !****************************************************************************
@@ -302,6 +317,7 @@ contains
       use namelist_initialise_distribution_function, only: init_distribution_option_kpar
       use namelist_initialise_distribution_function, only: init_distribution_option_rh
       use namelist_initialise_distribution_function, only: init_distribution_option_remap
+      use namelist_initialise_distribution_function, only: init_distribution_option_fourierblob
 
       ! Arguments
       logical, intent(out) :: restarted
@@ -335,6 +351,8 @@ contains
          call initialise_distribution_rh
       case (init_distribution_option_remap)
          call initialise_distribution_remap
+      case (init_distribution_option_fourierblob)
+         call initialise_distribution_fourierblob
       case (init_distribution_option_restart)
          call initialise_distribution_restart
          call init_tstart(tstart, istep0, istatus)
@@ -964,6 +982,96 @@ contains
    end subroutine initialise_distribution_remap
 
    !****************************************************************************
+   !                 INITIALISE POTENTIAL: FOURIER BLOB                         !
+   !****************************************************************************
+   ! Initialise the distribution function from a 3D Gaussian blob in (kx,ky,z)
+   ! space (useful as a smooth, non-geometric linear/nonlinear initial condition).
+   !****************************************************************************
+   subroutine initialise_distribution_fourierblob
+
+      use mp, only: proc0, broadcast
+      use constants, only: zi, pi
+      use grids_species, only: spec
+      use grids_z, only: nzgrid, zed
+      use grids_kxky, only: naky, nakx
+      use grids_kxky, only: aky, akx
+      use grids_kxky, only: reality
+      use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: vpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use arrays_distribution_function, only: gvmu
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_maxwellian
+
+      implicit none
+
+      complex, dimension(naky, nakx, -nzgrid:nzgrid) :: phi
+      real :: sigma_y, sigma_x, sigma_z
+      real :: width0, den0, upar0, tpar0, tperp0
+      real :: den1, upar1, tpar1, tperp1
+      real :: den2, upar2, tpar2, tperp2
+      logical :: left, chop_side, oddparity, set_theta0_to_zero
+      logical :: right
+      integer :: ikxkyz
+      integer :: iz, iky, ikx, is, ia
+
+      !-------------------------------------------------------------------------
+
+      ! Read <initialise_distribution> noise-style namelist for width0/den0/upar0/left/chop_side
+      if (proc0) call read_namelist_initialise_distribution_maxwellian(&
+         width0, den0, upar0, oddparity, left, chop_side, set_theta0_to_zero)
+
+      ! Broadcast to all processors
+      call broadcast(width0)
+      call broadcast(den0)
+      call broadcast(upar0)
+      call broadcast(left)
+      call broadcast(chop_side)
+
+      ! Widths of the blob in (kx, ky, z)
+      sigma_x = maxval(akx) / 4.
+      sigma_y = maxval(aky) / 4.
+      sigma_z = pi / 4.0
+
+      ! Build the (kx, ky, z) blob
+      do iz = -nzgrid, nzgrid
+         do iky = 1, naky
+            do ikx = 1, nakx
+               phi(iky, ikx, iz) = exp(-(aky(iky) / sigma_y)**2 / 2.0 - &
+                                      (akx(ikx) / sigma_x)**2 / 2.0 - &
+                                      ((zed(iz)) / sigma_z)**2 / 2.0) * cmplx(1.0, 0.0)
+            end do
+         end do
+      end do
+
+      if (chop_side) then
+         right = .not. left
+         if (left) phi(:, :, :-1) = 0.0
+         if (right) phi(:, :, 1:) = 0.0
+      end if
+
+      if (reality) then
+         do ikx = nakx / 2 + 2, nakx
+            phi(1, ikx, :) = conjg(phi(1, nakx - ikx + 2, :))
+         end do
+      end if
+
+      ia = 1
+      gvmu = 0.
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iz = iz_idx(kxkyz_lo, ikxkyz)
+         ikx = ikx_idx(kxkyz_lo, ikxkyz)
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         is = is_idx(kxkyz_lo, ikxkyz)
+         gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
+                              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
+                              * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
+                              * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
+      end do
+
+   end subroutine initialise_distribution_fourierblob
+
+   !****************************************************************************
    !                       INITIALISE POTENTIAL: MANY                          !
    !****************************************************************************
    subroutine initialise_distribution_restart
@@ -1047,7 +1155,7 @@ contains
 
       use arrays_distribution_function, only: gnew, gold, gvmu
       use arrays_distribution_function, only: phi_gyro, g_kymus
-      use arrays_distribution_function, only: g0, g1, g2, g3
+      use arrays_distribution_function, only: g0, g1, g2, g3, g4
 
       implicit none
 
@@ -1061,6 +1169,7 @@ contains
       if (allocated(g1)) deallocate (g1)
       if (allocated(g2)) deallocate (g2)
       if (allocated(g3)) deallocate (g3)
+      if (allocated(g4)) deallocate (g4)
 
       ! Reset flags
       initialised_read_parameters = .false.
