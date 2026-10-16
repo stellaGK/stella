@@ -518,9 +518,8 @@ contains
 
                         if (info_equ /= 0) then
                             ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
-                            if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') &
-                                ' WARNING: zgeequ failed with info=', info_equ, &
-                                ' (singular field matrix) at iky=', iky, ', ikx=', ikx, ', iz=', iz
+                            ! if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') &
+                            ! ' WARNING: zgeequ failed with info=', info_equ, ' (singular field matrix) at iky=', iky, ', ikx=', ikx, ', iz=', iz
                             phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
                             apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                             cycle
@@ -547,7 +546,7 @@ contains
                             apar(iky,ikx,iz,it) = c_scale(2) * B_lapack(2,1)
                         else
                             ! Avoid exactly singular points.
-                            if (proc0) write(*,'(A,I0,A,I0,A,I0)') ' WARNING: singular field matrix at iky=', iky, ', ikx=', ikx, ', iz=', iz
+                            ! if (proc0) write(*,'(A,I0,A,I0,A,I0)') ' WARNING: singular field matrix at iky=', iky, ', ikx=', ikx, ', iz=', iz
                             phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
                             apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                         end if
@@ -759,9 +758,8 @@ contains
 
                         if (info_equ /= 0) then
                             ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
-                            if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') &
-                                ' WARNING: zgeequ failed with info=', info_equ, &
-                                ' (singular field matrix) at iky=', iky, ', ikx=', ikx, ', iz=', iz
+                            ! if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') &
+                            ! ' WARNING: zgeequ failed with info=', info_equ, ' (singular field matrix) at iky=', iky, ', ikx=', ikx, ', iz=', iz
                             phi(iky,ikx,iz,it)  = cmplx(0.0, 0.0)
                             apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                             bpar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
@@ -949,7 +947,7 @@ contains
 ! ------------------------------------------------------------- Gets the correct apar given the fields included in the simuation. ---------------------------------------------------- !
 ! ==================================================================================================================================================================================== !
 
-subroutine get_apar_neo(phi, apar, bpar, dist)
+    subroutine get_apar_neo(phi, apar, bpar, dist)
         ! Parallelisation.
         use mp, only: proc0, mp_abort
 
@@ -1020,8 +1018,8 @@ subroutine get_apar_neo(phi, apar, bpar, dist)
 
                                 if (info_equ /= 0) then
                                     ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
-                                    if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0,A,I0)') &
-                                        ' WARNING: zgeequ failed with info=', info_equ, ' (singular matrix) in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
+                                    ! if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0,A,I0)') &
+                                    ! ' WARNING: zgeequ failed with info=', info_equ, ' (singular matrix) in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                                     cycle
                                 end if
@@ -1045,8 +1043,7 @@ subroutine get_apar_neo(phi, apar, bpar, dist)
                                     apar(iky,ikx,iz,it) = c_scale(2) * B_lapack(2,1)
                                 else
                                     ! Genuinely singular (exact zero pivot found during LU factorization of the equilibrated matrix).
-                                    if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') &
-                                        ' WARNING: singular matrix in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
+                                    ! if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') ' WARNING: singular matrix in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                                 end if
                             end do
@@ -1090,9 +1087,8 @@ subroutine get_apar_neo(phi, apar, bpar, dist)
 
                                 if (info_equ /= 0) then
                                     ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
-                                    if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0,A,I0)') &
-                                        ' WARNING: zgeequ failed with info=', info_equ, &
-                                        ' (singular matrix) in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
+                                    ! if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0,A,I0)') &
+                                    ! ' WARNING: zgeequ failed with info=', info_equ,' (singular matrix) in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                                     cycle
                                 end if
@@ -1116,7 +1112,7 @@ subroutine get_apar_neo(phi, apar, bpar, dist)
                                     apar(iky,ikx,iz,it) = c_scale(2) * D_lapack(2,1)
                                 else
                                     ! Genuinely singular (exact zero pivot found during LU factorization of the equilibrated matrix).
-                                    if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') ' WARNING: singular matrix in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
+                                    ! if (proc0) write(*,'(A,I0,A,I0,A,I0,A,I0)') ' WARNING: singular matrix in get_apar_neo at iky=', iky, ', ikx=', ikx, ', iz=', iz, ', it=', it
                                     apar(iky,ikx,iz,it) = cmplx(0.0, 0.0)
                                 end if
                             end do

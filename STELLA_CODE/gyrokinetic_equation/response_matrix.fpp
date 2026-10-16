@@ -1896,9 +1896,8 @@ contains
 
                   if (info_equ /= 0) then
                       ! zgeequ itself failed (e.g. a zero row/column) -- treat as genuinely singular, skip equilibration and the solve.
-                      if (proc0) write(*,'(A,I0,A,I0,A,I0)') &
-                          ' WARNING: zgeequ failed with info=', info_equ, &
-                          ' (singular matrix) in calculate_phi_and_apar_for_response_matrix_neo at idx=', idx, ', iz=', iz
+                      ! if (proc0) write(*,'(A,I0,A,I0,A,I0)') ' WARNING: zgeequ failed with info=', info_equ, &
+                      ! ' (singular matrix) in calculate_phi_and_apar_for_response_matrix_neo at idx=', idx, ', iz=', iz
                       phi(idx)  = cmplx(0.0, 0.0)
                       apar(idx) = cmplx(0.0, 0.0)
                       cycle
@@ -1924,7 +1923,7 @@ contains
                       apar(idx) = c_scale(2) * B_lapack(2,1)
                   else
                       ! Genuinely singular (exact zero pivot found during LU factorization of the equilibrated matrix).
-                      if (proc0) write(*,'(A,I0,A,I0)') ' WARNING: singular matrix in calculate_phi_and_apar_for_response_matrix_neo at idx=', idx, ', iz=', iz
+                      ! if (proc0) write(*,'(A,I0,A,I0)') ' WARNING: singular matrix in calculate_phi_and_apar_for_response_matrix_neo at idx=', idx, ', iz=', iz
                       phi(idx)  = cmplx(0.0, 0.0)
                       apar(idx) = cmplx(0.0, 0.0)
                   end if

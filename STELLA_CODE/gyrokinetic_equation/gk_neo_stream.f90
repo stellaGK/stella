@@ -319,7 +319,7 @@ contains
                   ! Now get dg/dz
                   call second_order_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
                      g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
-                     delzed(0), neo_stream_sign(ivmu), gleft, gright, periodic(iky), &
+                     delzed(0), neo_stream_sign(iv), gleft, gright, periodic(iky), &
                      dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
                end do
             end do
