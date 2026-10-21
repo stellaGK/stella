@@ -50,6 +50,7 @@ module dissipation_hyper
    ! Variables specified in the input file
    public :: D_hyper, D_zed, D_vpa
    public :: hyp_vpa, hyp_zed
+   public :: k2max
 
    private
 

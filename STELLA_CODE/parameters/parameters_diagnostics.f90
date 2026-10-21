@@ -52,6 +52,12 @@ module parameters_diagnostics
    ! Write stresses in <diagnostics_stresses>
    public :: write_stresses
 
+   ! Write the free-energy diagnostic in <diagnostics_energy>
+   public :: write_energy
+   public :: write_energy_kxkyz
+   public :: write_energy_vmu
+   public :: write_energy_species
+
    private
 
    ! Variables used to write diagnostics
@@ -113,6 +119,12 @@ module parameters_diagnostics
    ! Write stresses in <diagnostics_stresses>
    logical :: write_stresses
 
+   ! Write the free-energy diagnostic in <diagnostics_energy>
+   logical :: write_energy
+   logical :: write_energy_kxkyz
+   logical :: write_energy_vmu
+   logical :: write_energy_species
+
 contains
 
    !============================================================================
@@ -148,7 +160,7 @@ contains
             read_namelist_diagnostics, read_namelist_diagnostics_potential, &
             read_namelist_diagnostics_omega, read_namelist_diagnostics_distribution, &
             read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments, &
-            read_namelist_diagnostics_stresses
+            read_namelist_diagnostics_stresses, read_namelist_diagnostics_energy
 
          use parameters_numerical, only: autostop
 
@@ -201,6 +213,8 @@ contains
 
          
          call read_namelist_diagnostics_stresses (write_stresses) 
+
+          call read_namelist_diagnostics_energy (write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species)
   
          !-------------------------------------------------------------------
          
@@ -267,6 +281,10 @@ contains
          call broadcast(write_fluxes_kxkyz)
          call broadcast(write_fluxes_kxky)
          call broadcast(write_stresses)
+         call broadcast(write_energy)
+         call broadcast(write_energy_kxkyz)
+         call broadcast(write_energy_vmu)
+         call broadcast(write_energy_species)
          
       end subroutine broadcast_parameters
 

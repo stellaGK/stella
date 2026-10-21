@@ -26,6 +26,7 @@ module arrays_distribution_function
    ! Make the distribution functions available to all modules
    public :: gnew, gold, g_symm, phi_gyro
    public :: g0, g1, g2, g3, g4
+   public :: gvmu0
    public :: g_krook, g_proj
    public :: gvmu, g_kymus
    
@@ -36,6 +37,9 @@ module arrays_distribution_function
    complex, dimension(:, :, :, :, :), allocatable :: gnew, gold, phi_gyro
    complex, dimension(:, :, :, :, :), target, allocatable :: g_symm
    complex, dimension(:, :, :, :, :), allocatable :: g0, g1, g2, g3, g4
+   ! gvmu0 is the (nvpa,nmu,-kxkyz-layout-) work array used by the vmu-representation
+   ! energy projections of the free-energy diagnostic.
+   complex, dimension(:, :, :), allocatable :: gvmu0
 
    ! Needed to implement time-delayed source when using Krook operator
    ! (nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
