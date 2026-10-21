@@ -1,0 +1,120 @@
+! Small NONLINEAR run with ADIABATIC electrons (nspec=1) for the free-energy
+! free-energy closure. Adiabatic electrons keep the run cheap (single kinetic
+! species) while still exercising the ExB nonlinearity (nonlinearity column
+! should project to ~0 as it is conservative) and the streaming/mirror split.
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+
+&species_options
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+
+&adiabatic_electron_response
+  adiabatic_option = 'no-field-line-average-term'
+  tite = 1.0
+  nine = 1.0
+/
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
+  jtwist = 3
+  nx = 4
+  ny = 6
+  y0 = 6
+/
+&z_grid
+  nzed = 16
+/
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
+/
+
+&diagnostics
+  nsave = 100
+  nwrite = 1
+/
+
+&diagnostics_energy
+  write_energy = .true.
+  write_energy_kxkyz = .true.
+  write_energy_vmu = .true.
+/
+
+&initialise_distribution
+  initialise_distribution_option = 'noise'
+  phiinit = 0.01
+/
+
+&initialise_distribution_noise
+  rng_seed = 1
+/
+
+&time_trace_options
+  nstep = 8
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&time_trace_options
+  nstep = 8
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
+
+&dissipation_and_collisions_options
+  hyper_dissipation = .true.
+/
