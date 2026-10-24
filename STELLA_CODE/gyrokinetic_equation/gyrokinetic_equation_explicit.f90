@@ -404,6 +404,7 @@ contains
       end if
       if (hyp_vpa) then
          call advance_hyper_vpa(gin, dg)
+         gout = gout + dg
       end if
       deallocate (dg)
       
