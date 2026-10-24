@@ -1417,8 +1417,11 @@ contains
 
       ia = 1
       T_fac = 0.0
-      if (vpa_operator) T_fac = spread(aj0v(:, ikxkyz), 1, nvpa) * (spread(vpa**2, 2, nmu)) - 0.5
+      ! The gyro-average J0 multiplies the whole energy factor (v_par^2 + v_perp^2 - 3/2), as in the implicit
+      ! algorithm and in conserve_energy_vmulo; before, J0 multiplied only v_par^2 (benchmark C1, Oct 2026)
+      if (vpa_operator) T_fac = spread(vpa**2, 2, nmu) - 0.5
       if (mu_operator) T_fac = T_fac + spread(vperp2(ia, iz, :), 1, nvpa) - 1.0
+      T_fac = spread(aj0v(:, ikxkyz), 1, nvpa) * T_fac
       call integrate_vmu(T_fac * h, iz, integral)
 
       !norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
