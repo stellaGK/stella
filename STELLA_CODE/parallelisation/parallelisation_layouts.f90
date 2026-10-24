@@ -147,7 +147,7 @@ module parallelisation_layouts
    public :: kymusidx2vmuidx
 
    ! Find the index of (kx,ky,z,s,mu,vpa) of <ikxkyzs>, <ivpamus>, ...
-   public :: ikx_idx, iky_idx, iz_idx, is_idx, imu_idx, iv_idx
+   public :: ikx_idx, iky_idx, iz_idx, is_idx, imu_idx, iv_idx, ix_idx
    public :: idx_local, iy_idx, it_idx, idx
    
    ! The "proc_id" routine returns the id of the processor, with proc_id --> [0, ..., nproc-1]
