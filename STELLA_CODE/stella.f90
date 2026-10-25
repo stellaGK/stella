@@ -198,6 +198,7 @@ contains
       ! Numerical schemes
       use parameters_numerical, only: flip_flop
       use parameters_numerical, only: fully_explicit
+      use gk_flow_shear, only: prp_shear_enabled
       use parameters_numerical, only: fully_implicit
 
       implicit none
@@ -255,12 +256,14 @@ contains
                if (debug) write (*, *) 'time_advance::advance_explicit'
                call advance_distribution_function_using_explicit_gyrokinetic_terms(gnew, restart_time_step, istep)
             end if
-            if (.not. restart_time_step .and. .not. fully_explicit) then
+            ! The perpendicular flow-shear remap is applied in the implicit step, so call it whenever flow shear
+            ! is on, even if every other term is explicit (otherwise a fully explicit run never remaps)
+            if (.not. restart_time_step .and. (.not. fully_explicit .or. prp_shear_enabled)) then
                if (debug) write (*, *) 'time_advance::advance_implicit'
                call advance_distribution_function_using_implicit_gyrokinetic_terms(istep, phi, apar, bpar, gnew)
             end if
          else
-            if (.not. fully_explicit) then
+            if (.not. fully_explicit .or. prp_shear_enabled) then
                if (debug) write (*, *) 'time_advance::advance_implicit'
                call advance_distribution_function_using_implicit_gyrokinetic_terms(istep, phi, apar, bpar, gnew)
             end if
