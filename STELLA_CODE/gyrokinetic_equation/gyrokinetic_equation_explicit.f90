@@ -377,7 +377,7 @@ contains
              end if
 
              ! Advance the neoclassical parallel streaming correction.
-             if (include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) then
+             if (include_neoclassical_parallel_streaming .and. (.not. stream_implicit)) then
                  call advance_neo_stream_explicit(phi, apar, bpar, rhs)
              end if
 

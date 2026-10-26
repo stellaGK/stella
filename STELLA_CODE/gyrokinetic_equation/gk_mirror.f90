@@ -863,6 +863,7 @@ contains
       character(5) :: dist
       real :: tupwnd
       complex, dimension(:), allocatable :: rhs
+      complex :: apar_ikxkyz
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
 
@@ -932,7 +933,10 @@ contains
                do imu = 1, nmu
                   ! calculate the contribution to the mirror advance due to source terms
                   ! involving the particle distribution function
-                  call get_mirror_rhs_g_contribution(gvmu(:, imu, ikxkyz), apar(iky, ikx, iz, it), imu, ikxkyz, rhs)
+                  ! In electrostatic simulations, <apar> is only allocated as apar(1,1,1,1)
+                  apar_ikxkyz = 0.
+                  if (include_apar) apar_ikxkyz = apar(iky, ikx, iz, it)
+                  call get_mirror_rhs_g_contribution(gvmu(:, imu, ikxkyz), apar_ikxkyz, imu, ikxkyz, rhs)
 
                   ! invert_mirror_operator takes rhs of equation and
                   ! returns g^{n+1}
@@ -1073,7 +1077,7 @@ contains
 
       deallocate (g0x, g0v)
 
-      if (proc0) call time_message(.false., time_mirror, ' Mirror advance')
+      if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
    end subroutine advance_mirror_implicit
 

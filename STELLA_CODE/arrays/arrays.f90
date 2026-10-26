@@ -27,9 +27,6 @@ module arrays
    public :: initialised_wstar1x 
    public :: initialised_neo_wdrifty
    public :: initialised_neo_wdriftx
-   
-   ! OR MMS TESTING.
-   public :: initialised_neo_mms_source_term
 
    !----------------------------------------------------------------------------
    ! For the Gyrokinetic Equation
@@ -70,7 +67,7 @@ module arrays
    public :: qn_zf_window
 
    ! For neoclassical corrections. 
-   public :: neo_stream
+   public :: neo_stream, neo_stream_apar
    public :: neo_mirror_apar
    public :: wstar1y
    public :: wstar1x
@@ -177,7 +174,8 @@ module arrays
    real, dimension(:), allocatable :: shift_state
 
    ! For neoclassical corrections. 
-   real, dimension(:, :, :), allocatable :: neo_stream
+   real, dimension(:, :, :, :, :), allocatable :: neo_stream
+   real, dimension(:, :, :, :, :), allocatable :: neo_stream_apar
    real, dimension(:, :, :), allocatable :: neo_mirror_apar
    real, dimension(:, :, :), allocatable :: wstar1y, wstar1x
    real, dimension(:, :, :), allocatable :: neo_wdriftx, neo_wdrifty
@@ -227,3 +225,4 @@ module arrays
 
   
 end module arrays
+

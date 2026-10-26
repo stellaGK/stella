@@ -47,6 +47,7 @@ contains
       use parameters_numerical, only: drifts_implicit
       use parameters_physics, only: include_drive
       use parameters_physics, only: include_xdrift, include_ydrift
+      use parameters_physics, only: include_parallel_streaming
       use gk_parallel_streaming, only: stream
       use gk_parallel_streaming, only: stream_rad_var1
       use gk_parallel_streaming, only: stream_rad_var2
@@ -208,7 +209,7 @@ contains
       end if
 
       ! Check that the introduction of the neoclassical stream coeffecient doesn't break the CFL condition.
-      if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) then
+      if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. (.not. stream_implicit)) then
           neo_stream_max = maxval(abs(neo_stream)) 
 
           if (nproc > 1) then
@@ -289,7 +290,7 @@ contains
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
          if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) &
          write (*, '(A12,ES12.4)') ' neo_mirror: ', cfl_dt_neo_mirror
-         if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) write (*, '(A12,ES12.4)') ' neo_stream: ', cfl_dt_neo_stream
+         ! if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. .not. neoclassical_stream_implicit) write (*, '(A12,ES12.4)') ' neo_stream: ', cfl_dt_neo_stream
          if (neoclassical_is_enabled() .and. include_neoclassical_ydrive .and. .not. neoclassical_drifts_implicit) write (*, '(A12,ES12.4)') '   wstar1y: ', cfl_dt_wstar1y
          if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0) .and. include_neoclassical_xdrive .and. .not. neoclassical_drifts_implicit) &
          write (*, '(A12,ES12.4)') 'wstar1x: ', cfl_dt_wstar1x

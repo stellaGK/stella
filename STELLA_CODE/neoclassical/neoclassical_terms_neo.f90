@@ -243,6 +243,9 @@ contains
         call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_global)
         call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_global_right)                                             
         call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_global_left)    
+
+        ! DIAGNOSTIC.
+        ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, neo_h_global, surface_index, 'neo_h_on_stella_grids_central')
  
         ! DIAGNOSTIC.
         ! call get_neo_moment(neo_h_global, neo_phi, neo_grid, "zeroeth", neo_dens)

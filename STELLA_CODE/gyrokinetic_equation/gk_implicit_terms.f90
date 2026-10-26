@@ -481,7 +481,6 @@ contains
 
       ! nz_ext is the number of grid points in the extended zed domain
       nz_ext = size(phi)
-
       
       ! Determine the mapping from the extended domain zed index (izext) to the
       ! zed and kx domain indices (iz, ikx)
@@ -578,12 +577,20 @@ contains
       ! 'explicit' and 'implicit' contributions to the equation.
       !*************************************************************************
       subroutine add_streaming_contribution_phi
-
+         ! Grids.
          use grids_extended_zgrid, only: fill_zext_ghost_zones
+
+         ! Parallel streaming.
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
+
+         ! Numerical parameters.
          use parameters_numerical, only: driftkinetic_implicit
+
+         ! Higher order corrections.
+         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use neoclassical_terms_neo, only: neo_vpa_fac
 
          integer :: izext
          complex :: scratch_left, scratch_right
@@ -614,6 +621,7 @@ contains
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
          z_scratch = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
+         
          ! If including neoclassical correction to equilibrium distribution function
          ! then must also account for -vpa*dF_neo/dvpa*Z/T
          ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -622,6 +630,14 @@ contains
                z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * spec(is)%zt
             end do
             call center_zed(iv, z_scratch, -nzgrid)
+         end if
+
+         ! For including NEO's higher order corrections
+         if (neoclassical_is_enabled()) then
+             do iz = -nzgrid, nzgrid
+                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+             end do
+             call center_zed(iv, z_scratch, -nzgrid)
          end if
 
          ! Make sure to use the correctly centered (b . grad z) pre-factor 

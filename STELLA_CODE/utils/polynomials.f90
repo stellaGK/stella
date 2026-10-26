@@ -87,45 +87,30 @@ contains
 !
 ! ================================================================================================================================================================================= !
 
-
     pure subroutine get_legendre_deriv(xi_in, dP)
-        use warning_helpers, only: not_exactly_equal
-
         implicit none
 
-        real, intent(in)     :: xi_in     ! Evaluation point. 
-        real, intent(out)    :: dP(0:)     ! P(l) = Legendre polynomial of order l.
+        real, intent(in)  :: xi_in       ! Evaluation point.
+        real, intent(out) :: dP(0:)      ! dP(l) = dP_l/dxi evaluated at xi_in.
 
-        real, dimension(:), allocatable :: P
-        integer :: n, order, max_order
+        real, dimension(0:size(dP)-1) :: P
+        integer :: n, max_order
 
-        ! Determine the maximum order up to which we calculate the polynomials.
         max_order = size(dP) - 1
-    
-        ! Get the legendre polynomials first.
-        allocate(P(0:max_order))
+        if (max_order < 0) return
+
+        ! Legendre polynomials P_0 ... P_max_order.
         call get_legendre(xi_in, P)
 
-        ! Define the two base cases first.
+        ! Base cases: P_0' = 0, P_1' = 1.
         dP(0) = 0.0
+        if (max_order < 1) return
         dP(1) = 1.0
 
-        ! The three-term recurrence relation  will provide the remaining dP(l). We must handle the x_in = 1 point with care if it exists.
-        if (not_exactly_equal(abs(xi_in), 1.0)) then
-            do order = 2, max_order
-                n = order - 1
-                dP(order) = (xi_in * P(order) - P(n)) * order / (xi_in * xi_in - 1)
-            end do
-        else
-            do order = 2, max_order
-                dP(order) = order * ( order + 1 ) / 2.0
-
-                ! Ensure correct sign for odd orders.
-                if (mod(order, 2) == 0) dP(order) = xi_in * dP(order)
-            end do
-        end if
-
-        deallocate(P)
+        ! P'_{n+1} = P'_{n-1} + (2n+1) P_n.
+        do n = 1, max_order - 1
+            dP(n + 1) = dP(n - 1) + (2*n + 1) * P(n)
+        end do
     end subroutine get_legendre_deriv
 
 

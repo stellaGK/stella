@@ -2,6 +2,7 @@
 # requirements.txt
 
 import importlib
+import re
 import pathlib
 import textwrap
 
@@ -16,9 +17,9 @@ for line in contents:
         continue
     if line.replace(' ','').replace('\n','').replace('\t','')=='':
         continue
-    module = line.split("=")[0]
+    module = re.split(r"[<>=~!;#\s\[]", line.strip())[0]
     if 'pyrokinetics' in line: module = 'pyrokinetics'
-    requirements.append(module.replace(">", "").replace("~", "").replace("\n", ""))
+    requirements.append(module)
 
 failed_modules = []
 for requirement in requirements:

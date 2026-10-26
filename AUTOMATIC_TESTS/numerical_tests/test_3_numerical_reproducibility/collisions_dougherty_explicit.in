@@ -1,0 +1,141 @@
+ 
+! Numerical reproducibility test (test 3): explicit Dougherty collisions with momentum and energy conservation.
+! Identical to es_nonlinear.in except for:
+!     &dissipation_and_collisions_options: include_collisions = .true.
+!     &dissipation_and_collisions_options: vnew_ref = 0.01
+!     &dissipation_and_collisions_options: collision_model = 'dougherty'
+!     &dissipation_and_collisions_options: collisions_implicit = .false.
+
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = -0.1
+  kappa = 1.3
+  kapprim = 0.2
+  tri = 0.1
+  triprim = 0.1
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .true.
+  include_nonlinear = .true.
+/
+&dissipation_and_collisions_options
+  hyper_dissipation = .true.
+  include_collisions = .true.
+  vnew_ref = 0.01
+  collision_model = 'dougherty'
+  collisions_implicit = .false.
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
+  nspec = 2
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
+  jtwist = 5
+  nx = 6
+  ny = 9
+  y0 = 15
+/
+&z_grid
+  nzed = 24
+/
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
+  nmu = 3
+  nvgrid = 4
+/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
+  nsave = 100
+  nwrite = 10
+  write_all = .true.
+/
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'noise'
+  phiinit = 0.01
+/
+&initialise_distribution_noise
+  rng_seed = 1
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 50
+/
+&time_step
+  delt = 0.01
+/
+&numerical_algorithms
+  explicit_algorithm = 'rk3'
+/
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
