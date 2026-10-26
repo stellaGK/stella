@@ -50,12 +50,4 @@ nproc_expected_output = 1
 # invariance tests are marked as strict expected failures for these input files,
 # so once the bug is fixed, the test will report an XPASS (and fail) as a reminder
 # to remove the input file from this dictionary.
-known_mpi_bugs = {
-    # The field-particle part of the Fokker-Planck operator with several species: get_psi_response
-    # uses the band matrix (cdiffmat_band, ipiv) and the Bessel functions (jm) of species isa for the
-    # (ky,kx,z) block of the local species, but each processor only computes them for its own blocks,
-    # so with more than one species and processor stella reads uninitialised pivots and crashes
-    # (free(): invalid size). The single-species case is MPI invariant
-    # (collisions_fokker_planck_fieldpart_adiabatic.in).
-    'collisions_fokker_planck_fieldpart.in' : 'Fokker-Planck field-particle part with several species is not MPI parallel (get_psi_response).',
-}
+known_mpi_bugs = {}

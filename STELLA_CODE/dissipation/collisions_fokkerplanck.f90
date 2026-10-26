@@ -162,7 +162,7 @@ contains
       use parallelisation_layouts
       use parameters_numerical, only: fully_explicit
       use common_types, only: spec_type
-      use mp, only: mp_abort
+      use mp, only: mp_abort, nproc
 
       implicit none
 
@@ -186,6 +186,14 @@ contains
       if (fieldpart .and. .not. collisions_implicit) then
          call mp_abort('The field-particle part of the Fokker-Planck operator (fieldpart = .true.) is only ' &
             //'implemented for implicit collisions (collisions_implicit = .true.). Aborting.')
+      end if
+
+      ! With several species, these options use the test-particle matrices (blockmatrix) of another
+      ! species at the same (ky,kx,z) point (get_psi, get_testpart_density), which are only available
+      ! when that block is on the same processor; otherwise the term is silently skipped
+      if (fieldpart .and. (exact_conservation_tp .or. density_conservation_tp) .and. nspec > 1 .and. nproc > 1) then
+         call mp_abort('The options exact_conservation_tp and density_conservation_tp of the Fokker-Planck ' &
+            //'field-particle part are not MPI parallel for several species: run on one processor. Aborting.')
       end if
 
       ! disable inter-species collisions if interspec==false
@@ -1480,7 +1488,99 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          call zgbtrf(nc, nc, nb, nb, cdiffmat_band(:, :, iky, ikx, iz, is), lldab, ipiv(:, iky, ikx, iz, is), info)
       end do
 
+      ! The responses dh_a/dpsi^{ab} of the field-particle part are stored in the (ky,kx,z) block of
+      ! species b, but are solved with the LU factorisation of species a (see get_psi_response)
+      if (share_species_blocks()) call share_band_matrices_between_processors
+
    end subroutine init_fp_diffmatrix
+
+   !****************************************************************************
+   !        Share data of all species blocks between the processors
+   !****************************************************************************
+   ! With the field-particle part and several species, the processor that owns the (ky,kx,z)
+   ! block of species b also needs the LU factorisation <cdiffmat_band>, <ipiv> and the Bessel
+   ! functions <jm> of the other species a at the same (ky,kx,z) point (get_psi_response, get_psi),
+   ! which are computed by the processor that owns the block of species a. Before, these were
+   ! read without being computed, which crashed stella (free(): invalid size) with more than one
+   ! processor and species. The arrays have the full (ky,kx,z,species) size on every processor,
+   ! so they are completed with a sum over the processors.
+   !****************************************************************************
+   logical function share_species_blocks()
+
+      use mp, only: nproc
+      use grids_species, only: nspec
+
+      implicit none
+
+      share_species_blocks = fieldpart .and. nspec > 1 .and. nproc > 1
+
+   end function share_species_blocks
+
+   !****************************************************************************
+   subroutine get_owned_species_blocks(owned)
+
+      use grids_z, only: nzgrid
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+
+      implicit none
+
+      logical, dimension(:, :, -nzgrid:, :), intent(out) :: owned
+      integer :: ikxkyz
+
+      !-------------------------------------------------------------------------
+
+      ! Each (ky,kx,z,species) point is owned by exactly one processor: the one with its first tube
+      owned = .false.
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         if (it_idx(kxkyz_lo, ikxkyz) /= 1) cycle
+         owned(iky_idx(kxkyz_lo, ikxkyz), ikx_idx(kxkyz_lo, ikxkyz), iz_idx(kxkyz_lo, ikxkyz), is_idx(kxkyz_lo, ikxkyz)) = .true.
+      end do
+
+   end subroutine get_owned_species_blocks
+
+   !****************************************************************************
+   subroutine share_band_matrices_between_processors
+
+      use mp, only: sum_allreduce
+      use grids_species, only: nspec
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky, nakx
+
+      implicit none
+
+      logical, dimension(:, :, :, :), allocatable :: owned
+      integer, dimension(:), allocatable :: ipiv_flat
+      integer :: iky, ikx, iz, is
+
+      !-------------------------------------------------------------------------
+
+      allocate (owned(naky, nakx, -nzgrid:nzgrid, nspec))
+      call get_owned_species_blocks(owned)
+
+      ! Keep only the blocks factorised by the owner (the other blocks hold the identity, or the
+      ! same factorisation for another tube), so that the sum gives one copy of every block
+      do is = 1, nspec
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  if (owned(iky, ikx, iz, is)) cycle
+                  cdiffmat_band(:, :, iky, ikx, iz, is) = 0.
+                  ipiv(:, iky, ikx, iz, is) = 0
+               end do
+            end do
+         end do
+         call sum_allreduce(cdiffmat_band(:, :, :, :, :, is))
+      end do
+
+      allocate (ipiv_flat(size(ipiv)))
+      ipiv_flat = reshape(ipiv, (/size(ipiv)/))
+      call sum_allreduce(ipiv_flat)
+      ipiv = reshape(ipiv_flat, shape(ipiv))
+
+      deallocate (owned, ipiv_flat)
+
+   end subroutine share_band_matrices_between_processors
 
    !****************************************************************************
    !                                      Title
@@ -1549,6 +1649,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       allocate (jm0(nmu, naky, nakx, -nzgrid:nzgrid, nspec))
 
       jm = 0
+      jm0 = 0
       ia = 1
 
       aj1fac = 1.0
@@ -1581,6 +1682,10 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          end do
       end do
 
+      ! The field-particle part also needs <jm> of the species that are owned by other processors
+      ! (see share_species_blocks)
+      if (share_species_blocks()) call share_bessel_fn_between_processors
+
       if (cfac2 == 0.) then
          ! disable gyro-diffusive effects in the field particle operator
          jm(:, 0, :, :, :, :) = 1.
@@ -1592,6 +1697,43 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       end if
 
    end subroutine init_bessel_fn
+
+   !****************************************************************************
+   subroutine share_bessel_fn_between_processors
+
+      use mp, only: sum_allreduce
+      use grids_species, only: nspec
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky, nakx
+
+      implicit none
+
+      logical, dimension(:, :, :, :), allocatable :: owned
+      integer :: iky, ikx, iz, is
+
+      !-------------------------------------------------------------------------
+
+      allocate (owned(naky, nakx, -nzgrid:nzgrid, nspec))
+      call get_owned_species_blocks(owned)
+
+      ! Keep only the values of the owner, so that the sum gives one copy of every point
+      do is = 1, nspec
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  if (owned(iky, ikx, iz, is)) cycle
+                  jm(:, :, iky, ikx, iz, is) = 0.
+                  jm0(:, iky, ikx, iz, is) = 0.
+               end do
+            end do
+         end do
+         call sum_allreduce(jm(:, :, :, :, :, is))
+         call sum_allreduce(jm0(:, :, :, :, is))
+      end do
+
+      deallocate (owned)
+
+   end subroutine share_bessel_fn_between_processors
 
    !****************************************************************************
    !                                      Title
