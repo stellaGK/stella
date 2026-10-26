@@ -2769,6 +2769,12 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       allocate (g0(nvpa, nmu))
       allocate (ghrs(nmu * nvpa))
 
+      ! Each processor only fills the (ky,kx,z,tube,species) points it owns, and <fld> is summed
+      ! over all processors at the end, so the other points must be zero. Otherwise the values that
+      ! <fld> holds on entry (e.g. the previous psi moment) are added once for every other
+      ! processor, which made the field-particle part depend on the number of processors and blow up
+      fld = 0.
+
       if (density_conservation) then
          conservative_wgts = .true.
          call set_vpa_weights(conservative_wgts)
