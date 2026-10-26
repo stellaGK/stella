@@ -19,6 +19,7 @@ module gyrokinetic_equation_explicit
    
    ! Make routines available to stella.f90
    public :: advance_distribution_function_using_explicit_gyrokinetic_terms
+   public :: enforce_parallel_boundary_conditions
 
    private
 
@@ -774,5 +775,35 @@ contains
       end do
 
    end subroutine enforce_periodicity
+
+   !****************************************************************************
+   !                ENFORCE THE PARALLEL BOUNDARY CONDITIONS ON G
+   !****************************************************************************
+   ! Make the two copies of the twist-and-shift joins and of the end points of the
+   ! periodic modes equal, as they are at the end of every time step. This is used
+   ! for the initial distribution function, which does not satisfy these conditions
+   ! (e.g. the default initialisation of linear runs). Otherwise the first stage of
+   ! the first time step uses the fields of the inconsistent initial condition, a
+   ! one-off error of O(dt), which limits the time advance to first order in dt.
+   !****************************************************************************
+   subroutine enforce_parallel_boundary_conditions(g)
+
+      use parallelisation_layouts, only: vmu_lo
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+
+      integer :: ivmu
+
+      !-------------------------------------------------------------------------
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call enforce_chain_joins(g(:, :, :, :, ivmu), end_of_step=.true.)
+      end do
+      call enforce_periodicity(g)
+
+   end subroutine enforce_parallel_boundary_conditions
 
 end module gyrokinetic_equation_explicit
