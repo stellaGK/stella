@@ -1107,7 +1107,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
 
         # Remove variables which are no longer read by stella, since stella aborts on unknown variables
         removed_variables = ['multibox_parameters:comm_at_init', 'numerical_algorithms:maxwellian_normalization',
-            'debug_flags:ffs_solve_debug', 'debug_flags:fs_solve_debug']
+            'debug_flags:ffs_solve_debug', 'debug_flags:fs_solve_debug', 'collisions_fokker_planck:cfac2']
         for namelist_variable in removed_variables:
             namelist, variable = namelist_variable.split(':')
             if namelist in input_parameters.keys():

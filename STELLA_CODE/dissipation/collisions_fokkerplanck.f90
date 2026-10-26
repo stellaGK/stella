@@ -44,7 +44,7 @@ module collisions_fokkerplanck
    logical :: advfield_coll
 
    integer :: nresponse = 1
-   real :: cfac, cfac2
+   real :: cfac
    real :: nuxfac
    real :: iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob
    logical :: eimassr_approx
@@ -109,7 +109,7 @@ contains
                density_conservation_field, density_conservation_tp, &
                exact_conservation, exact_conservation_tp, &
                vpa_operator, mu_operator, &
-               cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
+               cfac, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
 
       ! Broadcast the parameters to all processors
       call broadcast(fieldpart)
@@ -134,7 +134,6 @@ contains
       call broadcast(vpa_operator)
       call broadcast(mu_operator)
       call broadcast(cfac)
-      call broadcast(cfac2)
       call broadcast(nuxfac)
       call broadcast(jmax)
       call broadcast(lmax)
@@ -1686,14 +1685,16 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! (see share_species_blocks)
       if (share_species_blocks()) call share_bessel_fn_between_processors
 
-      if (cfac2 == 0.) then
-         ! disable gyro-diffusive effects in the field particle operator
-         jm(:, 0, :, :, :, :) = 1.
-         if (lmax > 0) then
-            do mm = 1, lmax
-               jm(:, mm, :, :, :, :) = 0.
-            end do
-         end if
+      ! The m /= 0 terms of the field-particle part (J1 for l = 1: the perpendicular momentum) restore what the
+      ! classical (gyro-)diffusion of the test-particle part removes, so scale them by the same <cfac>. With cfac = 0
+      ! (no classical diffusion) they would otherwise inject perpendicular momentum, and the growth rate runs away with
+      ! the collision frequency (benchmark C1, Oct 2026: gamma = 0.28 instead of 0.08 at nu_ii = 1). J0 is kept on the
+      ! m = 0 terms, so that the momentum and energy at the particle position are conserved, as in GS2, GENE and CGYRO.
+      ! This replaces the input <cfac2>, which removed J0 and J1 of the field-particle part together.
+      if (lmax > 0) then
+         do mm = 1, lmax
+            jm(:, mm, :, :, :, :) = cfac * jm(:, mm, :, :, :, :)
+         end do
       end if
 
    end subroutine init_bessel_fn
