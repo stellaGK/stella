@@ -46,11 +46,7 @@ contains
       
       ! Grids
       use grids_z, only: nzgrid
-      use grids_kxky, only: naky
-      use grids_extended_zgrid, only: periodic
-      use grids_extended_zgrid, only: phase_shift
-      use gk_parallel_streaming, only: stream_sign
-      
+
       ! Calculations
       use calculations_tofrom_ghf, only: gbar_to_g
       
@@ -69,7 +65,7 @@ contains
       integer, intent(in) :: istep
 
       ! Local variables
-      integer :: ivmu, iv, sgn, iky
+      integer :: ivmu
 
       !-------------------------------------------------------------------------
 
@@ -119,16 +115,7 @@ contains
       end if
 
       ! Enforce periodicity for periodic (including zonal) modes
-      ! <stream_sign> > 0 corresponds to dz/dt < 0
-      do iky = 1, naky
-         if (periodic(iky)) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               sgn = stream_sign(iv)
-               g(iky, :, sgn * nzgrid, :, ivmu) = g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
-            end do
-         end if
-      end do
+      call enforce_periodicity(g)
 
       ! Stop the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
@@ -223,10 +210,12 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! Re-impose the twist-and-shift chain joins on the input of every Runge-Kutta stage
+      ! Re-impose the twist-and-shift chain joins and the periodicity of the periodic
+      ! (including zonal) modes on the input of every Runge-Kutta stage
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call enforce_chain_joins(pdf(:, :, :, :, ivmu))
       end do
+      call enforce_periodicity(pdf)
 
       ! Initialise the right-hand-side of the gyrokinetic equation to zero
       rhs_ky = 0.
@@ -746,5 +735,44 @@ contains
       end do
 
    end subroutine enforce_chain_joins
+
+   !****************************************************************************
+   !                 ENFORCE THE PERIODICITY OF PERIODIC MODES
+   !****************************************************************************
+   ! Periodic modes (all modes with periodic boundary conditions, otherwise the
+   ! zonal modes) store the point z = +-nzgrid twice. The copy at the end where
+   ! the characteristic enters is overwritten by the copy at the other end.
+   ! This is done at the end of the explicit time step and on the input of every
+   ! Runge-Kutta stage: otherwise the stages evaluate the right-hand side on states
+   ! whose two copies differ by O(dt) (e.g. the nonlinear term of a zonal mode differs
+   ! at the two ends), which limits the explicit time advance to first order in dt.
+   ! <stream_sign> > 0 corresponds to dz/dt < 0
+   !****************************************************************************
+   subroutine enforce_periodicity(pdf)
+
+      use parallelisation_layouts, only: vmu_lo, iv_idx
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: periodic, phase_shift
+      use gk_parallel_streaming, only: stream_sign
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: pdf
+
+      integer :: iky, ivmu, iv, sgn
+
+      !-------------------------------------------------------------------------
+
+      do iky = 1, naky
+         if (.not. periodic(iky)) cycle
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            iv = iv_idx(vmu_lo, ivmu)
+            sgn = stream_sign(iv)
+            pdf(iky, :, sgn * nzgrid, :, ivmu) = pdf(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
+         end do
+      end do
+
+   end subroutine enforce_periodicity
 
 end module gyrokinetic_equation_explicit
