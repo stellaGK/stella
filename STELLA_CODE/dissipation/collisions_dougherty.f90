@@ -946,8 +946,11 @@ contains
          iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         !g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
-         g0 = g(:, :, ikxkyz) * spread((vperp2(1, iz, :) - 0.5) * aj1v(:, ikxkyz), 1, nvpa)
+         ! Perpendicular momentum: the moment that goes with the restoring term of init_mudiff_conserve,
+         ! 2 nu kperp^2 (smz/B)^2 vperp^2 J1/a F0, i.e. vperp^2 J1/a (as in the explicit algorithm,
+         ! conserve_momentum, and in conserve_momentum_vmulo). It used to be (vperp^2 - 1/2) J1/a, which
+         ! made the implicit momentum conservation differ from the explicit one (benchmark C1, Oct 2026)
+         g0 = g(:, :, ikxkyz) * spread(vperp2(1, iz, :) * aj1v(:, ikxkyz), 1, nvpa)
          call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
       end do
       
