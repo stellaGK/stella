@@ -23,6 +23,10 @@ What is tested
   single-processor run. No expected output is needed.
 - `test_3c_diagnostics_do_not_affect_evolution.py`: checks that writing the diagnostics
   every time step (nwrite = 1) gives the same evolution as nwrite = 10.
+- `test_3d_collisions_follow_time_step_changes.py`: runs the implicit Dougherty and
+  Fokker-Planck inputs as linear simulations with delt = 1.0, which stella reduces to the CFL
+  limit, and with delt equal to that reduced time step, and checks that both give the same
+  evolution, i.e. that the implicit collision matrices are rebuilt for the new time step.
 
 The input files all derive from `es_nonlinear.in` (nonlinear, shaped Miller geometry,
 kinetic ions and electrons, all gyrokinetic terms, hyper dissipation). Each other input

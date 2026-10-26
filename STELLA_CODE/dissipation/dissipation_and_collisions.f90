@@ -16,6 +16,7 @@ module dissipation_and_collisions
    public :: read_parameters_dissipation_and_collisions
    public :: init_dissipation, finish_dissipation
    public :: init_collisions, initialised_collisions
+   public :: reset_dt_collisions
    public :: advance_collisions_explicit, advance_collisions_implicit
    
    ! Make parameters available
@@ -158,6 +159,27 @@ contains
       end if
    
    end subroutine init_dissipation
+
+   !------------------ Rebuild the collisions for a new time step --------------
+   subroutine reset_dt_collisions
+
+      use collisions_dougherty, only: reset_dt_collisions_dougherty
+      use collisions_fokkerplanck, only: reset_dt_collisions_fp
+
+      implicit none
+
+      !-------------------------------------------------------------------------
+
+      ! Not initialised yet: init_collisions will use the new code_dt
+      if (.not. initialised_collisions) return
+
+      if (collision_model == "dougherty") then
+         call reset_dt_collisions_dougherty(collisions_implicit)
+      else if (collision_model == "fokker-planck") then
+         call reset_dt_collisions_fp(collisions_implicit)
+      end if
+
+   end subroutine reset_dt_collisions
 
    !--------------------------- Initialise collisions --------------------------
    subroutine init_collisions

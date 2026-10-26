@@ -227,12 +227,11 @@ contains
       use gk_sources, only: init_quasineutrality_source
       use gk_parallel_streaming, only: init_parallel_streaming
       use response_matrix, only: init_response_matrix
-      use dissipation_and_collisions, only: init_collisions
+      use dissipation_and_collisions, only: reset_dt_collisions
       use dissipation_and_collisions, only: include_collisions
       
       ! Flags -> Logicals for initalisation (true or false)
       use gk_parallel_streaming, only: initialised_parallel_streaming
-      use dissipation_and_collisions, only: initialised_collisions
       use response_matrix, only: initialised_response_matrix
       use gk_flow_shear, only: initialised_flow_shear
       use gk_sources, only: initialised_qn_source
@@ -271,10 +270,11 @@ contains
          if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
          call init_radial_variation
       end if
+      ! The collision operator has its own initialisation flags, so <init_collisions> would return
+      ! without recomputing anything: rebuild the time-step dependent (implicit) matrices instead
       if (include_collisions) then
-         if (debug) write (6, *) 'time_advance::reset_dt::init_collisions'
-         initialised_collisions = .false.
-         call init_collisions
+         if (debug) write (6, *) 'time_advance::reset_dt::reset_dt_collisions'
+         call reset_dt_collisions
       end if
       
       ! Do not try to re-init response matrix before it has been initialised the first time

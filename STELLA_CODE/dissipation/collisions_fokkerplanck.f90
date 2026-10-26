@@ -29,6 +29,7 @@ module collisions_fokkerplanck
    ! Make routines available to other modules
    public :: read_parameters_fp
    public :: init_collisions_fp, finish_collisions_fp
+   public :: reset_dt_collisions_fp
    public :: advance_collisions_fp_explicit, advance_collisions_fp_implicit
    public :: fieldpart
 
@@ -2515,6 +2516,34 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    !****************************************************************************
    !                                      Title
    !****************************************************************************
+   subroutine reset_dt_collisions_fp(collisions_implicit)
+
+      implicit none
+
+      ! Arguments
+      logical, intent(in) :: collisions_implicit
+
+      !-------------------------------------------------------------------------
+
+      ! The explicit algorithm multiplies by code_dt at every time step, but the block matrices,
+      ! the field-particle terms and the response matrices of the implicit algorithm contain
+      ! code_dt, so rebuild them for the new time step (otherwise the collision frequency is
+      ! effectively multiplied by dt_old/dt_new). The velocity grids, Legendre polynomials,
+      ! Bessel functions and collision frequencies do not depend on code_dt and are kept.
+      if (.not. collisions_implicit) return
+      if (.not. initialised_fokker_planck) return
+      call finish_fp_diffmatrix
+      call finish_fp_response
+      call finish_deltaj
+      call init_fp_diffmatrix
+      call init_deltaj_vmu
+      call init_fp_conserve
+
+   end subroutine reset_dt_collisions_fp
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_collisions_fp
 
       implicit none
@@ -2535,8 +2564,10 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
       if (allocated(deltaj)) deallocate (deltaj)
+      if (allocated(deltaj_tp)) deallocate (deltaj_tp)
       if (allocated(psijnorm)) deallocate (psijnorm)
       if (allocated(mwnorm)) deallocate (mwnorm)
+      if (allocated(modmwnorm)) deallocate (modmwnorm)
 
    end subroutine finish_deltaj
 
@@ -2568,6 +2599,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       if (allocated(fp_response)) deallocate (fp_response)
       if (allocated(diff_idx)) deallocate (diff_idx)
+      if (allocated(deltajint)) deallocate (deltajint)
 
    end subroutine finish_fp_response
    

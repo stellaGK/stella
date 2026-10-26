@@ -16,6 +16,7 @@ module collisions_dougherty
    public :: read_parameters_dougherty
    public :: init_collisions_dougherty
    public :: finish_collisions_dougherty
+   public :: reset_dt_collisions_dougherty
    public :: advance_collisions_dougherty_explicit
    public :: advance_collisions_dougherty_implicit
 
@@ -766,6 +767,38 @@ contains
 !############################ FINISH COLLISION MODEL ###########################
 !###############################################################################
  
+   subroutine reset_dt_collisions_dougherty(collisions_implicit)
+
+      implicit none
+
+      ! Arguments
+      logical, intent(in) :: collisions_implicit
+
+      !----------------------------------------------------------------------
+
+      ! The explicit algorithm multiplies by code_dt at every time step, but the matrices and
+      ! response matrices of the implicit algorithm contain code_dt, so rebuild them for the new
+      ! time step (otherwise the collision frequency is effectively multiplied by dt_old/dt_new)
+      if (.not. collisions_implicit) return
+      if (.not. initialised_dougherty) return
+      if (vpa_operator) then
+         call finish_vpadiff_matrix
+         call finish_vpadiff_response
+         call init_vpadiff_matrix
+         call init_vpadiff_conserve
+      end if
+      if (mu_operator) then
+         call finish_mudiff_matrix
+         call finish_mudiff_response
+         call init_mudiff_matrix
+         call init_mudiff_conserve
+      end if
+
+   end subroutine reset_dt_collisions_dougherty
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_collisions_dougherty
 
       implicit none
