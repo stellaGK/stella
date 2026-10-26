@@ -28,6 +28,8 @@ A detailed $\texttt{stella}$ manual will be released in the coming months, which
    * [Diagnostics](#diagnostics)
    * [Small features](#small-features)
    * [Bug fixes](#bug-fixes)
+      * [Major bug fixes](#major-bug-fixes)
+      * [Minor bug fixes](#minor-bug-fixes)
 
 
 <br><br>
@@ -285,10 +287,33 @@ It is the responsibility of the respective authors to list their contributions t
 
 ### Bug fixes
 
-- September 2024: Fixed masking of the `omega` data in the NetCDF output (H. Thienpondt).
-- December 2025: Fixed an integer-overflow bug in the MPI shared-memory implementation for the response matrix. The shared-window size and associated pointers were previously defined using 32-bit integers, limiting the usable shared memory to approximately 8–9 GB and leading to segmentation faults for larger problems. These quantities are now defined using 64-bit integers, removing this artificial limitation and enabling reliable handling of response matrices of at least ~40 GB (and likely larger). The maximum supported size is now determined by the available node RAM rather than by internal stella integer limits (H. Thienpondt).
+#### Major bug fixes
+
+These fixes change the results of $\texttt{stella}$ simulations, so results obtained before the fix may be affected.
+
 - May 2026: Fixed the dependence of the implicit collision operators on the number of MPI processes. The response matrix is only solved on the processor that owns `is = 1` for each `(kx, ky, z, tube)` point, but the other processors kept using the fields from before the solve, and `phi` was summed over all processors. The solution is now collected from all processors, so the results no longer depend on the number of processes (G. Acton).
 - October 2026: Fixed a bug in electromagnetic $\texttt{stella}$: the $B_\parallel$ contribution to the explicit $x$-component of the magnetic drift was gyro-averaged with $J_0$ instead of $J_1/a$. This affected all simulations with `include_bpar = .true.`, explicit magnetic drifts and nonzero $k_x$ (H. Thienpondt).
+- October 2026: The explicit `rk3` time advance now uses the Shu–Osher SSPRK3 scheme. The previous scheme was only third order for linear terms; for the nonlinear term it was second order. Linear results do not change (H. Thienpondt).
 - October 2026: `flip_flop = .true.` is now the default, so the order of the explicit and implicit parts of the operator splitting is alternated every time step, which makes the time advance second order accurate instead of first order (H. Thienpondt).
+- October 2026: Fixed the parallel boundary conditions: no twist-and-shift phase shift at the joins of unconnected chains; the zero-incoming boundary condition now acts in the same way with explicit as with implicit parallel streaming; the two copies of every twist-and-shift join are re-imposed during the explicit time advance; the response matrix applied the periodic end point to every segment of a periodic chain; `boundary_option = 'stellarator'` with Miller geometry now falls back to periodic boundary conditions with a warning (H. Thienpondt).
+- October 2026: The $v_\parallel$ hyper-dissipation is now applied; it was calculated but never added to the gyrokinetic equation (H. Thienpondt).
+- October 2026: Periodic modes now have the same $k_\perp^2$ at both copies of their end point $z = \pm z_\mathrm{max}$, which differed when the geometry is not up-down symmetric (e.g. stellarators) (G. Acton).
+- October 2026: The explicit Dougherty energy-conservation term now gyro-averages the whole factor $(v_\parallel^2 + v_\perp^2 - 3/2)$ with $J_0$ instead of only $v_\parallel^2$; with conservation terms the growth rates were 12–52% too high compared with GX (H. Thienpondt).
+- October 2026: Fixed implicit collisions with the implicit mirror term and `flip_flop = .true.`: on every other time step the mirror term acted on an outdated velocity-space distribution function, which made the results wrong even for vanishing collision frequency (H. Thienpondt).
+- October 2026: The matrices of the implicit collision operators are now rebuilt when the CFL condition changes the time step; before, the collision frequency was effectively multiplied by `dt_old/dt_new` (R. Nies).
+- October 2026: Fixed the Fokker–Planck field-particle part: the `psi` moments are zeroed before the sum over processors (NaN with implicit collisions), the field-particle part with several species now works on more than one processor, it stops with a clear message with explicit collisions (not implemented), and `cfac` now also scales its $J_1$ terms, so that `cfac = 0` gives the drift-kinetic operator (`cfac2` is removed). The perpendicular momentum moment of the implicit Dougherty operator now uses $v_\perp^2 J_1/a$ (H. Thienpondt).
 
+#### Minor bug fixes
 
+These fixes do not change the results of earlier simulations (e.g. crashes, debug builds, timers and diagnostics).
+
+- September 2024: Fixed masking of the `omega` data in the NetCDF output (H. Thienpondt).
+- December 2025: Fixed an integer-overflow bug in the MPI shared-memory implementation for the response matrix. The shared-window size and associated pointers were previously defined using 32-bit integers, limiting the usable shared memory to approximately 8–9 GB and leading to segmentation faults for larger problems. These quantities are now defined using 64-bit integers, removing this artificial limitation and enabling reliable handling of response matrices of at least ~40 GB (and likely larger). The maximum supported size is now determined by the available node RAM rather than by internal stella integer limits (H. Thienpondt).
+- October 2026: Fixed the code timers `calculate_phi_and_bpar` and the `int_dv_g` part of the field solve in the kxkyz layout, which were started but never stopped, so that they also measured the time between two calls and reported more time than the whole field solve (H. Thienpondt).
+- October 2026: Writing all diagnostics (`write_all = .true.`) no longer crashes simulations without radial variation, since the radial moments and fluxes are only written with radial variation; radial variation with VMEC geometry, which used zeros for the radial derivatives of the geometry, now stops with a clear error message (H. Thienpondt).
+- October 2026: Fixed the errors found by running the automatic tests with a debug build: uninitialised `initialised_*` flags of the grids and arrays, the electrostatic implicit mirror term reading `apar` beyond its size, `jtwist`, `jtwistfac` and `ikx_twist_shift` uninitialised for the range grid, geometry quantities that were not broadcast to all processors, and a partly initialised collision frequency (H. Thienpondt).
+- October 2026: The input file converter no longer drops `include_apar`, `include_bpar`, `explicit_option` and the diagnostics flags of old input files, and the default input file no longer makes $\texttt{stella}$ abort (H. Thienpondt).
+- October 2026: Fixed the gyro-averages of the flow shear and stress diagnostics, which indexed `apar` and `bpar` in electrostatic simulations (H. Thienpondt).
+- October 2026: With `flip_flop = .true.`, $(\omega, \gamma)$ are now calculated over two time steps; before, they alternated between two wrong values every time step, which also prevented `autostop` (H. Thienpondt).
+- October 2026: Fixed a division by zero for the $k_x = k_y = 0$ mode of the modified Boltzmann response, which made debug builds stop in nonlinear simulations with adiabatic electrons (H. Thienpondt).
+- October 2026: Fixed a first-order error in time at the parallel boundaries: the end points of periodic (e.g. zonal) modes are now made consistent on every Runge–Kutta stage, and the parallel boundary conditions are imposed on the initial distribution function. Before, the explicit time advance was first order in $\Delta t$ for zero and linked boundary conditions, and in linear simulations with periodic boundary conditions; the results only change at the level of the time-stepping error (H. Thienpondt).
