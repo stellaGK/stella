@@ -153,7 +153,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine init_collisions_fp(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
+   subroutine init_collisions_fp(collisions_implicit, cfl_dt_collisions)
 
       use grids_species, only: spec, nspec
       use grids_velocity, only: dvpa, dmu, mu, nmu
@@ -166,7 +166,7 @@ contains
       implicit none
 
       logical, intent(in) :: collisions_implicit
-      real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
+      real, intent(out) :: cfl_dt_collisions
 
       integer :: is, is2
       integer, parameter :: ion_species = 1
@@ -253,8 +253,7 @@ contains
          do is = 1, nspec
             vnew_max = max(vnew_max, maxval(spec(is)%vnew))
          end do
-         cfl_dt_vpadiff = 2.0 * dvpa**2 / vnew_max
-         cfl_dt_mudiff = minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2))
+         cfl_dt_collisions = min(2.0 * dvpa**2 / vnew_max, minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2)))
       end if
 
    end subroutine init_collisions_fp

@@ -21,7 +21,7 @@ module dissipation_and_collisions
    
    ! Make parameters available
    public :: include_collisions, hyper_dissipation, ecoll_zeff
-   public :: collisions_implicit, cfl_dt_mudiff, cfl_dt_vpadiff
+   public :: collisions_implicit, cfl_dt_collisions
    public :: zeff, vnew_ref
 
    private
@@ -36,7 +36,7 @@ module dissipation_and_collisions
    character(30) :: collision_model
 
    ! Parameters
-   real :: cfl_dt_mudiff = huge(0.0), cfl_dt_vpadiff = huge(0.0)
+   real :: cfl_dt_collisions = huge(0.0)
    real :: zeff, vnew_ref
    
    ! Only initialise once
@@ -197,9 +197,9 @@ contains
 
       ! Initialise collision model
       if (collision_model == "dougherty") then
-         call init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
+         call init_collisions_dougherty(collisions_implicit, cfl_dt_collisions)
       else if (collision_model == "fokker-planck") then
-         call init_collisions_fp(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
+         call init_collisions_fp(collisions_implicit, cfl_dt_collisions)
       end if
 
    end subroutine init_collisions

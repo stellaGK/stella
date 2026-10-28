@@ -78,21 +78,24 @@ contains
    !****************************************************************************
    !                       Initialise the collision model                       
    !****************************************************************************
-   subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
+   subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_collisions)
 
       use grids_species, only: spec, nspec
-      use grids_velocity, only: dvpa, dmu, mu, nmu
+      use grids_velocity, only: nvpa, nmu, vpa, dvpa, dmu
+      use grids_velocity, only: mu_cell, dmu_cell, wgts_mu_bare
+      use grids_z, only: nzgrid
       use geometry, only: bmag
+      use arrays, only: kperp2
 
       implicit none
 
       ! Arguments
       logical, intent(in) :: collisions_implicit
-      real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
+      real, intent(out) :: cfl_dt_collisions
 
       ! Local variables
-      integer :: is
-      real :: vnew_max
+      integer :: is, iv, imu, iz, ia
+      real :: kfac, rate_vpa, rate_mu, rate_flr, row, mm, m0, mp
 
       !----------------------------------------------------------------------
 
@@ -113,12 +116,48 @@ contains
          
       ! Initialise explicit collision scheme
       else
-         vnew_max = 0.0
+         ! The explicit time advance is stable if code_dt * |lambda| < 2 for every eigenvalue
+         ! lambda of the collision operator (forward Euler; the Runge-Kutta schemes are at least
+         ! as stable for real negative eigenvalues). The vpa operator, the mu operator and the
+         ! classical (gyro-)diffusion act on the same h, so their rates add: bound |lambda| by the
+         ! largest row sum of the operator applied in <advance_collisions_dougherty_explicit>
+         ! (Gershgorin). Separate limits for the vpa and mu operators allowed time steps for
+         ! which the sum is unstable.
+         ia = 1
+         kfac = 0.0
+         if (mu_operator) kfac = kfac + 0.5
+         if (vpa_operator) kfac = kfac + 0.5
+
+         ! Rows of <vpa_differential_operator> (tfac = 1)
+         rate_vpa = 0.0
+         if (vpa_operator) then
+            do iv = 2, nvpa - 1
+               row = (0.5 * abs(1.0 / dvpa + vpa(iv + 1)) + 1.0 / dvpa + 0.5 * abs(1.0 / dvpa - vpa(iv - 1))) / dvpa
+               rate_vpa = max(rate_vpa, row)
+            end do
+         end if
+
+         ! Rows of <mu_differential_operator> (tfac = 1)
+         rate_mu = 0.0
+         if (mu_operator) then
+            do iz = -nzgrid, nzgrid
+               do imu = 2, nmu - 1
+                  mm = mu_cell(imu - 1) * (1.0 / (bmag(ia, iz) * dmu(imu - 1)) - 1.0) / wgts_mu_bare(imu)
+                  m0 = -(mu_cell(imu) / dmu(imu) + mu_cell(imu - 1) / dmu(imu - 1)) &
+                       / (wgts_mu_bare(imu) * bmag(ia, iz)) + dmu_cell(imu) / wgts_mu_bare(imu)
+                  mp = mu_cell(imu) * (1.0 / (bmag(ia, iz) * dmu(imu)) + 1.0) / wgts_mu_bare(imu)
+                  rate_mu = max(rate_mu, abs(mm) + abs(m0) + abs(mp))
+               end do
+            end do
+         end if
+
+         ! The classical (gyro-)diffusion, 0.5 * kfac * kperp^2 (smz/B)^2, differs per species
+         cfl_dt_collisions = huge(0.0)
          do is = 1, nspec
-            vnew_max = max(vnew_max, maxval(spec(is)%vnew))
+            rate_flr = 0.5 * kfac * maxval(kperp2) * (spec(is)%smz / minval(bmag))**2
+            cfl_dt_collisions = min(cfl_dt_collisions, &
+               2.0 / max(maxval(spec(is)%vnew) * (rate_vpa + rate_mu + rate_flr), epsilon(0.0)))
          end do
-         cfl_dt_vpadiff = 2.0 * dvpa**2 / vnew_max
-         cfl_dt_mudiff = minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2))
       end if
       
    end subroutine init_collisions_dougherty

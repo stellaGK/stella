@@ -57,7 +57,7 @@ contains
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
-      use dissipation_and_collisions, only: cfl_dt_vpadiff, cfl_dt_mudiff
+      use dissipation_and_collisions, only: cfl_dt_collisions
       
       ! Radial variation - multibox - flow shear
       use parameters_physics, only: radial_variation
@@ -134,8 +134,7 @@ contains
       end if
 
       if (include_collisions .and. .not. collisions_implicit) then
-         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_vpadiff)
-         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_mudiff)
+         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_collisions)
       end if
 
       if (.not. drifts_implicit .and. include_ydrift) then
@@ -181,6 +180,7 @@ contains
          if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '   wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
+         if (include_collisions .and. .not. collisions_implicit) write (*, '(A15,ES12.4)') '   collisions: ', cfl_dt_collisions
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *) ''
       end if
