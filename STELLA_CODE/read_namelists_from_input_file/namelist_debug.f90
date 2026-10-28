@@ -66,7 +66,7 @@ contains
       time_advance_debug, extended_grid_debug, diagnostics_all_debug, diagnostics_parameters, &
       diagnostics_fluxes_fluxtube_debug, diagnostics_omega_debug, diagnostics_debug, dist_fn_debug, &
       gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-      debug_test_gyro_average, calculations_debug, parallelisation_debug)
+      debug_test_gyro_average, calculations_debug, parallelisation_debug, energy_diagnostics_debug)
 
       use mp, only: proc0
 
@@ -80,7 +80,7 @@ contains
          diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
          diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-         debug_test_gyro_average, calculations_debug, parallelisation_debug
+         debug_test_gyro_average, calculations_debug, parallelisation_debug, energy_diagnostics_debug
 
       !-------------------------------------------------------------------------
 
@@ -131,6 +131,9 @@ contains
          debug_test_gyro_average = .false.
          calculations_debug = .false.
 
+         ! Fine-grained timing of the free-energy diagnostic internals
+         energy_diagnostics_debug = .false.
+
          ! Print stella header to the terminal
          print_extra_info_to_terminal = .true.
 
@@ -151,7 +154,7 @@ contains
              diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
              diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
              gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-             debug_test_gyro_average, calculations_debug, parallelisation_debug
+             debug_test_gyro_average, calculations_debug, parallelisation_debug, energy_diagnostics_debug
          
          !----------------------------------------------------------------------
 
@@ -195,6 +198,7 @@ contains
              diagnostics_fluxes_fluxtube_debug = .true.
              diagnostics_omega_debug = .true.
              fluxes_debug = .true.
+             energy_diagnostics_debug = .true.
          end if
 
          if (fields_all_debug) then

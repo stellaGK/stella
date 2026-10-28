@@ -504,6 +504,9 @@ contains
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: include_drive
       use parameters_physics, only: xdriftknob, ydriftknob
+      use job_manage, only: time_message
+      use timers, only: time_energy_terms
+      use debug_flags, only: energy_diagnostics_debug
 
       implicit none
 
@@ -601,6 +604,7 @@ contains
          ! col 4: drive (project the wstar rate onto h)
          !--------------------------------------------------------------------
          energy_diag%factor_spec = spec%dens * spec%temp
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 1), 'energy drive')
          if (include_drive) then
             g1 = 0.
             call advance_wstar_explicit(phi, g1)
@@ -611,10 +615,12 @@ contains
             drive_sum = 0.
             energy_diag%drive_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 1), 'energy drive')
 
          !--------------------------------------------------------------------
          ! col 6: collisions
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 2), 'energy collisions')
          if (include_collisions) then
             energy_diag%factor_spec = spec%dens * spec%temp
             g1 = 0.
@@ -626,10 +632,12 @@ contains
             coll_sum = 0.
             energy_diag%coll_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 2), 'energy collisions')
 
          !--------------------------------------------------------------------
          ! col 7: hyp_v (parallel-velocity hyperdiffusion)
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 3), 'energy diss_vpa')
          if (hyp_vpa) then
             energy_diag%factor_spec = spec%dens * spec%temp
             g1 = 0.
@@ -641,10 +649,12 @@ contains
             diss_vpa_sum = 0.
             energy_diag%diss_vpa_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 3), 'energy diss_vpa')
 
          !--------------------------------------------------------------------
          ! col 8: hyp_z (z hyperdiffusion)
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 4), 'energy diss_zed')
          if (hyp_zed) then
             energy_diag%factor_spec = spec%dens * spec%temp
             g1 = 0.
@@ -656,10 +666,12 @@ contains
             diss_zed_sum = 0.
             energy_diag%diss_zed_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 4), 'energy diss_zed')
 
          !--------------------------------------------------------------------
          ! col 9: hyp_x/y (perpendicular hyperdiffusion)
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 5), 'energy diss_perp')
          if (D_hyper > 0.0) then
             energy_diag%factor_spec = -D_hyper * spec%dens * spec%temp
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -678,10 +690,12 @@ contains
             diss_perp_sum = 0.
             energy_diag%diss_perp_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 5), 'energy diss_perp')
 
          !--------------------------------------------------------------------
          ! col 10: nonlinearity
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 6), 'energy nonlinearity')
          if (include_nonlinear) then
             energy_diag%factor_spec = spec%dens * spec%temp
             g1 = 0.
@@ -693,10 +707,12 @@ contains
             nonlinearity_sum = 0.
             energy_diag%nonlinearity_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 6), 'energy nonlinearity')
 
          !--------------------------------------------------------------------
          ! col 11: parallel streaming term
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 7), 'energy streaming')
          if (include_parallel_streaming) then
             energy_diag%factor_spec = spec%dens * spec%temp
             g1 = 0.
@@ -708,10 +724,12 @@ contains
             streaming_sum = 0.
             energy_diag%streaming_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 7), 'energy streaming')
 
          !--------------------------------------------------------------------
          ! col 12: mirror term
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 8), 'energy mirror')
          if (include_mirror) then
             energy_diag%factor_spec = spec%dens * spec%temp
             g1 = 0.
@@ -723,6 +741,7 @@ contains
             mirror_sum = 0.
             energy_diag%mirror_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 8), 'energy mirror')
 
          !--------------------------------------------------------------------
          ! col 12: drifts + remaining = the drift/drifts term, defined as
@@ -731,6 +750,7 @@ contains
          ! makes the projection identity close exactly by construction. Guarded on
          ! the drift knobs (matching the GKE advance), not just the master flags.
          !--------------------------------------------------------------------
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 9), 'energy drifts')
          if (abs(xdriftknob) > epsilon(0.0) .or. abs(ydriftknob) > epsilon(0.0)) then
             energy_diag%factor_spec = spec%dens * spec%temp
             g1 = 0.
@@ -743,6 +763,7 @@ contains
             drifts_sum = 0.
             energy_diag%drifts_spec = 0.
          end if
+         if (energy_diagnostics_debug) call time_message(.false., time_energy_terms(:, 9), 'energy drifts')
 
          !--------------------------------------------------------------------
          ! col 3: dedt_projected = <c_f | RHS(t_n)> = sum of all per-term projections

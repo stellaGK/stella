@@ -22,6 +22,8 @@ module timers
    public :: time_individual_diagnostics
    public :: time_response_matrix
    public :: time_lu_decomposition
+   public :: time_energy
+   public :: time_energy_terms
    
    private
    
@@ -36,6 +38,16 @@ module timers
    ! Time the response matrix
    real, dimension(2) :: time_response_matrix = 0.
    real, dimension(2) :: time_lu_decomposition = 0.
+   
+   ! Time the free-energy diagnostic (the energy closure).
+   real, dimension(2) :: time_energy = 0.
+
+   ! Time the individual per-term operator computations inside the free-energy
+   ! diagnostic (gated on the <energy_diagnostics_debug> debug flag). Indexed by
+   ! term order matching the closure columns:
+   !   1=drive  2=collisions  3=diss_vpa  4=diss_zed  5=diss_perp
+   !   6=nonlinearity  7=streaming  8=mirror  9=drifts
+   real, dimension(2, 9) :: time_energy_terms = 0.
    
    ! Time the gyrokinetic equation
    !    - time_gke(:,1) = Gyrokinetic equation + field equations

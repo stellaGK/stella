@@ -35,6 +35,7 @@ module debug_flags
    public :: diagnostics_fluxes_fluxtube_debug
    public :: diagnostics_omega_debug
    public :: fluxes_debug
+   public :: energy_diagnostics_debug
    public :: geometry_debug
    public :: dist_fn_debug
    public :: gyro_averages_debug
@@ -85,6 +86,12 @@ module debug_flags
    logical :: diagnostics_omega_debug
    logical :: fluxes_debug
 
+   ! Debug flag for the free-energy diagnostic (the energy closure); when true,
+   ! it enables fine-grained timing of the energy diagnostic's internal
+   ! operations (e.g. the duplicate field solve) that the standard timing
+   ! report lumps into the diagnostics total.
+   logical :: energy_diagnostics_debug
+
    ! Geometry debug flags
    logical :: geometry_debug
 
@@ -120,7 +127,7 @@ contains
          diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
          diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-         debug_test_gyro_average, calculations_debug, parallelisation_debug)
+         debug_test_gyro_average, calculations_debug, parallelisation_debug, energy_diagnostics_debug)
 
       ! Broadcast the parameters to all processors
       call broadcast_parameters
@@ -153,6 +160,7 @@ contains
          gyro_averages_debug = .false.
          fluxes_debug = .false. 
          geometry_debug = .false.
+         energy_diagnostics_debug = .false.
          parallelisation_debug = .false.
          print_extra_info_to_terminal = .false.
       end if
@@ -194,6 +202,7 @@ contains
          call broadcast(debug_test_gyro_average)
          call broadcast(calculations_debug)
          call broadcast(parallelisation_debug)
+         call broadcast(energy_diagnostics_debug)
 
       end subroutine broadcast_parameters
 

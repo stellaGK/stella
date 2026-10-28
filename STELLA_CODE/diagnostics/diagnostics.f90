@@ -160,6 +160,7 @@ contains
       use job_manage, only: time_message
       use timers, only: time_all_diagnostics
       use timers, only: time_individual_diagnostics
+      use timers, only: time_energy
 
       ! Fields and distribution function
       use arrays_fields, only: phi, apar, bpar
@@ -251,6 +252,9 @@ contains
       ! (every <nwrite> step). The per-mode kxkyz/vmu arrays are filled here and
       ! written to NetCDF below on the <nwrite*nc_mult> steps.
       if (write_energy) then
+         ! Time the free-energy diagnostic (the energy closure), which is otherwise
+         ! lumped into the un-attributed remainder of the <diagnostics> total.
+         call time_message(.false., time_energy, ' free-energy diagnostic')
          if (full_flux_surface) then
             ! TODO: full flux surface energy diagnostic not yet supported
             if (debug) write (*, *) 'diagnostics::write_energy: full_flux_surface not supported'
@@ -280,6 +284,9 @@ contains
 
             call set_vpa_weights(.false.)
          end if
+
+         ! End the free-energy diagnostic timer.
+         call time_message(.false., time_energy, ' free-energy diagnostic')
       end if
       
       !**********************************************************************
