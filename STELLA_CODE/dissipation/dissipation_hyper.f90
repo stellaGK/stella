@@ -371,7 +371,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: periodic
-      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: zed_operator_along_chains, zop_fourth
+      use grids_kxky, only: naky, non_twisting
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
 
       implicit none
@@ -386,6 +387,14 @@ contains
 
       !-------------------------------------------------------------------------
       
+      ! Non-twisting flux tube: the chains change kx at any z point
+      if (non_twisting) then
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call zed_operator_along_chains(g(:, :, :, :, ivmu), dgdz(:, :, :, :, ivmu), zop_fourth, 1, 0.0)
+         end do
+         return
+      end if
+
       ! FLAG -- assuming delta zed is equally spaced below!
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)

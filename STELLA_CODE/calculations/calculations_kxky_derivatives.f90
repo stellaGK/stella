@@ -159,7 +159,7 @@ contains
       use constants, only: zi
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx
-      use grids_kxky, only: akx
+      use grids_kxky, only: akx, kx_shift
 
       implicit none
 
@@ -173,7 +173,7 @@ contains
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
-               dgdx(:, ikx, iz, it) = zi * akx(ikx) * g(:, ikx, iz, it)
+               dgdx(:, ikx, iz, it) = zi * (akx(ikx) + kx_shift(:, iz)) * g(:, ikx, iz, it)
             end do
          end do
       end do
@@ -189,7 +189,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx
-      use grids_kxky, only: akx
+      use grids_kxky, only: akx, kx_shift
 
       implicit none
 
@@ -204,7 +204,7 @@ contains
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
-                  dgdx(:, ikx, iz, it, ivmu) = zi * akx(ikx) * g(:, ikx, iz, it, ivmu)
+                  dgdx(:, ikx, iz, it, ivmu) = zi * (akx(ikx) + kx_shift(:, iz)) * g(:, ikx, iz, it, ivmu)
                end do
             end do
          end do

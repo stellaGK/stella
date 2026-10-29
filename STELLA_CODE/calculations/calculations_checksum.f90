@@ -37,6 +37,8 @@ contains
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
       use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: nzext, nzext_max, map_to_extended_zgrid
+      use grids_kxky, only: non_twisting
 
       implicit none
 
@@ -45,13 +47,29 @@ contains
       real, intent(out) :: total
 
       ! Local variables
-      integer :: it, iky, ie, iseg
+      integer :: it, iky, ie, iseg, n
       integer :: ikx
+      complex, dimension(:), allocatable :: fext
 
       !----------------------------------------------------------------------
 
       ! Initialise sum
       total = 0.
+
+      ! Non-twisting flux tube: sum over the points of every chain
+      if (non_twisting) then
+         allocate (fext(nzext_max))
+         do iky = 1, naky
+            do it = 1, ntubes
+               do ie = 1, neigen(iky)
+                  call map_to_extended_zgrid(it, ie, iky, field(iky, :, :, :), fext, n)
+                  total = total + sum(cabs(fext(:n)))
+               end do
+            end do
+         end do
+         deallocate (fext)
+         return
+      end if
 
       ! Check the sum
       do iky = 1, naky

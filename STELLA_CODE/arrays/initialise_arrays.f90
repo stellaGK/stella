@@ -68,11 +68,12 @@ contains
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
       use grids_kxky, only: naky, nakx, nalpha
-      use grids_kxky, only: akx, aky
+      use grids_kxky, only: akx, aky, kx_shift
 
       implicit none
 
-      integer :: iky, ikx
+      integer :: iky, ikx, iz
+      real :: kx
       
       !-------------------------------------------------------------------------
 
@@ -87,11 +88,15 @@ contains
       do iky = 1, naky
 
          ! Calculate |k_perp|^2 = kx² |∇x|² + 2 kx ky ∇x . ∇y + ky² |∇y|²
+         ! For the non-twisting flux tube the ballooning kx is akx + kx_shift(ky, z) (kx_shift = 0 otherwise)
          if (.not. q_as_x) then
-            do ikx = 1, nakx
-               kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gradx_dot_gradx &
-                   + 2.0 * akx(ikx) * aky(iky) * gradx_dot_grady &
-                   + aky(iky) * aky(iky) * grady_dot_grady
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  kx = akx(ikx) + kx_shift(iky, iz)
+                  kperp2(iky, ikx, :, iz) = kx * kx * gradx_dot_gradx(:, iz) &
+                      + 2.0 * kx * aky(iky) * gradx_dot_grady(:, iz) &
+                      + aky(iky) * aky(iky) * grady_dot_grady(:, iz)
+               end do
             end do
          end if
          
@@ -191,17 +196,46 @@ contains
       use grids_z, only: nzgrid
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
       use grids_extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: nzext, izext_iz, izext_ikx
+      use grids_extended_zgrid, only: ndup, dup_iz, dup_ikx, dup_src
+      use grids_kxky, only: non_twisting
       use parameters_physics, only: full_flux_surface
 
       implicit none
 
-      integer :: iky, ie, iseg, ikx
+      integer :: iky, ie, iseg, ikx, idup, isrc, izl, izu, ikxl, ikxu
       real, dimension(:), allocatable :: tmp
       
       !-------------------------------------------------------------------------
 
       ! Allocate temporary array
       allocate (tmp(nalpha)); tmp = 0.0
+
+      ! Non-twisting flux tube: average every point that is stored twice (its copy at the other end
+      ! of the tube) and the two ends of the periodic chains
+      if (non_twisting) then
+         do iky = 1, naky
+            do ie = 1, neigen(iky)
+               do idup = 1, ndup(ie, iky)
+                  isrc = dup_src(idup, ie, iky)
+                  izl = izext_iz(isrc, ie, iky); ikxl = izext_ikx(isrc, ie, iky)
+                  izu = dup_iz(idup, ie, iky); ikxu = dup_ikx(idup, ie, iky)
+                  tmp = 0.5 * (kperp2(iky, ikxl, :, izl) + kperp2(iky, ikxu, :, izu))
+                  kperp2(iky, ikxl, :, izl) = tmp
+                  kperp2(iky, ikxu, :, izu) = tmp
+               end do
+               if (periodic(iky)) then
+                  izl = izext_iz(1, ie, iky); ikxl = izext_ikx(1, ie, iky)
+                  izu = izext_iz(nzext(ie, iky), ie, iky); ikxu = izext_ikx(nzext(ie, iky), ie, iky)
+                  tmp = 0.5 * (kperp2(iky, ikxl, :, izl) + kperp2(iky, ikxu, :, izu))
+                  kperp2(iky, ikxl, :, izl) = tmp
+                  kperp2(iky, ikxu, :, izu) = tmp
+               end if
+            end do
+         end do
+         deallocate (tmp)
+         return
+      end if
 
       ! Set connected z-points to their average |k_perp^2| value
       do iky = 1, naky

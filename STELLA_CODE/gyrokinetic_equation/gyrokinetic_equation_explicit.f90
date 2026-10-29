@@ -696,6 +696,8 @@ contains
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod, it_right
       use grids_extended_zgrid, only: periodic, phase_shift
+      use grids_extended_zgrid, only: enforce_chain_copies
+      use grids_kxky, only: non_twisting
 
       implicit none
 
@@ -712,6 +714,13 @@ contains
 
       ! Only needed for flux tubes with linked boundary conditions
       if (full_flux_surface) return
+
+      ! Non-twisting flux tube: set the copies of the points of every chain from the points
+      if (non_twisting) then
+         if (stream_implicit .and. .not. last) return
+         call enforce_chain_copies(fld)
+         return
+      end if
       if (boundary_option_switch /= boundary_option_linked .and. &
           boundary_option_switch /= boundary_option_linked_stellarator) return
       if (stream_implicit .and. .not. last) return

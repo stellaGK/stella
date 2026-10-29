@@ -62,7 +62,7 @@ contains
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use arrays_distribution_function, only: g1, g2
       use grids_extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
-      use grids_extended_zgrid, only: nsegments, nzed_segment
+      use grids_extended_zgrid, only: nzext
       use grids_species, only: has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
@@ -330,7 +330,7 @@ contains
                do it = 1, ntubes
                   do ie = 1, neigen(iky)
                      ! nz_ext is the number of grid points in the extended zed domain
-                     nz_ext = nsegments(ie, iky) * nzed_segment + 1
+                     nz_ext = nzext(ie, iky)
                      ! pdf1 and pdf2 will be scratch arrays needed to compute the pdf itself,
                      ! as well as contributions to the GK equation
                      allocate (pdf1(nz_ext), pdf2(nz_ext))
@@ -645,7 +645,7 @@ contains
       subroutine add_drifts_contribution_phi
          
          use constants, only: zi
-         use grids_kxky, only: aky, akx
+         use grids_kxky, only: aky, akx, kx_shift
          use arrays, only: wstar, wdriftx_phi, wdrifty_phi
          use gk_parallel_streaming, only: center_zed
          use grids_extended_zgrid, only: periodic
@@ -660,7 +660,7 @@ contains
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
-            scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
+            scratch(izext) = zi * scratch(izext) * ((akx(ikx) + kx_shift(iky, iz)) * wdriftx_phi(ia, iz, ivmu) &
                            + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
          end do
          call center_zed(iv, scratch, 1, periodic(iky))
@@ -819,7 +819,7 @@ contains
       subroutine add_drifts_contribution_bpar
 
          use constants, only: zi
-         use grids_kxky, only: aky, akx
+         use grids_kxky, only: aky, akx, kx_shift
          use arrays, only: wstar, wdriftx_bpar, wdrifty_bpar
          use gk_parallel_streaming, only: center_zed
          use grids_extended_zgrid, only: periodic
@@ -836,7 +836,7 @@ contains
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
-            scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_bpar(ia, iz, ivmu) &
+            scratch(izext) = zi * scratch(izext) * ((akx(ikx) + kx_shift(iky, iz)) * wdriftx_bpar(ia, iz, ivmu) &
                              + aky(iky) * (wdrifty_bpar(ia, iz, ivmu) + constant_factor * wstar(ia, iz, ivmu)))
          end do
          call center_zed(iv, scratch, 1, periodic(iky))
@@ -1124,7 +1124,7 @@ contains
       use parameters_physics, only: include_apar
       use grids_species, only: spec
       use grids_z, only: nzgrid
-      use grids_kxky, only: aky, akx
+      use grids_kxky, only: aky, akx, kx_shift
       use grids_velocity, only: vpa
       use parallelisation_layouts, only: vmu_lo, iv_idx, is_idx
       use parameters_numerical, only: time_upwind_minus
@@ -1199,7 +1199,7 @@ contains
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
             rhs(izext) = rhs(izext) + pdf(izext) * zi * time_upwind_minus &
-                         * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky))
+                         * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
 !            rhs(izext) = rhs(izext) * (1.0 + zi * time_upwind_minus &
 !                                       * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky)))
          end do
@@ -1253,9 +1253,10 @@ contains
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
       use parameters_numerical, only: time_upwind_plus
       use grids_kxky, only: nakx
-      use grids_kxky, only: akx, aky
+      use grids_kxky, only: akx, aky, kx_shift
       use arrays, only: wdriftx_g, wdrifty_g
-      use grids_extended_zgrid, only: map_to_extended_zgrid
+      use grids_extended_zgrid, only: map_to_extended_zgrid, izext_iz
+      use grids_kxky, only: non_twisting
       use grids_extended_zgrid, only: periodic, phase_shift
       use gk_parallel_streaming, only: stream_sign, stream_c
       use gk_parallel_streaming, only: center_zed
@@ -1273,7 +1274,8 @@ contains
       real :: stream_term
       integer :: iz, ikx, ia
       integer :: iv, is
-      integer :: ulim, sgn, iz1, iz2
+      integer :: ulim, sgn, iz1, iz2, izext
+      integer, dimension(:), allocatable :: iz_ext
 
       !-------------------------------------------------------------------------
 
@@ -1294,7 +1296,7 @@ contains
          ! Sum up the kx and ky contributions to the magnetic drift frequency
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
-               wdrift(ikx, iz) = -zi * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky))
+               wdrift(ikx, iz) = -zi * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
             end do
          end do
          ! Obtain the drift frequency on the extended zed domain
@@ -1313,6 +1315,16 @@ contains
       else
          iz1 = ulim; iz2 = 1
       end if
+
+      ! The chains of the non-twisting flux tube can start and end at any z, so the z index of
+      ! every point of the chain is taken from the chain itself (the chains of the twist-and-shift
+      ! BC always run from z(-nzgrid) to z(nzgrid), and get_updated_pdf steps through z)
+      if (non_twisting) then
+         allocate (iz_ext(ulim))
+         do izext = 1, ulim
+            iz_ext(izext) = izext_iz(izext, ie, iky)
+         end do
+      end if
       ! The case of periodic BC must be treated separately from the zero-incoming-BC case
       if (periodic(iky)) then
          ! To enforce periodicity, decompose the pdf into a particular integral
@@ -1321,12 +1333,12 @@ contains
          ! Calculate the particular integral, with zero BC, and store in pdf
          iz = sgn * nzgrid
          pdf(iz1) = 0.0
-         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf, iz_ext)
          ! Calculate the complementary function, with unit BC, and store in pdf_cf
          allocate (pdf_cf(ulim))
          iz = sgn * nzgrid
          pdf_cf = 0.0; pdf_cf(iz1) = 1.0
-         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf_cf)
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf_cf, iz_ext)
          ! Construct pdf = pdf_PI + (pdf_PI(zend)/(1-pdf_CF(zend))) * pdf_CF
          phase_factor = phase_shift(iky)**(-sgn)
          pdf = pdf + (phase_factor * pdf(iz2) / (1.0 - phase_factor * pdf_cf(iz2))) * pdf_cf
@@ -1334,6 +1346,7 @@ contains
       else
          ! Specially treat the most upwind grid point
          iz = sgn * nzgrid
+         if (non_twisting) iz = iz_ext(iz1)
          wd_factor = 1.0
          if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
@@ -1341,14 +1354,15 @@ contains
          pdf(iz1) = pdf(iz1) * 2.0 / fac1
          ! Now that we have the pdf at the most upwind point, sweep over the
          ! rest of the extended zed domain to obtain the pdf(z)
-         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf, iz_ext)
       end if
 
       if (drifts_implicit) deallocate (wdrift, wdrift_ext)
+      if (allocated(iz_ext)) deallocate (iz_ext)
 
    end subroutine sweep_g_zext
 
-   subroutine get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
+   subroutine get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf, iz_ext)
 
       use grids_z, only: nzgrid, delzed
       use parameters_numerical, only: drifts_implicit
@@ -1362,6 +1376,8 @@ contains
       integer, intent(in) :: iv, is, sgn, iz1, iz2
       complex, dimension(:), intent(in) :: wdrift_ext
       complex, dimension(:), intent(in out) :: pdf
+      ! z index of every point of the chain (non-twisting flux tube); otherwise z is stepped through
+      integer, dimension(:), allocatable, intent(in) :: iz_ext
 
       integer :: izext
       real :: stream_term
@@ -1379,7 +1395,9 @@ contains
       wd_factor = 1.0
 
       do izext = iz1 - sgn, iz2, -sgn
-         if (iz == -sgn * nzgrid) then
+         if (allocated(iz_ext)) then
+            iz = iz_ext(izext)
+         else if (iz == -sgn * nzgrid) then
             iz = sgn * nzgrid - sgn
          else
             iz = iz - sgn
@@ -1468,12 +1486,12 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: neigen
-      use grids_extended_zgrid, only: nsegments
-      use grids_extended_zgrid, only: nzed_segment
+      use grids_extended_zgrid, only: nzext
       use grids_extended_zgrid, only: map_to_extended_zgrid
       use grids_extended_zgrid, only: map_from_extended_zgrid
-      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: izext_ikx
       use grids_extended_zgrid, only: periodic, phase_shift
+      use grids_kxky, only: non_twisting
       use grids_kxky, only: naky
       use field_equations, only: nfields
       use arrays, only: response_matrix
@@ -1485,7 +1503,7 @@ contains
       integer :: iky, ie, it, ulim
       integer :: ikx
       integer :: offset_apar, offset_bpar
-      integer :: nresponse_per_field, nresponse, nzp
+      integer :: nresponse_per_field, nresponse, nzp, nz_ext
       complex, dimension(:), allocatable :: fld_ext, phi_ext, apar_ext, bpar_ext
       complex, dimension(:), allocatable :: fld
 
@@ -1495,8 +1513,10 @@ contains
 
       ! Put the fields onto the extended zed grid and use LU back substitution
       do iky = 1, naky
-         ! Avoid double counting of periodic endpoints for zonal (and any other periodic) modes
-         if (periodic(iky)) then
+         ! Avoid double counting of periodic endpoints for zonal (and any other periodic) modes.
+         ! In the non-twisting flux tube a periodic chain can change kx along z, so it uses the
+         ! general branch below, which maps the chain to the extended zed grid
+         if (periodic(iky) .and. .not. non_twisting) then
             nzp = 2 * nzgrid
             allocate (fld(nzp * nfields))
             ! Set offset integers for array slices involving apar and bpar
@@ -1508,7 +1528,7 @@ contains
             if (include_bpar) offset_bpar = offset_apar + nzp
             do it = 1, ntubes
                do ie = 1, neigen(iky)
-                  ikx = ikxmod(1, ie, iky)
+                  ikx = izext_ikx(1, ie, iky)
                   ! Construct the field vector, consisting of phi (and apar if evolving)
                   fld(:nzp) = phi(iky, ikx, -nzgrid:nzgrid - 1, it)
                   if (include_apar) fld(offset_apar + 1:nzp + offset_apar) = apar(iky, ikx, -nzgrid:nzgrid - 1, it)
@@ -1535,7 +1555,9 @@ contains
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   ! Solve response_matrix*(phi^{n+1}, apar^{n+1}) = (phi_{inh}^{n+1}, apar_{inh}^{n+1})
-                  nresponse_per_field = nsegments(ie, iky) * nzed_segment + 1
+                  ! The last point of a periodic chain is the same as the first one
+                  nz_ext = nzext(ie, iky)
+                  nresponse_per_field = nz_ext - merge(1, 0, periodic(iky))
                   nresponse = nresponse_per_field * nfields
                   ! fld_ext will contain phi or (phi, apar), depending on whether apar is evolved
                   allocate (fld_ext(nresponse))
@@ -1548,22 +1570,22 @@ contains
                   if (include_bpar) offset_bpar = offset_apar + nresponse_per_field
                   
                   ! phi_ext contains phi on the extended zed domain
-                  allocate (phi_ext(nresponse_per_field))
+                  allocate (phi_ext(nz_ext))
                   call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), phi_ext, ulim)
                   ! Include the phi_ext contribution to fld_ext
-                  fld_ext(:nresponse_per_field) = phi_ext
+                  fld_ext(:nresponse_per_field) = phi_ext(:nresponse_per_field)
 
                   ! If apar evolved, obtain apar on the extended zed domain (apar_ext)
                   ! and include its contribution to fld_ext
                   if (include_apar) then
-                     allocate (apar_ext(nresponse_per_field))
+                     allocate (apar_ext(nz_ext))
                      call map_to_extended_zgrid(it, ie, iky, apar(iky, :, :, :), apar_ext, ulim)
-                     fld_ext(offset_apar + 1:nresponse_per_field + offset_apar) = apar_ext
+                     fld_ext(offset_apar + 1:nresponse_per_field + offset_apar) = apar_ext(:nresponse_per_field)
                   end if
                   if (include_bpar) then
-                     allocate (bpar_ext(nresponse_per_field))
+                     allocate (bpar_ext(nz_ext))
                      call map_to_extended_zgrid(it, ie, iky, bpar(iky, :, :, :), bpar_ext, ulim)
-                     fld_ext(offset_bpar + 1:nresponse_per_field + offset_bpar) = bpar_ext
+                     fld_ext(offset_bpar + 1:nresponse_per_field + offset_bpar) = bpar_ext(:nresponse_per_field)
                   end if
 
                   ! Use LU back substitution to solve linear response matrix system
@@ -1571,16 +1593,19 @@ contains
                                             response_matrix(iky)%eigen(ie)%idx, fld_ext)
 
                   ! Get phi_ext contribution from fld_ext and map back to normal (z, kx) grid
-                  phi_ext = fld_ext(:nresponse_per_field)
+                  phi_ext(:nresponse_per_field) = fld_ext(:nresponse_per_field)
+                  if (periodic(iky)) phi_ext(nz_ext) = phi_ext(1) / phase_shift(iky)
                   call map_from_extended_zgrid(it, ie, iky, phi_ext, phi(iky, :, :, :))
 
                   ! If advancing apar, get apar_ext from fld_ext and map back to (z, kx) grid
                   if (include_apar) then
-                     apar_ext = fld_ext(offset_apar + 1:nresponse_per_field + offset_apar)
+                     apar_ext(:nresponse_per_field) = fld_ext(offset_apar + 1:nresponse_per_field + offset_apar)
+                     if (periodic(iky)) apar_ext(nz_ext) = apar_ext(1) / phase_shift(iky)
                      call map_from_extended_zgrid(it, ie, iky, apar_ext, apar(iky, :, :, :))
                   end if
                   if (include_bpar) then
-                     bpar_ext = fld_ext(offset_bpar + 1:nresponse_per_field + offset_bpar)
+                     bpar_ext(:nresponse_per_field) = fld_ext(offset_bpar + 1:nresponse_per_field + offset_bpar)
+                     if (periodic(iky)) bpar_ext(nz_ext) = bpar_ext(1) / phase_shift(iky)
                      call map_from_extended_zgrid(it, ie, iky, bpar_ext, bpar(iky, :, :, :))
                   end if
 
