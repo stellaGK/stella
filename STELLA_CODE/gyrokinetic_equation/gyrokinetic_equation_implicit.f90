@@ -92,7 +92,7 @@ contains
       if (mod(istep, 2) == 1 .or. .not. flip_flop) then
 
          if (prp_shear_enabled) then
-            call advance_perp_flow_shear(g)
+            call remap_flow_shear(g, phi, apar, bpar)
             fields_updated = .false.
          end if
 
@@ -161,7 +161,7 @@ contains
          end if
 
          if (prp_shear_enabled) then
-            call advance_perp_flow_shear(g)
+            call remap_flow_shear(g, phi, apar, bpar)
             fields_updated = .false.
          end if
 
@@ -171,5 +171,72 @@ contains
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
 
    end subroutine advance_distribution_function_using_implicit_gyrokinetic_terms
+
+   !****************************************************************************
+   !                  Hammett remap in electromagnetic runs (remap_em)
+   !****************************************************************************
+   ! The Hammett remap moves each k_y by one k_x cell once its drifted k_x has moved half a cell.  With
+   ! c = (Z F0/T) 2 v_par v_th and gbar = g + c J0 A_par:
+   !   remap_em = 0 (default): shift g.  A_par is then solved from g with the new k_perp, A_par = j/k_perp^2, so it
+   !     jumps by k_perp,old^2/k_perp,new^2 (about 2.6 at the smallest k_y and k_x = 0): an impulsive inductive
+   !     E_par at every remap.
+   !   remap_em = 1: shift gbar, built at the old cell.  A_par is then solved from gbar,
+   !     A_par = j(gbar)/(k_perp^2 + skin term), and stays nearly continuous; g is rebuilt from gbar.
+   !     See DOCUMENTATION/flow_shear_gbar_remap.md.
+   ! Only the k_y shifted on this call go through g -> gbar -> g.  Every other k_y (including the zonal ones and
+   ! k_x = k_y = 0, where A_par from g is 0 but A_par from gbar is j/skin) is restored unchanged afterwards.  The
+   ! field solve is local in (k_y, k_x), so this is exact.
+   ! advance_fields returns at once if fields_updated is set, so the flag is cleared before each solve.
+   ! Electrostatic runs (include_apar = .false.) have gbar = g and always take the plain shift.
+   !****************************************************************************
+   subroutine remap_flow_shear(g, phi, apar, bpar)
+
+      use parallelisation_layouts, only: vmu_lo
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky
+      use parameters_physics, only: include_apar
+      use field_equations, only: advance_fields, fields_updated
+      use calculations_tofrom_ghf, only: gbar_to_g
+      use gk_flow_shear, only: advance_perp_flow_shear, perp_shift_pending, perp_shift_mask, remap_em
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
+      complex, dimension(:, :, :, :, :), allocatable :: gkeep
+      logical, dimension(:), allocatable :: shifted
+      integer :: iky
+
+      if (remap_em == 0 .or. .not. include_apar .or. .not. perp_shift_pending()) then
+         call advance_perp_flow_shear(g)
+         return
+      end if
+
+      ! Remember which k_y move this call, and keep the others untouched
+      allocate (shifted(naky))
+      call perp_shift_mask(shifted)
+      allocate (gkeep, source=g)
+
+      ! Build gbar from g and the A_par solved from g
+      fields_updated = .false.
+      call advance_fields(g, phi, apar, bpar, dist='g')
+      call gbar_to_g(g, apar, -1.0)
+
+      ! Shift gbar (this also advances shift_state)
+      call advance_perp_flow_shear(g)
+
+      ! Solve the fields from the shifted gbar and rebuild g
+      fields_updated = .false.
+      call advance_fields(g, phi, apar, bpar, dist='gbar')
+      call gbar_to_g(g, apar, 1.0)
+
+      ! Restore every k_y that was not shifted (the remap leaves them unchanged; the round trip would not)
+      do iky = 1, naky
+         if (.not. shifted(iky)) g(iky, :, :, :, :) = gkeep(iky, :, :, :, :)
+      end do
+      deallocate (gkeep, shifted)
+      fields_updated = .false.
+
+   end subroutine remap_flow_shear
 
 end module gyrokinetic_equation_implicit
