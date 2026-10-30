@@ -56,6 +56,9 @@ module gk_flow_shear
    ! Input parameters
    public :: prp_shear_enabled               ! Enables perpendicular flow shear
    public :: hammett_flow_shear
+   public :: remap_em
+   public :: perp_shift_pending
+   public :: perp_shift_mask
    public :: g_exb, g_exbfac, omprimfac 
 
    private
@@ -68,6 +71,9 @@ module gk_flow_shear
    ! Input parameters
    logical :: prp_shear_enabled
    logical :: hammett_flow_shear 
+   ! remap_em: what the Hammett remap moves in electromagnetic runs (see remap_flow_shear in
+   ! gyrokinetic_equation_implicit.f90).  0 = g (original, default); 1 = gbar.
+   integer :: remap_em
    real :: g_exb, g_exbfac, omprimfac
    
    ! Parallel flow shear
@@ -95,7 +101,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Read the "flow_shear" namelist in the input file
-      call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac)
+      call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac, remap_em)
       
       ! Broadcast the input parameters
       call broadcast(prp_shear_enabled)
@@ -103,6 +109,7 @@ contains
       call broadcast(g_exb)
       call broadcast(g_exbfac)
       call broadcast(omprimfac)
+      call broadcast(remap_em)
 
    end subroutine read_parameters_flow_shear
 
@@ -328,6 +335,41 @@ contains
       deallocate (g0k)
 
    end subroutine advance_parallel_flow_shear
+
+   !****************************************************************************
+   !                       Is a Hammett shift due this call?
+   !****************************************************************************
+   ! True if advance_perp_flow_shear will move some non-zonal k_y by one k_x cell on its next call (the same test
+   ! as in its Hammett branch).  Used by remap_flow_shear for remap_em = 1.
+   logical function perp_shift_pending()
+      use grids_kxky, only: naky, zonal_mode
+      use arrays, only: shift_state
+      implicit none
+      integer :: iky
+      perp_shift_pending = .false.
+      if (.not. (prp_shear_enabled .and. hammett_flow_shear)) return
+      do iky = 1, naky
+         if (zonal_mode(iky)) cycle
+         if (shift_state(iky) > 0.5 * shift_times(iky)) perp_shift_pending = .true.
+      end do
+   end function perp_shift_pending
+
+   !****************************************************************************
+   ! Which k_y will advance_perp_flow_shear shift on its next call (same test as its Hammett branch).
+   !****************************************************************************
+   subroutine perp_shift_mask(mask)
+      use grids_kxky, only: naky, zonal_mode
+      use arrays, only: shift_state
+      implicit none
+      logical, dimension(:), intent(out) :: mask
+      integer :: iky
+      mask = .false.
+      if (.not. (prp_shear_enabled .and. hammett_flow_shear)) return
+      do iky = 1, naky
+         if (zonal_mode(iky)) cycle
+         mask(iky) = shift_state(iky) > 0.5 * shift_times(iky)
+      end do
+   end subroutine perp_shift_mask
 
    !****************************************************************************
    !                      Advance perpendicular flow shear                      
