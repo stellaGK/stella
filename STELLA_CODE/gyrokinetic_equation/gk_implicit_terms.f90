@@ -772,11 +772,17 @@ contains
       ! 'explicit' and 'implicit' contributions to the equation.
       !*************************************************************************
       subroutine add_streaming_contribution_bpar
-
+         ! Grids.
          use grids_extended_zgrid, only: fill_zext_ghost_zones
+         
+         ! Parallel streaming.
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
+
+         ! Higher order corrections.
+         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use neoclassical_terms_neo, only: neo_vpa_fac
 
          integer :: izext
          complex :: scratch_left, scratch_right
@@ -811,6 +817,14 @@ contains
                z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * 4. * mu(imu)
             end do
             call center_zed(iv, z_scratch, -nzgrid)
+         end if
+
+         ! For including NEO's higher order corrections
+         if (neoclassical_is_enabled()) then
+             do iz = -nzgrid, nzgrid
+                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+             end do
+             call center_zed(iv, z_scratch, -nzgrid)
          end if
 
          if (stream_sign(iv) > 0) then
