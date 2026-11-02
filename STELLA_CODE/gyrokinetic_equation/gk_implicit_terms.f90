@@ -592,6 +592,9 @@ contains
          use neoclassical_terms_neo, only: neoclassical_is_enabled
          use neoclassical_terms_neo, only: neo_vpa_fac
 
+         ! For switching neoclassical streaming on and off.
+         use parameters_physics, only: neostreamknob
+
          integer :: izext
          complex :: scratch_left, scratch_right
 
@@ -635,7 +638,7 @@ contains
          ! For including NEO's higher order corrections
          if (neoclassical_is_enabled()) then
              do iz = -nzgrid, nzgrid
-                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
              end do
              call center_zed(iv, z_scratch, -nzgrid)
          end if
@@ -784,6 +787,9 @@ contains
          use neoclassical_terms_neo, only: neoclassical_is_enabled
          use neoclassical_terms_neo, only: neo_vpa_fac
 
+         ! For switching neoclassical streaming on and off.
+         use parameters_physics, only: neostreamknob
+
          integer :: izext
          complex :: scratch_left, scratch_right
 
@@ -822,7 +828,7 @@ contains
          ! For including NEO's higher order corrections
          if (neoclassical_is_enabled()) then
              do iz = -nzgrid, nzgrid
-                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
              end do
              call center_zed(iv, z_scratch, -nzgrid)
          end if
@@ -893,9 +899,14 @@ contains
    ! the GK equation when g is the distribution function.
    !****************************************************************************
    subroutine get_contributions_from_apar(apar, aparnew, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
-
+      ! Numerical parameters. 
       use parameters_numerical, only: driftkinetic_implicit, drifts_implicit
+      
+      ! Parallelisation. 
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+      ! Higher order corrections. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
 
       implicit none
 
@@ -932,6 +943,11 @@ contains
       end if
 
       call add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
+
+      if (neoclassical_is_enabled()) then 
+         call add_streaming_contribution_apar(scratch, iky, ia, ivmu, iv, imu, is, nz_ext, iz_from_izext, rhs)
+      end if
+
       if (drifts_implicit) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
 
       deallocate (scratch2)
@@ -958,6 +974,8 @@ contains
 
       ! Geometry.
       use geometry, only: bmag  
+
+
 
       implicit none
 
@@ -992,6 +1010,90 @@ contains
       rhs = rhs + scratch2
 
    end subroutine add_gbar_to_g_contribution_apar
+
+
+   ! ================================================================================= !
+   ! ---------------- RHS CONTRIBTUIONS FROM HIGHER ORDER APAR STREAMING. ------------ !
+   ! ================================================================================= !
+
+   subroutine add_streaming_contribution_apar(scratch, iky, ia, ivmu, iv, imu, is, nz_ext, iz_from_izext, rhs)
+      ! Grids.
+      use grids_extended_zgrid, only: fill_zext_ghost_zones
+      use grids_time, only: code_dt
+      use grids_z, only: nzgrid
+      use grids_species, only: spec
+      use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
+
+      ! Parallel streaming.
+      use gk_parallel_streaming, only: get_zed_derivative_extended_domain
+      use gk_parallel_streaming, only: center_zed
+      use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
+
+      ! Higher order corrections.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_vpa_fac
+
+      ! For switching neoclassical streaming on and off.
+      use parameters_physics, only: neostreamknob
+
+      implicit none
+
+      complex, dimension(:), intent(in) :: scratch
+      integer, intent(in) :: iky, ia, ivmu, iv, imu, is, nz_ext
+      integer, dimension(:), intent(in) :: iz_from_izext
+      complex, dimension(:), intent(in out) :: rhs
+
+      ! Local variables.
+      integer :: izext, iz
+      complex :: scratch_left, scratch_right
+      real, dimension(:), allocatable :: z_scratch       
+      complex, dimension(:), allocatable :: dapar_dz     
+
+      ! Allocate temporary arrays.
+      allocate(z_scratch(-nzgrid:nzgrid))
+      allocate(dapar_dz(nz_ext))
+
+      ! Fill the ghost zones beyond ends of extended zed domain for <apar> and store values in scratch_left and scratch_right
+      call fill_zext_ghost_zones(iky, scratch, scratch_left, scratch_right)
+
+      ! Obtain the zed derivative of <apar> (stored in scratch) and store in dapar_dz.
+      call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, dapar_dz)
+
+      ! Centre the mu part of the Maxwellian.
+      z_scratch = maxwell_mu(ia, :, imu, is)
+      call center_zed(iv, z_scratch, -nzgrid)
+
+      ! Multiply by Maxwellian factor.
+      do izext = 1, nz_ext
+          dapar_dz(izext) = dapar_dz(izext) * z_scratch(iz_from_izext(izext))
+      end do
+
+      ! Now we get the rest of the velocity-dependent prefactor, centered at i*. 
+      ! i,e: Z/T * exp(-vpa^2) * 2 vpa^2 * d_vpa(F1) = Z/T * exp(-vpa^2) * vpa * neo_vpa_fac.  
+      do iz = -nzgrid, nzgrid
+          z_scratch(iz) = spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is) * vpa(iv) * neo_vpa_fac(iz, ivmu, 1)
+      end do
+      call center_zed(iv, z_scratch, -nzgrid)
+
+      ! Use the correctly centred (b . grad z) pre-factor for this sign of the advection speed, along with dt and vth^2.
+      ! NB: stream_sign = -1 corresponds to positive advection velocity.
+      if (stream_sign(iv) > 0) then
+          z_scratch = z_scratch * b_dot_gradz_centeredinz(:, -1) * code_dt * spec(is)%stm_psi0**2
+      else
+          z_scratch = z_scratch * b_dot_gradz_centeredinz(:, 1) * code_dt * spec(is)%stm_psi0**2
+      end if
+
+      ! Add -2 Z/T vth^2 vpa^2 (b.grad z) F_0 d_vpa(F1) d<apar>/dz to the RHS of the GKE.
+      ! NB: the time-upwinding factor is already contained in the incoming <apar>.
+      do izext = 1, nz_ext
+          rhs(izext) = rhs(izext) - neostreamknob * z_scratch(iz_from_izext(izext)) * dapar_dz(izext)
+      end do
+
+      ! Deallocate temporary arrays.
+      deallocate(z_scratch)
+      deallocate(dapar_dz) 
+
+    end subroutine add_streaming_contribution_apar
 
    !*************************************************************************
    !                     RHS CONTRIBTUIONS FROM APAR DRIFTS
