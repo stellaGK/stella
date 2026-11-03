@@ -93,8 +93,14 @@ contains
       real :: wdriftx_max, wdrifty_max, wstar_max, zero
       
       ! For HO corrections. 
-      real :: cfl_dt_neo_mirror, cfl_dt_neo_stream, cfl_dt_wstar1y, cfl_dt_wstar1x, cfl_dt_neo_wdrifty, cfl_dt_neo_wdriftx
-      real :: neo_mirror_max, neo_stream_max, wstar1y_max, wstar1x_max, neo_wdrifty_max, neo_wdriftx_max      
+      real :: cfl_dt_neo_gradB_mirror, cfl_dt_neo_parE_mirror 
+      real :: cfl_dt_neo_stream
+      real :: cfl_dt_wstar1y, cfl_dt_wstar1x
+      real :: cfl_dt_neo_wdrifty, cfl_dt_neo_wdriftx
+      real :: neo_mirror_gradB_max, neo_mirror_parE_max 
+      real :: neo_stream_max
+      real :: wstar1y_max, wstar1x_max
+      real :: neo_wdrifty_max, neo_wdriftx_max      
 
       !-------------------------------------------------------------------------
 
@@ -190,20 +196,28 @@ contains
 
       end if
 
-      ! Check that the introduction of the neoclassical mirror correction doesn't break the CFL condition.
+      ! Check that the introduction of the neoclassical parallel-E mirror operator doesn't break the CFL condition.
       if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) then
-          if (include_apar) then
-              neo_mirror_max = max( maxval(abs(neo_mirror)), maxval(abs(neo_mirror_apar)))
-          else
-              neo_mirror_max = maxval(abs(neo_mirror))
-          end if          
+          neo_mirror_parE_max = maxval(abs(neo_mirror))
 
           if (nproc > 1) then
-              call max_allreduce(neo_mirror_max)
+              call max_allreduce(neo_mirror_parE_max)
           end if
 
-          cfl_dt_neo_mirror = abs(code_dt) / max(neo_mirror_max, zero)
-          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_mirror)
+          cfl_dt_neo_parE_mirror = abs(code_dt) / max(neo_mirror_parE_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_parE_mirror)
+      end if
+
+      ! Check that the introduction of the neoclassical correction to the grad-B mirror operator doesn't break the CFL condition.
+      if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. include_apar .and. (.not. mirror_implicit)) then
+          neo_mirror_gradB_max = maxval(abs(neo_mirror_apar))
+
+          if (nproc > 1) then
+              call max_allreduce(neo_mirror_gradB_max)
+          end if
+
+          cfl_dt_neo_gradB_mirror = abs(code_dt) / max(neo_mirror_gradB_max, zero)
+          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_neo_gradB_mirror)
       end if
 
       ! Check that the introduction of the neoclassical stream coeffecient doesn't break the CFL condition.
@@ -286,8 +300,10 @@ contains
          if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '     wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
+         if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. include_apar .and. (.not. mirror_implicit)) &
+         write (*, '(A12,ES12.4)') ' neo_gradB_mirror: ', cfl_dt_neo_gradB_mirror
          if (neoclassical_is_enabled() .and. include_neoclassical_mirror .and. .not. neoclassical_mirror_implicit) &
-         write (*, '(A12,ES12.4)') ' neo_mirror: ', cfl_dt_neo_mirror
+         write (*, '(A12,ES12.4)') ' neo_parE_mirror: ', cfl_dt_neo_parE_mirror
          if (neoclassical_is_enabled() .and. include_neoclassical_parallel_streaming .and. (.not. stream_implicit)) write (*, '(A12,ES12.4)') ' neo_stream: ', cfl_dt_neo_stream
          if (neoclassical_is_enabled() .and. include_neoclassical_ydrive .and. (.not. drifts_implicit)) write (*, '(A12,ES12.4)') '   wstar1y: ', cfl_dt_wstar1y
          if (neoclassical_is_enabled() .and. maxval(abs(akx)) > epsilon(0.0) .and. include_neoclassical_xdrive .and. (.not. drifts_implicit)) &

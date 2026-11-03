@@ -1029,8 +1029,7 @@ contains
       use gk_parallel_streaming, only: center_zed
       use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
 
-      ! Higher order corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      ! NEO data.
       use neoclassical_terms_neo, only: neo_vpa_fac
 
       ! For switching neoclassical streaming on and off.
