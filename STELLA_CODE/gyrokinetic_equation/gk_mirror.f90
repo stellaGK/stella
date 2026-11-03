@@ -942,7 +942,7 @@ contains
                   ! to the inhomogenous equation, before the invert mirror operator is applied to rhs.
                   if (neoclassical_is_enabled() .and. include_apar) then
                       do iv = 1, nvpa
-                          call get_mirror_rhs_neo_inh_apar_contribution(apar_ikxkyz, iv, imu, ikxkyz, rhs)
+                          call get_mirror_rhs_neo_inh_apar_contribution(apar_ikxkyz, iv, imu, ikxkyz, rhs(iv))
                       end do
                   end if
 
@@ -1148,15 +1148,31 @@ contains
    !                        ADD MIRROR CONTRBUTION FROM APAR
    !****************************************************************************
    subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
-
-      use grids_species, only: spec
-      use grids_velocity, only: nvpa
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+      ! Parallelisation.
       use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
+      
+      ! Grids.
+      use grids_time, only: code_dt
+      use grids_species, only: spec
+      use grids_velocity, only: vpa, nvpa, mu, nmu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+
+      ! Calculations.       
       use calculations_gyro_averages, only: gyro_average
 
+      ! Arrays.
+      use arrays_gyro_averages, only: aj0v
+
       ! Geometry.
-      use geometry, only: bmag
+      use geometry, only: b_dot_gradz, dbdzed
+      
+      ! Numerical parameters.  
+      use parameters_numerical, only: time_upwind_plus
+      use parameters_physics, only: neomirrorknob
+
+      ! Neoclassical data.
+      use neoclassical_terms_neo, only: neoclassical_is_enabled 
+      use neoclassical_terms_neo, only: neo_vpa_fac_global
 
       implicit none
 
@@ -1166,18 +1182,20 @@ contains
       integer, intent(in) :: imu, ikxkyz
 
       ! Local variables
-      integer :: ia, iz, is
+      integer :: ia, iz, is, iv
       real :: pre_factor
       complex, dimension(:), allocatable :: vpa_scratch
-
+      
       ! ========================================================================================================= !
 
-      allocate (vpa_scratch(nvpa))
-
+      ! Allocate temporary arrays.
+      allocate(vpa_scratch(nvpa))
+      
       is = is_idx(kxkyz_lo, ikxkyz)
       iz = iz_idx(kxkyz_lo, ikxkyz)
 
       ia = 1
+
       pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
       call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
 
@@ -1185,7 +1203,18 @@ contains
 
       rhs = vpa_scratch
 
-      deallocate (vpa_scratch)
+      ! If including neoclassical corrections, the homogenous equation acquires a second apar term. 
+      if (neoclassical_is_enabled()) then      
+         do iv = 1, nvpa
+            rhs(iv) = rhs(iv) + neomirrorknob * 2.0 * code_dt * spec(is)%z * mu(imu) &
+            * b_dot_gradz(ia, iz) * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar * time_upwind_plus &
+            *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)  * maxwell_fac(is) &
+            * neo_vpa_fac_global(iz, iv, imu, is, 1) / ( spec(is)%mass * vpa(iv) )
+         end do
+      end if 
+
+      ! Deallocate temporary arrays.
+      deallocate(vpa_scratch)
 
    end subroutine get_mirror_rhs_apar_contribution
 
@@ -1199,6 +1228,7 @@ contains
         use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
 
         ! Grids.
+        use grids_time, only: code_dt
         use grids_species, only: spec
         use grids_velocity, only: vpa, mu
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -1222,7 +1252,7 @@ contains
         ! Arguments
         complex, intent(in) :: apar_ikxkyz
         integer, intent(in) :: iv, imu, ikxkyz
-        complex, dimension(:), intent(in out) :: rhs
+        complex, intent(in out) :: rhs
 
         ! Local variables.
         integer :: iz, is, ia
@@ -1239,12 +1269,12 @@ contains
 
         ! Incoming rhs is the conventional g = <f> contributions to the inhomogenous mirror equation.
         ! Here we add the higher order neoclassical apar term before we apply the inverted mirror 
-        ! operator.
+        ! operator to get g_{inh}.
 
-        rhs(iv) = rhs(iv) + neomirrorknob * 2.0 * spec(is)%z * mu(imu) * b_dot_gradz(ia, iz) &
+        rhs = rhs + neomirrorknob * 2.0 * code_dt * spec(is)%z * mu(imu) * b_dot_gradz(ia, iz) &
         * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar_ikxkyz * time_upwind_minus &
         *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)  * maxwell_fac(is) &
-        * neo_vpa_fac_global(iz, iv, imu, is , 1) / ( spec(is)%mass * vpa(iv) )
+        * neo_vpa_fac_global(iz, iv, imu, is, 1) / ( spec(is)%mass * vpa(iv) )
 
     end subroutine get_mirror_rhs_neo_inh_apar_contribution
 
