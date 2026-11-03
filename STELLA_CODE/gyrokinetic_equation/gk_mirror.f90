@@ -826,7 +826,7 @@ contains
       use grids_kxky, only: ny, nakx
       use grids_velocity, only: nvpa, nmu
       use grids_kxky, only: naky_all, ikx_max
-      use grids_velocity, only: dvpa
+      use grids_velocity, only: dvpa, nvgrid
       use arrays_distribution_function, only: gvmu
 
       ! Parameters
@@ -859,7 +859,7 @@ contains
 
       integer :: ikxyz, ikxkyz, ivmu
       integer :: iky, ikx, iz, it, is
-      integer :: imu
+      integer :: iv, imu
       character(5) :: dist
       real :: tupwnd
       complex, dimension(:), allocatable :: rhs
@@ -937,6 +937,14 @@ contains
                   apar_ikxkyz = 0.
                   if (include_apar) apar_ikxkyz = apar(iky, ikx, iz, it)
                   call get_mirror_rhs_g_contribution(gvmu(:, imu, ikxkyz), apar_ikxkyz, imu, ikxkyz, rhs)
+
+                  ! If including neoclassical corrections, we must account for the apar contribution
+                  ! to the inhomogenous equation, before the invert mirror operator is applied to rhs.
+                  if (neoclassical_is_enabled() .and. include_apar) then
+                      do iv = 1, nvpa
+                          call get_mirror_rhs_neo_inh_apar_contribution(apar_ikxkyz, iv, imu, ikxkyz, rhs)
+                      end do
+                  end if
 
                   ! invert_mirror_operator takes rhs of equation and
                   ! returns g^{n+1}
@@ -1180,6 +1188,70 @@ contains
       deallocate (vpa_scratch)
 
    end subroutine get_mirror_rhs_apar_contribution
+
+
+! ====================================================================================================== !
+! Adds the apar correction to the inhomogenous mirror equation when including neoclassical corrections.  !  
+! ====================================================================================================== !
+
+    subroutine get_mirror_rhs_neo_inh_apar_contribution(apar_ikxkyz, iv, imu, ikxkyz, rhs)
+        ! Parallelisation.
+        use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
+
+        ! Grids.
+        use grids_species, only: spec
+        use grids_velocity, only: vpa, mu
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+
+        ! Use geometry. 
+        use geometry, only: b_dot_gradz, dbdzed
+
+        ! Arrays.
+        use arrays_gyro_averages, only: aj0v
+
+        ! Numerical parameters.  
+        use parameters_numerical, only: time_upwind_minus
+        use parameters_physics, only: neomirrorknob
+     
+
+        ! NEO data.
+        use neoclassical_terms_neo, only: neo_vpa_fac_global
+
+        implicit none
+
+        ! Arguments
+        complex, intent(in) :: apar_ikxkyz
+        integer, intent(in) :: iv, imu, ikxkyz
+        complex, dimension(:), intent(in out) :: rhs
+
+        ! Local variables.
+        integer :: iz, is, ia
+        complex, dimension(:), allocatable :: vpa_scratch
+
+        ! ==================================================================== !
+
+        ! Assume only one field line.
+        ia = 1
+
+
+        iz = iz_idx(kxkyz_lo, ikxkyz)
+        is = is_idx(kxkyz_lo, ikxkyz)
+
+        ! Incoming rhs is the conventional g = <f> contributions to the inhomogenous mirror equation.
+        ! Here we add the higher order neoclassical apar term before we apply the inverted mirror 
+        ! operator.
+
+        rhs(iv) = rhs(iv) + neomirrorknob * 2.0 * spec(is)%z * mu(imu) * b_dot_gradz(ia, iz) &
+        * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar_ikxkyz * time_upwind_minus &
+        *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)  * maxwell_fac(is) &
+        * neo_vpa_fac_global(iz, iv, imu, is , 1) / ( spec(is)%mass * vpa(iv) )
+
+    end subroutine get_mirror_rhs_neo_inh_apar_contribution
+
+
+! ====================================================================================================== !
+! ------------------------------------------------------------------------------------------------------ !  
+! ====================================================================================================== !
 
    !****************************************************************************
    !                       ADD MIRROR TERM FOR RADIAL VARIATION
