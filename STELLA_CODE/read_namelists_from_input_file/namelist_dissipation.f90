@@ -48,7 +48,7 @@
 !     nuxfac = 1.0
 !     i1fac = 1.0
 !     i2fac = 0.0
-!     no_j1l1 = .true.
+!     no_j1l1 = .false.
 !     no_j1l2 = .false.
 !     no_j0l2 = .false.
 !   
@@ -317,7 +317,8 @@ contains
          lmax = 1                             ! maximum l in spherical harmonic expansion of the field particle operator
          i1fac = 1                            ! for Spitzer problem
          i2fac = 0                            ! for Spitzer problem
-         no_j1l1 = .true.                     ! disable j1l1 term in the field particle component of Fokker-Planck operator
+         no_j1l1 = .false.                    ! disable j1l1 term in the field particle component of Fokker-Planck operator; it is needed with
+         ! the FLR terms (cfac = 1) to agree with GS2 and CGYRO
          no_j1l2 = .false.                    ! disable j1l2 term
          no_j0l2 = .false.                    ! disable j0l2 term
          vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
