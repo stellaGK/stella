@@ -243,7 +243,7 @@ contains
                 imu = imu_idx(vmu_lo, ivmu)
 
                 ! Calculate apar factor. 
-                field = 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+                field = -2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
 
                 do iky = 1, naky
                     field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
@@ -386,7 +386,7 @@ contains
                 imu = imu_idx(vmu_lo, ivmu)
 
                 ! Calculate apar factor. 
-                field = 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+                field = -2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
 
                 do ikx = 1, nakx
                     field(:, ikx, :, :) = zi * akx(ikx) * field(:, ikx, :, :)
