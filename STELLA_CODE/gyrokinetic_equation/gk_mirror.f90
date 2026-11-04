@@ -1206,7 +1206,7 @@ contains
       ! If including neoclassical corrections, the homogenous equation acquires a second apar term. 
       if (neoclassical_is_enabled()) then      
          do iv = 1, nvpa
-            rhs(iv) = rhs(iv) + neomirrorknob * 2.0 * code_dt * spec(is)%z * mu(imu) &
+            rhs(iv) = rhs(iv) + neomirrorknob * code_dt * spec(is)%z * mu(imu) &
             * b_dot_gradz(ia, iz) * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar * time_upwind_plus &
             *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)  * maxwell_fac(is) &
             * neo_vpa_fac_global(iz, iv, imu, is, 1) / ( spec(is)%mass * vpa(iv) )
@@ -1271,7 +1271,7 @@ contains
         ! Here we add the higher order neoclassical apar term before we apply the inverted mirror 
         ! operator to get g_{inh}.
 
-        rhs = rhs + neomirrorknob * 2.0 * code_dt * spec(is)%z * mu(imu) * b_dot_gradz(ia, iz) &
+        rhs = rhs + neomirrorknob * code_dt * spec(is)%z * mu(imu) * b_dot_gradz(ia, iz) &
         * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar_ikxkyz * time_upwind_minus &
         *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)  * maxwell_fac(is) &
         * neo_vpa_fac_global(iz, iv, imu, is, 1) / ( spec(is)%mass * vpa(iv) )
