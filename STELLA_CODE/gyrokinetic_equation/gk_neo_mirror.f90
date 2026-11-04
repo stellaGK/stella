@@ -70,9 +70,9 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                neo_mirror_apar(:, iz, ivmu) = neomirrorknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * mu(imu) &
+                neo_mirror_apar(:, iz, ivmu) = neomirrorknob * code_dt * spec(is)%z * mu(imu) &
                 * b_dot_gradz(:, iz) * dbdzed(:, iz) * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) &
-                * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / vpa(iv)
+                * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / (spec(is)%mass * vpa(iv) )
             end do
         end do
 
@@ -147,7 +147,7 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
 
             ! Calculate the apar field. 
-            field = 2.0 * spec(is)%stm * apar
+            field = apar
 
             ! Gyroaverage.
             call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
