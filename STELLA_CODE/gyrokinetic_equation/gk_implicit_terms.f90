@@ -994,7 +994,7 @@ contains
          call add_streaming_contribution_apar(scratch, iky, ia, ivmu, iv, imu, is, nz_ext, iz_from_izext, rhs)
       end if
 
-      if (drifts_implicit) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+      if (drifts_implicit) call add_drifts_contribution_apar(scratch, iky, ikx_from_izext, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
 
       deallocate (scratch2)
 
@@ -1149,35 +1149,60 @@ contains
    ! This is:
    !         - 2 * i * vth * vpa * k_y * omega_* * J_0 * apar
    !*************************************************************************
-   subroutine add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
-
+   subroutine add_drifts_contribution_apar(scratch, iky, ikx_from_izext, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+      ! Constants.
       use constants, only: zi
+
+      ! Grids.
       use grids_species, only: spec
-      use grids_kxky, only: aky
-      use arrays, only: wstar
-      use gk_parallel_streaming, only: center_zed
+      use grids_kxky, only: aky, akx
       use grids_extended_zgrid, only: periodic
       use grids_velocity, only: vpa
+      
+      ! Arrays.
+      use arrays, only: wstar
+      use arrays, only: neo_wdrifty, neo_wdriftx, wstar1y, wstar1x
+
+      ! Parallel streaming.
+      use gk_parallel_streaming, only: center_zed
+         
+      ! For HO corrections. 
+      use neoclassical_terms_neo, only: neoclassical_is_enabled 
 
       implicit none
 
       complex, dimension(:), intent(in out) :: scratch, rhs
       integer, intent(in) :: iky, ia, ivmu, iv, is, nz_ext
-      integer, dimension(:), intent(in) :: iz_from_izext
+      integer, dimension(:), intent(in) :: iz_from_izext, ikx_from_izext
 
-      integer :: izext, iz
+
+      integer :: izext, iz, ikx
       complex :: constant_factor
 
       !-------------------------------------------------------------------------
        
       if (debug) write (*, *) 'implicit_solve::add_drifts_contribution_apar'
 
-      constant_factor = -2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
+      constant_factor = -2.0 * spec(is)%stm_psi0 * vpa(iv) 
+      
       do izext = 1, nz_ext
          iz = iz_from_izext(izext)
-         scratch(izext) = constant_factor * scratch(izext) * wstar(ia, iz, ivmu)
+         ikx = ikx_from_izext(izext)
+
+         ! If neoclassical corrections are enabled, add the associated drifts.
+         ! Otherwise only add conventional pieces. 
+         if (neoclassical_is_enabled()) then
+            scratch(izext) = zi * scratch(izext) * ( aky(iky) * constant_factor * ( wstar(ia, iz, ivmu) &
+            + neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) + akx(ikx) * constant_factor &
+            * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) )
+         else 
+            scratch(izext) = zi * aky(iky) * constant_factor * scratch(izext) * wstar(ia, iz, ivmu)
+         end if
       end do
+      
+      ! Center in zed. 
       call center_zed(iv, scratch, 1, periodic(iky))
+      
       rhs = rhs + scratch
 
    end subroutine add_drifts_contribution_apar
