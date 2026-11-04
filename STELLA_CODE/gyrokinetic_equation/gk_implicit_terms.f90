@@ -678,14 +678,13 @@ contains
 
          ! Arrays.
          use arrays, only: wstar, wdriftx_phi, wdrifty_phi
-
+         use arrays, only: neo_wdrifty, neo_wdriftx, wstar1y, wstar1x
+ 
          ! Parallel streaming.
          use gk_parallel_streaming, only: center_zed
          
          ! For HO corrections. 
-         use neoclassical_terms_neo, only: neoclassical_is_enabled
-         ! Arrays. 
-         use arrays, only: neo_wdrifty, neo_wdriftx, wstar1y, wstar1x
+         use neoclassical_terms_neo, only: neoclassical_is_enabled 
 
          integer :: izext, iz, ikx
 
@@ -710,6 +709,8 @@ contains
                + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
             end if 
          end do
+
+         ! Center in zed.
          call center_zed(iv, scratch, 1, periodic(iky))
 
          rhs = rhs + scratch
@@ -881,12 +882,23 @@ contains
       ! definitions of wdriftx_bpar and wdrifty_bpar
       !*************************************************************************
       subroutine add_drifts_contribution_bpar
-
+         ! Constants.
          use constants, only: zi
+
+         ! Grids.
          use grids_kxky, only: aky, akx
-         use arrays, only: wstar, wdriftx_bpar, wdrifty_bpar
-         use gk_parallel_streaming, only: center_zed
          use grids_extended_zgrid, only: periodic
+
+         ! Arrays.
+         use arrays, only: wstar, wdriftx_bpar, wdrifty_bpar
+         use arrays, only: neo_wdrifty, neo_wdriftx, wstar1y, wstar1x
+
+
+         ! Parallel streaming.
+         use gk_parallel_streaming, only: center_zed
+         
+         ! For HO corrections. 
+         use neoclassical_terms_neo, only: neoclassical_is_enabled 
 
          integer :: izext, iz, ikx
          real :: constant_factor 
@@ -897,12 +909,25 @@ contains
          
          ! 'scratch' starts out as the gyro-average of bpar, evaluated at zed grid points
          constant_factor = 4. * mu(imu) * spec(is)%tz
+
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
-            scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_bpar(ia, iz, ivmu) &
-                             + aky(iky) * (wdrifty_bpar(ia, iz, ivmu) + constant_factor * wstar(ia, iz, ivmu)))
+
+            ! If neoclassical corrections are enabled, add the associated drifts.
+            ! Otherwise only add conventional pieces. 
+            if (neoclassical_is_enabled()) then
+               scratch(izext) = zi * scratch(izext) * ( akx(ikx) * ( wdriftx_bpar(ia, iz, ivmu) &
+               + constant_factor * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) ) & 
+               + aky(iky) * ( wdrifty_bpar(ia, iz, ivmu) + constant_factor * wstar(ia, iz, ivmu) &
+               + constant_factor * ( neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) ) )             
+            else
+               scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_bpar(ia, iz, ivmu) &
+               + aky(iky) * (wdrifty_bpar(ia, iz, ivmu) + constant_factor * wstar(ia, iz, ivmu)))
+            end if
          end do
+
+         ! Center in zed.
          call center_zed(iv, scratch, 1, periodic(iky))
 
          rhs = rhs + scratch
