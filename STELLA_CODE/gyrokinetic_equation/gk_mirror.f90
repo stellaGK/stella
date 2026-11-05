@@ -1058,7 +1058,7 @@ contains
             rhs(iv) = rhs(iv) + neomirrorknob * code_dt * spec(is)%z * mu(imu) &
             * b_dot_gradz(ia, iz) * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar * time_upwind_plus &
             *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)  * maxwell_fac(is) &
-            * neo_vpa_fac_global(iz, iv, imu, is, 1) / ( spec(is)%mass * vpa(iv) )
+            * neo_vpa_fac_global(ia, iz, iv, imu, is) / ( spec(is)%mass * vpa(iv) )
          end do
       end if 
 
@@ -1123,7 +1123,7 @@ contains
         rhs = rhs + neomirrorknob * code_dt * spec(is)%z * mu(imu) * b_dot_gradz(ia, iz) &
         * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar_ikxkyz * time_upwind_minus &
         *  maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)  * maxwell_fac(is) &
-        * neo_vpa_fac_global(iz, iv, imu, is, 1) / ( spec(is)%mass * vpa(iv) )
+        * neo_vpa_fac_global(ia, iz, iv, imu, is) / ( spec(is)%mass * vpa(iv) )
 
     end subroutine get_mirror_rhs_neo_inh_apar_contribution
 

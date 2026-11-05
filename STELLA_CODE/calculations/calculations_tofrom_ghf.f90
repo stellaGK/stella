@@ -381,7 +381,7 @@ contains
       allocate (field(nvpa, nmu))
       allocate (gyro_averaged_field(nvpa, nmu))
 
-      ! Assume we only have one field line
+      ! Assume we only have one field line.
       ia = 1
       
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
@@ -401,7 +401,7 @@ contains
          call gyro_average(field, ikxkyz, gyro_averaged_field)
 
          if (neoclassical_is_enabled()) then 
-             gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+             gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) )
          end if 
 
          ! Add the phi term to g. 
@@ -432,7 +432,7 @@ contains
               call gyro_average(field, ikxkyz, gyro_averaged_field)
 
               ! Multiply by the neoclassical factor. 
-              gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
+              gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) 
               
               ! Add the apar term to g. 
               g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
@@ -461,7 +461,7 @@ contains
               call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
 
               if (neoclassical_is_enabled()) then
-                  gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+                  gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) )
               end if
 
               ! Add the bpar term to g. 
@@ -592,7 +592,7 @@ contains
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
 
             if (neoclassical_is_enabled()) then
-                gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+                gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz) )
             end if
 
             ! Calculate <h> = <g> + Z_s/T_s * <phi>_theta * F_s
@@ -617,7 +617,7 @@ contains
                   call gyro_average(field, iz, ivmu, gyro_averaged_field)
 
                   ! Multiply by the neoclassical factor. 
-                  gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
+                  gyro_averaged_field = gyro_averaged_field * 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz)
                  
                   g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
               end do
@@ -642,7 +642,7 @@ contains
                call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
 
                if (neoclassical_is_enabled()) then
-                   gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) )
+                   gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz) )
                end if
 
                ! Calculate <h> = <g> + Z_s/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
@@ -749,7 +749,7 @@ contains
          ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
          if (neoclassical_is_enabled()) then
              ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) ) 
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 1.0 - 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) ) 
          else
              g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
          end if
@@ -765,8 +765,8 @@ contains
              call gyro_average(field, ikxkyz, gyro_averaged_field)
  
              ! Add to the distribution.
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field * 0.5 * neo_vpa_fac_global(iz, :, :, is, 1) / spread(vpa, 2, nmu) &
-             - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) + field * 0.5 * neo_vpa_fac_global(ia, iz, :, :, is) / spread(vpa, 2, nmu) &
+             - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) 
          end if
 
          if (neoclassical_is_enabled() .and. include_bpar) then
@@ -781,7 +781,7 @@ contains
              call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
 
              ! Add the bpar contribution.
-             g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field * 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
+             g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field * 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) 
          end if
       end do
 
@@ -892,7 +892,7 @@ contains
                ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
                if (neoclassical_is_enabled()) then
                    ! Add this to  <f>.
-                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) +  ( gyro_averaged_field - field ) * (1.0 - 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz) ) 
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) +  ( gyro_averaged_field - field ) * (1.0 - 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz) ) 
                else
                    g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + gyro_averaged_field - field
                end if
@@ -909,8 +909,8 @@ contains
                    call gyro_average(field, iz, ivmu, gyro_averaged_field)
 
                    ! Add to the distribution.
-                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field * 0.5 * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) &
-                   - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac(iz, ivmu, 1) / bmag(ia, iz)
+                   g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + field * 0.5 * neo_vpa_fac(ia, iz, ivmu) / vpa(iv) &
+                   - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz)
                end if
 
                if (neoclassical_is_enabled() .and. include_bpar) then

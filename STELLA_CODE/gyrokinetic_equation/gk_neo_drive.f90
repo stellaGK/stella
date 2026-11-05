@@ -123,8 +123,10 @@ contains
                ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu)
                 energy(:, iz) = ( vpa(iv)**2 + vperp2(:, iz, imu) ) * ( spec(is)%temp_psi0 / spec(is)%temp )
 
-                wstar1ypsi(:, iz, ivmu) = 0.5 * wstar1yknob * dydalpha * drhodpsi * ( dneo_h_dpsi(iz, ivmu, 1) - spec(is)%z * dneo_phi_dpsi(iz)  &
-                - ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) * ( neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) ) / clebsch_factor
+                wstar1ypsi(:, iz, ivmu) = 0.5 * wstar1yknob * dydalpha * drhodpsi &
+                * ( dneo_h_dpsi(:, iz, ivmu) - spec(is)%z * dneo_phi_dpsi(:, iz)  &
+                - ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) &
+                * ( neo_h(:, iz, ivmu) - spec(is)%z * neo_phi(:, iz) ) ) / clebsch_factor
             end do
         end do
 
@@ -137,7 +139,7 @@ contains
 
             do iz = -nzgrid, nzgrid 
                 wstar1yz(:, iz, ivmu) = wstar1yknob * 0.5 * clebsch_factor * dydalpha * drhodpsi &
-                * gds23(:, iz) * neo_zed_fac(iz, ivmu, 1) 
+                * gds23(:, iz) * neo_zed_fac(:, iz, ivmu) 
             end do
         end do
 
@@ -149,10 +151,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1yvpa(:, iz, ivmu) = - 0.5 * mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz)  / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
- 
-                ! Multiply by the F_1 factor.
-                wstar1yvpa(:, iz, ivmu) = wstar1yvpa(:, iz, ivmu) * dneo_h_dvpa(iz, ivmu, 1)
+                wstar1yvpa(:, iz, ivmu) = - 0.5 * mu(imu) * wstar1yknob * B_times_gradB_dot_grady(:, iz) &
+                * dneo_h_dvpa(:, iz, ivmu) / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) ) 
             end do
         end do
 
@@ -240,7 +240,7 @@ contains
 
             do iz = -nzgrid, nzgrid
                 wstar1xz(:, iz, ivmu) = 0.5 * clebsch_factor * dxdpsi * geo_surf%rhoc * gds24(:, iz) &
-                * neo_zed_fac(iz, ivmu, 1) / geo_surf%qinp
+                * neo_zed_fac(:, iz, ivmu) / geo_surf%qinp
             end do  
         end do
 
@@ -252,7 +252,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1xvpa(:, iz, ivmu) = - 0.5 * mu(imu) * B_times_gradB_dot_gradx(:, iz) * neo_vpa_fac(iz, ivmu, 1) / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) )
+                wstar1xvpa(:, iz, ivmu) = - 0.5 * mu(imu) * B_times_gradB_dot_gradx(:, iz) &
+                * neo_vpa_fac(:, iz, ivmu) / ( vpa(iv) * bmag(:, iz) * bmag(:, iz) )
             end do
         end do
 

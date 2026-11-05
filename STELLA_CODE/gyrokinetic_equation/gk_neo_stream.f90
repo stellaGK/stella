@@ -96,7 +96,7 @@ contains
                         do is = 1, nspec
                             neo_stream(ia, iz, iv, imu, is) = neostreamknob * code_dt &
                             * b_dot_gradz(ia, iz) * spec(is)%stm_psi0 * spec(is)%zt &
-                            * 0.5 * neo_vpa_fac_global(iz, iv, imu, is, 1) &
+                            * 0.5 * neo_vpa_fac_global(ia, iz, iv, imu, is) &
                             * maxwell_fac(is) * maxwell_vpa(iv, is) &
                             * maxwell_mu(ia, iz, imu, is)
                         end do
@@ -116,7 +116,7 @@ contains
                                 * code_dt &
                                 * vpa(iv) * b_dot_gradz(ia, iz) &
                                 * spec(is)%stm_psi0 * spec(is)%stm_psi0 * spec(is)%zt &
-                                * neo_vpa_fac_global(iz, iv, imu, is, 1) &
+                                * neo_vpa_fac_global(ia, iz, iv, imu, is) &
                                 * maxwell_fac(is) * maxwell_vpa(iv, is) &
                                 * maxwell_mu(ia, iz, imu, is)
                             end do
@@ -268,6 +268,7 @@ contains
         if (allocated(neo_stream)) deallocate(neo_stream)
         if (allocated(neo_stream_apar)) deallocate(neo_stream_apar)
         if (allocated(neo_stream_sign)) deallocate(neo_stream_sign)
+        if (allocated(neo_stream_apar_sign)) deallocate(neo_stream_apar_sign)
         initialised_neo_stream = .false.
 
     end subroutine finish_neo_stream
@@ -440,6 +441,7 @@ contains
       do iz = -nzgrid, nzgrid
          src(:, :, iz, :) = src(:, :, iz, :) + neo_stream_apar(1, iz, iv, imu, is) * g(:, :, iz, :)
       end do
+      
    end subroutine add_neo_stream_apar_term
 
 

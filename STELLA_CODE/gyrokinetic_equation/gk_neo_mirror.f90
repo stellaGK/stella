@@ -71,7 +71,7 @@ contains
         ! This is referred to as the "parallel-E" mirror term and is treated distinctly from the
         ! usual "grad-B" mirror term.  
         ! The neo_mirror array has a sign consistent with being on RHS of GKE.
-        ! it is the factor multiplying dh/dvpa in the mirror term.
+        ! It is the factor multiplying dh/dvpa in the mirror term.
         ! For this term we choose to use h as the distribution rather than g.
         ! There appears to be no algebraic or numerical advantage to using g over h for this new term,
         ! using g seems to needlessly complicate things.  
@@ -79,7 +79,7 @@ contains
             do ia = 1, nalpha
                 do iz = -nzgrid, nzgrid
                     neo_mirror(ia, iz, imu, :) = 0.5 * neomirrorknob * code_dt * spec%z &
-                    * spec%stm_psi0 * b_dot_gradz(ia, iz) * dneo_phi_dz(iz) 
+                    * spec%stm_psi0 * b_dot_gradz(ia, iz) * dneo_phi_dz(ia, iz) 
                 end do
             end do
         end do
@@ -101,7 +101,7 @@ contains
 
             do iz = -nzgrid, nzgrid
                 neo_mirror_apar(:, iz, ivmu) = neomirrorknob * code_dt * spec(is)%z * mu(imu) &
-                * b_dot_gradz(:, iz) * dbdzed(:, iz) * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) &
+                * b_dot_gradz(:, iz) * dbdzed(:, iz) * neo_vpa_fac(:, iz, ivmu) * maxwell_vpa(iv, is) &
                 * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / (spec(is)%mass * vpa(iv) )
             end do
         end do

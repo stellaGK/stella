@@ -638,7 +638,7 @@ contains
          ! For including NEO's higher order corrections
          if (neoclassical_is_enabled()) then
              do iz = -nzgrid, nzgrid
-                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(ia, iz, ivmu) / vpa(iv) )
              end do
              call center_zed(iv, z_scratch, -nzgrid)
          end if
@@ -737,8 +737,6 @@ contains
       use parameters_numerical, only: driftkinetic_implicit
       use parameters_numerical, only: drifts_implicit
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dfneo_dvpa
 
       implicit none
 
@@ -805,6 +803,9 @@ contains
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
 
+         use neoclassical_terms, only: include_neoclassical_terms
+         use neoclassical_terms, only: dfneo_dvpa
+
          ! Higher order corrections.
          use neoclassical_terms_neo, only: neoclassical_is_enabled
          use neoclassical_terms_neo, only: neo_vpa_fac
@@ -850,7 +851,8 @@ contains
          ! For including NEO's higher order corrections
          if (neoclassical_is_enabled()) then
              do iz = -nzgrid, nzgrid
-                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(iz, ivmu, 1) / vpa(iv) )
+                 z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob &
+                 * neo_vpa_fac(ia, iz, ivmu) / vpa(iv) )
              end do
              call center_zed(iv, z_scratch, -nzgrid)
          end if
@@ -1116,8 +1118,10 @@ contains
       ! Now we get the rest of the velocity-dependent prefactor, centered at i*. 
       ! i,e: Z/T * exp(-vpa^2) * 2 vpa^2 * d_vpa(F1) = Z/T * exp(-vpa^2) * vpa * neo_vpa_fac.  
       do iz = -nzgrid, nzgrid
-          z_scratch(iz) = spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is) * vpa(iv) * neo_vpa_fac(iz, ivmu, 1)
+          z_scratch(iz) = spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is) * vpa(iv) &
+          * neo_vpa_fac(ia, iz, ivmu)
       end do
+
       call center_zed(iv, z_scratch, -nzgrid)
 
       ! Use the correctly centred (b . grad z) pre-factor for this sign of the advection speed, along with dt and vth^2.

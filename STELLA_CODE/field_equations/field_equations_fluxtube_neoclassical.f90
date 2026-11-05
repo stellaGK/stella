@@ -1342,7 +1342,7 @@ contains
                 * spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa)
 
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) 
+                g0 = g0 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) 
                 
                 ! Calculate denominator_fields_neo_12_gneo[iky,ikz,iz].
                 wgt = spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt * spec(is)%stm 
@@ -1373,7 +1373,7 @@ contains
                 * spread(aj0v(:, ikxkyz)**2 - 1.0, 1, nvpa)
 
                 ! Multiply by the neoclassical factor. 
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+                g0 = g0 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz)
                 
                 ! Calculate denominator_fields_neo_21_gneo[iky,ikz,iz].
                 wgt = 0.5 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%zt * spec(is)%stm
@@ -1404,8 +1404,8 @@ contains
                 g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu)
 
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) &
-                - dneo_h_dvpa_global(iz, :, :, is, 1) )
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * dneo_h_dmu_global(ia, iz, :, :, is) / bmag(ia, iz) &
+                - dneo_h_dvpa_global(ia, iz, :, :, is) )
 
                 ! Calculate denominator_fields_neo_22_gneo[iky,ikz,iz].            
                 wgt = beta * spec(is)%z * spec(is)%dens * spec(is)%z / spec(is)%mass
@@ -1441,8 +1441,8 @@ contains
                 g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(vpa, 2, nmu)
 
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * dneo_h_dmu_global(iz, :, :, is, 1) / bmag(ia, iz) &
-                - dneo_h_dvpa_global(iz, :, :, is, 1) + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz)**2, 1, nvpa) * spread(vpa, 2, nmu) * dneo_h_dmu_global(ia, iz, :, :, is) / bmag(ia, iz) &
+                - dneo_h_dvpa_global(ia, iz, :, :, is) + 2.0 * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz)**2, 1, nvpa) )
  
                 ! Calculate denominator_fields_neo_22_gbarneo[iky,ikz,iz].            
                 wgt = beta * spec(is)%z * spec(is)%dens * spec(is)%z / spec(is)%mass
@@ -1486,7 +1486,7 @@ contains
                 * spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa)
             
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * ( 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) - 1.0 )
+                g0 = g0 * ( 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) - 1.0 )
 
                 ! Calculate denominator_fields_neo_13_gneo[iky,ikz,iz].
                 wgt = 4.0 * spec(is)%z * spec(is)%dens_psi0
@@ -1516,7 +1516,7 @@ contains
                 * spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa)
  
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+                g0 = g0 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz)
 
                 ! Calculate denominator_fields_neo_23_gneo[iky,ikz,iz].
                 wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
@@ -1546,7 +1546,7 @@ contains
                 g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is) * spread(mu, 1, nvpa) 
 
                 ! Multiply by the neoclassical factor. 
-                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) *  0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) &
+                g0 = g0 * ( spread(1.0 - aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) *  0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) &
                 + spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa) )
 
                 ! Calculate denominator_fields_neo_31_gneo[iky,ikz,iz].
@@ -1577,7 +1577,7 @@ contains
                 * spread(aj0v(:, ikxkyz) * aj1v(:, ikxkyz) - 1.0, 1, nvpa)
 
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz)
+                g0 = g0 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz)
               
                 ! Calculate denominator_fields_neo_32_gneo[iky,ikz,iz].
                 wgt = 2.0 * beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm
@@ -1609,7 +1609,7 @@ contains
                 * spread(aj1v(:, ikxkyz) * aj1v(:, ikxkyz), 1, nvpa)
             
                 ! Multiply by the neoclassical factor.
-                g0 = g0 * ( 1.0 - 0.5 * neo_mu_fac_global(iz, :, :, is, 1) / bmag(ia, iz) )
+                g0 = g0 * ( 1.0 - 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) )
 
                 ! Calculate denominator_fields_neo_33_gneo[iky,ikz,iz].
                 wgt = 8.0 * beta * spec(is)%dens_psi0 * spec(is)%temp            

@@ -97,16 +97,10 @@ contains
 
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
 
-      ! HO corrections.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, neo_h, neo_phi
-
       use arrays, only: wstar, initialised_wstar
 
       ! Rescale the drive term with <wstarknob>
       use parameters_physics, only: wstarknob
-
-      ! For HO corrections.
-      use parameters_physics, only: wstar1yknob
 
       implicit none
 
