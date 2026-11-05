@@ -367,13 +367,13 @@ contains
 
          ! Advance HO corrections explicitly. 
          if (neoclassical_is_enabled()) then
-             ! If apar is switched on, we must advance the neoclassical mirror correction. 
-             if (include_apar .and. include_neoclassical_mirror .and. (.not. mirror_implicit)) then
-                 call advance_neo_mirror_explicit(apar, rhs)
-             end if
-
-             if (include_neoclassical_mirror .and. (.not. neoclassical_mirror_implicit)) then
-                 call advance_mirror_explicit(pdf, rhs)
+             ! If apar is switched on, we must advance the neoclassical mirror correction(s).
+             ! This call will always advance the parallel-E mirror term if it is switched on.
+             ! If the grad-B mirror term is being evolved explicitly it will also add the associated 
+             ! correction to the GKE. 
+             ! If the grad-B mirror term is evolved implicitly, so is the associated correction. 
+             if (include_neoclassical_mirror) then
+                 call advance_neo_mirror_explicit(pdf, phi, apar, bpar, rhs)
              end if
 
              ! Advance the neoclassical parallel streaming correction.

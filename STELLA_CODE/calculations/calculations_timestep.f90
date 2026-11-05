@@ -65,7 +65,7 @@ contains
       
       ! For neoclassical corrections.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use gk_mirror, only: neo_mirror
+      use gk_neo_mirror, only: neo_mirror
       use arrays, only: neo_mirror_apar
       use arrays, only: neo_stream
       use arrays, only: wstar1y, wstar1x
@@ -371,10 +371,16 @@ contains
 
       ! For HO corrections. 
       use neoclassical_terms_neo, only: neoclassical_is_enabled
-      use gk_neo_mirror, only: init_neo_mirror, initialised_neo_mirror
-      use gk_neo_stream, only: init_neo_stream, initialised_neo_stream
-      use gk_neo_drive, only: init_wstar1y, init_wstar1x, initialised_wstar1y, initialised_wstar1x
-      use gk_neo_drifts, only: init_neo_wdrifty, init_neo_wdriftx, initialised_neo_wdrifty, initialised_neo_wdriftx
+      use gk_neo_mirror, only: init_neo_mirror
+      use gk_neo_stream, only: init_neo_stream
+      use gk_neo_drive, only: init_wstar1y, init_wstar1x
+      use gk_neo_drifts, only: init_neo_wdrifty, init_neo_wdriftx
+      
+      use arrays, only: initialised_neo_mirror
+      use arrays, only: initialised_neo_stream
+      use arrays, only: initialised_wstar1y, initialised_wstar1x
+      use arrays, only: initialised_neo_wdrifty, initialised_neo_wdriftx
+      
 
       implicit none
 
@@ -433,14 +439,11 @@ contains
       ! If NEO's neoclassical corrections are enabled, then reinitialise the HO routines.
       if (neoclassical_is_enabled()) then
           call init_neo_stream
-          call init_wstar1y
-          call init_wstar1x
+          call init_neo_mirror
           call init_neo_wdrifty
           call init_neo_wdriftx
-
-          if (include_apar) then         
-              call init_neo_mirror
-          end if 
+          call init_wstar1y
+          call init_wstar1x
       end if
 
    end subroutine reset_dt
