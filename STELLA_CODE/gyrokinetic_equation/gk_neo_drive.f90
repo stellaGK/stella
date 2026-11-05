@@ -71,7 +71,7 @@ contains
         ! Geometry. 
         use geometry, only: dydalpha, drhodpsi, clebsch_factor, dxdpsi 
         use geometry, only: bmag, gradx_dot_grady, B_times_gradB_dot_grady
-        use geometry, only: geo_surf, Rmajor
+        use geometry, only: geo_surf, gds23
 
         ! NEO data.
         use neoclassical_terms_neo, only: dneo_h_dvpa
@@ -136,11 +136,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid 
-                wstar1yz(:, iz, ivmu) = wstar1yknob * dydalpha * drhodpsi * geo_surf%shat * zed(iz) / ( geo_surf%rhoc * clebsch_factor ) &
-                + wstar1yknob * clebsch_factor * gradx_dot_grady(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * geo_surf%qinp * dxdpsi )
-               
-                ! Multiply by the F_1 factor.
-                wstar1yz(:, iz, ivmu) = - 0.5 * wstar1yz(:, iz, ivmu) * neo_zed_fac(iz, ivmu, 1)
+                wstar1yz(:, iz, ivmu) = wstar1yknob * 0.5 * clebsch_factor * dydalpha * drhodpsi &
+                * gds23(:, iz) * neo_zed_fac(iz, ivmu, 1) 
             end do
         end do
 
@@ -166,7 +163,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
           
             do iz = -nzgrid, nzgrid
-                wstar1y(:, iz, ivmu) = wstar1yknob * code_dt * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
+                wstar1y(:, iz, ivmu) = wstar1yknob * code_dt &
+                * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do
@@ -200,7 +198,7 @@ contains
         ! Geometry.
         use geometry, only: dydalpha, dxdpsi, drhodpsi, clebsch_factor
         use geometry, only: bmag, b_dot_gradz, gradx_dot_gradx, B_times_gradB_dot_gradx
-        use geometry, only: geo_surf, Rmajor
+        use geometry, only: geo_surf, gds24
    
         ! NEO data.
         use neoclassical_terms_neo, only: neo_vpa_fac
@@ -241,12 +239,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1xz(:, iz, ivmu) = 0.5 * ( ( dxdpsi / clebsch_factor ) &
-                - clebsch_factor * gradx_dot_gradx(:, iz) / ( Rmajor(iz) * Rmajor(iz) * bmag(:, iz) * bmag(:, iz) * dxdpsi ) ) &
-                / geo_surf%qinp
-
-                ! Multiply by the F_1 factor.
-                wstar1xz(:, iz, ivmu) = wstar1xz(:, iz, ivmu) * neo_zed_fac(iz, ivmu, 1) 
+                wstar1xz(:, iz, ivmu) = 0.5 * clebsch_factor * dxdpsi * geo_surf%rhoc * gds24(:, iz) &
+                * neo_zed_fac(iz, ivmu, 1) / geo_surf%qinp
             end do  
         end do
 
@@ -269,7 +263,8 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                wstar1x(:, iz, ivmu) = wstar1xknob * code_dt * ( wstar1xz(:, iz, ivmu) + wstar1xvpa(:, iz, ivmu) ) &
+                wstar1x(:, iz, ivmu) = wstar1xknob * code_dt &
+                * ( wstar1xz(:, iz, ivmu) + wstar1xvpa(:, iz, ivmu) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do
