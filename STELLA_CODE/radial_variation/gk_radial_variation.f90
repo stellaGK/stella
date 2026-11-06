@@ -97,14 +97,6 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          iv = iv_idx(vmu_lo, ivmu)
          energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
-         !FLAG DSO - THIS NEEDS TO BE ADDED SOMEDAY!
-         !if (include_neoclassical_terms) then
-         !   wstarp(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-         !        * (maxwell_vpa(iv)*maxwell_mu(:,:,imu) &
-         !        * (spec(is)%fprim+spec(is)%tprim*(energy-1.5)) &
-         !        - dfneo_drho(:,:,ivmu))
-         !else
-         !recall that fprim = -dn/dr and trpim = -dt/dr
 
          wstarp(:, :, ivmu) = -wstarknob * 0.5 * code_dt &
                               * dydalpha * drhodpsi * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &

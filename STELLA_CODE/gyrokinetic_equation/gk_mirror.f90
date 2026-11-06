@@ -53,8 +53,6 @@ contains
       use grids_kxky, only: nalpha
       use geometry, only: dbdzed, b_dot_gradz, gfac
       use geometry, only: d2Bdrdth, d_bdotgradz_drho
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dphineo_dzed
       use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
       use parameters_physics, only: include_apar
       use parameters_physics, only: include_mirror, radial_variation
@@ -63,7 +61,6 @@ contains
       implicit none
 
       integer :: iz, ia, imu
-      real, dimension(:, :), allocatable :: neoclassical_term
 
       !-------------------------------------------------------------------------
 
@@ -75,14 +72,6 @@ contains
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
 
-
-      allocate (neoclassical_term(-nzgrid:nzgrid, nspec))
-      if (include_neoclassical_terms) then
-         neoclassical_term = spread(dphineo_dzed(1, :), 2, nspec) * spread(spec%zt_psi0, 1, nztot) * 0.5
-      else
-         neoclassical_term = 0.
-      end if
-
       ! Mirror has sign consistent with being on RHS of GKE;
       ! it is the factor multiplying dg/dvpa in the mirror term
       if (include_mirror) then
@@ -90,15 +79,13 @@ contains
             do ia = 1, nalpha
                do iz = -nzgrid, nzgrid
                   mirror(ia, iz, imu, :) = mirrorknob * code_dt * spec%stm_psi0 * b_dot_gradz(ia, iz) &
-                       * (mu(imu) * dbdzed(ia, iz) + neoclassical_term(iz, :))
+                       * mu(imu) * dbdzed(ia, iz)
                end do
             end do
          end do
       else
          mirror = 0.
       end if
-
-      deallocate (neoclassical_term)
 
       if (radial_variation) then
          if (.not. allocated(mirror_rad_var)) then
@@ -197,10 +184,8 @@ contains
       use grids_species, only: spec
       use grids_kxky, only: nalpha
 
-      ! Geometry + Neoclassical
+      ! Geometry.
       use geometry, only: dbdzed
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dphineo_dzed
 
       implicit none
 
@@ -214,31 +199,6 @@ contains
       !-------------------------------------------------------------------------
 
       zero = 100.*epsilon(0.)
-
-      ! mirror_int_fac = exp(vpa^2 * (mu*dB/dz)/(mu*dB/dz + Z*e*dpihnc/dz))
-      ! is the integrating factor needed to turn the dg/dvpa part of the GKE advance
-      ! into an advection equation
-      if (.not. allocated(mirror_int_fac)) then
-         if (include_neoclassical_terms) then
-            allocate (mirror_int_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               imu = imu_idx(vmu_lo, ivmu)
-               is = is_idx(vmu_lo, ivmu)
-               do iy = 1, nalpha
-                  where (abs(mu(imu) * dbdzed(iy, :)) > zero)
-                     mirror_int_fac(iy, :, ivmu) = exp(vpa(iv)**2 * mu(imu) * dbdzed(iy, :) &
-                                                       / (mu(imu) * dbdzed(iy, :) + spec(is)%zt_psi0 * dphineo_dzed(1, :) * 0.5))
-                  elsewhere
-                     mirror_int_fac(iy, :, ivmu) = 1.0
-                  end where
-               end do
-            end do
-         else
-            ! mirror_int_fac should never be used in this case
-            allocate (mirror_int_fac(1, 1, 1)); mirror_int_fac = 0.
-         end if
-      end if
 
       ! a, b and c contain the sub-, main- and super-diagonal terms, respectively
       allocate (a(nvpa, -1:1)); a = 0.
@@ -691,10 +651,9 @@ contains
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
       use calculations_transforms, only: transform_ky2y, transform_y2ky
 
-      ! Fields + Neoclassical
+      ! Fields.
       use field_equations, only: fields_updated
       use field_equations_electromagnetic, only: advance_apar
-      use neoclassical_terms, only: include_neoclassical_terms
       
       ! For HO simulations.
       use neoclassical_terms_neo, only: neoclassical_is_enabled
@@ -866,21 +825,6 @@ contains
             end do
          end do
 
-         ! Convert g to g*(integrating factor), as this is what is being advected
-         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
-         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-         end if
-
          ! Second, remap g so velocities are local
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call scatter(kxyz2vmu, g0x, g0v)
@@ -904,21 +848,6 @@ contains
 
          ! Then take the results and remap again so y,kx,z local.
          call gather(kxyz2vmu, g0v, g0x)
-
-         ! Convert back from g*(integrating factor) to g
-         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
-         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-         end if
 
          ! Finally transform back from y to ky space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

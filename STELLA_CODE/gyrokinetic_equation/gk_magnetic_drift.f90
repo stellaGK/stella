@@ -55,7 +55,6 @@ contains
    !****************************************************************************
    subroutine init_wdrift
 
-      use neoclassical_terms, only: include_neoclassical_terms
       use arrays, only: initialised_wdrift
       
       implicit none
@@ -69,13 +68,7 @@ contains
       ! Allocate arrays that will be used thoughout the time advance
       call allocate_arrays_wdrift
 
-      ! Add the neoclassical terms in a seperate subroutine since they 
-      ! require a lot of care with regards to vpa-space
-      if (include_neoclassical_terms) then
-         call init_wdrift_with_neoclassical_terms
-      else
-         call init_wdrift_without_neoclassical_terms
-      end if
+      call init_wdrift_without_neoclassical_terms
 
    end subroutine init_wdrift
    
@@ -200,141 +193,6 @@ contains
       deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty) 
 
    end subroutine init_wdrift_without_neoclassical_terms
-   
-   !-------------------------- With neoclassical terms -------------------------
-   subroutine init_wdrift_with_neoclassical_terms
-
-      use mp, only: mp_abort
-      use geometry, only: B_times_kappa_dot_grady, B_times_gradB_dot_grady
-      use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
-      use geometry, only: gds23, gds24
-      use geometry, only: geo_surf, q_as_x
-      use geometry, only: dxdpsi, drhodpsi, dydalpha
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
-      use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
-      use parameters_physics, only: xdriftknob, ydriftknob
-      
-      ! Grids
-      use parallelisation_layouts, only: vmu_lo
-      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
-      use grids_time, only: code_dt
-      use grids_species, only: spec
-      use grids_z, only: nzgrid
-      use grids_kxky, only: nalpha
-      use grids_velocity, only: vpa, vperp2, mu
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      
-      ! This routine fills the following arrays, with dimensions [ialpha, iz, ivmu]
-      use arrays, only: wdriftx_g, wdrifty_g
-      use arrays, only: wdriftx_phi, wdrifty_phi
-      use arrays, only: wdriftx_bpar, wdrifty_bpar
-      
-      implicit none
-      
-      ! Indices
-      integer :: ivmu, iv, imu, is
-
-      ! Gather calculations
-      real :: fac
-      
-      ! Temporary arrays
-      real, dimension(:, :), allocatable :: wcvdrifty, wgbdrifty
-      real, dimension(:, :), allocatable :: wcvdriftx, wgbdriftx
-      
-      !-------------------------------------------------------------------------
-      ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
-      !-------------------------------------------------------------------------
-
-      ! Allocate temporary arrays
-      allocate (wcvdrifty(nalpha, -nzgrid:nzgrid))
-      allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))
-      allocate (wcvdriftx(nalpha, -nzgrid:nzgrid))
-      allocate (wgbdriftx(nalpha, -nzgrid:nzgrid))
-
-      ! Iterate over velocity space
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
-         
-         fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
-         
-         ! Calculate <wcvdrifty> = 0.5 * code_dt * Ts/Zs * v_parallel² * 2 * <B_times_kappa_dot_grady>
-         ! This is the curvature drift piece of wdrifty with missing factor of vpa
-         ! vpa factor is missing to avoid singularity when including
-         ! non-Maxwellian corrections to equilibrium
-         wcvdrifty = fac * 2 * B_times_kappa_dot_grady * vpa(iv)
-         
-         ! This is the grad-B drift piece of wdrifty
-         wgbdrifty = fac * B_times_gradB_dot_grady * vperp2(:, :, imu)
-         wdrifty_g(:, :, ivmu) = wcvdrifty * vpa(iv) + wgbdrifty
-         
-         ! if including neoclassical correction to equilibrium Maxwellian,
-         ! then add in v_E^{nc} . grad y dg/dy coefficient here
-         if (include_neoclassical_terms) then
-               wdrifty_g(:, :, ivmu) = wdrifty_g(:, :, ivmu) + code_dt * 0.5 * (gds23 * dphineo_dzed + drhodpsi * dydalpha * dphineo_drho)
-         end if
-
-         wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wgbdrifty + wcvdrifty * vpa(iv))& 
-               * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         
-         ! assign wdrifty_bpar, neoclassical terms not supported
-         wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu) * spec(is)%tz
-         
-         ! if including neoclassical corrections to equilibrium,
-         ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
-         ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
-         if (include_neoclassical_terms) then
-               ! NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
-               wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) &
-                  - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdrifty &
-                  - code_dt * 0.5 * dfneo_dzed(:, :, ivmu) * gds23
-         end if
-
-         if (q_as_x) then
-               fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0
-         else
-               fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0 / geo_surf%shat
-         end if
-         
-         ! This is the curvature drift piece of wdriftx with missing factor of vpa
-         ! vpa factor is missing to avoid singularity when including
-         ! non-Maxwellian corrections to equilibrium
-         wcvdriftx = fac * B_times_kappa_dot_gradx * 2. * geo_surf%shat * vpa(iv)
-         
-         ! This is the grad-B drift piece of wdriftx
-         wgbdriftx = fac * B_times_gradB_dot_gradx * 2. * geo_surf%shat * 0.5 * vperp2(:, :, imu)
-         wdriftx_g(:, :, ivmu) = wcvdriftx * vpa(iv) + wgbdriftx
-         
-         ! if including neoclassical correction to equilibrium Maxwellian,
-         ! then add in v_E^{nc} . grad x dg/dx coefficient here
-         if (include_neoclassical_terms) then
-               wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed - dxdpsi * dphineo_dalpha)
-         end if
-         
-         wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv)) &
-               * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         
-         ! assign wdriftx_bpar, neoclassical terms not supported
-         wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu) * spec(is)%tz
-         
-         ! if including neoclassical corrections to equilibrium,
-         ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
-         ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
-         ! and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
-         if (include_neoclassical_terms) then
-               ! NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
-               wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
-                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
-                                       + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdpsi - dfneo_dzed(:, :, ivmu) * gds24)
-         end if
-
-      end do
-
-      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty) 
-
-   end subroutine init_wdrift_with_neoclassical_terms
       
    !---------------------------- Allocate arrays ---------------------------
    subroutine allocate_arrays_wdrift

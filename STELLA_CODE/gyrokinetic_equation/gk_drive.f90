@@ -95,8 +95,6 @@ contains
       
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
 
-      use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
-
       use arrays, only: wstar, initialised_wstar
 
       ! Rescale the drive term with <wstarknob>

@@ -523,9 +523,7 @@ contains
       use parameters_numerical, only: driftkinetic_implicit
       use parameters_numerical, only: drifts_implicit
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dfneo_dvpa
-
+      
       implicit none
 
       complex, dimension(:), intent(in) :: phi
@@ -624,22 +622,14 @@ contains
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
          z_scratch = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
-         
-         ! If including neoclassical correction to equilibrium distribution function
-         ! then must also account for -vpa*dF_neo/dvpa*Z/T
-         ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
-         if (include_neoclassical_terms) then
-            do iz = -nzgrid, nzgrid
-               z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * spec(is)%zt
-            end do
-            call center_zed(iv, z_scratch, -nzgrid)
-         end if
-
+ 
          ! For including NEO's higher order corrections
          if (neoclassical_is_enabled()) then
              do iz = -nzgrid, nzgrid
                  z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(ia, iz, ivmu) / vpa(iv) )
              end do
+             
+             ! Center in zed.
              call center_zed(iv, z_scratch, -nzgrid)
          end if
 
@@ -803,9 +793,6 @@ contains
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
 
-         use neoclassical_terms, only: include_neoclassical_terms
-         use neoclassical_terms, only: dfneo_dvpa
-
          ! Higher order corrections.
          use neoclassical_terms_neo, only: neoclassical_is_enabled
          use neoclassical_terms_neo, only: neo_vpa_fac
@@ -838,15 +825,6 @@ contains
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
          z_scratch = vpa(iv) * 4. * mu(imu) * maxwell_vpa(iv, is) * maxwell_fac(is)
-         ! If including neoclassical correction to equilibrium distribution function
-         ! then must also account for -vpa*dF_neo/dvpa*4*mu
-         ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
-         if (include_neoclassical_terms) then
-            do iz = -nzgrid, nzgrid
-               z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * 4. * mu(imu)
-            end do
-            call center_zed(iv, z_scratch, -nzgrid)
-         end if
 
          ! For including NEO's higher order corrections
          if (neoclassical_is_enabled()) then
@@ -854,6 +832,8 @@ contains
                  z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob &
                  * neo_vpa_fac(ia, iz, ivmu) / vpa(iv) )
              end do
+
+             ! Center in zed.
              call center_zed(iv, z_scratch, -nzgrid)
          end if
 
