@@ -399,8 +399,10 @@ contains
       use gk_sources, only: init_sources
       use field_equations, only: init_field_equations
       
-      ! NEO data.
+      ! For neoclassical corrections.
+      use arrays_neoclassical, only: neoclassical_is_enabled, allocate_neoclassical_arrays
       use neoclassical_terms_neo, only: neo_is_enabled, init_neoclassical_terms_neo
+      use neoclassical_terms, only: sfincs_is_enabled, init_neoclassical_terms_sfincs
 
       implicit none
       
@@ -437,11 +439,21 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_sources'
       call init_sources
 
-      ! If NEO's neoclassical terms are enabled, we calculate the various pieces of information 
-      ! needed for higher order corrections.
+      ! If neoclassical corrections are switched on, allocate all of the arrays needed.
+      ! This will be filled with data by either NEO or SFINCS via the calls below. 
+      if (neoclassical_is_enabled()) then 
+         call allocate_neoclassical_arrays
+      end if 
+
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
       if (neo_is_enabled()) then
-          call init_neoclassical_terms_neo
+         ! If NEO is selected as the neoclassical data provider, populate neoclassical arrays with
+         ! NEO data.
+         call init_neoclassical_terms_neo
+      else if (sfincs_is_enabled()) then
+         ! If SFINCS is selected as the neoclassical data provider, populate neoclassical arrays with
+         ! SFINCS data.
+         call init_neoclassical_terms_sfincs
       end if
       
       ! Allocate and initialise time-independent arrays needed to
@@ -542,7 +554,6 @@ contains
       use multibox, only: multibox_communicate
       use field_equations_radialvariation, only: get_radial_correction
 
-      ! HO simulations.
       use neoclassical_terms_neo, only: neo_is_enabled
       
       ! Parallelisation

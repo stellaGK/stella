@@ -11,7 +11,7 @@ module neoclassical_terms
    implicit none
 
    ! Make routines available to other modules
-   public :: init_neoclassical_terms
+   public :: init_neoclassical_terms_sfincs
    public :: finish_neoclassical_terms
    public :: include_neoclassical_terms
    public :: dfneo_dzed, dfneo_dvpa, dfneo_drho, dfneo_dalpha
@@ -49,7 +49,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine init_neoclassical_terms
+   subroutine init_neoclassical_terms_sfincs
 
       use grids_z, only: nzgrid
       use grids_kxky, only: nalpha
@@ -135,7 +135,7 @@ contains
          
       end subroutine broacast_arrays
 
-   end subroutine init_neoclassical_terms
+   end subroutine init_neoclassical_terms_sfincs
 
    !****************************************************************************
    !                                      Title

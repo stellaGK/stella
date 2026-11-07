@@ -12,7 +12,8 @@
 !
 ! The radial gradient of H_1 and F_1 may be calculated by central difference methods. 
 !
-! All final arrays carry a field-line (α) index as their first dimension, in preparation for general (non-axisymmetric) fields:
+! The neoclassical arrays used in the GK-Maxwell equations are owned by arrays_neoclassical.f90. This module populates them with NEO data. They carry a field-line (α) index as 
+! their first dimension, in preparation for general (non-axisymmetric) fields:
 !
 !   - Global distributions and their derivatives : (nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec)
 !   - ϕ^1_0 and its derivatives                  : (nalpha, -nzgrid:nzgrid)
@@ -24,6 +25,15 @@
 ! ================================================================================================================================================================================= !
 
 module neoclassical_terms_neo
+    use arrays_neoclassical, only: include_neoclassical_terms
+    use arrays_neoclassical, only: neo_h, dneo_h_dpsi, dneo_h_dz
+    use arrays_neoclassical, only: neo_phi, dneo_phi_dpsi, dneo_phi_dz
+    use arrays_neoclassical, only: dneo_h_dmu, dneo_h_dvpa
+    use arrays_neoclassical, only: dneo_h_dmu_global, dneo_h_dvpa_global
+    use arrays_neoclassical, only: neo_vpa_fac, neo_mu_fac
+    use arrays_neoclassical, only: neo_vpa_fac_global, neo_mu_fac_global
+    use arrays_neoclassical, only: neo_zed_fac
+
     implicit none
 
     public :: read_parameters_neoclassical
@@ -32,6 +42,8 @@ module neoclassical_terms_neo
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
+    ! Re-exported from arrays_neoclassical so that modules still importing these from neoclassical_terms_neo keep working. 
+    ! Once every use site imports them from arrays_neoclassical directly, these lines can be removed.
     public :: neo_h, dneo_h_dpsi, dneo_h_dz          ! H_1 and its derivatives in real space. 
     public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz    ! ϕ^1_0 and its derivatives in real space.    
 
@@ -54,8 +66,7 @@ module neoclassical_terms_neo
         module procedure copy_alpha_one_to_all_3d
         module procedure copy_alpha_one_to_all_5d
     end interface copy_alpha_one_to_all
-
-    logical :: include_neoclassical_terms                                           
+                                           
     integer :: neo_option_switch           ! Should be = 2 for NEO.
     integer :: nradii                      ! Currently can only be 3.
     real    :: drho                        ! Typically taken as 0.01.
@@ -63,18 +74,8 @@ module neoclassical_terms_neo
     integer :: iz, unit
     character(len=128) :: filename
 
-    ! (nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc).
-    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
-    real, dimension(:, :, :), allocatable :: dneo_h_dmu, dneo_h_dvpa
-    real, dimension(:, :, :), allocatable :: neo_vpa_fac, neo_mu_fac
-    real, dimension(:, :, :), allocatable :: neo_zed_fac
-
-    ! (nalpha, -nzgrid:nzgrid).
-    real, dimension(:, :), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
-
+    ! NEO-specific intermediate used to build neo_zed_fac; not used in the GKE, so it is not part of arrays_neoclassical.
     ! (nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec).
-    real, dimension(:, :, :, :, :), allocatable :: dneo_h_dvpa_global, dneo_h_dmu_global
-    real, dimension(:, :, :, :, :), allocatable :: neo_vpa_fac_global, neo_mu_fac_global
     real, dimension(:, :, :, :, :), allocatable :: neo_zed_fac_global
 
     ! DIAGNOSTICS. 
@@ -116,7 +117,7 @@ contains
 
 
 ! ================================================================================================================================================================================= !
-! ---------------------------------------------------- Logical function telling stella when to include NEO corrections and routines. ---------------------------------------------- !
+! ---------------------------------------------------- Logical function telling stella when to use NEO as the neoclassical provider. ---------------------------------------------- !
 ! ================================================================================================================================================================================= !
 
     logical function neo_is_enabled()
@@ -149,6 +150,9 @@ contains
 
         ! Geometry.
         use geometry, only: get_dzed, bmag
+
+        ! Neoclassical arrays (allocation is a no-op if already done).
+        use arrays_neoclassical, only: allocate_neoclassical_arrays
 
         implicit none
 
@@ -213,27 +217,11 @@ contains
         call broadcast(neo_grid%theta)
         call broadcast(neo_grid%radius)
        
-        ! Allocate all of the arrays that will be used in the HO corrections. 
-        ! Velocity-distributed arrays: (nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc).
-        if (.not. allocated(neo_h)) allocate(neo_h(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
-        if (.not. allocated(dneo_h_dpsi)) allocate(dneo_h_dpsi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
-        if (.not. allocated(dneo_h_dz)) allocate(dneo_h_dz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
-        if (.not. allocated(dneo_h_dmu)) allocate(dneo_h_dmu(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
-        if (.not. allocated(dneo_h_dvpa)) allocate(dneo_h_dvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
-        if (.not. allocated(neo_vpa_fac)) allocate(neo_vpa_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
-        if (.not. allocated(neo_mu_fac)) allocate(neo_mu_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
-        if (.not. allocated(neo_zed_fac)) allocate(neo_zed_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc))
+        ! The neoclassical arrays used in the GKE are owned by arrays_neoclassical. They should already be allocated 
+        ! during initialisation; this call only guarantees it (it returns immediately if they are).
+        call allocate_neoclassical_arrays
 
-        ! ϕ^1_0 arrays: (nalpha, -nzgrid:nzgrid).
-        if (.not. allocated(neo_phi)) allocate(neo_phi(nalpha, -nzgrid:nzgrid))
-        if (.not. allocated(dneo_phi_dpsi)) allocate(dneo_phi_dpsi(nalpha, -nzgrid:nzgrid))
-        if (.not. allocated(dneo_phi_dz)) allocate(dneo_phi_dz(nalpha, -nzgrid:nzgrid))
-
-        ! Global arrays: (nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec).
-        if (.not. allocated(dneo_h_dmu_global)) allocate(dneo_h_dmu_global(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
-        if (.not. allocated(dneo_h_dvpa_global)) allocate(dneo_h_dvpa_global(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
-        if (.not. allocated(neo_vpa_fac_global)) allocate(neo_vpa_fac_global(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
-        if (.not. allocated(neo_mu_fac_global)) allocate(neo_mu_fac_global(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
+        ! NEO-specific intermediate: (nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec).
         if (.not. allocated(neo_zed_fac_global)) allocate(neo_zed_fac_global(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
 
         ! Allocate all temporary arrays needed for initilization. 
@@ -511,28 +499,15 @@ contains
 ! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------- Finish the neoclassical terms. ---------------------------------------------------------------------------- !
 ! ================================================================================================================================================================================= !
+!
+! Only NEO-specific arrays are deallocated here. The shared neoclassical arrays are deallocated by deallocate_neoclassical_arrays in arrays_neoclassical.
+!
+! ================================================================================================================================================================================= !
 
     subroutine finish_neoclassical_terms_neo
         implicit none
  
-        if (allocated(neo_h)) deallocate(neo_h)
-        if (allocated(neo_phi)) deallocate(neo_phi)
-        if (allocated(dneo_h_dpsi)) deallocate(dneo_h_dpsi)
-        if (allocated(dneo_phi_dpsi)) deallocate(dneo_phi_dpsi)
-        if (allocated(dneo_h_dz)) deallocate(dneo_h_dz)
-        if (allocated(dneo_phi_dz)) deallocate(dneo_phi_dz)
-
-        if (allocated(dneo_h_dmu)) deallocate(dneo_h_dmu)
-        if (allocated(dneo_h_dvpa)) deallocate(dneo_h_dvpa)
-        if (allocated(dneo_h_dmu_global)) deallocate(dneo_h_dmu_global)
-        if (allocated(dneo_h_dvpa_global)) deallocate(dneo_h_dvpa_global)
-
-        if (allocated(neo_vpa_fac_global)) deallocate(neo_vpa_fac_global)
-        if (allocated(neo_mu_fac_global)) deallocate(neo_mu_fac_global)
         if (allocated(neo_zed_fac_global)) deallocate(neo_zed_fac_global)
-        if (allocated(neo_vpa_fac)) deallocate(neo_vpa_fac)
-        if (allocated(neo_mu_fac)) deallocate(neo_mu_fac)
-        if (allocated(neo_zed_fac)) deallocate(neo_zed_fac)
 
         initialised_neoclassical_terms_neo = .false.
         
@@ -1290,89 +1265,6 @@ contains
         ! Deallocate the temporary array.
         deallocate(tmp)
     end subroutine get_neo_h_velocity_derivative_moment
-
-
-! ================================================================================================================================================================================= !
-! ----------------------------------------------------- Overwrite neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global and neo_phi for MMS testing. ---------------------------------- !
-! ================================================================================================================================================================================= !
-!
-! Overwrites all field lines, ia = 1, ..., nalpha. 
-!
-! ================================================================================================================================================================================= !
-
-    subroutine mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global, neo_phi, neo_grid)
-        ! Parallelisation.
-        use parallelisation_layouts, only: vmu_lo
-        use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
- 
-        ! Grids.
-        use grids_z, only: nzgrid
-        use grids_kxky, only: nalpha
-        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, nvpa, vpa, nmu, mu
-        use grids_species, only: spec
-
-        ! Geometry. 
-        use geometry, only: bmag
-
-        ! NEO data.
-        use NEO_interface, only: neo_grid_data 
-
-        ! Constants.
-        use constants, only: pi
-
-
-        implicit none
-
-        real, intent(in out)                :: neo_h(:, -nzgrid:, vmu_lo%llim_proc:)
-        real, intent(in out)                :: neo_vpa_fac(:, -nzgrid:, vmu_lo%llim_proc:)
-        real, intent(in out)                :: neo_mu_fac(:, -nzgrid:, vmu_lo%llim_proc:)
-        real, intent(in out)                :: neo_mu_fac_global(:, -nzgrid:, :, :, :)
-        real, intent(in out)                :: neo_phi(:, -nzgrid:)
-        type(neo_grid_data), intent(in)     :: neo_grid
-
-        ! Local variables.
-        integer           :: is, imu, iv, iz, ia, ivmu
-        real, allocatable :: tmp(:, :, :, :)
-
-        do ia = 1, nalpha
-            ! Overwrite phi as zero everywhre. 
-            do iz = -nzgrid, nzgrid
-                neo_phi(ia, iz) = 0.0
-            end do
-
-            ! Overwrite arrays that are distributed over velocity space. 
-            ! Namely neo_h, neo_vpa_fac and neo_mu_fac. 
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                iv = iv_idx(vmu_lo, ivmu)
-                imu = imu_idx(vmu_lo, ivmu)
-                is = is_idx(vmu_lo, ivmu)
-             
-                do iz = -nzgrid, nzgrid
-                    ! neo_h. 
-                    neo_h(ia, iz, ivmu) = 0.001 * vpa(iv) * mu(imu) 
-
-                    ! neo_vpa_fac. 
-                    neo_vpa_fac(ia, iz, ivmu) = 0.001 * mu(imu) - 0.002 * vpa(iv) * vpa(iv) * mu(imu)
-
-                    ! neo_mu_fac. 
-                    neo_mu_fac(ia, iz, ivmu) = 0.001 * vpa(iv) - 0.002 * bmag(ia, iz) * vpa(iv) * mu(imu)
-                end do 
-            end do
-
-            ! Overwrite arrays that are not distributed over velocity space. 
-            ! Namely neo_mu_fac_global.
-            do is = 1, neo_grid%n_species
-                do iz = -nzgrid, nzgrid
-                    do iv = 1, nvpa
-                        do imu = 1, nmu
-                            neo_mu_fac_global(ia, iz, iv, imu, is) = 0.001 * vpa(iv) - 0.002 * bmag(ia, iz) * vpa(iv) * mu(imu)
-                        end do
-                    end do
-                end do
-            end do
-        end do
-
-    end subroutine mms_overwrite
 
 
 ! ================================================================================================================================================================================= !

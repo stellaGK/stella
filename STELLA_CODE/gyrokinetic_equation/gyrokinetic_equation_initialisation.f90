@@ -28,7 +28,6 @@ contains
 !###############################################################################
 
    subroutine init_gyrokinetic_equation
-
       ! Physics flags
       use iso_fortran_env, only: output_unit
       use mp, only: proc0
@@ -53,7 +52,7 @@ contains
       use gk_parallel_nonlinearity, only: init_parallel_nonlinearity
       ! use neoclassical_terms, only: init_neoclassical_terms
       
-      ! For HO corrections. 
+      ! For neoclassical corrections.
       use neoclassical_terms_neo, only: neo_is_enabled    
       use gk_neo_mirror, only: init_neo_mirror
       use gk_neo_stream, only: init_neo_stream
@@ -93,6 +92,8 @@ contains
       ! Allocate and calculate the factor multiplying dphi/dy in the gradient drive term
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wstar'
       call init_wstar
+
+
 
       ! If NEO's neoclassical corrections are enabled, then ...
       if (neo_is_enabled()) then
