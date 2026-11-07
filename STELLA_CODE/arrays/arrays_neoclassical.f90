@@ -33,8 +33,8 @@ module arrays_neoclassical
     public :: finish_neoclassical_arrays
     public :: initialised_neoclassical_arrays
 
-    public :: neo_h, dneo_h_dpsi, dneo_h_dz          
-    public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz    
+    public :: neo_h, dneo_h_drho, dneo_h_dz          
+    public :: neo_phi, dneo_phi_drho, dneo_phi_dz    
 
     public :: dneo_h_dmu, dneo_h_dvpa
     public :: dneo_h_dmu_global, dneo_h_dvpa_global
@@ -42,6 +42,10 @@ module arrays_neoclassical
     public :: neo_vpa_fac, neo_mu_fac                
     public :: neo_vpa_fac_global, neo_mu_fac_global  
     
+    ! Only used by SFINCS.
+    public :: dneo_phi_dalpha
+    public :: neo_alpha_fac
+
     public :: neo_zed_fac
     
     private
@@ -51,13 +55,15 @@ module arrays_neoclassical
     real, dimension(:, :, :, :, :), allocatable :: neo_vpa_fac_global, neo_mu_fac_global
 
     ! (nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc).
-    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_dpsi, dneo_h_dz
+    real, dimension(:, :, :), allocatable :: neo_h, dneo_h_drho, dneo_h_dz
     real, dimension(:, :, :), allocatable :: dneo_h_dmu, dneo_h_dvpa
     real, dimension(:, :, :), allocatable :: neo_vpa_fac, neo_mu_fac
     real, dimension(:, :, :), allocatable :: neo_zed_fac
+    real, dimension(:, :, :), allocatable :: neo_alpha_fac
 
     ! (nalpha, -nzgrid:nzgrid).
-    real, dimension(:, :), allocatable :: neo_phi, dneo_phi_dpsi, dneo_phi_dz
+    real, dimension(:, :), allocatable :: neo_phi, dneo_phi_drho, dneo_phi_dz
+    real, dimension(:, :), allocatable :: dneo_phi_dalpha
 
     logical :: include_neoclassical_terms = .false.
     logical :: initialised_neoclassical_arrays = .false.
@@ -100,18 +106,20 @@ contains
 
         ! Velocity-distributed arrays: (nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc).
         if (.not. allocated(neo_h)) allocate(neo_h(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); neo_h = 0.0 
-        if (.not. allocated(dneo_h_dpsi)) allocate(dneo_h_dpsi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); dneo_h_dpsi = 0.0 
+        if (.not. allocated(dneo_h_drho)) allocate(dneo_h_drho(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); dneo_h_drho = 0.0 
         if (.not. allocated(dneo_h_dz)) allocate(dneo_h_dz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); dneo_h_dz = 0.0
         if (.not. allocated(dneo_h_dmu)) allocate(dneo_h_dmu(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); dneo_h_dmu = 0.0
         if (.not. allocated(dneo_h_dvpa)) allocate(dneo_h_dvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); dneo_h_dvpa = 0.0
         if (.not. allocated(neo_vpa_fac)) allocate(neo_vpa_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); neo_vpa_fac = 0.0
         if (.not. allocated(neo_mu_fac)) allocate(neo_mu_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); neo_mu_fac = 0.0
         if (.not. allocated(neo_zed_fac)) allocate(neo_zed_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); neo_zed_fac = 0.0
+        if (.not. allocated(neo_alpha_fac)) allocate(neo_alpha_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc)); neo_alpha_fac = 0.0
 
         ! ϕ^1_0 arrays: (nalpha, -nzgrid:nzgrid).
         if (.not. allocated(neo_phi)) allocate(neo_phi(nalpha, -nzgrid:nzgrid)); neo_phi = 0.0
-        if (.not. allocated(dneo_phi_dpsi)) allocate(dneo_phi_dpsi(nalpha, -nzgrid:nzgrid)); dneo_phi_dpsi = 0.0
+        if (.not. allocated(dneo_phi_drho)) allocate(dneo_phi_drho(nalpha, -nzgrid:nzgrid)); dneo_phi_drho = 0.0
         if (.not. allocated(dneo_phi_dz)) allocate(dneo_phi_dz(nalpha, -nzgrid:nzgrid)); dneo_phi_dz = 0.0
+        if (.not. allocated(dneo_phi_dalpha)) allocate(dneo_phi_dalpha(nalpha, -nzgrid:nzgrid)); dneo_phi_dalpha = 0.0
 
     end subroutine allocate_neoclassical_arrays
 
@@ -124,17 +132,19 @@ contains
         implicit none
 
         if (allocated(neo_h)) deallocate(neo_h)
-        if (allocated(dneo_h_dpsi)) deallocate(dneo_h_dpsi)
+        if (allocated(dneo_h_drho)) deallocate(dneo_h_drho)
         if (allocated(dneo_h_dz)) deallocate(dneo_h_dz)
         if (allocated(dneo_h_dmu)) deallocate(dneo_h_dmu)
         if (allocated(dneo_h_dvpa)) deallocate(dneo_h_dvpa)
         if (allocated(neo_vpa_fac)) deallocate(neo_vpa_fac)
         if (allocated(neo_mu_fac)) deallocate(neo_mu_fac)
         if (allocated(neo_zed_fac)) deallocate(neo_zed_fac)
+        if (allocated(neo_alpha_fac)) deallocate(neo_alpha_fac)
 
         if (allocated(neo_phi)) deallocate(neo_phi)
-        if (allocated(dneo_phi_dpsi)) deallocate(dneo_phi_dpsi)
+        if (allocated(dneo_phi_drho)) deallocate(dneo_phi_drho)
         if (allocated(dneo_phi_dz)) deallocate(dneo_phi_dz)
+        if (allocated(dneo_phi_dalpha)) deallocate(dneo_phi_dalpha)
 
         if (allocated(dneo_h_dmu_global)) deallocate(dneo_h_dmu_global)
         if (allocated(dneo_h_dvpa_global)) deallocate(dneo_h_dvpa_global)

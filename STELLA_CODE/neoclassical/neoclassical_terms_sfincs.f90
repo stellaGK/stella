@@ -1,33 +1,35 @@
-!###############################################################################
-!                                                                               
-!###############################################################################
-! This module ...
-!###############################################################################
-module neoclassical_terms
+! ================================================================================================================================================================================= !
+! ---------------------------------- Routines for mapping SFINCS data on to stella grids and calculating all quantites needed for HO GK simulations. ------------------------------ !
+! ================================================================================================================================================================================= !
+!
+! TO DO (OR): DOCUMENTATION TO BE ADDED ...
+!
+! ================================================================================================================================================================================= !
 
-   ! Load debug flags
+module neoclassical_terms_sfincs
+
+   ! Load debug flags.
    use debug_flags, only: debug => neoclassical_terms_debug
-   
+
+   ! Neoclassical flag and arrays.
+   use arrays_neoclassical, only: include_neoclassical_terms
+   use arrays_neoclassical, only: dneo_h_dz, dneo_h_dvpa, dneo_h_drho
+   use arrays_neoclassical, only: dneo_phi_dz, dneo_phi_drho, dneo_phi_dalpha
+   use arrays_neoclassical, only: neo_alpha_fac
+
    implicit none
 
-   ! Make routines available to other modules
+   ! Make routines available to other modules.
    public :: init_neoclassical_terms_sfincs
-   public :: finish_neoclassical_terms
-   public :: include_neoclassical_terms
-   public :: dfneo_dzed, dfneo_dvpa, dfneo_drho, dfneo_dalpha
-   public :: dphineo_dzed, dphineo_drho, dphineo_dalpha
    ! True when SFINCS is the selected drift kinetic provider.
    public :: sfincs_is_enabled
 
    private
 
-   logical :: include_neoclassical_terms
    integer :: nradii
    real :: drho
    integer :: neo_option_switch
    integer, parameter :: neo_option_sfincs = 1
-   real, dimension(:, :, :), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho, dfneo_dalpha
-   real, dimension(:, :), allocatable :: dphineo_dzed, dphineo_drho, dphineo_dalpha
 
    ! Only initialise once
    logical :: initialised_neoclassical_terms = .false.
@@ -46,9 +48,6 @@ contains
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
    subroutine init_neoclassical_terms_sfincs
 
       use grids_z, only: nzgrid
@@ -60,6 +59,9 @@ contains
 
       use namelist_neoclassical_input, only: read_namelist_neoclassical_input
 
+      ! Neoclassical arrays (allocation is a no-op if already done).
+      use arrays_neoclassical, only: allocate_neoclassical_arrays
+
       implicit none
 
       real, dimension(:, :, :, :, :, :), allocatable :: f_neoclassical
@@ -68,60 +70,52 @@ contains
 
       integer :: iz, ialpha
 
-      ! Only initialise once
+      ! Only initialise once.
       if (initialised_neoclassical_terms) return
       initialised_neoclassical_terms = .true.
-      
-      ! Read the input parameters in the input file
+
+      ! Read the input parameters in the input file.
       call read_namelist_neoclassical_input(include_neoclassical_terms, neo_option_switch, nradii, drho)
 
-      ! Broadcast the input parameters to all processors
+      ! Broadcast the input parameters to all processors.
       call broacast_arrays
 
       if (include_neoclassical_terms) then
+         ! The neoclassical arrays used in the GKE are owned by arrays_neoclassical. They should already be allocated
+         ! during initialisation; this call only guarantees it.
+         call allocate_neoclassical_arrays
+
          allocate (f_neoclassical(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec, -nradii / 2:nradii / 2))
          allocate (phi_neoclassical(nalpha, -nzgrid:nzgrid, -nradii / 2:nradii / 2))
          allocate (dfneo_dalpha_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
-         if (.not. allocated(dfneo_dvpa)) &
-            allocate (dfneo_dvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         if (.not. allocated(dfneo_drho)) &
-            allocate (dfneo_drho(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         if (.not. allocated(dfneo_dzed)) &
-            allocate (dfneo_dzed(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         if (.not. allocated(dfneo_dalpha)) &
-            allocate (dfneo_dalpha(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         if (.not. allocated(dphineo_dzed)) &
-            allocate (dphineo_dzed(nalpha, -nzgrid:nzgrid))
-         if (.not. allocated(dphineo_drho)) &
-            allocate (dphineo_drho(nalpha, -nzgrid:nzgrid))
-         if (.not. allocated(dphineo_dalpha)) &
-            allocate (dphineo_dalpha(nalpha, -nzgrid:nzgrid))
          select case (neo_option_switch)
          case (neo_option_sfincs)
-            call get_neo_from_sfincs(nradii, drho, f_neoclassical, phi_neoclassical, dfneo_dalpha_local, dphineo_dalpha)
+            call get_neo_from_sfincs(nradii, drho, f_neoclassical, phi_neoclassical, dfneo_dalpha_local, dneo_phi_dalpha)
          end select
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dzed'
-         call get_dfneo_dzed(f_neoclassical(:, :, :, :, :, 0), dfneo_dzed)
+         call get_dfneo_dzed(f_neoclassical(:, :, :, :, :, 0), dneo_h_dz)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dvpa'
-         call get_dfneo_dvpa(f_neoclassical(:, :, :, :, :, 0), dfneo_dvpa)
+         call get_dfneo_dvpa(f_neoclassical(:, :, :, :, :, 0), dneo_h_dvpa)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_drho'
-         call get_dfneo_drho(f_neoclassical, dfneo_drho)
+         call get_dfneo_drho(f_neoclassical, dneo_h_drho)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_dzed'
-         call get_dphineo_dzed(phi_neoclassical(:, :, 0), dphineo_dzed)
+         call get_dphineo_dzed(phi_neoclassical(:, :, 0), dneo_phi_dz)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_drho'
-         call get_dphineo_drho(phi_neoclassical, dphineo_drho)
+         call get_dphineo_drho(phi_neoclassical, dneo_phi_drho)
+         ! TODO (OR): neo_alpha_fac currently holds the raw dF_1/dalpha from SFINCS, not the full alpha factor appearing in the GKE.
          do iz = -nzgrid, nzgrid
             do ialpha = 1, nalpha
-               call distribute_vmus_over_procs(dfneo_dalpha_local(ialpha, iz, :, :, :), dfneo_dalpha(ialpha, iz, :))
+               call distribute_vmus_over_procs(dfneo_dalpha_local(ialpha, iz, :, :, :), neo_alpha_fac(ialpha, iz, :))
             end do
          end do
+         
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::write_neoclassical'
          call write_neoclassical(f_neoclassical, phi_neoclassical)
          deallocate (f_neoclassical, phi_neoclassical, dfneo_dalpha_local)
       end if
 
    contains
-   
+
       subroutine broacast_arrays
 
          use mp, only: broadcast
@@ -132,7 +126,7 @@ contains
          call broadcast(neo_option_switch)
          call broadcast(nradii)
          call broadcast(drho)
-         
+
       end subroutine broacast_arrays
 
    end subroutine init_neoclassical_terms_sfincs
@@ -421,13 +415,13 @@ contains
             is = is_idx(vmu_lo, ivmu)
             if (idx_local(vmu_lo, iv, imu, is)) then
                if (proc0) then
-                  dfdv_local = dfneo_dvpa(:, :, ivmu)
-                  dfdr_local = dfneo_drho(:, :, ivmu)
-                  dfdz_local = dfneo_dzed(:, :, ivmu)
+                  dfdv_local = dneo_h_dvpa(:, :, ivmu)
+                  dfdr_local = dneo_h_drho(:, :, ivmu)
+                  dfdz_local = dneo_h_dz(:, :, ivmu)
                else
-                  call send(dfneo_dvpa(:, :, ivmu), 0)
-                  call send(dfneo_drho(:, :, ivmu), 0)
-                  call send(dfneo_dzed(:, :, ivmu), 0)
+                  call send(dneo_h_dvpa(:, :, ivmu), 0)
+                  call send(dneo_h_drho(:, :, ivmu), 0)
+                  call send(dneo_h_dz(:, :, ivmu), 0)
                end if
             else if (proc0) then
                call receive(dfdv_local, proc_id(vmu_lo, ivmu))
@@ -442,7 +436,7 @@ contains
                         dfdv_local(ia, iz), &
                         dfdr_local(ia, iz), &
                         dfdz_local(ia, iz), &
-                        phinc(ia, iz, irad), dphineo_drho(ia, iz), dphineo_dzed(ia, iz)
+                        phinc(ia, iz, irad), dneo_phi_drho(ia, iz), dneo_phi_dz(ia, iz)
                   end do
                end do
             end if
@@ -455,23 +449,4 @@ contains
 
    end subroutine write_neoclassical
 
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   subroutine finish_neoclassical_terms
-
-      implicit none
-
-      if (allocated(dfneo_dvpa)) deallocate (dfneo_dvpa)
-      if (allocated(dfneo_drho)) deallocate (dfneo_drho)
-      if (allocated(dfneo_dzed)) deallocate (dfneo_dzed)
-      if (allocated(dfneo_dalpha)) deallocate (dfneo_dalpha)
-      if (allocated(dphineo_dzed)) deallocate (dphineo_dzed)
-      if (allocated(dphineo_drho)) deallocate (dphineo_drho)
-      if (allocated(dphineo_dalpha)) deallocate (dphineo_dalpha)
-
-      initialised_neoclassical_terms = .false.
-
-   end subroutine finish_neoclassical_terms
-
-end module neoclassical_terms
+end module neoclassical_terms_sfincs

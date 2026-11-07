@@ -26,8 +26,8 @@
 
 module neoclassical_terms_neo
     use arrays_neoclassical, only: include_neoclassical_terms
-    use arrays_neoclassical, only: neo_h, dneo_h_dpsi, dneo_h_dz
-    use arrays_neoclassical, only: neo_phi, dneo_phi_dpsi, dneo_phi_dz
+    use arrays_neoclassical, only: neo_h, dneo_h_drho, dneo_h_dz
+    use arrays_neoclassical, only: neo_phi, dneo_phi_drho, dneo_phi_dz
     use arrays_neoclassical, only: dneo_h_dmu, dneo_h_dvpa
     use arrays_neoclassical, only: dneo_h_dmu_global, dneo_h_dvpa_global
     use arrays_neoclassical, only: neo_vpa_fac, neo_mu_fac
@@ -328,12 +328,12 @@ contains
             call distribute_vmus_over_procs(neo_mu_fac_global(ia, iz, :, :, :), neo_mu_fac(ia, iz, :))
         end do
 
-        ! Calculate the neo_h psi derivative on the central surface at fixed kinetic energy, E, and the neo_phi psi derivative on the central surface.  
-        call get_psi_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac(ia, :, :), drho, dneo_h_dpsi(ia, :, :), dneo_phi_dpsi(ia, :))
+        ! Calculate the neo_h rho derivative on the central surface at fixed kinetic energy, E, and the neo_phi rho derivative on the central surface.  
+        call get_rho_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac(ia, :, :), drho, dneo_h_drho(ia, :, :), dneo_phi_drho(ia, :))
 
         ! DIAGNOSTIC.
         ! if (proc0) then
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, dneo_phi_dpsi(ia, :), "dneo_phi_drho_on_stella_z_grid_central_surface")
+            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, dneo_phi_drho(ia, :), "dneo_phi_drho_on_stella_z_grid_central_surface")
         ! end if
 
         ! DIAGNOSTIC.
@@ -355,7 +355,7 @@ contains
 
         ! NEO is axisymmetric, so every field line is identical: copy the ia = 1 data on to ia = 2, ..., nalpha.
         call copy_alpha_one_to_all(neo_h)
-        call copy_alpha_one_to_all(dneo_h_dpsi)
+        call copy_alpha_one_to_all(dneo_h_drho)
         call copy_alpha_one_to_all(dneo_h_dz)
         call copy_alpha_one_to_all(dneo_h_dmu)
         call copy_alpha_one_to_all(dneo_h_dvpa)
@@ -364,7 +364,7 @@ contains
         call copy_alpha_one_to_all(neo_zed_fac)
 
         call copy_alpha_one_to_all(neo_phi)
-        call copy_alpha_one_to_all(dneo_phi_dpsi)
+        call copy_alpha_one_to_all(dneo_phi_drho)
         call copy_alpha_one_to_all(dneo_phi_dz)
 
         call copy_alpha_one_to_all(dneo_h_dmu_global)
@@ -1063,14 +1063,14 @@ contains
     end subroutine get_zed_factor
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------------ Calculate the psi derivative of neo_h and neo_phi on the central flux surface. ----------------------------------------------- !
+! ------------------------------------------------ Calculate the rho derivative of neo_h and neo_phi on the central flux surface. ----------------------------------------------- !
 ! ================================================================================================================================================================================= !
 !
 ! All arrays are on a single field line (ia = 1). Distributions: (-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc). ϕ^1_0: (-nzgrid:nzgrid).
 !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_psi_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac, drho, dneo_h_dpsi, dneo_phi_dpsi)
+    subroutine get_rho_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac, drho, dneo_h_drho, dneo_phi_drho)
         ! Parallelisation.
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
         
@@ -1087,8 +1087,8 @@ contains
         real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: neo_h_right, neo_h_left, neo_vpa_fac
         real, dimension(-nzgrid:), intent(in) :: neo_phi_right, neo_phi_left
 
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(out) :: dneo_h_dpsi
-        real, dimension(-nzgrid:), intent(out) :: dneo_phi_dpsi
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(out) :: dneo_h_drho
+        real, dimension(-nzgrid:), intent(out) :: dneo_phi_drho
 
         ! Local variables. 
         integer :: ivmu, is, imu, iv, iz, ia 
@@ -1099,12 +1099,12 @@ contains
         ! ================================================================================ ! 
 
         ! The neo_phi derivative is trivial to calculate via a central difference algorithm.
-        dneo_phi_dpsi = (neo_phi_right - neo_phi_left) / (2.0 * drho)
+        dneo_phi_drho = (neo_phi_right - neo_phi_left) / (2.0 * drho)
 
         ! In a similiar way we calculate the neo_h derivative, at fixed v_parallel and mu.
-        dneo_h_dpsi   = (neo_h_right - neo_h_left)  / (2.0 * drho)
+        dneo_h_drho = (neo_h_right - neo_h_left)  / (2.0 * drho)
             
-    end subroutine get_psi_derivatives
+    end subroutine get_rho_derivatives
 
 
 ! ================================================================================================================================================================================= !

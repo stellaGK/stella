@@ -402,7 +402,7 @@ contains
       ! For neoclassical corrections.
       use arrays_neoclassical, only: neoclassical_is_enabled, allocate_neoclassical_arrays
       use neoclassical_terms_neo, only: neo_is_enabled, init_neoclassical_terms_neo
-      use neoclassical_terms, only: sfincs_is_enabled, init_neoclassical_terms_sfincs
+      use neoclassical_terms_sfincs, only: sfincs_is_enabled, init_neoclassical_terms_sfincs
 
       implicit none
       

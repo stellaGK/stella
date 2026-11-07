@@ -10,11 +10,11 @@
 ! component and a ∂F₁/∂θ component. When using a miller geometry, this is equivalent to ∂F₁/∂z. In this routine we define two coeffecients, wstar1 and wpol. wstar1 is the 
 ! higher-order counterpart to wstar. The dimensionless expression is  
 ! 
-! wstar1 = wstar1psi + wstar1z
+! wstar1 = wstar1rho + wstar1z
 !
 ! where 
 !
-! wstar1psi =
+! wstar1rho =
 !
 ! and 
 !
@@ -71,7 +71,7 @@ contains
         ! NEO data.
         use arrays_neoclassical, only: dneo_h_dvpa
         use arrays_neoclassical, only: neo_h, neo_phi
-        use arrays_neoclassical, only: dneo_h_dpsi, dneo_phi_dpsi   
+        use arrays_neoclassical, only: dneo_h_drho, dneo_phi_drho   
         use arrays_neoclassical, only: neo_zed_fac
 
         ! Arrays. 
@@ -84,11 +84,11 @@ contains
 
         ! Local variables.
         integer :: is, imu, iv, ivmu, iz
-        ! wstar1y has a component which is proportional to ∂F_1/∂ψ; we will call this wstar1ypsi. 
+        ! wstar1y has a component which is proportional to ∂F_1/∂rho; we will call this wstar1yrho. 
         ! Similarly the component proportional to ∂F_1/∂z will be called wstar1yz. 
         ! The component proportional to the parallel velocity derivative is called wstar1yvpa. 
         ! Splitting up the calculation this way should make the maths easier to follow.
-        real, dimension(:, :, :), allocatable :: wstar1ypsi, wstar1yz, wstar1yvpa         
+        real, dimension(:, :, :), allocatable :: wstar1yrho, wstar1yz, wstar1yvpa         
         ! To make the calculations easier to follow, we also calculate <energy> = v_parallel² + 2 mu B for each velocity point
         real, dimension(:, :), allocatable :: energy
 
@@ -102,7 +102,7 @@ contains
         end if
 
         ! Allocate the temporary arrays. 
-        allocate(wstar1ypsi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1ypsi = 0.0      
+        allocate(wstar1yrho(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yrho = 0.0      
         allocate(wstar1yz(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yz = 0.0
         allocate(wstar1yvpa(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar1yvpa = 0.0
         allocate(energy(nalpha, -nzgrid:nzgrid)); energy = 0.0
@@ -118,8 +118,8 @@ contains
                ! Calculate <energy>[ialpha,iz] = v_parallel² + 2 mu B = vpa(iv)**2 + vperp2(ialpha, iz, imu)
                 energy(:, iz) = ( vpa(iv)**2 + vperp2(:, iz, imu) ) * ( spec(is)%temp_psi0 / spec(is)%temp )
 
-                wstar1ypsi(:, iz, ivmu) = 0.5 * wstar1yknob * dydalpha * drhodpsi &
-                * ( dneo_h_dpsi(:, iz, ivmu) - spec(is)%z * dneo_phi_dpsi(:, iz)  &
+                wstar1yrho(:, iz, ivmu) = 0.5 * wstar1yknob * dydalpha * drhodpsi &
+                * ( dneo_h_drho(:, iz, ivmu) - spec(is)%z * dneo_phi_drho(:, iz)  &
                 - ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) &
                 * ( neo_h(:, iz, ivmu) - spec(is)%z * neo_phi(:, iz) ) ) / clebsch_factor
             end do
@@ -151,7 +151,7 @@ contains
             end do
         end do
 
-        ! Finally, calculate wstar1y = wstar1ypsi + wstar1yz + wstar1yvpa, including the common factor.
+        ! Finally, calculate wstar1y = wstar1yrho + wstar1yz + wstar1yvpa, including the common factor.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
@@ -159,13 +159,13 @@ contains
           
             do iz = -nzgrid, nzgrid
                 wstar1y(:, iz, ivmu) = wstar1yknob * code_dt &
-                * ( wstar1ypsi(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
+                * ( wstar1yrho(:, iz, ivmu) + wstar1yz(:, iz, ivmu) + wstar1yvpa(:, iz, ivmu) ) &
                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do
 
         ! Deallocate temporary arrays. 
-        deallocate(wstar1ypsi)
+        deallocate(wstar1yrho)
         deallocate(wstar1yz)
         deallocate(wstar1yvpa)
         deallocate(energy)
