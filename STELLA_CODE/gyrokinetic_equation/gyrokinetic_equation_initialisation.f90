@@ -50,10 +50,9 @@ contains
       use gk_sources, only: init_quasineutrality_source
       use gk_sources, only: init_source_timeaverage
       use gk_parallel_nonlinearity, only: init_parallel_nonlinearity
-      ! use neoclassical_terms, only: init_neoclassical_terms
       
-      ! For neoclassical corrections.
-      use neoclassical_terms_neo, only: neo_is_enabled    
+      ! For neoclassical corrections.    
+      use arrays_neoclassical, only: neoclassical_is_enabled
       use gk_neo_mirror, only: init_neo_mirror
       use gk_neo_stream, only: init_neo_stream
       use gk_neo_drive, only: init_wstar1y, init_wstar1x
@@ -65,14 +64,7 @@ contains
 
       ! Only initialise once
       if (initialised_gyrokinetic_equation) return
-      initialised_gyrokinetic_equation = .true.
-      
-      ! Set up neoclassical corrections to the equilibrium Maxwellian. This is only
-      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation.
-      ! This should only be computed if sfincs or NEO is selected as the neoclassical option.
-      ! if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
-      !     call init_neoclassical_terms
-      ! end if      
+      initialised_gyrokinetic_equation = .true.      
  
       ! Calculate the term multiplying dg/dvpa in the mirror term and set up either the
       ! semi-Lagrange machinery or the tridiagonal matrix to be inverted if solving implicitly
@@ -93,21 +85,12 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wstar'
       call init_wstar
 
-
-
-      ! If NEO's neoclassical corrections are enabled, then ...
-      if (neo_is_enabled()) then
-          ! If apar is included, allocate and calculate the coeffecient multiplying apar in the mirror advance.          
+      ! If neoclassical corrections are enabled initialise the corrections to the GKE. 
+      if (neoclassical_is_enabled()) then          
           call init_neo_mirror
-          
-          ! Allocate and calculate the coeffecient multiplying dchi/dz in the HO parallel streaming advance.
           call init_neo_stream
-
-          ! Allocate and calculate the neoclassical counterpart to wstar and the poloidal gradient drive. 
           call init_wstar1y
           call init_wstar1x
-
-          ! Allocate and calculate the neoclassical grad-B and curvature drift corrections. 
           call init_neo_wdrifty
           call init_neo_wdriftx
       end if
@@ -165,9 +148,9 @@ contains
       use gk_parallel_nonlinearity, only: finish_parallel_nonlinearity
       use gk_radial_variation, only: finish_radial_variation 
       use dissipation_and_collisions, only: finish_dissipation
-      
-      ! For HO corrections. 
-      use neoclassical_terms_neo, only: neo_is_enabled, finish_neoclassical_terms_neo
+
+      ! For neoclassical corrections.    
+      use arrays_neoclassical, only: neoclassical_is_enabled
       use gk_neo_mirror, only: finish_neo_mirror
       use gk_neo_stream, only: finish_neo_stream
       use gk_neo_drive, only: finish_wstar1y, finish_wstar1x
@@ -187,9 +170,8 @@ contains
       call finish_flow_shear
       call finish_mirror
     
-      ! If neoclassical corrections are enabled, then finish associated corrections.
-      if (neo_is_enabled()) then
-          call finish_neoclassical_terms_neo
+      ! If neoclassical corrections are enabled deallocate the corrections to the GKE.
+      if (neoclassical_is_enabled()) then
           call finish_neo_mirror
           call finish_neo_stream
           call finish_wstar1y

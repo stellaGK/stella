@@ -30,7 +30,7 @@ module arrays_neoclassical
     public :: include_neoclassical_terms
 
     public :: allocate_neoclassical_arrays
-    public :: deallocate_neoclassical_arrays
+    public :: finish_neoclassical_arrays
     public :: initialised_neoclassical_arrays
 
     public :: neo_h, dneo_h_dpsi, dneo_h_dz          
@@ -120,7 +120,7 @@ contains
 ! ----------------------------------------------------------------- Deallocate all neoclassical arrays. --------------------------------------------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine deallocate_neoclassical_arrays
+    subroutine finish_neoclassical_arrays
         implicit none
 
         if (allocated(neo_h)) deallocate(neo_h)
@@ -143,7 +143,7 @@ contains
 
         initialised_neoclassical_arrays = .false.
 
-    end subroutine deallocate_neoclassical_arrays
+    end subroutine finish_neoclassical_arrays
 
 
 ! ================================================================================================================================================================================= !

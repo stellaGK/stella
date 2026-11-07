@@ -44,8 +44,8 @@ contains
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
         ! Neoclassical.
-        use neoclassical_terms_neo, only: neo_vpa_fac
-        use neoclassical_terms_neo, only: dneo_phi_dz
+        use arrays_neoclassical, only: neo_vpa_fac
+        use arrays_neoclassical, only: dneo_phi_dz
 
         use arrays, only: neo_mirror_apar
         use arrays, only: initialised_neo_mirror

@@ -554,7 +554,8 @@ contains
       use multibox, only: multibox_communicate
       use field_equations_radialvariation, only: get_radial_correction
 
-      use neoclassical_terms_neo, only: neo_is_enabled
+      ! For neoclassical corrections.
+      use arrays_neoclassical, only: neoclassical_is_enabled
       
       ! Parallelisation
       use mp, only: job
@@ -571,7 +572,7 @@ contains
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       
-      if (neo_is_enabled()) then
+      if (neoclassical_is_enabled()) then
           call advance_fields(gnew, phi, apar, bpar, dist='gneo')
       else 
           call advance_fields(gnew, phi, apar, bpar, dist='g')
@@ -904,6 +905,9 @@ contains
       use initialise_distribution_function, only: finish_distribution_function
       use gyrokinetic_equation_initialisation, only: finish_gyrokinetic_equation
 
+      use arrays_neoclassical, only: neoclassical_is_enabled, finish_neoclassical_arrays
+      
+
       implicit none
 
       ! Arguments
@@ -958,6 +962,11 @@ contains
       call finish_z_grid
       if (debug) write (*, *) 'stella::finish_stella::finish_file_utils'
       
+      ! If neoclassical corrections are included, deallocate them. 
+      if (neoclassical_is_enabled()) then 
+         call finish_neoclassical_arrays
+      end if 
+
       ! Print timings
       if (proc0 .and. print_extra_info_to_terminal) then
          

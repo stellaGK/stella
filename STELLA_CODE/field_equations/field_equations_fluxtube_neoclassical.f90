@@ -1166,7 +1166,7 @@ contains
       use geometry, only: dl_over_b, bmag
 
       ! NEO data. 
-      use neoclassical_terms_neo, only: neo_mu_fac_global
+      use arrays_neoclassical, only: neo_mu_fac_global
 
       implicit none
 
@@ -1298,8 +1298,8 @@ contains
         use arrays_gyro_averages, only: aj0v, aj1v
 
         ! Neoclassical data.
-        use neoclassical_terms_neo, only: neo_mu_fac_global, neo_vpa_fac_global
-        use neoclassical_terms_neo, only: dneo_h_dmu_global, dneo_h_dvpa_global
+        use arrays_neoclassical, only: neo_mu_fac_global, neo_vpa_fac_global
+        use arrays_neoclassical, only: dneo_h_dmu_global, dneo_h_dvpa_global
 
         implicit none
 

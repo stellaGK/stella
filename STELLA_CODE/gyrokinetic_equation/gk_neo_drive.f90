@@ -69,10 +69,10 @@ contains
         use geometry, only: geo_surf, gds23
 
         ! NEO data.
-        use neoclassical_terms_neo, only: dneo_h_dvpa
-        use neoclassical_terms_neo, only: neo_h, neo_phi
-        use neoclassical_terms_neo, only: dneo_h_dpsi, dneo_phi_dpsi   
-        use neoclassical_terms_neo, only: neo_zed_fac
+        use arrays_neoclassical, only: dneo_h_dvpa
+        use arrays_neoclassical, only: neo_h, neo_phi
+        use arrays_neoclassical, only: dneo_h_dpsi, dneo_phi_dpsi   
+        use arrays_neoclassical, only: neo_zed_fac
 
         ! Arrays. 
         use arrays, only: wstar1y, initialised_wstar1y
@@ -196,10 +196,10 @@ contains
         use geometry, only: geo_surf, gds24
    
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_vpa_fac
-        use neoclassical_terms_neo, only: dneo_h_dz, dneo_phi_dz
-        use neoclassical_terms_neo, only: neo_h, neo_phi
-        use neoclassical_terms_neo, only: neo_zed_fac
+        use arrays_neoclassical, only: neo_vpa_fac
+        use arrays_neoclassical, only: dneo_h_dz, dneo_phi_dz
+        use arrays_neoclassical, only: neo_h, neo_phi
+        use arrays_neoclassical, only: neo_zed_fac
 
         ! Arrays. 
         use arrays, only: wstar1x, initialised_wstar1x

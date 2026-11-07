@@ -51,7 +51,7 @@ contains
         use arrays, only: neo_stream, neo_stream_apar, initialised_neo_stream
 
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_vpa_fac_global
+        use arrays_neoclassical, only: neo_vpa_fac_global
 
         ! For switching neoclassical streaming on and off.
         use parameters_physics, only: neostreamknob

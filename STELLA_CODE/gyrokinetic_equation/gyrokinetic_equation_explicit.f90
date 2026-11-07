@@ -62,7 +62,7 @@ contains
       use parameters_numerical, only: explicit_algorithm_euler
 
       ! For HO simulations.
-      use neoclassical_terms_neo, only: neo_is_enabled
+      use arrays_neoclassical, only: neoclassical_is_enabled
 
       implicit none
 
@@ -81,7 +81,7 @@ contains
       
       ! If the fields are not already updated, then update them.
       if (include_apar) then
-          if (neo_is_enabled()) then
+          if (neoclassical_is_enabled()) then
               call advance_fields(g, phi, apar, bpar, dist='gneo')
           else
               call advance_fields(g, phi, apar, bpar, dist='g')
@@ -110,10 +110,10 @@ contains
       end select
 
       ! If the fields are not already updated, then update them based on the physics that is active.
-      if (neo_is_enabled() .and. include_apar) then
+      if (neoclassical_is_enabled() .and. include_apar) then
           ! If neoclassical is enabled AND we are including apar, the outgoing distribution is gbarneo. 
           call advance_fields(g, phi, apar, bpar, dist='gbarneo')
-      else if (.not. neo_is_enabled() .and. include_apar) then
+      else if (.not. neoclassical_is_enabled() .and. include_apar) then
           ! If neoclassical is NOT included, but apar is, the outgoing distribution is gbar.
           call advance_fields(g, phi, apar, bpar, dist='gbar')
       end if
@@ -181,11 +181,6 @@ contains
       use dissipation_and_collisions, only: include_collisions
       use dissipation_and_collisions, only: hyper_dissipation
       use gk_flow_shear, only: g_exb
-      ! For HO simulations. 
-      use parameters_physics, only: include_neoclassical_parallel_streaming      
-      use parameters_physics, only: include_neoclassical_mirror
-      use parameters_physics, only: include_neoclassical_xdrift, include_neoclassical_ydrift
-      use parameters_physics, only: include_neoclassical_xdrive, include_neoclassical_ydrive
 
       ! Krook source
       use parameters_multibox, only: include_multibox_krook
@@ -199,10 +194,6 @@ contains
       use parameters_numerical, only: drifts_implicit
       use dissipation_and_collisions, only: advance_collisions_explicit
       use dissipation_and_collisions, only: collisions_implicit
-      ! For HO simulations.
-      use parameters_numerical, only: neoclassical_stream_implicit
-      use parameters_numerical, only: neoclassical_mirror_implicit
-      use parameters_numerical, only: neoclassical_drifts_implicit
 
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -222,8 +213,13 @@ contains
       use field_equations, only: advance_fields
       use field_equations, only: fields_updated
 
-      ! For HO simulations. 
-      use neoclassical_terms_neo, only: neo_is_enabled
+      ! For neoclassical corrections. 
+      use parameters_numerical, only: neoclassical_mirror_implicit
+      use parameters_physics, only: include_neoclassical_parallel_streaming      
+      use parameters_physics, only: include_neoclassical_mirror
+      use parameters_physics, only: include_neoclassical_xdrift, include_neoclassical_ydrift
+      use parameters_physics, only: include_neoclassical_xdrive, include_neoclassical_ydrive
+      use arrays_neoclassical, only: neoclassical_is_enabled      
       use gk_neo_mirror, only: advance_neo_mirror_explicit
       use gk_neo_stream, only: advance_neo_stream_explicit
       use gk_neo_drive, only: advance_wstar1y_explicit, advance_wstar1x_explicit
@@ -269,20 +265,20 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_fields'
 
       ! Now advance the fields and ensure that the outgoing distribution is converted to g, since all terms on the RHS of the GKE evolve g. 
-      if (neo_is_enabled() .and. include_apar) then
+      if (neoclassical_is_enabled() .and. include_apar) then
           ! If advancing apar in the HO theory, then gbarneo is evolved in time rather than g.
           call advance_fields(pdf, phi, apar, bpar, dist='gbarneo')
           ! Now convert from gbarneo to gneo.
           call gbar_to_g(pdf, apar, 1.0)
 
-      else if (.not. neo_is_enabled() .and. include_apar) then
+      else if (.not. neoclassical_is_enabled() .and. include_apar) then
           ! If advancing apar in the leading order theory, then gbar is evolved in time rather than g.
           call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
           ! Convert from gbar to g.
           call gbar_to_g(pdf, apar, 1.0)
 
-      else if (neo_is_enabled() .and. .not. include_apar) then        
+      else if (neoclassical_is_enabled() .and. .not. include_apar) then        
           call advance_fields(pdf, phi, apar, bpar, dist='gneo') 
       else
          ! For ES leading order simulations, the outgoing distribution is already g.
@@ -361,7 +357,7 @@ contains
          end if
 
          ! Advance HO corrections explicitly. 
-         if (neo_is_enabled()) then
+         if (neoclassical_is_enabled()) then
              ! Advance the neoclassical mirror correction(s).
              ! This call will always advance the parallel-E mirror term if it is switched on.
              ! If the grad-B mirror term is being evolved explicitly it will also add the associated 

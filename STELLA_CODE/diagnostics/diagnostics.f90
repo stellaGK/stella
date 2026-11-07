@@ -171,8 +171,8 @@ contains
       use diagnostics_stresses, only: write_stresses_to_netcdf_file
       use write_diagnostics_to_netcdf, only: sync_nc
 
-      ! HO simulations.
-      use neoclassical_terms_neo, only: neo_is_enabled
+      ! For neoclassical corrections.
+      use arrays_neoclassical, only: neoclassical_is_enabled
 
       implicit none
 
@@ -210,7 +210,7 @@ contains
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false.
-      if (neo_is_enabled()) then 
+      if (neoclassical_is_enabled()) then 
           call advance_fields(gnew, phi, apar, bpar, dist='gneo')
       else
           call advance_fields(gnew, phi, apar, bpar, dist='g')

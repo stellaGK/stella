@@ -295,8 +295,8 @@ contains
       use grids_kxky, only: naky, nakx
       use field_equations_electromagnetic, only: advance_apar
    
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neo_is_enabled
+      ! For neoclassical simulations.
+      use arrays_neoclassical, only: neoclassical_is_enabled
       use field_equations_fluxtube_neoclassical, only: advance_apar_neo
 
       implicit none
@@ -329,7 +329,7 @@ contains
       end do
 
       ! Calculate the contribution to apar from mirror_response_g
-      if (neo_is_enabled()) then
+      if (neoclassical_is_enabled()) then
           dist = 'gneo'
           call advance_apar_neo(mirror_response_g, dist, response_apar_denom)
       else
@@ -655,8 +655,8 @@ contains
       use field_equations, only: fields_updated
       use field_equations_electromagnetic, only: advance_apar
       
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neo_is_enabled
+      ! For neoclassical corrections.
+      use arrays_neoclassical, only: neoclassical_is_enabled
       use field_equations_fluxtube_neoclassical, only: advance_apar_neo
 
       implicit none
@@ -687,7 +687,7 @@ contains
       tupwnd = (1.0 - time_upwind) * 0.5
       
       ! Incoming pdf is g = <f>
-      if (neo_is_enabled()) then
+      if (neoclassical_is_enabled()) then
           dist = 'gneo'
       else
           dist = 'g'
@@ -724,7 +724,7 @@ contains
             ! If fields are not updated, then update apar before converting from g to gbar
             ! in get_mirror_rhs_g_contribution below
             if (include_apar .and. .not. fields_updated) then
-                if (neo_is_enabled()) then
+                if (neoclassical_is_enabled()) then
                     call advance_apar_neo(gvmu, dist, apar)
                 else
                     call advance_apar(gvmu, dist, apar)         
@@ -748,7 +748,7 @@ contains
 
                   ! If including neoclassical corrections, we must account for the apar contribution
                   ! to the inhomogenous equation, before the invert mirror operator is applied to rhs.
-                  if (neo_is_enabled() .and. include_apar) then
+                  if (neoclassical_is_enabled() .and. include_apar) then
                       do iv = 1, nvpa
                           call get_mirror_rhs_neo_inh_apar_contribution(apar_ikxkyz, iv, imu, ikxkyz, rhs(iv))
                       end do
@@ -765,7 +765,7 @@ contains
             ! if advanceing apar, g0v contains the 'inhomogeneous' pdf, g_{inh}
             if (include_apar) then
                ! if advancing apar, need to calculate the contribution to apar from g0v, which is the solution to the 'inhomogenous' equation
-               if (neo_is_enabled()) then
+               if (neoclassical_is_enabled()) then
                    call advance_apar_neo(g0v, dist, apar)
                else
                    call advance_apar(g0v, dist, apar)
@@ -949,8 +949,8 @@ contains
       use parameters_physics, only: neomirrorknob
 
       ! Neoclassical data.
-      use neoclassical_terms_neo, only: neo_is_enabled 
-      use neoclassical_terms_neo, only: neo_vpa_fac_global
+      use arrays_neoclassical, only: neoclassical_is_enabled 
+      use arrays_neoclassical, only: neo_vpa_fac_global
 
       implicit none
 
@@ -982,7 +982,7 @@ contains
       rhs = vpa_scratch
 
       ! If including neoclassical corrections, the homogenous equation acquires a second apar term. 
-      if (neo_is_enabled()) then      
+      if (neoclassical_is_enabled()) then      
          do iv = 1, nvpa
             rhs(iv) = rhs(iv) + neomirrorknob * code_dt * spec(is)%z * mu(imu) &
             * b_dot_gradz(ia, iz) * dbdzed(ia, iz) * aj0v(imu, ikxkyz) * apar * time_upwind_plus &
@@ -1021,9 +1021,8 @@ contains
         use parameters_numerical, only: time_upwind_minus
         use parameters_physics, only: neomirrorknob
      
-
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_vpa_fac_global
+        use arrays_neoclassical, only: neo_vpa_fac_global
 
         implicit none
 

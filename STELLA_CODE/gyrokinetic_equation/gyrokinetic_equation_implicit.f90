@@ -70,8 +70,8 @@ contains
       use gk_mirror, only: advance_mirror_implicit
       use gk_flow_shear, only: advance_perp_flow_shear
 
-      ! For HO simulations.
-      use neoclassical_terms_neo, only: neo_is_enabled
+      ! For neoclassical corrections.
+      use arrays_neoclassical, only: neoclassical_is_enabled
 
       implicit none
 
@@ -107,11 +107,12 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            if (neo_is_enabled()) then
+            if (neoclassical_is_enabled()) then
                 call advance_fields(g, phi, apar, bpar, dist='gneo')
             else
                 call advance_fields(g, phi, apar, bpar, dist='g')
             end if 
+
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
@@ -124,7 +125,7 @@ contains
          ! If the distribution function has been updated due to the addition
          ! of any implicit terms of the gyrokinetic equation, we need to use the 
          ! quasi-neutrality condition to update the fields <phi>, <apar> and <bpar>.
-         if (neo_is_enabled()) then
+         if (neoclassical_is_enabled()) then
              call advance_fields(g, phi, apar, bpar, dist='gneo')
          else  
              call advance_fields(g, phi, apar, bpar, dist='g')
@@ -139,7 +140,7 @@ contains
          end if
 
          ! Update the fields if not already updated.
-         if (neo_is_enabled()) then
+         if (neoclassical_is_enabled()) then
              call advance_fields(g, phi, apar, bpar, dist='gneo')
          else
              call advance_fields(g, phi, apar, bpar, dist='g')
@@ -151,7 +152,7 @@ contains
          ! Get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         if (neo_is_enabled()) then
+         if (neoclassical_is_enabled()) then
              call advance_fields(g, phi, apar, bpar, dist='gneo')
          else
              call advance_fields(g, phi, apar, bpar, dist='g')
@@ -171,11 +172,12 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            if (neo_is_enabled()) then
+            if (neoclassical_is_enabled()) then
                 call advance_fields(g, phi, apar, bpar, dist='gneo')
             else
                 call advance_fields(g, phi, apar, bpar, dist='g')
             end if
+            
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if

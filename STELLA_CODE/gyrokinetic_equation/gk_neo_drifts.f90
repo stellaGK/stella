@@ -44,7 +44,7 @@ contains
         use geometry, only: bmag, B_times_kappa_dot_grady, B_times_gradB_dot_grady
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: neo_vpa_fac 
+        use arrays_neoclassical, only: neo_vpa_fac 
 
         ! Arrays. 
         use arrays, only: neo_wdrifty, initialised_neo_wdrifty
@@ -105,7 +105,7 @@ contains
         use geometry, only: bmag, B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
 
         ! Neoclassical. 
-        use neoclassical_terms_neo, only: neo_vpa_fac
+        use arrays_neoclassical, only: neo_vpa_fac
 
         ! Arrays. 
         use arrays, only: neo_wdriftx, initialised_neo_wdriftx

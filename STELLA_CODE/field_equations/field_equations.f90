@@ -156,9 +156,10 @@ contains
       use field_equations_fluxtube, only: init_field_equations_fluxtube
       use field_equations_fullfluxsurface, only: init_field_equations_fullfluxsurface
 
-      ! HO simulations. 
-      use neoclassical_terms_neo, only: neo_is_enabled
-      use field_equations_fluxtube_neoclassical, only: init_neo_electrostatic_fields, init_neo_electromagnetic_fields
+      ! For neoclassical corrections.
+      use arrays_neoclassical, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: init_neo_electrostatic_fields
+      use field_equations_fluxtube_neoclassical, only: init_neo_electromagnetic_fields
 
       implicit none
       
@@ -201,8 +202,8 @@ contains
             call init_field_equations_radialvariation
          end if
 
-         ! HO flux tube. 
-         if (neo_is_enabled()) then
+         ! If neoclassical corrections are on, allocate and fill corrections to the field equations. 
+         if (neoclassical_is_enabled()) then
              call init_neo_electrostatic_fields             
              call init_neo_electromagnetic_fields
          end if
@@ -264,9 +265,10 @@ contains
       use field_equations_radialvariation, only: finish_field_equations_radialvariation
       use field_equations_electromagnetic, only: finish_field_equations_electromagnetic
 
-      ! HO simulations. 
-      use neoclassical_terms_neo, only: neo_is_enabled
-      use field_equations_fluxtube_neoclassical, only: finish_neo_electrostatic_fields, finish_neo_electromagnetic_fields
+      ! For neoclassical corrections. 
+      use arrays_neoclassical, only: neoclassical_is_enabled
+      use field_equations_fluxtube_neoclassical, only: finish_neo_electrostatic_fields
+      use field_equations_fluxtube_neoclassical, only: finish_neo_electromagnetic_fields
       
       implicit none
       
@@ -283,8 +285,8 @@ contains
       if (full_flux_surface) call finish_field_equations_fullfluxsurface
       if (radial_variation) call finish_field_equations_radialvariation
 
-      ! HO flux tube. 
-      if (neo_is_enabled()) then
+      ! If neoclassical corrections are on, deallocate corrections to the field equations.  
+      if (neoclassical_is_enabled()) then
           call finish_neo_electrostatic_fields
           call finish_neo_electromagnetic_fields
       end if

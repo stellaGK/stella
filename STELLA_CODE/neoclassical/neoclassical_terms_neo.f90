@@ -39,20 +39,9 @@ module neoclassical_terms_neo
     public :: read_parameters_neoclassical
     ! True when NEO is the selected drift kinetic provider.
     public :: neo_is_enabled
+    
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
-
-    ! Re-exported from arrays_neoclassical so that modules still importing these from neoclassical_terms_neo keep working. 
-    ! Once every use site imports them from arrays_neoclassical directly, these lines can be removed.
-    public :: neo_h, dneo_h_dpsi, dneo_h_dz          ! H_1 and its derivatives in real space. 
-    public :: neo_phi, dneo_phi_dpsi, dneo_phi_dz    ! ϕ^1_0 and its derivatives in real space.    
-
-    public :: dneo_h_dmu, dneo_h_dvpa
-    public :: dneo_h_dmu_global, dneo_h_dvpa_global
- 
-    public :: neo_vpa_fac, neo_mu_fac                ! Velocity derivative factors appearing in the GKE, parallelised over velocity coordinates. 
-    public :: neo_vpa_fac_global, neo_mu_fac_global  ! Global versions of the velocity derivative factors that are not parallelised.                                                 
-    public :: neo_zed_fac
 
     public :: distribute_vmus_over_procs
 
