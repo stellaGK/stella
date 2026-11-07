@@ -400,7 +400,7 @@ contains
       use field_equations, only: init_field_equations
       
       ! NEO data.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, init_neoclassical_terms_neo
+      use neoclassical_terms_neo, only: neo_is_enabled, init_neoclassical_terms_neo
 
       implicit none
       
@@ -440,7 +440,7 @@ contains
       ! If NEO's neoclassical terms are enabled, we calculate the various pieces of information 
       ! needed for higher order corrections.
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
-      if (neoclassical_is_enabled()) then
+      if (neo_is_enabled()) then
           call init_neoclassical_terms_neo
       end if
       
@@ -543,7 +543,7 @@ contains
       use field_equations_radialvariation, only: get_radial_correction
 
       ! HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       
       ! Parallelisation
       use mp, only: job
@@ -560,7 +560,7 @@ contains
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       
-      if (neoclassical_is_enabled()) then
+      if (neo_is_enabled()) then
           call advance_fields(gnew, phi, apar, bpar, dist='gneo')
       else 
           call advance_fields(gnew, phi, apar, bpar, dist='g')

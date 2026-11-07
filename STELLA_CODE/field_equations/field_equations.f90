@@ -157,7 +157,7 @@ contains
       use field_equations_fullfluxsurface, only: init_field_equations_fullfluxsurface
 
       ! HO simulations. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use field_equations_fluxtube_neoclassical, only: init_neo_electrostatic_fields, init_neo_electromagnetic_fields
 
       implicit none
@@ -202,7 +202,7 @@ contains
          end if
 
          ! HO flux tube. 
-         if (neoclassical_is_enabled()) then
+         if (neo_is_enabled()) then
              call init_neo_electrostatic_fields             
              call init_neo_electromagnetic_fields
          end if
@@ -265,7 +265,7 @@ contains
       use field_equations_electromagnetic, only: finish_field_equations_electromagnetic
 
       ! HO simulations. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use field_equations_fluxtube_neoclassical, only: finish_neo_electrostatic_fields, finish_neo_electromagnetic_fields
       
       implicit none
@@ -284,7 +284,7 @@ contains
       if (radial_variation) call finish_field_equations_radialvariation
 
       ! HO flux tube. 
-      if (neoclassical_is_enabled()) then
+      if (neo_is_enabled()) then
           call finish_neo_electrostatic_fields
           call finish_neo_electromagnetic_fields
       end if

@@ -361,7 +361,7 @@ contains
       use geometry, only: bmag
 
       ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use neoclassical_terms_neo, only: neo_mu_fac_global
 
       implicit none
@@ -400,7 +400,7 @@ contains
          ! Gyroaverage.
          call gyro_average(field, ikxkyz, gyro_averaged_field)
 
-         if (neoclassical_is_enabled()) then 
+         if (neo_is_enabled()) then 
              gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) )
          end if 
 
@@ -411,7 +411,7 @@ contains
 
       ! Add electromagnetic terms.
       ! First the apar contribution.
-      if (include_apar .and. neoclassical_is_enabled()) then
+      if (include_apar .and. neo_is_enabled()) then
           ! This factor determines whether we add or substract the term.
           facapar = facphi
 
@@ -460,7 +460,7 @@ contains
               ! Gyroaverage by multiplying with J_1/b_s
               call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
 
-              if (neoclassical_is_enabled()) then
+              if (neo_is_enabled()) then
                   gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) )
               end if
 
@@ -532,7 +532,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
 
       ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use neoclassical_terms_neo, only: neo_mu_fac
 
       implicit none
@@ -591,7 +591,7 @@ contains
             ! Finally add <...>_theta, which is equivalent to adding J_0
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
 
-            if (neoclassical_is_enabled()) then
+            if (neo_is_enabled()) then
                 gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz) )
             end if
 
@@ -601,7 +601,7 @@ contains
       end do
 
       ! Add electromagnetic term: apar. 
-      if (include_apar .and. neoclassical_is_enabled()) then
+      if (include_apar .and. neo_is_enabled()) then
           ! This factor determines whether we add or substract the electromagnetic term
           facapar = facphi
 
@@ -641,7 +641,7 @@ contains
                ! Gyroaverage by multiplying with J_1/b_s
                call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
 
-               if (neoclassical_is_enabled()) then
+               if (neo_is_enabled()) then
                    gyro_averaged_field = gyro_averaged_field * ( 1.0 - 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz) )
                end if
 
@@ -700,7 +700,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
 
       ! For HO simulations. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use neoclassical_terms_neo, only: neo_mu_fac_global, neo_vpa_fac_global
 
       ! Geometry. 
@@ -747,7 +747,7 @@ contains
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
          ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
-         if (neoclassical_is_enabled()) then
+         if (neo_is_enabled()) then
              ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
              g(:, :, ikxkyz) = g(:, :, ikxkyz) + ( gyro_averaged_field - field ) * ( 1.0 - 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) ) 
          else
@@ -755,7 +755,7 @@ contains
          end if
 
          ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution.  
-         if (neoclassical_is_enabled() .and. include_apar) then
+         if (neo_is_enabled() .and. include_apar) then
              facapar = facphi
  
              field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm &
@@ -769,7 +769,7 @@ contains
              - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac_global(ia, iz, :, :, is) / bmag(ia, iz) 
          end if
 
-         if (neoclassical_is_enabled() .and. include_bpar) then
+         if (neo_is_enabled() .and. include_bpar) then
              facbpar = facphi
           
              ! Calculate <gyro_averaged_field> = 4 * mu * <bpar>_theta * F_s
@@ -820,7 +820,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
 
       ! For HO simulations. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use neoclassical_terms_neo, only: neo_mu_fac, neo_vpa_fac
       use neoclassical_terms_neo, only: dneo_h_dvpa, dneo_h_dmu
 
@@ -890,7 +890,7 @@ contains
                end if
 
                ! If running electrostatic HO simulation, the phi field factor picks up a neoclassical correction.
-               if (neoclassical_is_enabled()) then
+               if (neo_is_enabled()) then
                    ! Add this to  <f>.
                    g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) +  ( gyro_averaged_field - field ) * (1.0 - 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz) ) 
                else
@@ -899,7 +899,7 @@ contains
 
 
                ! If running HO simulation with apar enabled, the field factor also picks up an apar contribution. 
-               if (neoclassical_is_enabled() .and. include_apar) then
+               if (neo_is_enabled() .and. include_apar) then
                    facapar = facphi
 
                    field = 2.0 * facapar * apar(:, :, iz, it) * spec(is)%zt * vpa(iv) * spec(is)%stm &
@@ -913,7 +913,7 @@ contains
                    - ( field - gyro_averaged_field ) * 0.5 * neo_mu_fac(ia, iz, ivmu) / bmag(ia, iz)
                end if
 
-               if (neoclassical_is_enabled() .and. include_bpar) then
+               if (neo_is_enabled() .and. include_bpar) then
                    facbpar = facphi
 
                    field = facbpar * 4.0 * bpar(:, :, iz, it) * mu(imu) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) 

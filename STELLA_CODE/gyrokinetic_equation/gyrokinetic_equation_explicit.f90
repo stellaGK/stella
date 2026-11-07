@@ -62,7 +62,7 @@ contains
       use parameters_numerical, only: explicit_algorithm_euler
 
       ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
 
       implicit none
 
@@ -80,8 +80,8 @@ contains
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
       
       ! If the fields are not already updated, then update them.
-      if (include_apar .or. neoclassical_is_enabled()) then
-          if (neoclassical_is_enabled()) then
+      if (include_apar) then
+          if (neo_is_enabled()) then
               call advance_fields(g, phi, apar, bpar, dist='gneo')
           else
               call advance_fields(g, phi, apar, bpar, dist='g')
@@ -110,15 +110,10 @@ contains
       end select
 
       ! If the fields are not already updated, then update them based on the physics that is active.
-      if (neoclassical_is_enabled() .and. include_apar) then
+      if (neo_is_enabled() .and. include_apar) then
           ! If neoclassical is enabled AND we are including apar, the outgoing distribution is gbarneo. 
           call advance_fields(g, phi, apar, bpar, dist='gbarneo')
-
-      else if (neoclassical_is_enabled() .and. .not. include_apar) then
-          ! If neoclassical is enabled but we are NOT including apar, the outgoing distribution is gneo.
-          call advance_fields(g, phi, apar, bpar, dist='gneo')
-
-      else if (.not. neoclassical_is_enabled() .and. include_apar) then
+      else if (.not. neo_is_enabled() .and. include_apar) then
           ! If neoclassical is NOT included, but apar is, the outgoing distribution is gbar.
           call advance_fields(g, phi, apar, bpar, dist='gbar')
       end if
@@ -228,7 +223,7 @@ contains
       use field_equations, only: fields_updated
 
       ! For HO simulations. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use gk_neo_mirror, only: advance_neo_mirror_explicit
       use gk_neo_stream, only: advance_neo_stream_explicit
       use gk_neo_drive, only: advance_wstar1y_explicit, advance_wstar1x_explicit
@@ -274,20 +269,20 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_fields'
 
       ! Now advance the fields and ensure that the outgoing distribution is converted to g, since all terms on the RHS of the GKE evolve g. 
-      if (neoclassical_is_enabled() .and. include_apar) then
+      if (neo_is_enabled() .and. include_apar) then
           ! If advancing apar in the HO theory, then gbarneo is evolved in time rather than g.
           call advance_fields(pdf, phi, apar, bpar, dist='gbarneo')
           ! Now convert from gbarneo to gneo.
           call gbar_to_g(pdf, apar, 1.0)
 
-      else if (.not. neoclassical_is_enabled() .and. include_apar) then
+      else if (.not. neo_is_enabled() .and. include_apar) then
           ! If advancing apar in the leading order theory, then gbar is evolved in time rather than g.
           call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
           ! Convert from gbar to g.
           call gbar_to_g(pdf, apar, 1.0)
 
-      else if (neoclassical_is_enabled() .and. .not. include_apar) then        
+      else if (neo_is_enabled() .and. .not. include_apar) then        
           call advance_fields(pdf, phi, apar, bpar, dist='gneo') 
       else
          ! For ES leading order simulations, the outgoing distribution is already g.
@@ -366,8 +361,8 @@ contains
          end if
 
          ! Advance HO corrections explicitly. 
-         if (neoclassical_is_enabled()) then
-             ! If apar is switched on, we must advance the neoclassical mirror correction(s).
+         if (neo_is_enabled()) then
+             ! Advance the neoclassical mirror correction(s).
              ! This call will always advance the parallel-E mirror term if it is switched on.
              ! If the grad-B mirror term is being evolved explicitly it will also add the associated 
              ! correction to the GKE. 

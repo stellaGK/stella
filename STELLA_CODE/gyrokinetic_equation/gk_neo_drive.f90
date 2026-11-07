@@ -33,21 +33,16 @@ module gk_neo_drive
     implicit none
 
     ! Make routines available to other modules. 
-    public :: initialised_wstar1y
     public :: init_wstar1y
     public :: finish_wstar1y
     public :: advance_wstar1y_explicit
 
-    public :: initialised_wstar1x
     public :: init_wstar1x
     public :: finish_wstar1x 
     public :: advance_wstar1x_explicit 
 
     private
    
-    ! Only initialise once.
-    logical :: initialised_wstar1y = .false.
-    logical :: initialised_wstar1x = .false.
 
 contains
 
@@ -420,7 +415,7 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_wstar1y
-        use arrays, only: wstar1y
+        use arrays, only: wstar1y, initialised_wstar1y 
 
         implicit none
 
@@ -435,7 +430,7 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine finish_wstar1x   
-        use arrays, only: wstar1x       
+        use arrays, only: wstar1x, initialised_wstar1x       
 
         implicit none
 

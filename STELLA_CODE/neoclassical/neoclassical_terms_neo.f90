@@ -27,7 +27,8 @@ module neoclassical_terms_neo
     implicit none
 
     public :: read_parameters_neoclassical
-    public :: neoclassical_is_enabled
+    ! True when NEO is the selected drift kinetic provider.
+    public :: neo_is_enabled
     public :: init_neoclassical_terms_neo
     public :: finish_neoclassical_terms_neo
 
@@ -118,9 +119,9 @@ contains
 ! ---------------------------------------------------- Logical function telling stella when to include NEO corrections and routines. ---------------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    logical function neoclassical_is_enabled()
-        neoclassical_is_enabled = include_neoclassical_terms .and. neo_option_switch == 2
-    end function neoclassical_is_enabled
+    logical function neo_is_enabled()
+        neo_is_enabled = include_neoclassical_terms .and. neo_option_switch == 2
+    end function neo_is_enabled
 
 
 ! ================================================================================================================================================================================= !

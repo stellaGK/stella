@@ -13,15 +13,12 @@ module gk_neo_stream
    implicit none
 
    ! Make routines available to other modules. 
-   public :: initialised_neo_stream
    public :: init_neo_stream
    public :: finish_neo_stream
    public :: advance_neo_stream_explicit
 
    private
 
-   ! Only initialise once.
-   logical :: initialised_neo_stream = .false.
    integer, dimension(:), allocatable :: neo_stream_sign
    integer, dimension(:), allocatable :: neo_stream_apar_sign
 

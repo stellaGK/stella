@@ -12,21 +12,15 @@ module gk_neo_drifts
    implicit none
 
    ! Make routines available to other modules. 
-   public :: initialised_neo_wdrifty
    public :: init_neo_wdrifty
    public :: finish_neo_wdrifty
    public :: advance_neo_wdrifty_explicit
    
-   public :: initialised_neo_wdriftx
    public :: init_neo_wdriftx
    public :: finish_neo_wdriftx
    public :: advance_neo_wdriftx_explicit
 
    private
-
-   ! Only initialise once.
-   logical :: initialised_neo_wdrifty = .false.
-   logical :: initialised_neo_wdriftx = .false.
 
 contains
 

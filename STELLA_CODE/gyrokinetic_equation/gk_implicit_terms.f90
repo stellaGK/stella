@@ -79,7 +79,7 @@ contains
       use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
       
       ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
 
       implicit none
 
@@ -136,7 +136,7 @@ contains
 
       ! dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       ! in parallel streaming or if the guiding center distribution (g = <f>) is evolved
-      if (neoclassical_is_enabled()) then 
+      if (neo_is_enabled()) then 
           dist_choice = 'gneo'
       else
           dist_choice = 'g'
@@ -587,7 +587,7 @@ contains
          use parameters_numerical, only: driftkinetic_implicit
 
          ! Higher order corrections.
-         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use neoclassical_terms_neo, only: neo_is_enabled
          use neoclassical_terms_neo, only: neo_vpa_fac
 
          ! For switching neoclassical streaming on and off.
@@ -624,7 +624,7 @@ contains
          z_scratch = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
  
          ! For including NEO's higher order corrections
-         if (neoclassical_is_enabled()) then
+         if (neo_is_enabled()) then
              do iz = -nzgrid, nzgrid
                  z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob * neo_vpa_fac(ia, iz, ivmu) / vpa(iv) )
              end do
@@ -674,7 +674,7 @@ contains
          use gk_parallel_streaming, only: center_zed
          
          ! For HO corrections. 
-         use neoclassical_terms_neo, only: neoclassical_is_enabled 
+         use neoclassical_terms_neo, only: neo_is_enabled 
 
          integer :: izext, iz, ikx
 
@@ -689,7 +689,7 @@ contains
 
             ! If neoclassical corrections are enabled, add the associated drifts.
             ! Otherwise only add conventional pieces. 
-            if (neoclassical_is_enabled()) then
+            if (neo_is_enabled()) then
                scratch(izext) = zi * scratch(izext) * ( akx(ikx) * ( wdriftx_phi(ia, iz, ivmu) &
                + neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) &
                + aky(iky) * ( wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu) &
@@ -794,7 +794,7 @@ contains
          use gk_parallel_streaming, only: b_dot_gradz_centeredinz, stream_sign
 
          ! Higher order corrections.
-         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use neoclassical_terms_neo, only: neo_is_enabled
          use neoclassical_terms_neo, only: neo_vpa_fac
 
          ! For switching neoclassical streaming on and off.
@@ -827,7 +827,7 @@ contains
          z_scratch = vpa(iv) * 4. * mu(imu) * maxwell_vpa(iv, is) * maxwell_fac(is)
 
          ! For including NEO's higher order corrections
-         if (neoclassical_is_enabled()) then
+         if (neo_is_enabled()) then
              do iz = -nzgrid, nzgrid
                  z_scratch(iz) = z_scratch(iz) * ( 1.0 - 0.5 * neostreamknob &
                  * neo_vpa_fac(ia, iz, ivmu) / vpa(iv) )
@@ -880,7 +880,7 @@ contains
          use gk_parallel_streaming, only: center_zed
          
          ! For HO corrections. 
-         use neoclassical_terms_neo, only: neoclassical_is_enabled 
+         use neoclassical_terms_neo, only: neo_is_enabled 
 
          integer :: izext, iz, ikx
          real :: constant_factor 
@@ -898,7 +898,7 @@ contains
 
             ! If neoclassical corrections are enabled, add the associated drifts.
             ! Otherwise only add conventional pieces. 
-            if (neoclassical_is_enabled()) then
+            if (neo_is_enabled()) then
                scratch(izext) = zi * scratch(izext) * ( akx(ikx) * ( wdriftx_bpar(ia, iz, ivmu) &
                + constant_factor * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) ) & 
                + aky(iky) * ( wdrifty_bpar(ia, iz, ivmu) + constant_factor * wstar(ia, iz, ivmu) &
@@ -934,7 +934,7 @@ contains
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       ! Higher order corrections. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
 
       implicit none
 
@@ -972,7 +972,7 @@ contains
 
       call add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
 
-      if (neoclassical_is_enabled()) then 
+      if (neo_is_enabled()) then 
          call add_streaming_contribution_apar(scratch, iky, ia, ivmu, iv, imu, is, nz_ext, iz_from_izext, rhs)
       end if
 
@@ -1151,7 +1151,7 @@ contains
       use gk_parallel_streaming, only: center_zed
          
       ! For HO corrections. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled 
+      use neoclassical_terms_neo, only: neo_is_enabled 
 
       implicit none
 
@@ -1175,7 +1175,7 @@ contains
 
          ! If neoclassical corrections are enabled, add the associated drifts.
          ! Otherwise only add conventional pieces. 
-         if (neoclassical_is_enabled()) then
+         if (neo_is_enabled()) then
             scratch(izext) = zi * scratch(izext) * ( aky(iky) * constant_factor * ( wstar(ia, iz, ivmu) &
             + neo_wdrifty(ia, iz, ivmu) + wstar1y(ia, iz, ivmu) ) + akx(ikx) * constant_factor &
             * ( neo_wdriftx(ia, iz, ivmu) + wstar1x(ia, iz, ivmu) ) )

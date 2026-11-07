@@ -59,7 +59,6 @@ module gk_drive
 
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
-   use neoclassical_terms_neo, only: neoclassical_is_enabled
 
    implicit none
    

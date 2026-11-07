@@ -54,7 +54,7 @@ contains
       ! use neoclassical_terms, only: init_neoclassical_terms
       
       ! For HO corrections. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled    
+      use neoclassical_terms_neo, only: neo_is_enabled    
       use gk_neo_mirror, only: init_neo_mirror
       use gk_neo_stream, only: init_neo_stream
       use gk_neo_drive, only: init_wstar1y, init_wstar1x
@@ -95,7 +95,7 @@ contains
       call init_wstar
 
       ! If NEO's neoclassical corrections are enabled, then ...
-      if (neoclassical_is_enabled()) then
+      if (neo_is_enabled()) then
           ! If apar is included, allocate and calculate the coeffecient multiplying apar in the mirror advance.          
           call init_neo_mirror
           
@@ -166,7 +166,7 @@ contains
       use dissipation_and_collisions, only: finish_dissipation
       
       ! For HO corrections. 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled, finish_neoclassical_terms_neo
+      use neoclassical_terms_neo, only: neo_is_enabled, finish_neoclassical_terms_neo
       use gk_neo_mirror, only: finish_neo_mirror
       use gk_neo_stream, only: finish_neo_stream
       use gk_neo_drive, only: finish_wstar1y, finish_wstar1x
@@ -186,8 +186,8 @@ contains
       call finish_flow_shear
       call finish_mirror
     
-      ! If NEO's neoclassical corrections are enabled, then ...
-      if (neoclassical_is_enabled()) then
+      ! If neoclassical corrections are enabled, then finish associated corrections.
+      if (neo_is_enabled()) then
           call finish_neoclassical_terms_neo
           call finish_neo_mirror
           call finish_neo_stream

@@ -1078,7 +1078,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
 
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
 
       implicit none
 
@@ -1114,7 +1114,7 @@ contains
       ! the extended zed domain.
       ! ------------------------------------------------------------------------
       
-      if (neoclassical_is_enabled()) then 
+      if (neo_is_enabled()) then 
           if (include_apar .and. include_bpar) then
               call calculate_phi_apar_and_bpar_for_response_matrix_neo
           else if (include_apar .and. .not. include_bpar) then
@@ -1462,7 +1462,7 @@ contains
          use grids_species, only: adiabatic_option_fieldlineavg
 
          ! For HO corrections. 
-         use neoclassical_terms_neo, only: neoclassical_is_enabled
+         use neoclassical_terms_neo, only: neo_is_enabled
          use arrays, only: denominator_fields_neo_gneo  
 
          implicit none
@@ -1520,7 +1520,7 @@ contains
 
             ! For the given value of ky, kx, store the appropriate denominator from 
             ! the Quasineutrality equation for this this segment. 
-            if (neoclassical_is_enabled()) then 
+            if (neo_is_enabled()) then 
                 denominator_seg = denominator_fields_neo_gneo(iky, ikx, :)
             else 
                 denominator_seg = denominator_fields(iky, ikx, :)

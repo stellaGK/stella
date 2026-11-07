@@ -94,7 +94,7 @@ contains
       use grids_z, only: nzgrid
 
       ! For HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
       use field_equations_fluxtube_neoclassical, only: advance_fields_fluxtube_using_neo_field_equations
 
       implicit none
@@ -112,7 +112,7 @@ contains
 
          ! This will call advance_fields_fluxtube_using_field_equations_vmulo
          if (debug) write (*, *) 'field_equations_fluxtube::advance_fields_fluxtube::vmulo'
-         if (neoclassical_is_enabled()) then
+         if (neo_is_enabled()) then
              call advance_fields_fluxtube_using_neo_field_equations(g, phi, apar, bpar, dist, skip_fsa)
          else
              call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist, skip_fsa)
@@ -132,7 +132,7 @@ contains
          ! Given gvmu with vpa and mu local, calculate the corresponding fields
          ! This will call advance_fields_fluxtube_using_field_equations_kxkyzlo
          if (debug) write (*, *) 'field_equations_fluxtube::advance_fields_fluxtube::kxkyzlo'
-         if (neoclassical_is_enabled()) then
+         if (neo_is_enabled()) then
              call advance_fields_fluxtube_using_neo_field_equations(gvmu, phi, apar, bpar, dist, skip_fsa)
          else
              call advance_fields_fluxtube_using_field_equations(gvmu, phi, apar, bpar, dist, skip_fsa)

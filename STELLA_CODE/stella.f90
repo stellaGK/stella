@@ -201,7 +201,7 @@ contains
       use parameters_numerical, only: fully_implicit
     
       ! HO simulations.
-      use neoclassical_terms_neo, only: neoclassical_is_enabled
+      use neoclassical_terms_neo, only: neo_is_enabled
 
       implicit none
 
@@ -241,7 +241,7 @@ contains
 
          ! Ensure fields are consistent with gnew.
          ! Use the quasi-neutrality equation to advance the fields in time
-         if (neoclassical_is_enabled()) then 
+         if (neo_is_enabled()) then 
              call advance_fields(gnew, phi, apar, bpar, dist='gneo')
          else
              call advance_fields(gnew, phi, apar, bpar, dist='g')
