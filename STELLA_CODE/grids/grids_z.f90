@@ -27,6 +27,7 @@ module grids_z
    use namelist_z_grid, only: boundary_option_self_periodic
    use namelist_z_grid, only: boundary_option_linked
    use namelist_z_grid, only: boundary_option_linked_stellarator 
+   use namelist_z_grid, only: boundary_option_non_twisting
 
    implicit none
    
@@ -37,6 +38,7 @@ module grids_z
    public :: boundary_option_self_periodic
    public :: boundary_option_linked
    public :: boundary_option_linked_stellarator
+   public :: boundary_option_non_twisting
    
    ! Make the routines available to other modules
    public :: read_parameters_z_grid

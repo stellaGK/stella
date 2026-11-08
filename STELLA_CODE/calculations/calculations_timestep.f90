@@ -34,7 +34,7 @@ contains
       use grids_kxky, only: nx
       use grids_z, only: delzed
       use grids_velocity, only: dvpa
-      use grids_kxky, only: akx, aky, rho
+      use grids_kxky, only: akx, aky, rho, kx_shift
       
       ! CFL parameters
       use grids_time, only: code_dt, write_dt, cfl_dt_linear
@@ -91,7 +91,8 @@ contains
          end if
          
          ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
-         cfl_dt_wdriftx = abs(code_dt) / max(maxval(abs(akx)) * wdriftx_max, zero)
+         ! For the non-twisting flux tube the ballooning kx is akx + kx_shift (kx_shift = 0 otherwise)
+         cfl_dt_wdriftx = abs(code_dt) / max((maxval(abs(akx)) + maxval(abs(kx_shift))) * wdriftx_max, zero)
          cfl_dt_linear = cfl_dt_wdriftx
          
       end if

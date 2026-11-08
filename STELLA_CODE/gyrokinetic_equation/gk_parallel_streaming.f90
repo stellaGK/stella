@@ -645,6 +645,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: zed_operator_along_chains, zop_upwind3, zop_centered2, zop_fd_cell_centers, zop_cell_centers
+      use grids_kxky, only: non_twisting
       use grids_kxky, only: naky
 
       implicit none
@@ -659,6 +661,12 @@ contains
       !-------------------------------------------------------------------------
 
       iv = iv_idx(vmu_lo, ivmu)
+
+      ! Non-twisting flux tube: the chains change kx at any z point
+      if (non_twisting) then
+         call zed_operator_along_chains(g, dgdz, zop_upwind3, stream_sign(iv), 0.0)
+         return
+      end if
       do iky = 1, naky
          do it = 1, ntubes
             do ie = 1, neigen(iky)
@@ -692,6 +700,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: zed_operator_along_chains, zop_upwind3, zop_centered2, zop_fd_cell_centers, zop_cell_centers
+      use grids_kxky, only: non_twisting
       use grids_kxky, only: naky
 
       implicit none
@@ -706,6 +716,12 @@ contains
       !-------------------------------------------------------------------------
 
       iv = iv_idx(vmu_lo, ivmu)
+
+      ! Non-twisting flux tube: the chains change kx at any z point
+      if (non_twisting) then
+         call zed_operator_along_chains(g, dgdz, zop_centered2, stream_sign(iv), 0.0)
+         return
+      end if
       do iky = 1, naky
          do it = 1, ntubes
             do ie = 1, neigen(iky)
@@ -736,6 +752,8 @@ contains
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: zed_operator_along_chains, zop_upwind3, zop_centered2, zop_fd_cell_centers, zop_cell_centers
+      use grids_kxky, only: non_twisting
 
       implicit none
 
@@ -747,6 +765,12 @@ contains
       complex, dimension(2) :: gleft, gright
 
       !-------------------------------------------------------------------------
+
+      ! Non-twisting flux tube: the chains change kx at any z point
+      if (non_twisting) then
+         call zed_operator_along_chains(g, dgdz, zop_fd_cell_centers, stream_sign(iv), 0.0)
+         return
+      end if
 
       do it = 1, ntubes
          do iky = 1, naky
@@ -800,6 +824,8 @@ contains
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: zed_operator_along_chains, zop_upwind3, zop_centered2, zop_fd_cell_centers, zop_cell_centers
+      use grids_kxky, only: non_twisting
       use parameters_numerical, only: zed_upwind
 
       implicit none
@@ -810,10 +836,21 @@ contains
       integer :: iky, ie, iseg, it
       complex, dimension(2) :: gleft, gright
       complex, dimension(:, :, :), allocatable :: gc
+      complex, dimension(:, :, :, :), allocatable :: gcentred
 
       !-------------------------------------------------------------------------
 
       allocate (gc(nakx, -nzgrid:nzgrid, ntubes))
+
+      ! Non-twisting flux tube: the chains change kx at any z point
+      if (non_twisting) then
+         deallocate (gc)
+         allocate (gcentred(size(g, 1), nakx, -nzgrid:nzgrid, ntubes))
+         call zed_operator_along_chains(g, gcentred, zop_cell_centers, stream_sign(iv), zed_upwind)
+         g = gcentred
+         deallocate (gcentred)
+         return
+      end if
 
       do iky = 1, naky
          do it = 1, ntubes

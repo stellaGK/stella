@@ -21,6 +21,7 @@
 !    - Periodic boundary conditions: {self-periodic, periodic}
 !    - Conventional twist-and-shift boundary conditions: {linked}
 !    - Stellarator-symmetric twist-and-shift boundary conditions: {stellarator}
+!    - Non-twisting flux tube (Ball and Brunner 2021): {non-twisting}
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
@@ -42,6 +43,7 @@ module namelist_z_grid
    ! Parameters need to be public
    public :: boundary_option_zero, boundary_option_self_periodic
    public :: boundary_option_linked, boundary_option_linked_stellarator
+   public :: boundary_option_non_twisting
 
    private
 
@@ -50,6 +52,7 @@ module namelist_z_grid
    integer, parameter :: boundary_option_self_periodic = 2
    integer, parameter :: boundary_option_linked = 3
    integer, parameter :: boundary_option_linked_stellarator = 4
+   integer, parameter :: boundary_option_non_twisting = 5
    
    ! These variables are used in every single subroutine, so make them global
    integer :: in_file
@@ -230,14 +233,16 @@ contains
          implicit none 
          
          ! Link text options for <boundary_option> to an integer value
-         type(text_option), dimension(7), parameter :: boundaryopts = &
+         type(text_option), dimension(9), parameter :: boundaryopts = &
             (/text_option('default', boundary_option_zero), &
               text_option('zero', boundary_option_zero), &
               text_option('unconnected', boundary_option_zero), &
               text_option('self-periodic', boundary_option_self_periodic), &
               text_option('periodic', boundary_option_self_periodic), &
               text_option('linked', boundary_option_linked), &
-              text_option('stellarator', boundary_option_linked_stellarator)/)
+              text_option('stellarator', boundary_option_linked_stellarator), &
+              text_option('non-twisting', boundary_option_non_twisting), &
+              text_option('nontwisting', boundary_option_non_twisting)/)
 
          ! Variables in the <z_boundary_condition> namelist
          namelist /z_boundary_condition/ boundary_option, shat_zero, &

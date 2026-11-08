@@ -176,6 +176,7 @@ contains
       use grids_z, only: nzgrid, zed, delzed, shat_zero, grad_x_grad_y_zero
       use grids_z, only: boundary_option_switch, boundary_option_self_periodic
       use grids_z, only: boundary_option_linked, boundary_option_linked_stellarator
+      use grids_z, only: boundary_option_non_twisting
 
       ! VMEC equilibria
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
@@ -325,6 +326,17 @@ contains
             write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
             boundary_option_switch = boundary_option_self_periodic 
          end if
+
+      ! Non-twisting flux tube (Ball and Brunner 2021): the local radial wavenumber is
+      ! Kx = kx + ky (∇x . ∇y)/|∇x|^2, so the twist that the parallel boundary condition has to
+      ! account for is the change of (∇x . ∇y)/|∇x|^2 along the whole flux tube, for any geometry:
+      !     dkx/dky * jtwist = -[(∇x . ∇y)/|∇x|^2](z_max) + [(∇x . ∇y)/|∇x|^2](z_min)
+      ! For stellarator-symmetric flux tubes this is the factor of the stellarator-symmetric
+      ! twist-and-shift BC, and for axisymmetric ones 2*pi*shat per poloidal turn. If it is zero
+      ! (no global shear), every chain closes on itself after one pass and x0 sets dkx.
+      case (boundary_option_non_twisting)
+         twist_and_shift_geo_fac = -(gradx_dot_grady(1, nzgrid) / gradx_dot_gradx(1, nzgrid) &
+            - gradx_dot_grady(1, -nzgrid) / gradx_dot_gradx(1, -nzgrid))
 
       end select
       
