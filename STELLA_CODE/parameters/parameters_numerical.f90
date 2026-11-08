@@ -42,7 +42,7 @@ module parameters_numerical
 
    ! Numerical algorithms
    public :: explicit_algorithm_switch
-   public :: flip_flop
+   public :: flip_flop, strang_splitting
    public :: stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit
    public :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
    public :: drifts_implicit
@@ -78,7 +78,7 @@ module parameters_numerical
 
    ! Numerical algorithms
    integer :: explicit_algorithm_switch
-   logical :: flip_flop
+   logical :: flip_flop, strang_splitting
    logical :: stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit
    logical :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
    logical :: drifts_implicit, fully_implicit, fully_explicit
@@ -130,7 +130,7 @@ contains
       if (proc0) call read_namelist_time_trace_options(nstep, tend, autostop, avail_cpu_time)
       if (proc0) call read_namelist_time_step(delt, delt_option_switch, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower)
-      if (proc0) call read_namelist_numerical_algorithms(explicit_algorithm_switch, flip_flop, &
+      if (proc0) call read_namelist_numerical_algorithms(explicit_algorithm_switch, flip_flop, strang_splitting, &
          stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
          mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
          fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
@@ -290,6 +290,11 @@ contains
             fully_implicit = .false.
             fully_explicit = .true.
           end if
+
+         ! Strang splitting advances E(dt/2) I(dt) E(dt/2) every time step, which replaces the
+         ! alternating order of <flip_flop>; it is only needed if there are both explicit and implicit terms
+         if (fully_explicit .or. fully_implicit) strang_splitting = .false.
+         if (strang_splitting) flip_flop = .false.
          
          ! Linear simulations can be stopped automatically when the growth rate
          ! becomes saturated. Make sure this flag is off for nonlinear simulations.
@@ -331,6 +336,7 @@ contains
          ! Numerical algorithms
          call broadcast(explicit_algorithm_switch)
          call broadcast(flip_flop)
+         call broadcast(strang_splitting)
          call broadcast(stream_implicit)
          call broadcast(stream_iterative_implicit)
          call broadcast(stream_matrix_inversion)

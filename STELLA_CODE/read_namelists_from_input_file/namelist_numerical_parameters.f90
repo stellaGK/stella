@@ -22,6 +22,7 @@
 !   numerical_algorithms
 !     explicit_algorithm = 'rk3'
 !     flip_flop = .true.   
+!     strang_splitting = .false.
 !     stream_implicit = .true.
 !     stream_iterative_implicit = .false.
 !     stream_matrix_inversion = .false.
@@ -269,7 +270,7 @@ contains
    !****************************************************************************
    !                           NUMERICAL ALGORITHMS                            !
    !****************************************************************************
-   subroutine read_namelist_numerical_algorithms(explicit_algorithm_switch, flip_flop, &
+   subroutine read_namelist_numerical_algorithms(explicit_algorithm_switch, flip_flop, strang_splitting, &
       stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
       mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
       fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
@@ -283,7 +284,7 @@ contains
       integer, intent(out) :: explicit_algorithm_switch
       logical, intent(out) :: stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit
       logical, intent(out) :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
-      logical, intent(out) :: drifts_implicit, fully_implicit, fully_explicit, flip_flop
+      logical, intent(out) :: drifts_implicit, fully_implicit, fully_explicit, flip_flop, strang_splitting
       logical, intent(out) :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
       logical, intent(out) :: split_parallel_dynamics
 
@@ -306,6 +307,7 @@ contains
 
          explicit_algorithm = 'rk3'
          flip_flop = .true.
+         strang_splitting = .false.
          stream_implicit = .true.
          stream_iterative_implicit = .false.
          stream_matrix_inversion = .false.
@@ -342,7 +344,7 @@ contains
            text_option('euler', explicit_algorithm_euler)/)
            
          ! Variables in the <numerical_algorithms> namelist
-         namelist /numerical_algorithms/ explicit_algorithm, flip_flop, &
+         namelist /numerical_algorithms/ explicit_algorithm, flip_flop, strang_splitting, &
             stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
             mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
             fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
@@ -372,6 +374,7 @@ contains
          write (unit, '(A)') '&numerical_algorithms'
          write (unit, '(A, A, A)') '  explicit_algorithm = "', trim(explicit_algorithm), '"'
          write (unit, '(A, L1)') '  flip_flop = ', flip_flop
+         write (unit, '(A, L1)') '  strang_splitting = ', strang_splitting
          write (unit, '(A, L1)') '  stream_implicit = ', stream_implicit
          write (unit, '(A, L1)') '  stream_iterative_implicit = ', stream_iterative_implicit
          write (unit, '(A, L1)') '  stream_matrix_inversion = ', stream_matrix_inversion

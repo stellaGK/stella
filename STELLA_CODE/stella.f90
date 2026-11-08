@@ -197,6 +197,7 @@ contains
       
       ! Numerical schemes
       use parameters_numerical, only: flip_flop
+      use parameters_numerical, only: strang_splitting
       use parameters_numerical, only: fully_explicit
       use parameters_numerical, only: fully_implicit
 
@@ -250,7 +251,19 @@ contains
          ! operations is reversed every time step as part of alternating direction 
          ! operator splitting. This is needed to ensure 2nd order accuracy in time. 
          ! If <flip_flop> is False instead, we always advance the explicit terms first.
-         if (mod(istep, 2) == 1 .or. .not. flip_flop) then
+         ! With <strang_splitting> = True, every time step is symmetric, E(dt/2) I(dt) E(dt/2), which is
+         ! second order without alternating the order: <flip_flop> resonates with the stiff components
+         ! (e.g. kinetic electrons) that the nearly time-centred implicit scheme flips in sign every step.
+         if (strang_splitting) then
+            if (debug) write (*, *) 'time_advance::advance_explicit (first half step)'
+            call advance_distribution_function_using_explicit_gyrokinetic_terms(gnew, restart_time_step, istep, dt_fraction=0.5)
+            if (.not. restart_time_step) then
+               if (debug) write (*, *) 'time_advance::advance_implicit'
+               call advance_distribution_function_using_implicit_gyrokinetic_terms(istep, phi, apar, bpar, gnew)
+               if (debug) write (*, *) 'time_advance::advance_explicit (second half step)'
+               call advance_distribution_function_using_explicit_gyrokinetic_terms(gnew, restart_time_step, istep, dt_fraction=0.5)
+            end if
+         else if (mod(istep, 2) == 1 .or. .not. flip_flop) then
             if (.not. fully_implicit) then
                if (debug) write (*, *) 'time_advance::advance_explicit'
                call advance_distribution_function_using_explicit_gyrokinetic_terms(gnew, restart_time_step, istep)
