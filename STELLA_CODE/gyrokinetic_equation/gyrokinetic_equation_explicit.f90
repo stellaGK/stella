@@ -23,12 +23,6 @@ module gyrokinetic_equation_explicit
 
    private
 
-   ! Fraction of <code_dt> over which the explicit terms are advanced: 1 by default, 0.5 for
-   ! the two half steps of Strang splitting. All explicit terms are added to the right-hand side
-   ! as r*code_dt, so scaling the right-hand side of every Runge-Kutta stage advances g over
-   ! <explicit_dt_fraction>*code_dt without changing <code_dt> or the arrays that depend on it.
-   real :: explicit_dt_fraction = 1.0
-
 contains
 
    !****************************************************************************
@@ -38,7 +32,7 @@ contains
    ! the gyrokinetic equation. Specifically, the distribution function <g> is updated 
    ! based on all of the terms in the GKE that are advanced explicitly in time.
    !****************************************************************************
-   subroutine advance_distribution_function_using_explicit_gyrokinetic_terms(g, restart_time_step, istep, dt_fraction)
+   subroutine advance_distribution_function_using_explicit_gyrokinetic_terms(g, restart_time_step, istep)
 
       ! Parallelisation
       use mp, only: proc0
@@ -70,16 +64,11 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
-      real, intent(in), optional :: dt_fraction
 
       ! Local variables
       integer :: ivmu
 
       !-------------------------------------------------------------------------
-
-      ! Advance over a fraction <dt_fraction> of the time step (Strang splitting)
-      explicit_dt_fraction = 1.0
-      if (present(dt_fraction)) explicit_dt_fraction = dt_fraction
 
       ! Start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
@@ -364,9 +353,6 @@ contains
          if (include_multibox_krook) call add_multibox_krook(pdf, rhs)
 
       end if
-
-      ! Advance over a fraction of the time step only (Strang splitting)
-      if (abs(explicit_dt_fraction - 1.0) > epsilon(0.0)) rhs_ky = explicit_dt_fraction * rhs_ky
 
       ! if advancing apar, need to convert input pdf back from g to gbar
       if (include_apar) call gbar_to_g(pdf, apar, -1.0)
