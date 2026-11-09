@@ -146,7 +146,7 @@ def test_netcdf_energy_variables(result):
     if not result['has_nc']:
         pytest.skip('NetCDF energy output not enabled for this case')
     ds = xr.open_dataset(result['nc'])
-    kxkyz_vars = ['free_energy_kxkyz', 'field_energy_kxkyz', 'dedt_projected_kxkyz',
+    kxkyz_vars = ['particle_energy_kxkyz', 'field_energy_kxkyz', 'dedt_projected_kxkyz',
                   'drive_kxkyz', 'collisions_kxkyz', 'diss_vpa_kxkyz', 'diss_zed_kxkyz',
                   'diss_perp_kxkyz', 'nonlinearity_kxkyz', 'streaming_kxkyz',
                   'mirror_kxkyz', 'drifts_kxkyz']
@@ -154,7 +154,7 @@ def test_netcdf_energy_variables(result):
         assert v in ds.variables, f'NetCDF var {v} missing.'
         assert np.all(np.isfinite(ds[v].values)), f'NetCDF var {v} not finite.'
 
-    vmu_vars = ['free_energy_vmu', 'field_energy_vmu', 'dedt_projected_vmu',
+    vmu_vars = ['particle_energy_vmu', 'field_energy_vmu', 'dedt_projected_vmu',
                 'drive_vmu', 'collisions_vmu', 'diss_vpa_vmu', 'diss_zed_vmu',
                 'diss_perp_vmu', 'nonlinearity_vmu', 'streaming_vmu',
                 'mirror_vmu', 'drifts_vmu']
@@ -177,15 +177,15 @@ def test_netcdf_energy_variables(result):
 #                      Cross-representation consistency
 #-------------------------------------------------------------------------------
 def test_kxkyz_consistency(result):
-    """Sum of per-mode free_energy_kxkyz weighted by dVolume/volume_total equals
+    """Sum of per-mode particle_energy_kxkyz weighted by dVolume/volume_total equals
     the ASCII particle_energy (tight tolerance). In a flux tube there is one
     alpha (tube) but many ky harmonics, so all ky modes share the same volume
     element dVolume(alpha=0, kx, z)."""
     if not result['has_nc']:
         pytest.skip('NetCDF energy output not enabled for this case')
     ds = xr.open_dataset(result['nc'])
-    # dVolume dims: (zed, kx, alpha); free_energy_kxkyz dims: (t,spec,tube,zed,kx,ky)
-    fe = ds['free_energy_kxkyz'].values
+    # dVolume dims: (zed, kx, alpha); particle_energy_kxkyz dims: (t,spec,tube,zed,kx,ky)
+    fe = ds['particle_energy_kxkyz'].values
     dv = ds['dVolume'].values
     nt, nspec, ntube, nz, nkx, nky = fe.shape
     vol = dv[:, 0, 0].sum()
@@ -206,7 +206,7 @@ def test_kxkyz_consistency(result):
 
 #-------------------------------------------------------------------------------
 def test_vmu_consistency(result):
-    """Sum of per-mode free_energy_vmu weighted by wgts_mu_bare * wgts_vpa equals
+    """Sum of per-mode particle_energy_vmu weighted by wgts_mu_bare * wgts_vpa equals
     the ASCII particle_energy. The vpa weight used by the free-energy quadrature
     is the CONSERVATIVE one (dvpa/sqrt(pi)) set by set_vpa_weights(.true.); the
     out.nc wgts_vpa is the default (conservative flag) so we reconstruct dvpa here
@@ -214,7 +214,7 @@ def test_vmu_consistency(result):
     if not result['has_nc']:
         pytest.skip('NetCDF energy output not enabled for this case')
     ds = xr.open_dataset(result['nc'])
-    fv = ds['free_energy_vmu'].values   # (nt, nspec, nmu, nvpa)
+    fv = ds['particle_energy_vmu'].values   # (nt, nspec, nmu, nvpa)
     wm = ds['wgts_mu_bare'].values      # (nmu,)
     vpa = ds['vpa'].values
     wv = np.gradient(vpa) / np.sqrt(np.pi)   # conservative wgts_vpa = dvpa/sqrt(pi)
@@ -256,7 +256,7 @@ def test_default_off_gating(stella_version):
     res = run_case(SPECIAL_FILES['default_off'], 'default_off', stella_version)
     assert not res['energy'].exists(), '.energy file should not be produced when write_energy is off.'
     ds = xr.open_dataset(res['nc'])
-    energy_vars = [v for v in ds.variables if 'energy' in v or v.startswith(('free_', 'dedt_proj', 'drive_', 'diss_', 'streaming_', 'mirror_', 'drifts_', 'nonlinearity_', 'collisions_', 'field_'))]
+    energy_vars = [v for v in ds.variables if 'energy' in v or v.startswith(('particle_', 'dedt_proj', 'drive_', 'diss_', 'streaming_', 'mirror_', 'drifts_', 'nonlinearity_', 'collisions_', 'field_'))]
     assert not any(('kxkyz' in v or 'vmu' in v) for v in energy_vars), \
         f'free-energy NetCDF vars leaked when off: {energy_vars}'
     ds.close()
@@ -281,6 +281,6 @@ def test_ascii_only_path(stella_version):
     data = np.loadtxt(res['energy'], dtype='float', comments='#')
     assert data.shape[1] == 18
     ds = xr.open_dataset(res['nc'])
-    energy_vars = [v for v in ds.variables if 'kxkyz' in v or 'vmu' in v or 'free_energy' in v or 'field_energy' in v]
+    energy_vars = [v for v in ds.variables if 'kxkyz' in v or 'vmu' in v or 'particle_energy' in v or 'field_energy' in v]
     assert not energy_vars, f'free-energy NetCDF vars should be absent, got {energy_vars}'
     ds.close()

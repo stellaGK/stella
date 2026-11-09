@@ -40,7 +40,7 @@
 !
 ! Normalisation
 ! -------------
-! The particle free energy is
+! The particle energy is
 !     H_p = 0.5 * sum_s < h_s * h_s* / F_{0,s} >
 ! and the field energy is
 !     H_chi = sum_k 0.5 * mode_fac(ky) * dVolume * lambda(k) * |phi_k|^2
@@ -72,7 +72,7 @@ module diagnostics_energy
    type :: energy_diagnostics_type
 
       !> Closure scalars (combined over all species).
-      !> - particle_energy_sum: H_p at t_n (particle free energy)
+      !> - particle_energy_sum: H_p at t_n (particle energy)
       !> - field_energy_sum:    H_chi at t_n (electrostatic + electromagnetic field energy)
       !> - total_energy_sum:    H_p + H_chi (col 3; used for dedt_total)
       !> - dedt_proj_sum:       <c_f|RHS> at t_n
@@ -103,7 +103,7 @@ module diagnostics_energy
 
       !> Per-mode (kxkyz representation) closure terms,
       !> (ky,kx,z,tube,species). Written to NetCDF when write_energy_kxkyz.
-      real, dimension(:, :, :, :, :), allocatable :: free_energy_kxkyz
+      real, dimension(:, :, :, :, :), allocatable :: particle_energy_kxkyz
       real, dimension(:, :, :, :, :), allocatable :: dedt_proj_kxkyz
       real, dimension(:, :, :, :, :), allocatable :: drive_kxkyz, coll_kxkyz
       real, dimension(:, :, :, :, :), allocatable :: diss_vpa_kxkyz, diss_zed_kxkyz
@@ -114,7 +114,7 @@ module diagnostics_energy
 
       !> Per-mode (vmu representation) closure terms,
       !> (vpa,mu,species). Written to NetCDF when write_energy_vmu.
-      real, dimension(:, :, :), allocatable :: free_energy_vmu
+      real, dimension(:, :, :), allocatable :: particle_energy_vmu
       real, dimension(:, :, :), allocatable :: dedt_proj_vmu
       real, dimension(:, :, :), allocatable :: drive_vmu, coll_vmu
       real, dimension(:, :, :), allocatable :: diss_vpa_vmu, diss_zed_vmu
@@ -202,7 +202,7 @@ contains
       ! The kxkyz-representation per-mode arrays are always allocated (the scalar
       ! energies are obtained by integrating them); writing them to NetCDF is
       ! controlled by <write_energy_kxkyz> in the diagnostics module.
-      if (.not. allocated(energy_diag%free_energy_kxkyz)) allocate (energy_diag%free_energy_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+      if (.not. allocated(energy_diag%particle_energy_kxkyz)) allocate (energy_diag%particle_energy_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       if (.not. allocated(energy_diag%dedt_proj_kxkyz)) allocate (energy_diag%dedt_proj_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       if (.not. allocated(energy_diag%drive_kxkyz)) allocate (energy_diag%drive_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       if (.not. allocated(energy_diag%coll_kxkyz)) allocate (energy_diag%coll_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
@@ -216,7 +216,7 @@ contains
       if (.not. allocated(energy_diag%field_energy_kxkyz)) allocate (energy_diag%field_energy_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, 1))
 
       if (write_energy_vmu) then
-         if (.not. allocated(energy_diag%free_energy_vmu)) allocate (energy_diag%free_energy_vmu(nvpa, nmu, nspec))
+         if (.not. allocated(energy_diag%particle_energy_vmu)) allocate (energy_diag%particle_energy_vmu(nvpa, nmu, nspec))
          if (.not. allocated(energy_diag%dedt_proj_vmu)) allocate (energy_diag%dedt_proj_vmu(nvpa, nmu, nspec))
          if (.not. allocated(energy_diag%drive_vmu)) allocate (energy_diag%drive_vmu(nvpa, nmu, nspec))
          if (.not. allocated(energy_diag%coll_vmu)) allocate (energy_diag%coll_vmu(nvpa, nmu, nspec))
@@ -538,7 +538,7 @@ contains
       !--------------------------------------------------------------------
       ! Zero all outputs
       !--------------------------------------------------------------------
-      energy_diag%free_energy_kxkyz = 0.
+      energy_diag%particle_energy_kxkyz = 0.
       energy_diag%dedt_proj_kxkyz = 0.
       energy_diag%drive_kxkyz = 0.
       energy_diag%coll_kxkyz = 0.
@@ -550,7 +550,7 @@ contains
       energy_diag%mirror_kxkyz = 0.
       energy_diag%drifts_kxkyz = 0.
       if (write_energy_vmu) then
-         energy_diag%free_energy_vmu = 0.
+         energy_diag%particle_energy_vmu = 0.
          energy_diag%dedt_proj_vmu = 0.
          energy_diag%drive_vmu = 0.
          energy_diag%coll_vmu = 0.
@@ -581,17 +581,17 @@ contains
       if (fphi > epsilon(0.0)) then
 
          !--------------------------------------------------------------------
-         ! Particle free energy H_p(t_n) = 0.5 * <h* | h>
+         ! Particle energy H_p(t_n) = 0.5 * <h* | h>
          !--------------------------------------------------------------------
          energy_diag%factor_spec = spec%dens * spec%temp
-         call get_one_energy_term_kxkyz(h, h, energy_diag%factor_spec, energy_diag%energy_spec, particle_energy, energy_diag%free_energy_kxkyz)
+         call get_one_energy_term_kxkyz(h, h, energy_diag%factor_spec, energy_diag%energy_spec, particle_energy, energy_diag%particle_energy_kxkyz)
          particle_energy = 0.5 * particle_energy
          energy_diag%energy_spec = 0.5 * energy_diag%energy_spec
-         energy_diag%free_energy_kxkyz = 0.5 * energy_diag%free_energy_kxkyz
+         energy_diag%particle_energy_kxkyz = 0.5 * energy_diag%particle_energy_kxkyz
 
          if (write_energy_vmu) then
-            call get_one_energy_term_vmu(h, h, energy_diag%factor_spec, energy_diag%free_energy_vmu)
-            energy_diag%free_energy_vmu = 0.5 * energy_diag%free_energy_vmu
+            call get_one_energy_term_vmu(h, h, energy_diag%factor_spec, energy_diag%particle_energy_vmu)
+            energy_diag%particle_energy_vmu = 0.5 * energy_diag%particle_energy_vmu
          end if
 
          ! Field energy H_chi (electrostatic) and total energy H = H_p + H_chi
@@ -857,7 +857,7 @@ contains
       if (allocated(energy_diag%drifts_spec)) deallocate (energy_diag%drifts_spec)
       if (allocated(energy_diag%factor_spec)) deallocate (energy_diag%factor_spec)
 
-      if (allocated(energy_diag%free_energy_kxkyz)) deallocate (energy_diag%free_energy_kxkyz)
+      if (allocated(energy_diag%particle_energy_kxkyz)) deallocate (energy_diag%particle_energy_kxkyz)
       if (allocated(energy_diag%dedt_proj_kxkyz)) deallocate (energy_diag%dedt_proj_kxkyz)
       if (allocated(energy_diag%drive_kxkyz)) deallocate (energy_diag%drive_kxkyz)
       if (allocated(energy_diag%coll_kxkyz)) deallocate (energy_diag%coll_kxkyz)
@@ -870,7 +870,7 @@ contains
       if (allocated(energy_diag%drifts_kxkyz)) deallocate (energy_diag%drifts_kxkyz)
       if (allocated(energy_diag%field_energy_kxkyz)) deallocate (energy_diag%field_energy_kxkyz)
 
-      if (allocated(energy_diag%free_energy_vmu)) deallocate (energy_diag%free_energy_vmu)
+      if (allocated(energy_diag%particle_energy_vmu)) deallocate (energy_diag%particle_energy_vmu)
       if (allocated(energy_diag%dedt_proj_vmu)) deallocate (energy_diag%dedt_proj_vmu)
       if (allocated(energy_diag%drive_vmu)) deallocate (energy_diag%drive_vmu)
       if (allocated(energy_diag%coll_vmu)) deallocate (energy_diag%coll_vmu)

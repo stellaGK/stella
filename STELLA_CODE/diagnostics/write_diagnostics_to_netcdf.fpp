@@ -1517,7 +1517,7 @@ contains
 !   - "vmu":   spatially averaged, on the (vpa,mu,species) grid
 ! The data is stored in the diagnostics_energy module (energy_diag).
 
-   !---------------------------- free energy (kxkyz) ---------------------------
+   !--------------------------- particle energy (kxkyz) ------------------------
    subroutine write_energy_kxkyz_nc(nout)
       use diagnostics_energy, only: energy_diag
 
@@ -1525,10 +1525,10 @@ contains
       integer, intent(in) :: nout
 
 #ifdef NETCDF
-      call neasyf_write(ncid, "free_energy_kxkyz", energy_diag%free_energy_kxkyz, &
+      call neasyf_write(ncid, "particle_energy_kxkyz", energy_diag%particle_energy_kxkyz, &
          dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
          start=[1, 1, 1, 1, 1, nout], &
-         long_name="Particle free energy")
+         long_name="Particle energy H_p")
       call neasyf_write(ncid, "field_energy_kxkyz", energy_diag%field_energy_kxkyz(:, :, :, :, 1), &
          dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "t"], &
          start=[1, 1, 1, 1, nout], &
@@ -1576,7 +1576,7 @@ contains
 #endif
    end subroutine write_energy_kxkyz_nc
 
-   !------------------------------ free energy (vmu) ---------------------------
+   !----------------------------- particle energy (vmu) ------------------------
    subroutine write_energy_vmu_nc(nout)
       use diagnostics_energy, only: energy_diag
 
@@ -1584,10 +1584,10 @@ contains
       integer, intent(in) :: nout
 
 #ifdef NETCDF
-      call neasyf_write(ncid, "free_energy_vmu", energy_diag%free_energy_vmu, &
+      call neasyf_write(ncid, "particle_energy_vmu", energy_diag%particle_energy_vmu, &
          dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
          start=[1, 1, 1, nout], &
-         long_name="Particle free energy averaged over real space")
+         long_name="Particle energy H_p averaged over real space")
       call neasyf_write(ncid, "field_energy_vmu", energy_diag%field_energy_vmu(:, :, 1), &
          dim_names=[character(len=7)::"vpa", "mu", "t"], &
          start=[1, 1, nout], &
