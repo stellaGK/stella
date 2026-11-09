@@ -197,6 +197,7 @@ contains
       
       ! Numerical schemes
       use parameters_numerical, only: flip_flop
+      use parameters_numerical, only: strang_splitting
       use parameters_numerical, only: fully_explicit
       use parameters_numerical, only: fully_implicit
 
@@ -245,52 +246,24 @@ contains
 
          ! Advance the distribution equation in time using the gyrokinetic equation.
          ! We need to advance the explicit and implicit parts of the gyrokinetic
-         ! equation (GKE). We use operator splitting to separately evolve all terms
-         ! treated implicitly. By default, <flip_flop> = False, and we always advance
-         ! the explicit terms first (Lie splitting, first order in time). With
-         ! <flip_flop> = True, the order of the explicit and implicit parts (and of the
-         ! terms inside the implicit part) is reversed every other time step, so that two
-         ! steps form a symmetric splitting, which is second order in time for non-stiff
-         ! problems (e.g. adiabatic electrons with time_upwind = 0).
-         !
-         ! Keep <flip_flop> = False by default, in particular for kinetic electrons.
-         ! With kinetic electrons, flip_flop = True is unstable at time steps that
-         ! flip_flop = False handles (H. Thienpondt, November 2026). The time-centred
-         ! implicit scheme (time_upwind = 0.02) barely damps the stiff electron components
-         ! of the parallel streaming and the mirror term, and flips their sign every time
-         ! step; reversing the order every step, in step with these sign flips, makes the
-         ! splitting errors of consecutive steps add up instead of cancelling. In nonlinear
-         ! stellarator runs with kinetic electrons a mode at the smallest ky, one to three
-         ! grid points wide at a maximum of |B|, grew from t = 0 and gave a burst of the
-         ! heat flux up to 370 Q_gB; in a linear run of that mode the largest stable time
-         ! step dropped from 0.047 (flip_flop = False) to 0.013 a/v_th, below the CFL time
-         ! step of the nonlinear runs (0.045). It needs the implicit mirror term and the
-         ! explicit drive, appears with every Runge-Kutta scheme and on master too, and
-         ! disappears with time_upwind >= 0.3, which makes the scheme first order again.
-         ! Its second order is also lost with kinetic electrons (order reduction), so
-         ! flip_flop = True has no advantage where it matters.
-         !
-         ! Strang splitting, E(dt/2) I(dt) E(dt/2) every time step, was tried as a stable
-         ! second-order alternative (November 2026) and removed again. With the half steps
-         ! of consecutive steps merged, its repeated step is exactly the step I(dt) E(dt) of
-         ! flip_flop = False, plus a half step E(dt/2) at the start and before each output:
-         ! its stability, growth rates and frequencies are identical to those of
-         ! flip_flop = False, and only the distribution function at the output is more
-         ! accurate. It is still first order, because the implicit part is itself split into
-         ! the mirror term and the parallel streaming in a fixed order. To make the time
-         ! advance second order without alternating any order, one would need:
-         !   - a symmetric implicit part, e.g. M(dt/2) S(dt) M(dt/2) with M the mirror and
-         !     S the streaming step, with the mirror arrays (semi-Lagrange shifts or the
-         !     tridiagonal matrices, and the apar response with electromagnetic fields) for
-         !     dt/2, rebuilt in reset_dt; for full second order also half steps of the
-         !     implicit collisions, the hyper-dissipation and the flow shear;
-         !   - time_upwind = 0, since the theta-scheme is only second order when it is
-         !     time-centred;
-         !   - Strang splitting of the explicit and implicit parts, with merged half steps.
-         ! The mirror step and its redistributions take 20-35% of the time advance, so this
-         ! costs roughly 15-30% per step. It was not done, because the time step of stella
-         ! is set by the CFL condition and by stability, not by accuracy.
-         if (mod(istep, 2) == 1 .or. .not. flip_flop) then
+         ! equation (GKE). We use operator splitting to separately evolve all terms 
+         ! treated implicitly. By default, <flip_flop> = True, and the order of 
+         ! operations is reversed every time step as part of alternating direction 
+         ! operator splitting. This is needed to ensure 2nd order accuracy in time. 
+         ! If <flip_flop> is False instead, we always advance the explicit terms first.
+         ! With <strang_splitting> = True, every time step is symmetric, E(dt/2) I(dt) E(dt/2), which is
+         ! second order without alternating the order: <flip_flop> resonates with the stiff components
+         ! (e.g. kinetic electrons) that the nearly time-centred implicit scheme flips in sign every step.
+         if (strang_splitting) then
+            if (debug) write (*, *) 'time_advance::advance_explicit (first half step)'
+            call advance_distribution_function_using_explicit_gyrokinetic_terms(gnew, restart_time_step, istep, dt_fraction=0.5)
+            if (.not. restart_time_step) then
+               if (debug) write (*, *) 'time_advance::advance_implicit'
+               call advance_distribution_function_using_implicit_gyrokinetic_terms(istep, phi, apar, bpar, gnew)
+               if (debug) write (*, *) 'time_advance::advance_explicit (second half step)'
+               call advance_distribution_function_using_explicit_gyrokinetic_terms(gnew, restart_time_step, istep, dt_fraction=0.5)
+            end if
+         else if (mod(istep, 2) == 1 .or. .not. flip_flop) then
             if (.not. fully_implicit) then
                if (debug) write (*, *) 'time_advance::advance_explicit'
                call advance_distribution_function_using_explicit_gyrokinetic_terms(gnew, restart_time_step, istep)

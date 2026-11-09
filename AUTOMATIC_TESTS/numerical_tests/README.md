@@ -27,5 +27,3 @@ Perform some simulations and check whether the time trace of the potential match
  of the current stella version), the FFS runs with all terms of test 7, and the kxky grid options and
  short and full KBM/TAE runs of test 8. The final KBM frequency changed by 0.7% and the TAE
  frequency by 8% (Re[omega] = 1.077 -> 1.162), which indicates that the TAE run is not converged in delt.
-
- On 09/11/2026 the default of flip_flop has been changed back to .false., since flip_flop = .true. is unstable with kinetic electrons (see the comments in advance_distribution_function_and_fields in stella.f90). The expected output of the same tests has been recreated: test 3 (except flip_flop.in and stream_and_mirror_explicit.in), the implicit terms and kxky grid options of test 4, the Miller and VMEC flux tubes and the flag tests of test 5, test 6, the FFS runs with all terms of test 7, and the kxky grid options and short and full KBM/TAE runs of test 8.
