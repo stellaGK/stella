@@ -2077,6 +2077,20 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                      call integrate_vmu(modmw(:, :, iz, isa), iz, modmwnorm(iz))
                   end do
 
+                  ! The l = 0 terms of the field-particle part (energy exchange, j >= 1) must not change the density.
+                  ! For electrons colliding with ions, Delta_j^{ab} depends on the ion speed, which is sqrt(m_i/m_e) = 43
+                  ! times the electron speed, so part of it lies inside the first cells of the electron grid. On the grid
+                  ! its density moment was then as large as its energy moment (benchmark C2, Nov 2026), so the energy
+                  ! exchange created electron density and the growth rate ran away at large collisionality. Remove the
+                  ! density moment on the grid with modmw, which has no energy moment, so the energy exchange is unchanged.
+                  if ((ll == 0) .and. (jj >= 1)) then
+                     do iz = -nzgrid, nzgrid
+                        call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, iz), iz, deltajint(iz))
+                     end do
+                     deltaj(ll, jj, isa, isb, :, :, ia, :) = deltaj(ll, jj, isa, isb, :, :, ia, :) &
+                                             - modmw(:, :, :, isa) / spread(spread(modmwnorm, 1, nvpa), 2, nmu) * spread(spread(deltajint, 1, nvpa), 2, nmu)
+                  end if
+
                   ! to ensure number conservation to machine precision, \Delta_{j=1} -> \Delta_{j=1} - F0/\int F0 dv * \int \Delta_{j=1} dv
 
                   ! AVB: to do - need to generalise this to higher-order terms in the field particle operator

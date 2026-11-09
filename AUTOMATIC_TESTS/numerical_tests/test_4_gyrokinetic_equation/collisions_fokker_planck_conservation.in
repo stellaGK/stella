@@ -1,0 +1,165 @@
+! Test 4e: the Fokker-Planck collision operator with its field-particle part must conserve the density of every
+! species and must not drive the potential. Only collisions are switched on (no streaming, mirror, drifts or drive),
+! for ions and electrons with the real mass ratio at a large collision frequency (vnew_ref = 0.3, nu_ee ~ 13),
+! one mode with a small k_perp (aky = 0.01) and without classical diffusion (cfac = 0), starting from noise.
+! Before the fix of the energy-exchange terms of the field-particle part (Nov 2026), the e-i energy exchange created
+! electron density on the electron grid: |phi|^2 grew by a factor 6.5 by t = 0.5 and the density changed by 5e-5.
+
+ 
+! Simple linear example using CBC to test that without any gyrokinetic
+! terms and without dissipation, the potential does not evolve in time
+
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/ 
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_parallel_streaming = .false.
+  include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .false.
+  include_drive = .false.
+  include_nonlinear = .false.
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_options
+  nspec = 2
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+&kxky_grid_range
+  naky = 1
+  nakx = 1
+  aky_min = 0.01
+  aky_max = 0.01
+/
+&z_grid
+  nzed = 12
+/
+&z_boundary_condition
+  boundary_option = 'default'
+/
+&velocity_grids
+  nmu = 8
+  nvgrid = 12
+  vpa_max = 3.0
+  vperp_max = 3.0
+/
+&dissipation_and_collisions_options
+  include_collisions = .true.
+  collision_model = 'fokker-planck'
+  collisions_implicit = .true.
+  vnew_ref = 0.3
+/
+&collisions_fokker_planck
+  fieldpart = .true.
+  cfac = 0.0
+/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&diagnostics
+  nsave = 100
+  nwrite = 10 
+  write_all_potential = .true.
+/
+&diagnostics_moments
+  write_moments = .true.
+/
+&diagnostics_distribution
+  write_g2_vs_vpamus = .true.
+/
+
+!===============================================================================
+!                              initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'noise'
+  phiinit = 0.01
+/
+
+&initialise_distribution_maxwellian
+  width0 = 1.0
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 50
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+  stream_implicit = .true.
+  mirror_implicit = .true.
+  drifts_implicit = .false.
+/
+
+&debug_flags 
+  print_extra_info_to_terminal = .false. 
+/
+
+
+
