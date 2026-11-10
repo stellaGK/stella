@@ -59,9 +59,15 @@
 ! with volume_total = sum_{kx,zed} dVolume in a flux tube. This mirrors
 ! qflux_vs_kxkyz: the volume weight is applied by the consumer, not stored.
 ! The vmu arrays are already volume-averaged and reproduce the scalar through
-!     scalar = sum_{vpa,mu} wgts_vpa * wgts_mu_bare * array.
+!     scalar = sum_{vpa,mu} wgts_vpa * wgts_mu_bare * array,
+! where wgts_vpa is the CONSERVATIVE parallel-velocity weight dvpa/sqrt(pi)
+! that this diagnostic switches to internally. That weight is written to the
+! NetCDF file as <wgts_vpa_energy>; the stored <wgts_vpa> is the default
+! (Simpson) weight and does NOT reproduce the scalars.
 ! field_energy_vmu / field_energy_em_vmu are constant over (vpa,mu) and equal
-! to the scalar, so the same vmu identity holds for them.
+! to the scalar. They are a plotting convenience, NOT an integral density: a
+! velocity-weighted sum returns the scalar times
+! sum(wgts_vpa)*sum(wgts_mu_bare), which is not 1.
 !
 ! Full flux surface: the FFS path is a DIFFERENT representation. There the
 ! volume element depends on the field-line label alpha, so the weight is not

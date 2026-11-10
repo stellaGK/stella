@@ -715,16 +715,27 @@ contains
    subroutine nc_vmu(file_id)
 
       ! Velocity-space grid weights
-      use grids_velocity, only: wgts_mu_bare, wgts_vpa
+      use grids_velocity, only: wgts_mu_bare, wgts_vpa, dvpa, nvpa
+      use constants, only: pi
 
       implicit none
 
       ! NetCDF ID of the file to write to
       integer, intent(in) :: file_id
 
+      ! Conservative parallel-velocity weight used by the free-energy diagnostic
+      ! (it calls set_vpa_weights(.true.) internally, then restores the default).
+      real, dimension(:), allocatable :: wgts_vpa_energy
+
       ! Velocity-space weights
       call neasyf_write(file_id, "wgts_mu_bare", wgts_mu_bare, dim_names=[character(len=5) :: "mu"], long_name="Velocity-space weight in mu (bare)")
-      call neasyf_write(file_id, "wgts_vpa", wgts_vpa, dim_names=[character(len=5) :: "vpa"], long_name="Velocity-space weight in vpar")
+      call neasyf_write(file_id, "wgts_vpa", wgts_vpa, dim_names=[character(len=5) :: "vpa"], long_name="Velocity-space weight in vpar (default Simpson weights)")
+
+      allocate (wgts_vpa_energy(nvpa))
+      wgts_vpa_energy = dvpa / sqrt(pi)
+      call neasyf_write(file_id, "wgts_vpa_energy", wgts_vpa_energy, dim_names=[character(len=5) :: "vpa"], &
+                        long_name="Conservative parallel-velocity weight used by the energy diagnostic (dvpa/sqrt(pi))")
+      deallocate (wgts_vpa_energy)
 
    end subroutine nc_vmu
 #endif

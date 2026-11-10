@@ -239,18 +239,22 @@ def test_kxkyz_normalisation_attribute(result):
 
 #-------------------------------------------------------------------------------
 def test_vmu_consistency(result):
-    """Sum of per-mode particle_energy_vmu weighted by wgts_mu_bare * wgts_vpa equals
-    the ASCII particle_energy. The vpa weight used by the free-energy quadrature
-    is the CONSERVATIVE one (dvpa/sqrt(pi)) set by set_vpa_weights(.true.); the
-    out.nc wgts_vpa is the default (conservative flag) so we reconstruct dvpa here
-    from the vpa grid. Matches to ~1e-8, confirming kxkyz and vmu give the same H_p."""
+    """Sum of per-mode particle_energy_vmu weighted by wgts_mu_bare * wgts_vpa_energy
+    equals the ASCII particle_energy. The vpa weight used by the free-energy
+    quadrature is the CONSERVATIVE one (dvpa/sqrt(pi)) set by
+    set_vpa_weights(.true.); the stored `wgts_vpa` is the default (Simpson) weight,
+    which is why the diagnostic also writes `wgts_vpa_energy`. Matches to ~1e-8,
+    confirming kxkyz and vmu give the same H_p."""
     if not result['has_nc']:
         pytest.skip('NetCDF energy output not enabled for this case')
     ds = xr.open_dataset(result['nc'])
     fv = ds['particle_energy_vmu'].values   # (nt, nspec, nmu, nvpa)
     wm = ds['wgts_mu_bare'].values      # (nmu,)
     vpa = ds['vpa'].values
-    wv = np.gradient(vpa) / np.sqrt(np.pi)   # conservative wgts_vpa = dvpa/sqrt(pi)
+    assert 'wgts_vpa_energy' in ds, 'missing the energy-diagnostic vpa weight'
+    wv = ds['wgts_vpa_energy'].values
+    # It must be the conservative dvpa/sqrt(pi) weight.
+    assert np.allclose(wv, np.gradient(vpa) / np.sqrt(np.pi), rtol=1e-12, atol=0.0)
     nt = fv.shape[0]
     integ = np.zeros(nt)
     for t in range(nt):
@@ -260,6 +264,26 @@ def test_vmu_consistency(result):
     particle = data[:, 1]
     assert np.allclose(integ[1:], particle[1:], rtol=1e-4, atol=1e-12), \
         f'vmu-consistency fails: max rel = {np.max(np.abs(integ[1:] - particle[1:]) / np.abs(particle[1:]))}'
+    ds.close()
+
+#-------------------------------------------------------------------------------
+def test_field_vmu_is_scalar_broadcast(result):
+    """field_energy_vmu / field_energy_em_vmu are the scalar broadcast over
+    (vpa,mu), i.e. a plotting convenience and NOT a velocity integrand (their
+    velocity-weighted sum is the scalar times sum(wgts_vpa)*sum(wgts_mu_bare))."""
+    if not result['has_nc']:
+        pytest.skip('NetCDF energy output not enabled for this case')
+    ds = xr.open_dataset(result['nc'])
+    data = np.loadtxt(result['energy'], dtype='float', comments='#')
+    fv = ds['field_energy_vmu'].values          # (t, mu, vpa)
+    # Tolerances: the array is float32 in the NetCDF and the ASCII columns are
+    # written with ~5 significant digits.
+    assert np.allclose(fv, data[:, 2][:, None, None], rtol=1e-4, atol=1e-14), \
+        'field_energy_vmu is not the scalar broadcast'
+    if 'field_energy_em_vmu' in ds:
+        fem = ds['field_energy_em_vmu'].values
+        assert np.allclose(fem, data[:, 3][:, None, None], rtol=1e-4, atol=1e-14), \
+            'field_energy_em_vmu is not the scalar broadcast'
     ds.close()
 
 #-------------------------------------------------------------------------------
