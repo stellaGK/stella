@@ -442,6 +442,8 @@ contains
       use netcdf, only: nf90_put_att
       use netcdf, only: nf90_put_var
       use netcdf, only: nf90_inq_libvers
+      use netcdf, only: NF90_GLOBAL
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -500,6 +502,19 @@ contains
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
       ci = 'c14'; status = nf90_put_att(ncid, code_id, trim(ci), 'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
+
+      ! Record the per-mode normalisation convention of the free-energy
+      ! diagnostic (see diagnostics_energy.f90 and TODO.md). The file is
+      ! netCDF-4, so a global attribute can be added without re-entering
+      ! define mode.
+      if (full_flux_surface) then
+         status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
+            'ffs: alpha-weighted transform; scalar is the plain mode sum (not yet volume-normalised)')
+      else
+         status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
+            'flux_tube: per-mode without dVolume; scalar = sum(array*dVolume)/volume_total')
+      end if
+      if (status /= nf90_noerr) call netcdf_error(status, ncid, NF90_GLOBAL, att='energy_kxkyz_convention')
 
    end subroutine write_text_to_netcdf_file
 #endif
@@ -1528,11 +1543,11 @@ contains
       call neasyf_write(ncid, "particle_energy_kxkyz", energy_diag%particle_energy_kxkyz, &
          dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
          start=[1, 1, 1, 1, 1, nout], &
-         long_name="Particle energy H_p")
+         long_name="Particle energy H_p per mode (see global attribute energy_kxkyz_convention)")
       call neasyf_write(ncid, "field_energy_kxkyz", energy_diag%field_energy_kxkyz(:, :, :, :, 1), &
          dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "t"], &
          start=[1, 1, 1, 1, nout], &
-         long_name="Electrostatic field energy H_chi")
+         long_name="Electrostatic field energy H_chi per mode (see global attribute energy_kxkyz_convention)")
       call neasyf_write(ncid, "dedt_projected_kxkyz", energy_diag%dedt_proj_kxkyz, &
          dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
          start=[1, 1, 1, 1, 1, nout], &
@@ -1587,11 +1602,11 @@ contains
       call neasyf_write(ncid, "particle_energy_vmu", energy_diag%particle_energy_vmu, &
          dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
          start=[1, 1, 1, nout], &
-         long_name="Particle energy H_p averaged over real space")
+         long_name="Particle energy H_p averaged over real space (volume-averaged)")
       call neasyf_write(ncid, "field_energy_vmu", energy_diag%field_energy_vmu(:, :, 1), &
          dim_names=[character(len=7)::"vpa", "mu", "t"], &
          start=[1, 1, nout], &
-         long_name="Electrostatic field energy averaged over real space")
+         long_name="Electrostatic field energy H_chi (constant over vpa,mu; equals H_chi)")
       call neasyf_write(ncid, "dedt_projected_vmu", energy_diag%dedt_proj_vmu, &
          dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
          start=[1, 1, 1, nout], &

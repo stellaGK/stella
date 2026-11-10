@@ -44,9 +44,32 @@
 !     H_p = 0.5 * sum_s < h_s * h_s* / F_{0,s} >
 ! and the field energy is
 !     H_chi = sum_k 0.5 * mode_fac(ky) * dVolume * lambda(k) * |phi_k|^2
-! with lambda = denominator_fields (the quasineutrality coefficient) and the
-! standard 0.5*mode_fac(ky) / dVolume / volume_total normalisation. The drive term
-! is projected onto the same h* kernel as all other terms.
+! with lambda = denominator_fields (the quasineutrality coefficient). All
+! scalars are volume averages over the (kx,zed) grid. The drive term is
+! projected onto the same h* kernel as all other terms.
+!
+! Per-mode array normalisation
+! ----------------------------
+! This is the single, normative convention for EVERY <*_kxkyz> energy array
+! (particle energy, field energy, and each per-term array):
+!
+!     array  = 0.5 * mode_fac(ky) * <integrand>          (NO dVolume inside)
+!     scalar = sum_{kx,ky,zed,tube} array * dVolume(kx,zed) / volume_total
+!
+! with volume_total = sum_{kx,zed} dVolume in a flux tube. This mirrors
+! qflux_vs_kxkyz: the volume weight is applied by the consumer, not stored.
+! The vmu arrays are already volume-averaged and reproduce the scalar through
+!     scalar = sum_{vpa,mu} wgts_vpa * wgts_mu_bare * array.
+! field_energy_vmu / field_energy_em_vmu are constant over (vpa,mu) and equal
+! to the scalar, so the same vmu identity holds for them.
+!
+! Full flux surface: the FFS path is a DIFFERENT representation. There the
+! volume element depends on the field-line label alpha, so the weight is not
+! diagonal in ky and is currently folded into the per-mode arrays (volfac in
+! ffs_real_to_ky); the FFS scalar is then the plain sum of the per-mode array.
+! The FFS scalar normalisation is known to be inconsistent with the flux tube
+! and is deferred (see TODO.md). The representation in use is recorded in the
+! 'energy_kxkyz_convention' NetCDF attribute.
 !
 ! Output representations
 ! -----------------------
@@ -256,10 +279,10 @@ contains
 
    !> Compute one GKE RHS energy term on the (ky,kx,zed,tube,species) grid.
    !>
-   !> Projects < term * h* / F0 >, integrated over velocity space and summed over
-   !> (ky,kx,zed,tube) with the standard 0.5*mode_fac(ky) / dVolume / volume_total
-   !> normalisation. Returns per-species scalars (sum_spec), the sum over species
-   !> (sum_total) and the per-mode array (term_kxkyz).
+   !> Projects < term * h* / F0 >, integrated over velocity space. The per-mode
+   !> array (term_kxkyz) stores 0.5*mode_fac(ky)*Re[factor*velocity_integral]
+   !> WITHOUT the dVolume weight; the per-species scalars (sum_spec) apply
+   !> dVolume/volume_total. See the module header for the convention.
    subroutine get_one_energy_term_kxkyz(h, term, factor_spec, sum_spec, sum_total, term_kxkyz)
       use mp, only: proc0, sum_allreduce
       use arrays_distribution_function, only: g0
@@ -421,6 +444,9 @@ contains
    !> lambda = denominator_fields is the k-dependent quasineutrality coefficient
    !> (1-Gamma_0 for kinetic species; already includes the Boltzmann efac for
    !> adiabatic electrons).
+   !>
+   !> field_energy_kxkyz stores the per-mode value WITHOUT the dVolume weight;
+   !> the scalar applies dVolume/volume_total (see the module header).
    subroutine get_field_energy(phi, field_energy_sum, field_energy_kxkyz, write_vmu, field_energy_vmu)
 
       use mp, only: proc0
@@ -451,18 +477,19 @@ contains
          do iky = 1, naky
             do iz = -nzgrid, nzgrid
                do it = 1, ntubes
-                  tmp = 0.5 * mode_fac(iky) * dVolume(ia, ikx, iz) &
+                  ! Per-mode value is stored WITHOUT the volume weight; the
+                  ! weight is applied only to the scalar below.
+                  tmp = 0.5 * mode_fac(iky) &
                         * denominator_fields(iky, ikx, iz) &
                         * (abs(phi(iky, ikx, iz, it))**2)
                   field_energy_kxkyz(iky, ikx, iz, it, 1) = tmp
-                  field_energy_sum = field_energy_sum + tmp
+                  field_energy_sum = field_energy_sum + tmp * dVolume(ia, ikx, iz)
                end do
             end do
          end do
       end do
 
       field_energy_sum = field_energy_sum / volume_total
-      field_energy_kxkyz = field_energy_kxkyz / volume_total
 
       if (write_vmu) field_energy_vmu(:, :, 1) = field_energy_sum
 
