@@ -37,7 +37,7 @@
 !     use_deltaphi_for_response_matrix = .false.
 !   
 !   numerical_upwinding_for_derivatives
-!     zed_upwind = 0.02
+!     zed_upwind = 0.02 (0.0 if include_apar = .true.)
 !     vpa_upwind = 0.02
 !     time_upwind = 0.02
 ! 
@@ -397,11 +397,14 @@ contains
    !****************************************************************************
    !                NUMERICAL UPWINDING FOR DERIVATIVES OPTIONS                !
    !****************************************************************************
-   subroutine read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind) 
+   subroutine read_namelist_numerical_upwinding_for_derivatives(include_apar, time_upwind, zed_upwind, vpa_upwind) 
 
       use mp, only: proc0
 
       implicit none
+
+      ! The default of <zed_upwind> depends on whether A_parallel is included
+      logical, intent (in) :: include_apar
 
       ! Variables that are read from the input file
       real, intent (out) :: time_upwind, zed_upwind, vpa_upwind
@@ -423,6 +426,10 @@ contains
          time_upwind = 0.02
          zed_upwind = 0.02
          vpa_upwind = 0.02
+
+         ! With A_parallel, upwinding the parallel streaming damps the kinetic-ballooning mode, increasingly so
+         ! at low ky (the error scales as zed_upwind * delzed / ky^2), so it is switched off by default
+         if (include_apar) zed_upwind = 0.0
 
       end subroutine set_default_parameters_numerical_upwinding_for_derivatives
 

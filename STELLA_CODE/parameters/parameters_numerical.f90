@@ -114,6 +114,7 @@ contains
       use namelist_parameters_numerical, only: read_namelist_numerical_algorithms
       use namelist_parameters_numerical, only: read_namelist_numerical_upwinding_for_derivatives
       use namelist_parameters_numerical, only: read_namelist_flux_annulus
+      use parameters_physics, only: include_apar
 
       implicit none
          
@@ -135,7 +136,7 @@ contains
          mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
          fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
          use_deltaphi_for_response_matrix, split_parallel_dynamics)
-      if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
+      if (proc0) call read_namelist_numerical_upwinding_for_derivatives(include_apar, time_upwind, zed_upwind, vpa_upwind)
       if (proc0) call read_namelist_flux_annulus(nitt)
       
       ! Check the numerical inputs
@@ -197,6 +198,20 @@ contains
             write (*, *) 'forcing mirror_semi_lagrange = .false.'
             write (*, *) '!!!WARNING!!!'
             mirror_semi_lagrange = .false.
+         end if
+
+         ! Upwinding of the parallel streaming acts as a numerical diffusion along the field line. With A_parallel this
+         ! diffusion of the electrons spoils the near-cancellation of the electron and ion responses that sets the
+         ! charge balance of a kinetic-ballooning mode at low ky, so the error grows as zed_upwind * delzed / ky^2
+         if (include_apar .and. zed_upwind > 0.0) then
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'zed_upwind > 0 with include_apar = .true.: the upwinding of the parallel streaming acts as a'
+            write (*, *) 'numerical diffusion of the electrons along the field line. In electromagnetic modes such as the'
+            write (*, *) 'kinetic-ballooning mode this lowers the growth rate, by an amount that grows as 1/ky^2: with'
+            write (*, *) 'zed_upwind = 0.02 the growth rate can fall to zero for ky -> 0. Use zed_upwind = 0 (the default'
+            write (*, *) 'with include_apar = .true.) unless the upwinding is needed for numerical stability, and check'
+            write (*, *) 'the growth rate at the lowest ky against a run with zed_upwind = 0.'
+            write (*, *) '!!!WARNING!!!'
          end if
 
          if (drifts_implicit) then
