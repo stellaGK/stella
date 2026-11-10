@@ -205,6 +205,39 @@ def test_kxkyz_consistency(result):
     ds.close()
 
 #-------------------------------------------------------------------------------
+def test_field_kxkyz_consistency(result):
+    """Sum of per-mode field_energy_kxkyz weighted by dVolume/volume_total equals
+    the ASCII field_energy (column 2). The per-mode array stores no volume weight;
+    the weight is applied by the consumer (same convention as particle/term arrays
+    and as qflux_vs_kxkyz)."""
+    if not result['has_nc']:
+        pytest.skip('NetCDF energy output not enabled for this case')
+    ds = xr.open_dataset(result['nc'])
+    # field_energy_kxkyz dims: (t, tube, zed, kx, ky); dVolume dims: (zed, kx, alpha)
+    fe = ds['field_energy_kxkyz'].values
+    dv = ds['dVolume'].values
+    vol = dv[:, 0, 0].sum()
+    w = dv[:, :, 0]                       # (zed, kx)
+    integ = np.einsum('abcde,cd->ab', fe, w).sum(axis=1) / vol
+    data = np.loadtxt(result['energy'], dtype='float', comments='#')
+    field = data[:, 2]
+    assert np.allclose(integ[1:], field[1:], rtol=1e-4, atol=1e-12), \
+        f'field kxkyz-consistency fails: max rel = {np.max(np.abs(integ[1:] - field[1:]) / np.abs(field[1:]))}'
+    ds.close()
+
+#-------------------------------------------------------------------------------
+def test_kxkyz_normalisation_attribute(result):
+    """The NetCDF file records which per-mode normalisation the energy arrays use."""
+    if not result['has_nc']:
+        pytest.skip('NetCDF energy output not enabled for this case')
+    ds = xr.open_dataset(result['nc'])
+    assert 'energy_kxkyz_convention' in ds.attrs, \
+        'missing global attribute energy_kxkyz_convention'
+    assert ds.attrs['energy_kxkyz_convention'].startswith('flux_tube'), \
+        f"unexpected convention: {ds.attrs['energy_kxkyz_convention']}"
+    ds.close()
+
+#-------------------------------------------------------------------------------
 def test_vmu_consistency(result):
     """Sum of per-mode particle_energy_vmu weighted by wgts_mu_bare * wgts_vpa equals
     the ASCII particle_energy. The vpa weight used by the free-energy quadrature
