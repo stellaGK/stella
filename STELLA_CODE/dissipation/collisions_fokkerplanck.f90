@@ -78,6 +78,8 @@ module collisions_fokkerplanck
    real, dimension(:, :, :, :, :), allocatable :: jm0
    real, dimension(:), allocatable :: mwnorm
    real, dimension(:), allocatable :: modmwnorm
+   ! With kinetic electrons, restore the density of the test-particle solve on the velocity grid (see solve_test_particle_operator)
+   logical :: density_correction_solve
    real :: i1fac, i2fac
 
    ! Only initialise once
@@ -155,7 +157,7 @@ contains
    !****************************************************************************
    subroutine init_collisions_fp(collisions_implicit, cfl_dt_collisions)
 
-      use grids_species, only: spec, nspec
+      use grids_species, only: spec, nspec, has_electron_species
       use grids_velocity, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
       use parallelisation_layouts
@@ -237,6 +239,8 @@ contains
 
       ! initialise speed dependent collision frequencies
       call init_nusDpa
+
+      density_correction_solve = has_electron_species(spec) .and. (.not. density_conservation)
 
       if (collisions_implicit) then
          write (*, *) 'Coll. algorithm: implicit'
@@ -1406,7 +1410,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       end do
 
-      ! add the gyro-diffusive term to cdiffmat
+      ! add the gyro-diffusive term to cdiffmat (diagonal)
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -1414,31 +1418,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          is = is_idx(kxkyz_lo, ikxkyz)
          do iv = 1, nvpa
             do imu = 1, nmu
-               ! diagonal indices in blockmatrix
                ivv = nmu * (iv - 1) + imu
-               imm = ivv
-               if ((max(1, ivv - (nmu + 1)) <= imm) .and. (imm <= min(nvpa * nmu, ivv + (nmu + 1)))) then
-                  ! intra-species:
-   cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) &
-          + code_dt * cfac * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 * (nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) &
-                                                                        + deflknob * nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu)))
-                  ! inter-species:
-                  do isb = 1, nspec
-                     if (isb == is) cycle
-
-                     if ((is == 2) .and. (isb == 1)) then
-                        eiediff = eiediffknob
-                        eidefl = eideflknob
-                     else
-                        eiediff = 1
-                        eidefl = 1
-                     end if
-
-   cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) &
-                          + code_dt*cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(eiediff*nupa(iv,imu,iz,is,isb)*bmag(ia,iz)*mu(imu) &
-                                                              + eidefl * deflknob * nuD(iv, imu, iz, is, isb) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu)))
-                  end do
-               end if
+               cdiffmat_band(nmu + 1 + nmu + 1 + 1, ivv, iky, ikx, iz, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1, ivv, iky, ikx, iz, is) &
+                  + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
             end do
          end do
       end do
@@ -2404,7 +2386,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          is = is_idx(kxkyz_lo, ikxkyz)
 
    ghrs = reshape(transpose(spread(ztmax(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(jm0(:,iky,ikx,iz,is),1,nvpa)), shape=(/ nmu*nvpa /))
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
          gvmu(:, :, ikxkyz) = transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
       end do
 
@@ -2475,7 +2457,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                         ghrs(nmu * (iv - 1) + imu) = -code_dt * modmw(iv, imu, iz, is) / modmwnorm(iz)
                      end do
                   end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
                   do ix = 1, nvpa
                      gvmu(ix, :, ikxkyz) = ghrs(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu)
                   end do
@@ -2534,7 +2516,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                      ghrs(nmu * (iv - 1) + imu) = ztmax(iv, is) * maxwell_mu(1, iz, imu, is) * jm0(imu, iky, ikx, iz, is)
                   end do
                end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
                do ix = 1, nvpa
                   gvmu(ix, :, ikxkyz) = ghrs(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu)
                end do
@@ -2600,7 +2582,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                            ghrs(nmu * (iv - 1) + imu) = -code_dt * modmw(iv, imu, iz, is) / modmwnorm(iz)
                         end do
                      end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
                      do ix = 1, nvpa
                         gvmu(ix, :, ikxkyz) = ghrs(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu)
                      end do
@@ -2850,8 +2832,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
          ! solve for response
          ! need to solve [1 - Deltat C_{test}] dh_a/dpsi^ab = delta_{ab} for dh_a/dpsi^ab. Here, C_{test} includes self collisions and a-b collisions,
-         call zgbtrs('No transpose', nvpa * nmu, nmu + 1, nmu + 1, 1, &
-                     cdiffmat_band(:, :, iky, ikx, iz, isa), 3 * (nmu + 1) + 1, ipiv(:, iky, ikx, iz, isa), ghrs, nvpa * nmu, info)
+         call solve_test_particle_operator(ghrs, iky, ikx, iz, isa)
 
          do iv = 1, nvpa
             response(iv, :, ikxkyz) = ghrs(nmu * (iv - 1) + 1:nmu * (iv - 1) + nmu)
@@ -4472,7 +4453,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
          end do
 
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
 
          do iv = 1, nvpa
             g(iv, :, ikxkyz) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
@@ -4609,7 +4590,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          do iv = 1, nvpa
             ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
          end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
          do iv = 1, nvpa
             g(iv, :, ikxkyz) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
          end do
@@ -4628,5 +4609,108 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       deallocate (ghrs)
 
    end subroutine advance_implicit_fp
+
+   !****************************************************************************
+   !                   Coefficient of the gyro-diffusive term
+   !****************************************************************************
+   ! The finite-Larmor-radius (classical diffusion) term of the test-particle operator is diagonal in velocity space:
+   ! C_test[h] contains -cfac * kperp2 * gyro_diffusion_coefficient * h. It is used both in the matrix of the implicit
+   ! solve (init_fp_diffmatrix) and in the density correction after the solve (solve_test_particle_operator).
+   !****************************************************************************
+   real function gyro_diffusion_coefficient(iv, imu, iz, is)
+
+      use grids_velocity, only: vpa, mu
+      use grids_species, only: spec, nspec
+      use geometry, only: bmag
+
+      implicit none
+
+      integer, intent(in) :: iv, imu, iz, is
+
+      real :: eiediff, eidefl, nusum
+      integer :: isb, ia
+
+      ia = 1
+      ! intra-species
+      nusum = nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) + deflknob * nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
+      ! inter-species
+      do isb = 1, nspec
+         if (isb == is) cycle
+         if ((is == 2) .and. (isb == 1)) then
+            eiediff = eiediffknob
+            eidefl = eideflknob
+         else
+            eiediff = 1
+            eidefl = 1
+         end if
+         nusum = nusum + eiediff * nupa(iv, imu, iz, is, isb) * bmag(ia, iz) * mu(imu) &
+                 + eidefl * deflknob * nuD(iv, imu, iz, is, isb) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
+      end do
+      gyro_diffusion_coefficient = 0.5 * (spec(is)%smz / bmag(ia, iz))**2 * nusum
+
+   end function gyro_diffusion_coefficient
+
+   !****************************************************************************
+   !                       Solve [1 - Deltat C_test] h = ghrs
+   !****************************************************************************
+   ! The velocity-space part of the test-particle operator conserves density analytically, but on the non-uniform mu
+   ! grid (without density_conservation) the implicit solve changed the density by about 1e-5 of h per time step
+   ! (benchmark C2, Nov 2026). With kinetic electrons, quasineutrality amplifies this by 1/(k_perp rho_i)^2, so that
+   ! collisions alone were unstable. With density_correction_solve, this density error is removed after the solve, by
+   ! adding a multiple of modmw, which has no momentum and no energy moment. The finite-Larmor-radius (classical
+   ! diffusion) term of the operator (gyro_diffusion_coefficient), the diagonal flr_diag below, changes the gyrocentre density physically, so only
+   ! the remainder is removed: the solution x of [1 + flr_diag - Deltat C_v] x = ghrs must satisfy
+   ! n[x] + n[flr_diag x] = n[ghrs], where n[.] is the density moment on the grid. (Conserving n[x] instead made the
+   ! ion-ion collisions unstable in benchmark C2.) The correction is linear in ghrs, so it is applied in the same
+   ! way to the response matrices.
+   !****************************************************************************
+   subroutine solve_test_particle_operator(ghrs, iky, ikx, iz, is)
+
+      use grids_velocity, only: nvpa, nmu
+      use grids_time, only: code_dt
+      use arrays, only: kperp2
+      use calculations_velocity_integrals, only: integrate_vmu
+
+      implicit none
+
+      complex, dimension(:), intent(in out) :: ghrs
+      integer, intent(in) :: iky, ikx, iz, is
+
+      complex, dimension(:, :), allocatable :: hvmu
+      real, dimension(:, :), allocatable :: flr_diag
+      complex :: density_rhs, density_error
+      real :: modmw_density
+      integer :: info, iv, imu, ia
+
+      if (density_correction_solve) then
+         ia = 1
+         allocate (hvmu(nvpa, nmu), flr_diag(nvpa, nmu))
+         hvmu = transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
+         call integrate_vmu(hvmu, iz, density_rhs)
+         ! the diagonal finite-Larmor-radius term of cdiffmat_band (see init_fp_diffmatrix)
+         do iv = 1, nvpa
+            do imu = 1, nmu
+               flr_diag(iv, imu) = 1. + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
+            end do
+         end do
+      end if
+
+      call zgbtrs('No transpose', nvpa * nmu, nmu + 1, nmu + 1, 1, cdiffmat_band(:, :, iky, ikx, iz, is), &
+                  3 * (nmu + 1) + 1, ipiv(:, iky, ikx, iz, is), ghrs, nvpa * nmu, info)
+
+      if (density_correction_solve) then
+         ! density error: n[(1 + flr_diag) x] - n[ghrs], removed with modmw
+         hvmu = flr_diag * transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
+         call integrate_vmu(hvmu, iz, density_error)
+         density_error = density_error - density_rhs
+         call integrate_vmu(flr_diag * modmw(:, :, iz, is), iz, modmw_density)
+         do iv = 1, nvpa
+            ghrs(nmu * (iv - 1) + 1:nmu * iv) = ghrs(nmu * (iv - 1) + 1:nmu * iv) &
+                                                - modmw(iv, :, iz, is) / modmw_density * density_error
+         end do
+         deallocate (hvmu, flr_diag)
+      end if
+
+   end subroutine solve_test_particle_operator
 
 end module collisions_fokkerplanck
