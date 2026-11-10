@@ -159,6 +159,7 @@ contains
          use parameters_physics, only: include_mirror
          use parameters_physics, only: include_nonlinear
          use parameters_physics, only: include_xdrift, include_ydrift
+         use parameters_physics, only: include_drive
          use parameters_physics, only: rhostar
          use mp, only: mp_abort
          
@@ -276,9 +277,14 @@ contains
 
          if (fully_explicit) flip_flop = .false.
          
+         ! The explicit part is skipped when fully_implicit = .true., so every term that is only
+         ! advanced explicitly has to be absent. The drive is only part of the implicit solve when
+         ! drifts_implicit = .true.; without that check, switching off both drifts silently removed
+         ! the drive (November 2026).
          if ( (.not. include_mirror .or. mirror_implicit ) .and. &
               (.not. include_parallel_streaming .or. stream_implicit ) .and. &
               (.not. (include_xdrift .or. include_ydrift) .or. drifts_implicit ) .and. &
+              (.not. include_drive .or. drifts_implicit ) .and. &
                .not. include_nonlinear ) then
             fully_implicit = .true.
          else
