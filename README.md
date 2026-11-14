@@ -2,22 +2,20 @@
 
 [![Check stella](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml/badge.svg)](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml)
 
-$\texttt{stella}$ solves the gyrokinetic-Poisson system of equations in the local limit
-using an operator-split, implicit-explicit numerical scheme. It is capable of
-evolving electrostatic fluctuations with fully kinetic electrons and an
-arbitrary number of ion species in general magnetic geometry, including
-stellarators.
+$\texttt{stella}$ solves the gyrokinetic-Poisson system of equations in the local limit using an operator-split, implicit-explicit numerical scheme. It is capable of evolving electrostatic and electromagnetic fluctuations with fully kinetic electrons and an arbitrary number of ion species in general magnetic geometry, including stellarators.
 
 A detailed $\texttt{stella}$ manual will be released in the coming months, which will be available on the GitHub repository, as well as on arXiv.
 
 <br><br>
 
 ## Table of contents
+- [Quick start](#quick-start)
 - [Dependencies](#dependencies)
 - [Installation and Compilation](#installation-and-compilation)
-   * [CMake](#cmake)
    * [Make](#make)
-- [New input variables](#new-input-variables)
+   * [CMake](#cmake)
+- [Running stella](#running-stella)
+- [Input files](#input-files)
 - [Verification of stella output](#verification-of-stella-output)
    * [Set-up the automatic tests](#set-up-the-automatic-tests)
    * [Run numerical tests](#run-numerical-tests)
@@ -34,48 +32,115 @@ A detailed $\texttt{stella}$ manual will be released in the coming months, which
 
 <br><br>
 
+## Quick start
+
+On Ubuntu, the following commands download, compile and run $\texttt{stella}$:
+
+```bash
+git clone https://github.com/stellaGK/stella.git
+cd stella
+sudo apt install gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin openmpi-bin libopenmpi-dev libblas-dev liblapack-dev
+export STELLA_SYSTEM=gnu_ubuntu
+make -j 4
+mkdir -p ../stella_runs/first_run
+cp DOCUMENTATION/example_input_files/miller_linear_CBC.in ../stella_runs/first_run/
+cd ../stella_runs/first_run
+mpirun -n 4 ../../stella/stella miller_linear_CBC.in
+```
+
+This runs a linear simulation of the Cyclone Base Case ITG mode (Miller geometry, adiabatic electrons) at four values of $k_y$, which takes about a minute on 4 cores. The growth rates and frequencies are written to `miller_linear_CBC.omega`, and the expected values, which agree with GENE, GS2, GX and CGYRO, are listed at the top of the input file; see [Running stella](#running-stella) for the other output files. On macOS, see [Make](#make) for the Homebrew packages and paths.
+
+
+<br><br>
+
 ## Dependencies
 
-In order to compile and run $\texttt{stella}$, install the following libraries:
-- A Fortran compiler, typically $\texttt{gfortan}$ on Ubuntu, or $\texttt{gcc}$ on macOS.
-- NetCDF libraries in order to write the diagnostics.
-- Libraries for linear algebra routines, such as $\texttt{blas}$ and $\texttt{lapack}$.
-- An implementation of $\texttt{MPI}$ for parallel runs.
-- FFTW for computing discrete Fourier transformations.
-- The $\texttt{make}$ or $\texttt{cmake}$ library, for building the code.
-- Python utilities for the automatic tests.
+In order to compile and run $\texttt{stella}$, install the following:
+- A Fortran compiler, typically $\texttt{gfortran}$ (on macOS it comes with the $\texttt{gcc}$ package of Homebrew).
+- An implementation of $\texttt{MPI}$, such as OpenMPI.
+- The NetCDF Fortran library, to write the diagnostics.
+- FFTW3, to compute the discrete Fourier transforms.
+- BLAS and LAPACK, for the linear algebra routines.
+- $\texttt{make}$ or $\texttt{cmake}$, to build the code.
+- Python 3, for the automatic tests and the post-processing.
 
-Note that the following libraries are optional:
-- NetCDF Fortran
-- FFTW3
-- LAPACK
+NetCDF, FFTW3 and LAPACK can be switched off at compile time (see [CMake](#cmake)), but nonlinear simulations need FFTW3 and the diagnostics need NetCDF, so in practice all of them are required.
+
+On Ubuntu:
+
+```bash
+sudo apt install gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin openmpi-bin libopenmpi-dev libblas-dev liblapack-dev
+```
+
+On macOS (with [Homebrew](https://brew.sh)):
+
+```bash
+brew install gcc make openmpi fftw netcdf-fortran
+```
+
+The submodules of $\texttt{stella}$ (in `EXTERNALS/`) are downloaded automatically during the first build. They can also be downloaded by hand with `git submodule update --init --recursive`.
 
 
 <br><br>
 
 ## Installation and Compilation
 
-There are two ways to build stella: using $\texttt{CMake}$ or plain $\texttt{make}$.
+There are two ways to build $\texttt{stella}$: using plain $\texttt{make}$ or $\texttt{CMake}$. Both create the executable `stella` in the main folder of the repository.
+
+
+<br>
+
+### Make
+
+1. Set `STELLA_SYSTEM` to the system on which you are compiling, e.g. `gnu_ubuntu` or `macos`, which are tested automatically on GitHub. The supported systems are the files `COMPILATION/Makefiles/Makefile.<system>`.
+2. Optionally, set the following environment variables to override the locations of the libraries in the `Makefile.<system>` file:
+   - `FFTW_LIB_DIR`: directory containing libfftw3
+   - `FFTW_INC_DIR`: directory containing fftw3.f
+   - `NETCDF_LIB_DIR`: directory containing libnetcdff
+   - `NETCDF_INC_DIR`: directory containing netcdf.inc
+3. Run `make`, or `make -j 4` to compile on 4 cores.
+
+On Ubuntu:
+
+```bash
+export STELLA_SYSTEM=gnu_ubuntu
+make -j 4
+```
+
+On macOS with Homebrew:
+
+```bash
+export STELLA_SYSTEM=macos
+export FFTW_LIB_DIR=$(brew --prefix fftw)/lib/
+export FFTW_INC_DIR=$(brew --prefix)/include/
+export NETCDF_LIB_DIR="$(brew --prefix)/lib -L$(brew --prefix netcdf-fortran)/lib/"
+export NETCDF_INC_DIR=$(brew --prefix netcdf-fortran)/include/
+make -j 4
+```
+
+Add the `export` lines to your `~/.bashrc` (or `~/.zshrc`) so that they are set in every new terminal. After changing the source code, `make` recompiles only what is needed; run `make depend` first when you add a new Fortran file or `use` statement. To clean the directory, the following commands exist:
+
+```
+make clean              # Removes compiled stella files, utils files and mini_libstell files
+make clean-quick        # Only removes the compiled stella files, not the utils and mini_libstell files
+make clean-submodules   # Clean + Remove git_version, neasyf and pFUnit folders
+make distclean          # Clean + Remove stella executable + Invoke clean on pFUnit
+```
 
 
 <br>
 
 ### CMake
 
-**Note**: If you have previously built stella with plain `make` you
-_must_ run `make clean` before attempting to build with CMake, or the
-existing built objects will interfere with the CMake build.
+**Note**: If you have previously built $\texttt{stella}$ with plain `make` you _must_ run `make clean` before attempting to build with CMake, or the existing built objects will interfere with the CMake build.
 
-Building stella with CMake requires CMake >= 3.16. You can download
-the latest version from the [CMake
-website](https://cmake.org/download/), but it is often easier to
-install with `pip`:
+Building $\texttt{stella}$ with CMake requires CMake >= 3.16. You can download the latest version from the [CMake website](https://cmake.org/download/), but it is often easier to install with `pip`:
 
 ```
 pip install cmake
 ```
 
-Building stella is then a matter of first configuring the build:
+Building $\texttt{stella}$ is then a matter of first configuring the build:
 
 ```
 cmake . -B COMPILATION/build_cmake
@@ -84,15 +149,14 @@ cmake . -B COMPILATION/build_cmake
 and then building proper:
 
 ```
-cmake --build COMPILATION/build_cmake
+cmake --build COMPILATION/build_cmake -j 4
 ```
 
-You may need to pass a few flags to the first `cmake` command to tell
-it where to find some dependencies:
+The executable is written to `COMPILATION/build_cmake/stella`, with a symbolic link `stella` in the main folder. You may need to pass a few flags to the first `cmake` command to tell it where to find some dependencies:
 
 ```
-cmake . -B build \
-  -DnetCDFFortran_ROOT=/path/to/netcdf/fortran
+cmake . -B COMPILATION/build_cmake \
+  -DnetCDFFortran_ROOT=/path/to/netcdf/fortran \
   -DFFTW_ROOT=/path/to/fftw
 ```
 
@@ -101,84 +165,56 @@ There are a few build options:
 - `STELLA_ENABLE_LAPACK`: Enable LAPACK (default: on)
 - `STELLA_ENABLE_FFT`: Enable FFTs (default: on)
 - `STELLA_ENABLE_NETCDF`: Enable NetCDF (default: on)
-- `STELLA_ENABLE_DOUBLE`: Promotes precisions of real and complex to double
-  (default: on)
-- `STELLA_ENABLE_LOCAL_SPFUNC`: Enable local special functions" (default: off)
+- `STELLA_ENABLE_DOUBLE`: Promotes the precision of reals and complex numbers to double (default: on)
+- `STELLA_ENABLE_LOCAL_SPFUNC`: Enable local special functions (default: off)
 - `STELLA_ENABLE_NAGLIB`: Use the NAG library (default: off)
-- `STELLA_ENABLE_POSIX`: Enable POSIX functions for command line functionality
-  (default: off)
+- `STELLA_ENABLE_POSIX`: Enable POSIX functions for command line functionality (default: off)
 - `STELLA_ENABLE_F200X`: Enable use of F2003/F2008 functionality (default: on)
 
-You can turn these on or off with `-D<option name>=ON/OFF`. You can
-get a complete list of options by running the following in a build
-directory:
+You can turn these on or off with `-D<option name>=ON/OFF`. You can get a complete list of options by running the following in a build directory:
 
 ```
 cmake -LH
 ```
 
 
-<br>
+<br><br>
 
-### Make
+## Running stella
 
-The other build system uses plain `make`:
-
-1. Set `STELLA_SYSTEM='system'`, with `system` replaced by the appropriate system on
-   which you are running. See the `COMPILATION/Makefiles/` directory for a list of supported
-   systems.
-2. Optionally, set the following environment variables to override the locations
-   in the `STELLA_SYSTEM` Makefile:
-   - `FFTW_LIB_DIR`: directory containing libfftw3
-   - `FFTW_INC_DIR`: directory including fftw3.f
-   - `NETCDF_LIB_DIR`: directory containing libnetcdff
-   - `NETCDF_INC_DIR`: directory including netcdf.inc
-4. Set the environment variable `MAKEFLAGS=-IMakefiles`, or set `-IMakefiles`
-   when you run `make`
-5. Run `make`
-
-For example, to compile on Ubuntu:
+$\texttt{stella}$ reads one input file, and is run with MPI from the folder that contains it:
 
 ```bash
-# Using bash:
-export STELLA_SYSTEM=gnu_ubuntu
-export MAKEFLAGS=-IMakefiles
-make
-
-# Or in one line:
-make -IMakefiles STELLA_SYSTEM=gnu_ubuntu
-```
-In summary the exports of `STELLA_SYSTEM` and `MAKEFLAGS` are set, compiling stella is achieved through:
-```
-make clean
-make depend
-make
-```
-To `clean` the directory, the following commands exist:
-```
-make clean              # Removes compiled stella files, utils files and mini_libstell files
-make clean-quick        # Only removes the compiled stella files, not the utils and mini_libstell files
-make clean-submodules   # Clean + Remove git_version, neasyf and pFUnit folders
-make distclean          # Clean + Remove stelle executable + Invoke clean on pFUnit
+mpirun -n 4 /path/to/stella/stella input.in
 ```
 
+All output files start with the name of the input file:
+- `input.out.nc`: all diagnostics (fields, fluxes, moments, geometry, grids) in NetCDF format.
+- `input.out`: the time traces of $|\phi|^2$, $|A_\parallel|^2$ and $|B_\parallel|^2$ that are also written to the screen.
+- `input.fluxes`: the particle, momentum and heat fluxes of each species versus time.
+- `input.omega`: the frequency $\omega$ and growth rate $\gamma$ of every $(k_x, k_y)$ mode versus time (linear simulations).
+- `input.geometry`: the geometric coefficients along the field line.
+- `input.final_fields`: the electrostatic potential at the end of the simulation.
+- `input.error`: warnings and errors; check this file when a simulation stops early.
+- `input.input`: the input file with all variables, including the default values that were not set.
 
+Good starting points for new simulations are the linear Cyclone Base Case example `DOCUMENTATION/example_input_files/miller_linear_CBC.in` and the default input file, which lists every input variable (see [Input files](#input-files)). The input files of the automatic tests in `AUTOMATIC_TESTS/numerical_tests/` show how to switch on other options, but they use very coarse grids and only a few time steps. Stellarator simulations need a $\texttt{VMEC}$ equilibrium (`vmec_filename`); the W7-X standard configuration and the NCSX equilibrium `wout_161s1.nc` are included in `DOCUMENTATION/VMEC_equilibria/`. The output can be plotted with the python package in `POST_PROCESSING/stellapy` (see its `README`) or read directly with `netCDF4` or `xarray` in python.
 
 
 <br><br>
 
-## New input variables
+## Input files
 
-Many of the namelists and variable names have been changed throughout the years to make them more intuitive. An up-to-date default $\texttt{stella}$ input file can be found at:
+Many of the namelists and variable names have been changed throughout the years to make them more intuitive. An up-to-date default $\texttt{stella}$ input file, which lists every input variable with its default value, can be found at:
 
 ```
 STELLA_CODE/read_namelists_from_input_file/default_input_file.in
 ```
 
-To convert old $\texttt{stella}$ input files to the new format, run the following command in the folder containing the input file:
+To convert input files of older $\texttt{stella}$ versions (v0.5 to v0.8) to the new format, run the following command in the folder containing the input files, where `/path/to/stella` is the folder of this repository:
 
 ```
-python3 $STELLA/AUTOMATIC_TESTS/convert_input_files/convert_inputFile.py
+python3 /path/to/stella/AUTOMATIC_TESTS/convert_input_files/convert_inputFile.py
 ```
 
 Changes to the input variables since stella v1.0:
@@ -265,7 +301,7 @@ It is the responsibility of the respective authors to list their contributions t
 - Hyper dissipation in (vpa, z) was added by S. Stroteich in March 2024. These options can be controlled by the `D_zed` and `D_vpa` input variables in the `hyper_dissipation` namelist.
 - The electromagnetic extension of the $\texttt{stella}$ code has been implemented by M. Hardman in July 2024, with the help of G. Acton, M. Barnes and R. Davies.
 - The non-twisting flux tube has been implemented by H. Thienpondt in October 2026, based on [[2021 - Ball - Plasma Physics and Controlled Fusion](https://doi.org/10.1088/1361-6587/abf8f4)].
-- The full-flux-surface version of $\texttt{stella}$ will be implemented by G. Acton in 2026.
+- The full-flux-surface version of $\texttt{stella}$ is being implemented by G. Acton in 2026 (see test 7).
 
 ### Magnetic geometries
 
