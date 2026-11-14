@@ -898,7 +898,9 @@ contains
       ! Note that in Miller z = theta, so b_dot_gradz = b_dot_grad_theta
       !      R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
       !                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
-      b_dot_gradzeta_RR = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
+      ! Here R = R(z) is the major radius along the field line (<rmajor>) and Btor = I/R(z) (<btor>), so R*Btor = I.
+      ! NB: before November 2026 the constant <geo_surf%rmaj> was used instead of R(z), which gave I/B * rmaj/R(z)
+      b_dot_gradzeta_RR = spread(rmajor * btor, 1, nalpha) / bmag
       if (debug) write (*, *) 'geometry::Miller::get_geometry_arrays_from_Miller_finished'
 
    end subroutine get_geometry_arrays_from_Miller

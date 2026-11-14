@@ -39,7 +39,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use grids_species, only: spec
-      use geometry, only: grho_norm, bmag, btor
+      use geometry, only: grho_norm, bmag, btor, rmajor
       use geometry, only: drhodpsi
       use geometry, only: gradx_dot_grady, gradx_dot_gradx
       use geometry, only: d_gradxdotgrady_drho, d_gradxdotgradx_drho
@@ -215,7 +215,7 @@ contains
                do iz = -nzgrid, nzgrid
                
                   ! Parallel component
-                  g0k = g(:, :, iz, it, ivmu) * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
+                  g0k = g(:, :, iz, it, ivmu) * vpa(iv) * rmajor(iz) * btor(iz) / bmag(ia, iz)
                   call gyro_average(g0k, iz, ivmu, g1(:, :, iz, it, ivmu))
 
                   if (radial_variation) then
@@ -223,7 +223,7 @@ contains
                            * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
                               * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                               * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                              + dIdrho / (geo_surf%rmaj * btor(iz)))
+                              + dIdrho / (rmajor(iz) * btor(iz)))
 
                      call multiply_by_rho(g0k)
 
@@ -233,7 +233,7 @@ contains
                   
                   ! Subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * vpa(iv) * geo_surf%rmaj * btor(iz) * maxwell_vpa(iv, is) &
+                        * vpa(iv) * rmajor(iz) * btor(iz) * maxwell_vpa(iv, is) &
                         * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) / bmag(ia, iz)
 
                   if (radial_variation) then
@@ -242,7 +242,7 @@ contains
                                   - aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
                                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                  + dIdrho / (geo_surf%rmaj * btor(iz)))
+                                  + dIdrho / (rmajor(iz) * btor(iz)))
 
                      call multiply_by_rho(g1k)
 
