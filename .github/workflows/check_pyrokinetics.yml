@@ -1,6 +1,7 @@
-# Run these tests automatically on Github on every push and pull request.
+# These tests are switched off for pushes and pull requests; run them by hand from the Actions tab on GitHub (Run workflow).
+# Note that 'on: []' is not a valid trigger: GitHub then reports a failed run on every push.
 name: Check Pyrokinetics
-on: []
+on: workflow_dispatch
 
 # We always run in a bash shell
 defaults:
