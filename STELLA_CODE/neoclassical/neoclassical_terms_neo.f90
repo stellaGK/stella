@@ -68,10 +68,10 @@ module neoclassical_terms_neo
     real, dimension(:, :, :, :, :), allocatable :: neo_zed_fac_global
 
     ! DIAGNOSTICS. 
-    ! real, dimension(:, :), allocatable :: neo_dens, neo_dens_right, neo_dens_left
-    ! real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
-    ! real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
-    ! real, dimension(:, :), allocatable :: neo_dens_mu_deriv
+    real, dimension(:, :), allocatable :: neo_dens, neo_dens_right, neo_dens_left
+    real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
+    real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
+    real, dimension(:, :), allocatable :: neo_dens_mu_deriv
 
     logical :: initialised_neoclassical_terms_neo = .false.
 
@@ -133,8 +133,10 @@ contains
         use grids_species, only: nspec
         
         ! For NEO's data. 
-        use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi, neo_grid_data, neo_version_data    
-        use neoclassical_diagnostics, only: write_neo_phi_on_stella_z_grid_diagnostic, write_neo_distribution_on_stella_grids_diagnostic
+        use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi
+        use NEO_interface, only: neo_grid_data, neo_version_data    
+        use neoclassical_diagnostics, only: write_neo_phi_on_stella_z_grid_diagnostic
+        use neoclassical_diagnostics, only: write_neo_distribution_on_stella_grids_diagnostic
         use neoclassical_diagnostics, only: write_distribution_moment_diagnostic
 
         ! Geometry.
@@ -238,46 +240,45 @@ contains
         call get_neo_phi_on_stella_z_grid(neo_phi_left_in, neo_grid, 1, neo_phi_left, .false.)         
 
         ! DIAGNOSTIC.
-        ! if (proc0) then
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, neo_phi(ia, :), "neo_phi_on_stella_z_grid_central_surface")
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, neo_phi_left, "neo_phi_on_stella_z_grid_left_surface")
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, neo_phi_right, "neo_phi_on_stella_z_grid_right_surface")
-        ! end if
+        if (proc0) then
+            call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi(ia, :), "neo_phi_on_stella_z_grid_central_surface")
+            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_left, "neo_phi_on_stella_z_grid_left_surface")
+            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_right, "neo_phi_on_stella_z_grid_right_surface")
+        end if
 
         ! Now reconstruct H_1 on stellas v∥​ and μ grids for all three surfaces (ia = 1).
         call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_global)
-        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_global_right)                                             
-        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_global_left)    
+        ! call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_global_right)                                             
+        ! call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_global_left)    
 
         ! DIAGNOSTIC.
-        ! NOTE: neo_h_global is now (-nzgrid:nzgrid, nvpa, nmu, nspec), with no surface index. Update this diagnostic routine's interface before re-enabling.
         ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, neo_h_global, surface_index, 'neo_h_on_stella_grids_central')
  
         ! DIAGNOSTIC.
-        ! call get_neo_moment(neo_h_global, neo_phi(ia, :), neo_grid, "zeroeth", neo_dens)
+        call get_neo_moment(neo_h_global, neo_phi(ia, :), neo_grid, "zeroeth", neo_dens)
         ! call get_neo_moment(neo_h_global_right, neo_phi_right, neo_grid, "zeroeth", neo_dens_right)
         ! call get_neo_moment(neo_h_global_left, neo_phi_left, neo_grid, "zeroeth", neo_dens_left)
 
         ! DIAGNOSTIC.
         ! Write out the density arrays to output files.  
-        ! if (proc0) then
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_dens, "zeroeth_moment_on_stella_z_grid_central_surface")
+        if (proc0) then
+            call write_distribution_moment_diagnostic(neo_grid, neo_dens, "zeroeth_moment_on_stella_z_grid_central_surface")
             ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_right, "zeroeth_moment_on_stella_z_grid_right_surface")
             ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_left, "zeroeth_moment_on_stella_z_grid_left_surface")
-        ! end if
+        end if
 
         ! DIAGNOSTIC.
-        ! call get_neo_moment(neo_h_global, neo_phi(ia, :), neo_grid, "first", neo_u_par)
+        call get_neo_moment(neo_h_global, neo_phi(ia, :), neo_grid, "first", neo_u_par)
         ! call get_neo_moment(neo_h_global_right, neo_phi_right, neo_grid, "first", neo_u_par_right)
         ! call get_neo_moment(neo_h_global_left, neo_phi_left, neo_grid, "first", neo_u_par_left)
 
         ! DIAGNOSTIC.
         ! Write out the parallel flow arrays to output files.  
-        ! if (proc0) then
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_u_par, "first_moment_on_stella_z_grid_central_surface")
+        if (proc0) then
+            call write_distribution_moment_diagnostic(neo_grid, neo_u_par, "first_moment_on_stella_z_grid_central_surface")
             ! call write_distribution_moment_diagnostic(neo_grid, neo_u_par_right, "first_moment_on_stella_z_grid_right_surface")
             ! call write_distribution_moment_diagnostic(neo_grid, neo_u_par_left, "first_moment_on_stella_z_grid_left_surface")
-        ! end if
+        end if
 
         ! Now compact distribution into 3 indices for use in the GKE and also for calculating the derivatives.  
         do iz = -nzgrid, nzgrid
@@ -305,9 +306,9 @@ contains
         end do
 
         ! DIAGNOSTIC.
-        ! if (proc0) then
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, dneo_phi_dz(ia, :), "dneo_phi_dz_on_stella_z_grid_central_surface")
-        ! end if
+        if (proc0) then
+            call write_neo_phi_on_stella_z_grid_diagnostic(dneo_phi_dz(ia, :), "dneo_phi_dz_on_stella_z_grid_central_surface")
+        end if
 
         ! We will need the derivatives of the distribution with respect to stellas velocity variables.
         call get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, dneo_h_dvpa_global(ia, :, :, :, :), dneo_h_dmu_global(ia, :, :, :, :))
@@ -332,26 +333,25 @@ contains
         call get_rho_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac(ia, :, :), drho, dneo_h_drho(ia, :, :), dneo_phi_drho(ia, :))
 
         ! DIAGNOSTIC.
-        ! if (proc0) then
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, dneo_phi_drho(ia, :), "dneo_phi_drho_on_stella_z_grid_central_surface")
-        ! end if
+        if (proc0) then
+            call write_neo_phi_on_stella_z_grid_diagnostic(dneo_phi_drho(ia, :), "dneo_phi_drho_on_stella_z_grid_central_surface")
+        end if
 
         ! DIAGNOSTIC.
-        ! NOTE: update this diagnostic routine's interface for (-nzgrid:nzgrid, nvpa, nmu, nspec) slices before re-enabling.
-        ! if (proc0) then
-            ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, dneo_h_dvpa_global(ia, :, :, :, :), 1, "neo_h_vpa_deriv_on_stella_z_grid_central_surface")
-            ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, dneo_h_dmu_global(ia, :, :, :, :), 1, "neo_h_mu_deriv_on_stella_z_grid_central_surface")
-        ! end if
+        if (proc0) then
+            call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, dneo_h_dvpa_global(ia, :, :, :, :), 1, "neo_h_vpa_deriv_on_stella_z_grid_central_surface")
+            call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, dneo_h_dmu_global(ia, :, :, :, :), 1, "neo_h_mu_deriv_on_stella_z_grid_central_surface")
+        end if
              
         ! DIAGNOSTIC. 
-        ! call get_neo_h_velocity_derivative_moment(dneo_h_dvpa_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), neo_grid, "vpa", neo_dens_vpa_deriv)
-        ! call get_neo_h_velocity_derivative_moment(dneo_h_dmu_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), neo_grid, "mu", neo_dens_mu_deriv)        
+        call get_neo_h_velocity_derivative_moment(dneo_h_dvpa_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), neo_grid, "vpa", neo_dens_vpa_deriv)
+        call get_neo_h_velocity_derivative_moment(dneo_h_dmu_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), neo_grid, "mu", neo_dens_mu_deriv)        
 
         ! DIAGNOSTIC.
-        ! if (proc0) then
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_vpa_deriv, "neo_distribution_vpa_deriv_first_moment_on_stella_z_grid_central_surface") 
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_mu_deriv, "neo_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
-        ! end if
+        if (proc0) then
+            call write_distribution_moment_diagnostic(neo_grid, neo_dens_vpa_deriv, "neo_distribution_vpa_deriv_first_moment_on_stella_z_grid_central_surface") 
+            call write_distribution_moment_diagnostic(neo_grid, neo_dens_mu_deriv, "neo_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
+        end if
 
         ! NEO is axisymmetric, so every field line is identical: copy the ia = 1 data on to ia = 2, ..., nalpha.
         call copy_alpha_one_to_all(neo_h)
@@ -423,19 +423,19 @@ contains
 
         ! DIAGNOSTICS.
         ! Allocate the NEO zeroeth order moments.
-        ! if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, neo_grid%n_species))
-        ! if (.not. allocated(neo_dens_right)) allocate(neo_dens_right(-nzgrid:nzgrid, neo_grid%n_species))
-        ! if (.not. allocated(neo_dens_left)) allocate(neo_dens_left(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_dens_right)) allocate(neo_dens_right(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_dens_left)) allocate(neo_dens_left(-nzgrid:nzgrid, neo_grid%n_species))
 
         ! DIAGNOSTICS.
         ! Allocate the NEO first order moments, FOR TESTING PURPOSES.
-        ! if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, neo_grid%n_species))
-        ! if (.not. allocated(neo_u_par_right)) allocate(neo_u_par_right(-nzgrid:nzgrid, neo_grid%n_species))
-        ! if (.not. allocated(neo_u_par_left)) allocate(neo_u_par_left(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_u_par_right)) allocate(neo_u_par_right(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_u_par_left)) allocate(neo_u_par_left(-nzgrid:nzgrid, neo_grid%n_species))
 
         ! DIAGNOSTICS.
-        ! if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, neo_grid%n_species))
-        ! if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, neo_grid%n_species))
+        if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, neo_grid%n_species))
 
     end subroutine allocate_temp_arrays
     
@@ -467,18 +467,18 @@ contains
         if (allocated(neo_h_left)) deallocate(neo_h_left)  
 
         ! DIAGNOSTICS.          
-        ! if (allocated(neo_dens)) deallocate(neo_dens)
-        ! if (allocated(neo_dens_left)) deallocate(neo_dens_left)
-        ! if (allocated(neo_dens_right)) deallocate(neo_dens_right)
+        if (allocated(neo_dens)) deallocate(neo_dens)
+        if (allocated(neo_dens_left)) deallocate(neo_dens_left)
+        if (allocated(neo_dens_right)) deallocate(neo_dens_right)
 
         ! DIAGNOSTICS.
-        ! if (allocated(neo_u_par)) deallocate(neo_u_par)
-        ! if (allocated(neo_u_par_left)) deallocate(neo_u_par_left)
-        ! if (allocated(neo_u_par_right)) deallocate(neo_u_par_right)
+        if (allocated(neo_u_par)) deallocate(neo_u_par)
+        if (allocated(neo_u_par_left)) deallocate(neo_u_par_left)
+        if (allocated(neo_u_par_right)) deallocate(neo_u_par_right)
         
         ! DIAGNOSTICS.
-        ! if (allocated(neo_dens_vpa_deriv)) deallocate(neo_dens_vpa_deriv)
-        ! if (allocated(neo_dens_mu_deriv)) deallocate(neo_dens_mu_deriv)
+        if (allocated(neo_dens_vpa_deriv)) deallocate(neo_dens_vpa_deriv)
+        if (allocated(neo_dens_mu_deriv)) deallocate(neo_dens_mu_deriv)
     
     end subroutine deallocate_temp_arrays
 

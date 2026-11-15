@@ -3,7 +3,7 @@
 
 # Before building install these packages
 #
-# gcc openmpi-bin gfortran openmpi-bin libopenmpi-dev libfftw3-3 
+# gcc openmpi-bin gfortran openmpi-bin libopenmpi-dev libfftw3-3
 # libfftw3-mpi-dev libfftw3-dev libfftw3-bin libnetcdf-dev netcdf-bin
 
 define STANDARD_SYSTEM_CONFIGURATION
@@ -40,4 +40,55 @@ endif
 ifdef USE_NETCDF
 	NETCDF_INC = -I/usr/include
 	NETCDF_LIB = -L/usr/lib -lnetcdf -lnetcdff
+endif
+
+# ------------------------------------------------------------------------------
+# SFINCS (build with: make clean && make USE_SFINCS=on)
+#
+# Requires a built SFINCS v3 (libsfincs.a + *.mod in SFINCS_DIR), the same PETSc
+# that SFINCS was built against (PETSC_DIR / PETSC_ARCH exported in the shell),
+# the HDF5 Fortran libraries, and pkg-config. Use the same mpif90/gfortran for
+# SFINCS and stella, since Fortran .mod files are compiler-version specific.
+# ------------------------------------------------------------------------------
+ifdef USE_SFINCS
+	SFINCS_DIR ?= /home/oliver-robertson/sfincs/fortran/version3
+	ifeq ($(wildcard $(SFINCS_DIR)/libsfincs.a),)
+$(error USE_SFINCS: $(SFINCS_DIR)/libsfincs.a not found; build SFINCS first or set SFINCS_DIR)
+	endif
+	# SFINCS has its own module called 'geometry', which would shadow stella's if
+	# $(SFINCS_DIR) were put on the include path. So only the SFINCS modules that
+	# stella uses are exposed, via symlinks in a separate directory (kept outside
+	# build_make so that stella's "make clean" is unaffected).
+	SFINCS_MODDIR := $(COMPILATION_DIR)/sfincs_modules
+	SFINCS_MODS = sfincs_main globalvariables export_f xgrid
+	SFINCS_MODLINKS := $(shell mkdir -p $(SFINCS_MODDIR) && for m in $(SFINCS_MODS); do ln -sf $(SFINCS_DIR)/$$m.mod $(SFINCS_MODDIR)/$$m.mod; done)
+	SFINCS_INC = -I$(SFINCS_MODDIR)
+	SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs
+
+	# PETSc: flags from its pkg-config file (named petsc.pc or PETSc.pc depending on version)
+	PETSC_PC := $(firstword $(wildcard \
+		$(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/petsc.pc \
+		$(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc))
+	ifeq ($(PETSC_PC),)
+$(error USE_SFINCS: no petsc.pc/PETSc.pc in $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig; export PETSC_DIR and PETSC_ARCH as used to build SFINCS)
+	endif
+	PETSC_INC := $(shell pkg-config --cflags $(PETSC_PC))
+	PETSC_LIB := $(shell pkg-config --libs $(PETSC_PC))
+
+	# HDF5 (SFINCS writes sfincsOutput.h5): Ubuntu's parallel (openmpi) build if
+	# installed, otherwise the serial one. Override HDF5_DIR / HDF5_INCDIR if needed.
+	HDF5_DIR ?= $(firstword $(wildcard \
+		/usr/lib/x86_64-linux-gnu/hdf5/openmpi \
+		/usr/lib/x86_64-linux-gnu/hdf5/serial))
+	HDF5_INCDIR ?= $(firstword $(wildcard \
+		/usr/include/hdf5/openmpi \
+		/usr/include/hdf5/serial))
+	ifeq ($(HDF5_DIR),)
+$(error USE_SFINCS: HDF5 libraries not found; install libhdf5-openmpi-dev or set HDF5_DIR and HDF5_INCDIR)
+	endif
+	HDF5_INC = -I$(HDF5_INCDIR)
+	# libsfincs.a is static and comes after HDF5_LIB on stella's link line, so the
+	# HDF5 libraries it needs are listed again straight after it.
+	HDF5_LIB = -L$(HDF5_DIR) -lhdf5_fortran -lhdf5hl_fortran -lhdf5 -lhdf5_hl
+	SFINCS_LIB += $(HDF5_LIB)
 endif

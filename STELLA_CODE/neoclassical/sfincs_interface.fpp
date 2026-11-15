@@ -71,6 +71,10 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! dfneo_dalpha and dphineo_dalpha are only computed for VMEC geometry (geometryScheme = 5);
+      ! for axisymmetric cases they are identically zero, so initialise them here.
+      dfneo_dalpha = 0.; dphineo_dalpha = 0.
+
       if (.not. allocated(fprim_local)) allocate (fprim_local(nspec))
       if (.not. allocated(tprim_local)) allocate (tprim_local(nspec))
 
@@ -316,7 +320,6 @@ contains
       dPhiHatdrN_in, total_charge_flux)
 
       use mp, only: iproc, broadcast_with_comm
-      use sfincs_main, only: finish_sfincs
       use globalVariables, only: Zs, particleFlux_vd_psiHat
       use grids_species, only: nspec
 
@@ -345,11 +348,13 @@ contains
    subroutine init_and_run_sfincs(sfincs_comm, irad, drho, nrad_max)
 
       use mp, only: proc0, iproc
-      use sfincs_main, only: init_sfincs, prepare_sfincs, run_sfincs, finish_sfincs
+      use sfincs_main, only: sfincs_init, sfincs_prepare, sfincs_run
       use globalVariables, only: Zs, particleFlux_vd_psiHat
       use grids_species, only: nspec
 
       implicit none
+
+      external :: sfincs_finalize
 
       integer, intent(in) :: sfincs_comm, irad, nrad_max
       real, intent(in) :: drho
@@ -357,13 +362,16 @@ contains
       !-------------------------------------------------------------------------
 
       if (.not. sfincs_finished) then
-         call finish_sfincs
+         call sfincs_finalize
          sfincs_finished = .true.
       end if
-      call init_sfincs(sfincs_comm)
+      ! Upstream SFINCS v3 is used unmodified: sfincs_init calls PetscInitialize and sfincs_run
+      ! calls PetscFinalize, so PETSc is initialised and finalised once per SFINCS call (i.e. once
+      ! per flux surface). This is allowed because MPI is initialised and finalised by stella, not PETSc.
+      call sfincs_init(sfincs_comm)
       call pass_inputoptions_to_sfincs(irad * drho)
       call pass_outputoptions_to_sfincs
-      call prepare_sfincs
+      call sfincs_prepare
       ! if geometryScheme = 5, then sfincs will read in equilibrium
       ! parameters from vmec file separately
       ! otherwise, assume system is axisymmetric and pass geometry
@@ -376,7 +384,7 @@ contains
             write (*, *)
             write (*, *) 'Running sfincs at irad= ', irad, ', with dPhiHatdrN= ', dPhiHatdrN
          end if
-         call run_sfincs
+         call sfincs_run
          if (proc0) then
             write (*, *) 'sfincs finished running.  total charge flux= ', sum(Zs(:nspec) * particleFlux_vd_psiHat(:nspec))
             write (*, *)
@@ -396,10 +404,11 @@ contains
    subroutine write_and_finish_sfincs(fneo, phineo, dfneo, dphineo, irad)
 
       use mp, only: proc0
-      use sfincs_main, only: finish_sfincs
       use grids_z, only: nzgrid
 
       implicit none
+
+      external :: sfincs_finalize
 
       real, dimension(:, -nzgrid:, :, :, :), intent(out) :: fneo
       real, dimension(:, -nzgrid:), intent(out) :: phineo
@@ -419,7 +428,8 @@ contains
          end if
       end if
 
-      call finish_sfincs
+      call sfincs_finalize
+      sfincs_finished = .true.
 
    end subroutine write_and_finish_sfincs
 
@@ -650,12 +660,18 @@ contains
       use globalVariables, only: nu_n_sfincs => nu_n
       use globalVariables, only: dPhiHatdrN_sfincs => dPhiHatdrN
       use globalVariables, only: withAdiabatic
+      use globalVariables, only: constraintScheme
 
       implicit none
 
       real, intent(in) :: delrho
 
       !-------------------------------------------------------------------------
+
+      ! SFINCS keeps its module variables between calls, and replaces the default
+      ! constraintScheme = -1 by its own choice during the first call. Reset it so that
+      ! every flux surface is set up exactly as a fresh SFINCS run would be.
+      constraintScheme = -1
 
       includeXDotTerm_sfincs = includeXDotTerm
       includeElectricFieldTermInXiDot_sfincs = includeElectricFieldTermInXiDot
@@ -681,7 +697,9 @@ contains
       nxi_sfincs = nxi
       aHat_sfincs = aHat
       psiAHat_sfincs = psiAHat
-      Delta_sfincs = Delta
+      Delta_sfincs = Delta * ((geo_surf%rhoc + delrho) / (geo_surf%qinp * &
+         (1.0 + delrho * geo_surf%shat / geo_surf%rhoc))) &
+         / (geo_surf%rhoc / geo_surf%qinp)
       nu_n_sfincs = nu_n
       dPhiHatdrN_sfincs = dPhiHatdrN
       if (nspec == 1) then
@@ -699,10 +717,9 @@ contains
       if (inputRadialCoordinateForGradients == 3) then
          ! radial density gradient with respect to rhotor = sqrt(psitor/psitor_LCFS)
          ! normalized by reference density (not species density)
-         dnHatdrNs(:nspec) = -spec%dens * fprim_local
-         ! radial temperature gradient with respect to rhotor = sqrt(psitor/psitor_LCFS)
-         ! normalized by reference tmperatures (not species temperature)
-         dTHatdrNs(:nspec) = -spec%temp * tprim_local
+         dnHatdrNs(:nspec) = -spec%dens * (spec%fprim - delrho * spec%d2ndr2) / geo_surf%drhotordrho
+         dTHatdrNs(:nspec) = -spec%temp * (spec%tprim - delrho * spec%d2Tdr2) / geo_surf%drhotordrho     
+      
       else
          call mp_abort('only inputRadialCoordinateForGradients=3 currently supported. aborting.')
       end if
@@ -718,7 +735,6 @@ contains
       use export_f, only: export_f_xi_option
       use export_f, only: export_f_x_option
       use export_f, only: export_delta_f, export_full_f
-      use export_f, only: export_f_stella
       implicit none
       export_f_theta_option = 0
       export_f_zeta_option = 0
@@ -726,7 +742,6 @@ contains
       export_f_x_option = 0
       export_delta_f = .true.
       export_full_f = .false.
-      export_f_stella = .true.
    end subroutine pass_outputoptions_to_sfincs
 
    !****************************************************************************
@@ -855,7 +870,6 @@ contains
       dfneo_dalpha, dphineo_dalpha)
 
       use constants, only: pi
-      use sort, only: sort_array_ascending, unsort_array_ascending
       use grids_species, only: nspec
       use grids_z, only: nzgrid, nz2pi
       use export_f, only: h_sfincs => delta_f
@@ -973,10 +987,12 @@ contains
       allocate (tmp_sfincs(nalpha_sfincs, nzed_sfincs))
       allocate (tmp_stella_zgrid(nalpha_sfincs, nz2pi))
       allocate (tmp_stella(nalpha, nz2pi))
-      allocate (h_stella(nalpha, nz2pi, size(h_sfincs, 4), size(h_sfincs, 5)))
+      ! h_stella and dh_stella are filled on the extended zed grid (all 2*nzgrid+1 points,
+      ! by get_field_on_extended_zed), not just on the central 2*pi segment (nz2pi points)
+      allocate (h_stella(nalpha, 2 * nzgrid + 1, size(h_sfincs, 4), size(h_sfincs, 5)))
       if (present(dfneo_dalpha)) then
          allocate (dh_stella_zgrid(nalpha_sfincs, nz2pi))
-         allocate (dh_stella(nalpha, nz2pi, size(h_sfincs, 4), size(h_sfincs, 5)))
+         allocate (dh_stella(nalpha, 2 * nzgrid + 1, size(h_sfincs, 4), size(h_sfincs, 5)))
       end if
 
       do is = 1, nspec
@@ -1037,8 +1053,8 @@ contains
    subroutine get_stella_theta_zeta_grids(alpha_like_stella, zed_stella)
 
       use constants, only: pi
+      use mp, only: mp_abort
       use grids_z, only: nz2pi, zed
-      use geometry, only: dzetadz
       use geometry, only: alpha
       use grids_kxky, only: nalpha
       use globalVariables, only: iota
@@ -1054,12 +1070,13 @@ contains
 
       nzpi = nz2pi / 2
 
-      ! convert from scaled zed grid on [-pi,pi]
-      ! to un-scaled grid with lower bound of zero
-      ! note that dzetadz=1 unless geometryScheme=5 (VMEC)
-      ! for geometryScheme=5, this will get extended zeta domain
-      ! with lower bound of 0
-      zed_stella = (zed(-nzpi:nzpi) + pi) / dzetadz
+      ! convert from zed grid on [-pi,pi] to a grid with lower bound of zero.
+      ! For axisymmetric geometry zed is theta. For VMEC geometry (geometryScheme = 5)
+      ! zed is a scaled zeta; the scaling factor dzetadz no longer exists in stella's
+      ! geometry module, so that case must be updated before it can be used.
+      if (geometryScheme == 5) call mp_abort('sfincs_interface: geometryScheme = 5 (VMEC) is not yet &
+           &supported: the stella zeta grid mapping (formerly dzetadz) must be updated. Aborting.')
+      zed_stella = zed(-nzpi:nzpi) + pi
 
       ! if geometryScheme is 5, then using vmec geo
       ! and thus zed in stella is scaled zeta
@@ -1436,7 +1453,7 @@ contains
          ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
          ! need to multiply by Z_s * Tref/T_s
          f_neoclassical(:, imu) = f_neoclassical(:, imu) &
-                                  - phi_neoclassical * spec(is)%zt * maxwell_vpa * maxwell_mu(ialpha, iz, imu)
+                                  - phi_neoclassical * spec(is)%zt * maxwell_vpa(:, is) * maxwell_mu(ialpha, iz, imu, is)
       end do
 
       deallocate (xi_stella, hstella, legpoly)
@@ -1550,6 +1567,60 @@ contains
       end do
 
    end subroutine legendre_transform
+
+   !****************************************************************************
+   !                 Sort an array in ascending order, keeping the map
+   !****************************************************************************
+   ! On exit, a is sorted in ascending order and map(i) is the original index
+   ! of the element now at position i (insertion sort; arrays here are short).
+   subroutine sort_array_ascending(a, map)
+
+      implicit none
+
+      real, dimension(:), intent(in out) :: a
+      integer, dimension(:), intent(out) :: map
+
+      integer :: i, j, itmp
+      real :: tmp
+
+      !-------------------------------------------------------------------------
+
+      do i = 1, size(a)
+         map(i) = i
+      end do
+
+      do i = 2, size(a)
+         tmp = a(i); itmp = map(i)
+         j = i - 1
+         do while (j >= 1)
+            if (a(j) <= tmp) exit
+            a(j + 1) = a(j); map(j + 1) = map(j)
+            j = j - 1
+         end do
+         a(j + 1) = tmp; map(j + 1) = itmp
+      end do
+
+   end subroutine sort_array_ascending
+
+   !****************************************************************************
+   !            Undo sort_array_ascending using the stored map
+   !****************************************************************************
+   ! a holds values in sorted order; on exit they are back in the original order.
+   subroutine unsort_array_ascending(a, map)
+
+      implicit none
+
+      real, dimension(:), intent(in out) :: a
+      integer, dimension(:), intent(in) :: map
+
+      real, dimension(size(a)) :: tmp
+
+      !-------------------------------------------------------------------------
+
+      tmp(map) = a
+      a = tmp
+
+   end subroutine unsort_array_ascending
 
    !****************************************************************************
    !                                      Title

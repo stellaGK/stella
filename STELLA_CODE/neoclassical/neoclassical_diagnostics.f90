@@ -33,10 +33,11 @@ contains
         implicit none
 
         type(neo_grid_data), intent(in) :: neo_grid
-        real, intent(in) :: neo_h_global(-nzgrid:, :, :, :, :)
+        real, intent(in) :: neo_h_global(:, -nzgrid:, :, :)
         integer, intent(in) :: surface_index
         character(len=*), intent(in) :: file_tag
         
+        ! Local variables. 
         integer :: unit
         character(len=256) :: filename
         integer :: iz, iv, imu, is
@@ -67,7 +68,7 @@ contains
             do iv = 1, nvpa
                 do imu = 1, nmu
                     do is = 1, neo_grid%n_species
-                        write(unit,'(I6,1X,I4,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8)') iz, iv, imu, is, zed(iz), neo_h_global(iz, iv, imu, is, 1)
+                        write(unit,'(I6,1X,I4,1X,I4,1X,I4,1X,ES16.8,1X,ES16.8)') iz, iv, imu, is, zed(iz), neo_h_global(iz, iv, imu, is)
                     end do
                 end do
             end do
@@ -82,13 +83,12 @@ contains
 ! --------------------------------------------------------------- Will also take a ϕ^1_0 derivative as input if needed. ----------------------------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine write_neo_phi_on_stella_z_grid_diagnostic(neo_grid, neo_phi, file_tag)
+    subroutine write_neo_phi_on_stella_z_grid_diagnostic(neo_phi, file_tag)
+        ! Grids.
         use grids_z, only: nzgrid, zed
-        use NEO_interface, only: neo_grid_data
-      
+
         implicit none
 
-        type(neo_grid_data), intent(in) :: neo_grid
         real, intent(in) :: neo_phi(-nzgrid:)        
         character(len=*), intent(in) :: file_tag 
         
