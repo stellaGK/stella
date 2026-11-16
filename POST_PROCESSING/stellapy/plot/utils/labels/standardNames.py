@@ -130,21 +130,21 @@ replacements = [
     ["(a/LTi)", "$a/L_{T_i}$"],\
     ["(a/LTe)", "$a/L_{T_e}$"],\
     ["(a/Ln)", "$a/L_n$"],\
-    ["(dt)", "$\Delta t$"],\
+    ["(dt)", "$\\Delta t$"],\
     ["z (nzed)", "$z$ $(N_z)$"],\
     ["z (nzgrid)", "$z$ $(N_z)$"],\
     ["z (nfield)", "$z$ $(N_{fp})$"],\
     ["mu (nmu)", "$\\mu$ $(N_{\\mu})$"],\
     ["vpa (nvgrid)", "$v_\\parallel$ $(N_{v_\\parallel})$"],\
     ["mu (dmu)", "$\\mu$ $(\\mu_{min})$"],\
-    ["vpa (dvpa)", "$v_\\parallel$ $(\Delta v_\\parallel)$"],\
+    ["vpa (dvpa)", "$v_\\parallel$ $(\\Delta v_\\parallel)$"],\
     ["x (Ly/2pi)", "$x$ $(L_y/2*\\pi)"],\
     ["x (nx)", "$x$ $(N_x)$"],\
     ["y (ny)", "$y$ $(N_y)$"],\
     ["kx (kx max)", "$k_x$ $(k_{x,max})$"],\
     ["ky (ky max)", "$k_y$ $(k_{y,max})$"],\
-    ["kx (dkx)", "$k_x$ $(\Delta k_x)$"],\
-    ["ky (dky)", "$k_y$ $(\Delta k_y)$"],\
+    ["kx (dkx)", "$k_x$ $(\\Delta k_x)$"],\
+    ["ky (dky)", "$k_y$ $(\\Delta k_y)$"],\
     ["x (Lx)", "$x$ $L_x$"],\
     ["y (Ly)", "$y$ $L_y$"]] 
 

@@ -322,6 +322,10 @@ contains
          
             ! Iterate over the species
             do is = 1, nspec
+            
+               ! Initialise nu_ss' = 0 for all s', since <vnew> has more elements than species
+               spec(is)%vnew = 0.
+               
                do is2 = 1, nspec
                
                   ! Set electron-electron collision frequency

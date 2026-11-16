@@ -177,6 +177,7 @@ contains
       use grids_z, only: nzgrid, zed, delzed, shat_zero, grad_x_grad_y_zero
       use grids_z, only: boundary_option_switch, boundary_option_self_periodic
       use grids_z, only: boundary_option_linked, boundary_option_linked_stellarator
+      use grids_z, only: boundary_option_non_twisting
 
       ! VMEC equilibria
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
@@ -287,7 +288,7 @@ contains
       dl_over_b(:, nzgrid) = 0.
 
       ! Correction to flux-surface-averaging for adiabatic electrons
-      ! FLAG COOKIE TO GEORGIA - <djacdrho> is not defined for VMEC?
+      ! Note that <djacdrho> = 0 for VMEC, where radial variation is not implemented
       d_dl_over_b_drho = spread(delzed, 1, nalpha) * djacdrho
       d_dl_over_b_drho(:, nzgrid) = 0
       d_dl_over_b_drho = d_dl_over_b_drho - dl_over_b * spread(sum(d_dl_over_b_drho, dim=2) / sum(dl_over_b, dim=2), 2, 2 * nzgrid + 1)
@@ -317,12 +318,27 @@ contains
       ! If the magnetic |∇x . ∇y| is almost zero, override parallel boundary 
       ! condition so that it is periodic if using the stellarator symmetric
       !twist and shift bc, in which kx_shift is proportional to |∇x . ∇y|
-      ! TODO: this will fail for Miller + boundary_option_linked_stellarator since grad_x_grad_y_end isn't set
+      ! Note that <grad_x_grad_y_end> is only calculated for VMEC, so for the other
+      ! geometries the stellarator symmetric twist and shift bc falls back to periodic bc
       case (boundary_option_linked_stellarator)
-         if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) then
+         if (geo_option_switch /= geo_option_vmec) then
+            write (*, *) 'Using periodic boundary conditions as boundary_option = "stellarator" is only implemented for VMEC'
+            boundary_option_switch = boundary_option_self_periodic
+         else if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) then
             write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
             boundary_option_switch = boundary_option_self_periodic 
          end if
+
+      ! Non-twisting flux tube (Ball and Brunner 2021): the local radial wavenumber is
+      ! Kx = kx + ky (∇x . ∇y)/|∇x|^2, so the twist that the parallel boundary condition has to
+      ! account for is the change of (∇x . ∇y)/|∇x|^2 along the whole flux tube, for any geometry:
+      !     dkx/dky * jtwist = -[(∇x . ∇y)/|∇x|^2](z_max) + [(∇x . ∇y)/|∇x|^2](z_min)
+      ! For stellarator-symmetric flux tubes this is the factor of the stellarator-symmetric
+      ! twist-and-shift BC, and for axisymmetric ones 2*pi*shat per poloidal turn. If it is zero
+      ! (no global shear), every chain closes on itself after one pass and x0 sets dkx.
+      case (boundary_option_non_twisting)
+         twist_and_shift_geo_fac = -(gradx_dot_grady(1, nzgrid) / gradx_dot_gradx(1, nzgrid) &
+            - gradx_dot_grady(1, -nzgrid) / gradx_dot_gradx(1, -nzgrid))
 
       end select
       
@@ -442,6 +458,7 @@ contains
    subroutine get_geometry_arrays_from_VMEC(nalpha, naky)
 
       use mp, only: mp_abort
+      use parameters_physics, only: radial_variation
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry
       use vmec_geometry, only: radial_coordinate_switch, radial_coordinate_sgnpsitpsit
       use vmec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r
@@ -473,6 +490,12 @@ contains
       ! Pretty sure q_as_x is not implemented for VMEC
       if (q_as_x) then
          call mp_abort('q_as_x = True is not implemented for VMEC. Aborting.')
+      end if 
+      
+      ! The radial derivatives of the geometric quantities (e.g. <djacdrho>, <dBdrho>)
+      ! are not calculated for VMEC, so radial variation is not implemented for VMEC
+      if (radial_variation) then
+         call mp_abort('radial_variation = True is not implemented for VMEC. Aborting.')
       end if 
       
       ! Read the <vmec_parameters> namelist in the input file
@@ -877,7 +900,9 @@ contains
       ! Note that in Miller z = theta, so b_dot_gradz = b_dot_grad_theta
       !      R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
       !                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
-      b_dot_gradzeta_RR = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
+      ! Here R = R(z) is the major radius along the field line (<rmajor>) and Btor = I/R(z) (<btor>), so R*Btor = I.
+      ! NB: before November 2026 the constant <geo_surf%rmaj> was used instead of R(z), which gave I/B * rmaj/R(z)
+      b_dot_gradzeta_RR = spread(rmajor * btor, 1, nalpha) / bmag
       if (debug) write (*, *) 'geometry::Miller::get_geometry_arrays_from_Miller_finished'
 
    end subroutine get_geometry_arrays_from_Miller
@@ -917,6 +942,7 @@ contains
       
       ! Note that psi here is meaningless
       drhodpsi = 1./dpsipdrho
+      drhodpsip = 1./dpsipdrho
       drhodpsip_psi0 = 1./dpsipdrho_psi0
       dxdpsi = 1.0
       dydalpha = 1.0
@@ -1260,6 +1286,7 @@ contains
       implicit none
 
       ! Flags
+      call broadcast(geo_option_switch)
       call broadcast(q_as_x)
 
       ! Switch between coordinates
@@ -1349,6 +1376,8 @@ contains
       call broadcast(geo_surf%rhotor)
       call broadcast(geo_surf%psitor_lcfs)
       call broadcast(geo_surf%drhotordrho)
+      call broadcast(geo_surf%d2psitordrho2)
+      call broadcast(geo_surf%zed0_fac)
 
       ! Reference quantities
       call broadcast(aref)

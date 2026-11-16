@@ -10,15 +10,15 @@
 !   
 !   geometry_miller
 !     rhoc = 0.5
-!     rmaj = 3.0
+!     rmaj = 2.77778
 !     shift = 0.0
 !     qinp = 1.4
-!     shat = 0.8
-!     kappa = 0.0
+!     shat = 0.796
+!     kappa = 1.0
 !     kapprim = 0.0
 !     tri = 0.0
 !     triprim = 0.0
-!     rgeo = 3.0
+!     rgeo = 2.77778
 !     betaprim = 0.0
 !     betadbprim = 0.0
 !     d2qdr2 = 0.0

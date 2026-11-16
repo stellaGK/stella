@@ -1,0 +1,188 @@
+! Linear electrostatic simulation of the Cyclone Base Case (CBC) ITG mode: hydrogen ions, adiabatic electrons, collisionless.
+! Run it with: mpirun -n 4 /path/to/stella/stella miller_linear_CBC.in
+! It takes about a minute on 4 cores, and every ky is evolved until its growth rate and frequency have converged (autostop).
+! The converged (gamma, omega) of stella and GENE in stella units (GS2, GX and CGYRO agree within a few percent) are (0.051, 0.079) at ky = 0.25,
+! (0.097, 0.188) at ky = 0.5, (0.091, 0.300) at ky = 0.75 and (0.046, 0.391) at ky = 1.0; this coarse resolution
+! (nzed = 24, nperiod = 2, nvgrid = 24, nmu = 12) gives them within 4%.
+! Based on benchmark A1 (CBC, hydrogen, adiabatic electrons) of the stella, GX, GENE, GS2 and CGYRO benchmarks (H. Thienpondt, November 2026).
+
+!================================================================================
+!=================================== Geometry ===================================
+!================================================================================
+
+&geometry_options
+  geometry_option = 'miller'
+/
+
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  qinp = 1.4
+  shat = 0.8
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
+
+
+!================================================================================
+!=================================== Physics ====================================
+!================================================================================
+
+&gyrokinetic_terms
+  simulation_domain = 'fluxtube'
+  include_nonlinear = .false.
+  include_electromagnetic = .false.
+/
+
+&electromagnetic
+  include_apar = .false.
+  include_bpar = .false.
+  beta = 0.0
+/
+
+
+!================================================================================
+!================================= Diagnostics ==================================
+!================================================================================
+
+&diagnostics
+  nwrite = 20
+  nsave = -1
+  save_for_restart = .false.
+/
+
+&diagnostics_potential
+  write_phi2_vs_time = .true.
+  write_phi_vs_kxkyz = .true.
+  write_apar_vs_kxkyz = .false.
+  write_bpar_vs_kxkyz = .false.
+/
+
+&diagnostics_omega
+  write_omega_vs_kxky = .true.
+  write_omega_avg_vs_kxky = .true.
+/
+
+&diagnostics_fluxes
+  write_fluxes_vs_time = .true.
+  write_fluxes_kxky = .true.
+/
+
+
+!================================================================================
+!=========================== Initialise Distribution ============================
+!================================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.001
+/
+
+
+!================================================================================
+!====================== Ion, electron and impurity species ======================
+!================================================================================
+
+&species_options
+  nspec = 1
+  species_option = 'stella'
+/
+
+&species_parameters_1
+  z = 1.0
+  mass = 1.0
+  dens = 1.0
+  temp = 1.0
+  tprim = 2.49
+  fprim = 0.8
+  type = 'ion'
+/
+
+&adiabatic_electron_response
+  adiabatic_option = 'field-line-average-term'
+  tite = 1.0
+  nine = 1.0
+/
+
+
+!================================================================================
+!====================== Discretized (kx,ky,z,mu,vpa) grid =======================
+!================================================================================
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+
+&kxky_grid_range
+  naky = 4
+  nakx = 1
+  aky_min = 0.25
+  aky_max = 1.0
+  theta0_min = 0.0
+  theta0_max = 0.0
+/
+
+&z_grid
+  nzed = 24
+  nperiod = 2
+/
+
+&z_boundary_condition
+  boundary_option = 'default'
+/
+
+&velocity_grids
+  nvgrid = 24
+  nmu = 12
+  vpa_max = 3.0
+  vperp_max = 3.0
+/
+
+
+!================================================================================
+!================================== Time trace ==================================
+!================================================================================
+
+&time_trace_options
+  tend = 100.0
+  autostop = .true.
+/
+
+&time_step
+  delt = 0.05
+  delt_max = 0.05
+/
+
+
+!================================================================================
+!================================= Dissipation ==================================
+!================================================================================
+
+&dissipation_and_collisions_options
+  include_collisions = .false.
+  hyper_dissipation = .false.
+/
+
+
+!================================================================================
+!=================================== Numerics ===================================
+!================================================================================
+
+&numerical_algorithms
+  explicit_algorithm = 'rk3'
+/
+
+&numerical_upwinding_for_derivatives
+  zed_upwind = 0.02
+  vpa_upwind = 0.02
+  time_upwind = 0.02
+/

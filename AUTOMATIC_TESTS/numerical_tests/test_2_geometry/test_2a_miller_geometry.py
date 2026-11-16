@@ -17,10 +17,6 @@ with open(module_path, 'r') as file: exec(file.read())
 
 # Global variables  
 input_filename = 'miller_geometry.in'
-input_file = input_filename.replace('.in','')
-stella_local_run_directory = 'Not/Run/Yet'
-miller_file_name = 'geometry_miller'
-run_data = {}
 
 #-------------------------------------------------------------------------------
 #                           Get the stella version                             #
@@ -30,80 +26,66 @@ def stella_version(pytestconfig):
     return pytestconfig.getoption("stella_version")
 
 #-------------------------------------------------------------------------------
+#                         Run local stella simulation                          #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def stella_run(tmp_path_factory, stella_version):
+    '''Run a local stella simulation, which is shared by all the tests in this 
+    module, so that each test can also be run on its own.'''
+    filename = input_filename if stella_version=='master' else input_filename.replace('.in', f'_v{stella_version}.in')
+    run_data = run_local_stella_simulation(filename, tmp_path_factory.mktemp('miller_geometry'), stella_version)
+    run_data['input_file_stem'] = filename.replace('.in','')
+    # Older stella versions named the Miller files <millerlocal.*> instead of <geometry_miller.*>
+    new_name_exists = (run_data['tmp_path'] / f'geometry_miller.{run_data["input_file_stem"]}.input').exists()
+    run_data['miller_file_name'] = 'geometry_miller' if new_name_exists else 'millerlocal'
+    return run_data
+
+#-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_miller_output_files_are_present(tmp_path, stella_version, error=False):  
+def test_whether_miller_output_files_are_present(stella_run, error=False):  
     
-    # Save the temporary folder <tmp_path> as a global variable so the
-    # other tests can access the output files from the local stella run.
-    global stella_local_run_directory, miller_file_name, run_data, input_filename, input_file
-    stella_local_run_directory = tmp_path
+    # Gather the output files generated during the local stella run
+    local_files = os.listdir(stella_run['tmp_path'])
+    input_file, miller_file_name = stella_run['input_file_stem'], stella_run['miller_file_name']
     
-    # Run stella inside of <tmp_path> based on <input_filename>
-    if stella_version!='master': 
-       input_filename = input_filename.replace('.in', f'_v{stella_version}.in')
-       input_file = input_filename.replace('.in','')
-       miller_file_name = 'millerlocal'
-    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
-    
-    # Gather the output files generated during the local stella run inside <tmp_path>
-    local_files = os.listdir(stella_local_run_directory)
-    
-    # Create a list of the output files we expect when stella has been run 
-    expected_files = [f'{miller_file_name}.{input_file}.input', f'{miller_file_name}.{input_file}.output', f'{input_file}.geometry']; new_names = True
-    
-    # Check whether all these output files are present
+    # Check whether all the output files we expect are present
+    expected_files = [f'{miller_file_name}.{input_file}.input', f'{miller_file_name}.{input_file}.output', f'{input_file}.geometry']
     for expected_file in expected_files:
         if not (expected_file in local_files):
-            print(f'ERROR: The "{expected_file}" output file was not generated when running stella.'); new_names = False
-            
-    # Old stella 
-    if new_names==False:
-        expected_files = [f'millerlocal.{input_file}.input', f'millerlocal.{input_file}.output', '{input_file}.geometry'] 
-        for expected_file in expected_files:
-            if not (expected_file in local_files):
-                print(f'ERROR: The "{expected_file}" output file was not generated when running stella.'); error = True
-        miller_file_name = 'millerlocal'
-            
-    # The <pytest> module will check whether all <assert> statements are true,
-    # if it runs into a statement which is false, the test will be labeled as
-    # "Failed" and the string in the second argument of the <assert> statement 
-    # will be printed to the command prompt as "AssertionError: <error message>"
+            print(f'ERROR: The "{expected_file}" output file was not generated when running stella.'); error = True
     assert (not error), f'Some output files were not generated when running stella.'
-    
-    # The test will stop as soon as an <assert> error was triggered, hence we
-    # will only reach this final line of code if the test ran successfully
-    print(f'  -->  All the expected files (millerlocal.input, millerlocal.output, .geometry) are generated.')
+    print(f'  -->  All the expected files ({miller_file_name}.input, {miller_file_name}.output, .geometry) are generated.')
     return 
 
 #-------------------------------------------------------------------------------
 #                    Check whether Miller output files match                   #
 #-------------------------------------------------------------------------------
-def test_whether_miller_output_files_are_correct():
+def test_whether_miller_output_files_are_correct(stella_run):
     '''Check that the results are identical to a previous run.'''
     
     # File names
-    local_geometry_file = stella_local_run_directory / f'{input_file}.geometry' 
+    local_directory = stella_run['tmp_path']
+    input_file, miller_file_name = stella_run['input_file_stem'], stella_run['miller_file_name']
+    local_geometry_file = local_directory / f'{input_file}.geometry' 
     expected_geometry_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.miller_geometry.geometry' 
-    local_miller_input_file = stella_local_run_directory / f'{miller_file_name}.{input_file}.input' 
+    local_miller_input_file = local_directory / f'{miller_file_name}.{input_file}.input' 
     expected_miller_input_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.miller_geometry.millerlocal.input' 
-    local_miller_output_file = stella_local_run_directory / f'{miller_file_name}.{input_file}.output' 
+    local_miller_output_file = local_directory / f'{miller_file_name}.{input_file}.output' 
     expected_miller_output_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.miller_geometry.millerlocal.output'
     
     # Compare text files (first check the input file to save <shat>)
     compare_geometry_files(local_geometry_file, expected_geometry_file, error=False)
     shat = compare_miller_input_files(local_miller_input_file, expected_miller_input_file, error=False)
     compare_miller_output_files(local_miller_output_file, expected_miller_output_file, shat=shat, error=False)
-    
-    # If we made it here the test was run correctly 
     print(f'  -->  Geometry output file matches.')
     return
 
 #-------------------------------------------------------------------------------
 #              Check whether the data in the netcdf file matches               #
 #-------------------------------------------------------------------------------
-def test_whether_miller_geometry_data_in_netcdf_file_is_correct(error=False): 
-    compare_geometry_in_netcdf_files(run_data, error=False)  
+def test_whether_miller_geometry_data_in_netcdf_file_is_correct(stella_run, error=False): 
+    compare_geometry_in_netcdf_files(stella_run, error=False)  
     print('  -->  All Miller geometry data in the netcdf file matches the expected output.')
     return
     

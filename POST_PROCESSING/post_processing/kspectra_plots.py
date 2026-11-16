@@ -60,7 +60,7 @@ for iky in range(phi2.shape[2]-1):
         
         plt.xlabel('$t (v_{t}/a)$')
         plt.xlim([time[0],time[ntime-1]])
-        plt.title('$\Phi^2(k_x,k_y)$')
+        plt.title('$\\Phi^2(k_x,k_y)$')
 
 file = outdir+file_prefix+'.stella_kspectra.pdf'
 pdf = PdfPages(file)
@@ -80,7 +80,7 @@ for iky in range(phi2.shape[2]-1):
         
     plt.xlabel('$t (v_{t}/a)$')
     plt.xlim([time[0],time[ntime-1]])
-    plt.title('$\sum_{k_x}\Phi^2(k_y)$')
+    plt.title('$\\sum_{k_x}\\Phi^2(k_y)$')
 
 file = outdir+file_prefix+'.phi2_ky_vs_t.pdf'
 pdf = PdfPages(file)
@@ -96,7 +96,7 @@ for iky in range(es_heat_by_k.shape[3]-1):
         
     plt.xlabel('$t (v_{t}/a)$')
     plt.xlim([time[0],time[ntime-1]])
-    plt.title('$\sum_{k_x}Q(k_x,k_y)$')
+    plt.title('$\\sum_{k_x}Q(k_x,k_y)$')
 
 file = outdir+file_prefix+'.qflx_ky_vs_t.pdf'
 pdf = PdfPages(file)

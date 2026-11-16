@@ -217,6 +217,9 @@ contains
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             
             ! Next add the perpendicular component
+            ! NOTE: For the non-twisting flux tube (boundary_option = 'non-twisting') this still uses
+            ! the grid kx through theta0(iky, ikx), not the ballooning kx = akx + kx_shift(iky, iz),
+            ! so the momentum flux is not exact there. The heat and particle fluxes are fine.
             velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
                     * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) *  &
                     (gradx_dot_grady(ia, iz) + theta0(iky, ikx) * gradx_dot_gradx (ia, iz) * geo_surf%shat) &
@@ -261,8 +264,9 @@ contains
 
             ! TODO -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !! Only valid for axis-symmetric devices now
             ! Apar contribution to the parallel (first term) and perpendicular (second term) component of the momentum flux
+            ! NOTE: theta0 is not exact for the non-twisting flux tube, see the phi contribution above
             velocityintegrand_vs_vpamu = -2.0*spread(vpa**2, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
-                    * geo_surf%rmaj * btor(iz) / bmag(1, iz)
+                    * b_dot_gradzeta_RR(ia, iz)
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             velocityintegrand_vs_vpamu = 2.0*spread(vpa, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
                     * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
@@ -301,7 +305,7 @@ contains
             ! Bpar contribution to momentum flux
             ! NOT SUPPORTED, REQUIRES d J1(x)/ d x 
             velocityintegrand_vs_vpamu = 4.0 * spec(is)%tz * spread(mu, 1, nvpa) * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
-                    * spread(vpa, 2, nmu) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
+                    * spread(vpa, 2, nmu) * b_dot_gradzeta_RR(ia, iz)
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             temp2_vs_vpamu = 0.0
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu

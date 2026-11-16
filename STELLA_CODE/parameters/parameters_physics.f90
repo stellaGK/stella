@@ -115,8 +115,7 @@ contains
       call read_namelist_gyrokinetic_terms (simulation_domain_switch, & 
          include_parallel_streaming, include_mirror, &
          include_xdrift, include_ydrift, include_drive, include_nonlinear, &
-         include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
-         full_flux_surface, radial_variation)
+         include_parallel_nonlinearity, include_electromagnetic, include_flow_shear)
       call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
          include_parallel_streaming, include_mirror, xdriftknob, ydriftknob, wstarknob, streamknob, & 
          mirrorknob, fphi, suppress_zonal_interaction)

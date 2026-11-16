@@ -682,12 +682,14 @@ contains
          if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             if (zonal_mode(1)) then
                do ikx = 1, nakx
+                  ! Skip the kx=ky=0 mode, for which <tmp> = 0 (Gamma0 = 1)
+                  if (ikx == 1 .and. akx(1) < epsilon(0.)) then
+                     denominator_fields_MBR(1, :) = 0.0
+                     cycle
+                  end if
                   tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
                   denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
                end do
-               if (akx(1) < epsilon(0.)) then
-                  denominator_fields_MBR(1, :) = 0.0
-               end if
             end if
          end if
       end if

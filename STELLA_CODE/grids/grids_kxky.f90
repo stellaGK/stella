@@ -86,6 +86,9 @@ module grids_kxky
    public :: theta0_min, theta0_max
    public :: x0, y0
 
+   ! Non-twisting flux tube
+   public :: non_twisting, kx_shift, delta_kx, m0_ntft, n_twist_ntft
+
    ! Check initialisation
    public :: initialised_grids_kxky
    
@@ -117,7 +120,7 @@ module grids_kxky
    real :: phase_shift_angle
    integer :: jtwist
    real :: jtwistfac
-   real :: ikx_twist_shift
+   integer :: ikx_twist_shift
    logical :: centered_in_rho, periodic_variation, randomize_phase_shift
 
    ! For Range
@@ -128,10 +131,23 @@ module grids_kxky
 
    ! For Box
    real :: x0, y0
+
+   ! Non-twisting flux tube (Ball and Brunner 2021, boundary_option = 'non-twisting'). The kx grid
+   ! <akx> is the grid of the local radial wavenumber Kx, which is centred around Kx ~ 0 at every z,
+   ! instead of the grid of the ballooning radial wavenumber kx (constant along a field line):
+   !     m0_ntft(ky, z) = -NINT(ky (∇x . ∇y)/|∇x|^2 / dkx) + (the same at z = 0)  (Ball eq. 44)
+   !     kx = akx + kx_shift,   kx_shift(ky, z) = m0 dkx       (ballooning kx, used in the linear terms)
+   !     Kx = akx + delta_kx,   delta_kx(ky, z) = ky (∇x . ∇y)/|∇x|^2 + m0 dkx  (local Kx, nonlinear term)
+   !     n_twist_ntft(ky) = NINT(ky Δ[(∇x . ∇y)/|∇x|^2] / dkx): shift of the grid index across the tube
+   ! Both arrays are zero for the other boundary conditions, so that akx + kx_shift = akx.
+   logical :: non_twisting = .false.
+   real, dimension(:, :), allocatable :: kx_shift, delta_kx
+   integer, dimension(:, :), allocatable :: m0_ntft
+   integer, dimension(:), allocatable :: n_twist_ntft
    
    ! Only initialise once
-   logical :: initialised_grids_kxky
-   logical :: initialised_read_parameters_kxky_grids
+   logical :: initialised_grids_kxky = .false.
+   logical :: initialised_read_parameters_kxky_grids = .false.
 
 contains
 
@@ -161,9 +177,19 @@ contains
       if (proc0) then
          select case (grid_option_switch)
          case (grid_option_range)
-            call read_namelist_kxky_grid_range (nalpha, naky, nakx, aky_min, aky_max, & 
+            call read_namelist_kxky_grid_range (nalpha, naky, nakx, aky_min, aky_max, &
                akx_min, akx_max, theta0_min, theta0_max, &
                kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all)
+            ! The twist-and-shift parameters are only defined for the box grid. They are
+            ! used by the linked boundary conditions (init_extended_zgrid) and written to
+            ! the netcdf file, so give them a defined value for the range grid as well
+            ! TODO: check whether range grids with linked boundary conditions are correct.
+            ! With jtwist = 0, init_extended_zgrid gives neigen = 0 for all ky > 0, so no mode
+            ! is connected to any other. This value was previously uninitialised (and 0 by
+            ! chance), it has been kept so that the results of these simulations do not change.
+            jtwist = 0
+            jtwistfac = 1.
+            ikx_twist_shift = 0
          case (grid_option_box)
             call read_namelist_kxky_grid_box (nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
                x0, y0, jtwist, jtwistfac, phase_shift_angle, &
@@ -251,7 +277,74 @@ contains
       zonal_mode = .false.
       if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
 
+      ! Shift of the kx grid along z for the non-twisting flux tube (zero otherwise)
+      call init_non_twisting_flux_tube
+
    contains
+
+      !*************************************************************************
+      !                Non-twisting flux tube: shifted kx grids               !
+      !*************************************************************************
+      ! See Ball and Brunner 2021, "A non-twisting flux tube for local gyrokinetic
+      ! simulations", section 3 and appendix B. To get well defined rounding at the
+      ! half-integer points, the argument of NINT is interpolated a fraction
+      ! delta = 0.01313 towards the next z point (eq. B.10). At the end of the
+      ! tube, z = z_max is the same point as z = -z_max (eq. B.15), and its m0 is
+      ! set from m0(-z_max) and the twist, so that the shift is exactly an integer.
+      !*************************************************************************
+      subroutine init_non_twisting_flux_tube
+
+         use grids_z, only: nzgrid
+         use grids_z, only: boundary_option_switch, boundary_option_non_twisting
+         use geometry, only: gradx_dot_grady, gradx_dot_gradx, q_as_x
+         use parameters_physics, only: full_flux_surface, radial_variation
+         use parameters_physics, only: include_parallel_nonlinearity, include_flow_shear
+
+         implicit none
+
+         real, parameter :: delta = 0.01313
+         real, dimension(:), allocatable :: ftwist
+         real :: arg0
+         integer :: iky, iz
+
+         !----------------------------------------------------------------------
+
+         if (.not. allocated(kx_shift)) allocate (kx_shift(naky, -nzgrid:nzgrid))
+         if (.not. allocated(delta_kx)) allocate (delta_kx(naky, -nzgrid:nzgrid))
+         if (.not. allocated(m0_ntft)) allocate (m0_ntft(naky, -nzgrid:nzgrid))
+         if (.not. allocated(n_twist_ntft)) allocate (n_twist_ntft(naky))
+         kx_shift = 0.0; delta_kx = 0.0; m0_ntft = 0; n_twist_ntft = 0
+
+         non_twisting = boundary_option_switch == boundary_option_non_twisting
+         if (.not. non_twisting) return
+
+         if (.not. box) call mp_abort('The non-twisting flux tube needs grid_option = "box". Aborting.')
+         if (full_flux_surface .or. radial_variation .or. q_as_x .or. nalpha > 1) &
+            call mp_abort('The non-twisting flux tube is only implemented for flux tubes (one field line, x = psi). Aborting.')
+         if (include_parallel_nonlinearity .or. include_flow_shear) &
+            call mp_abort('The non-twisting flux tube is not implemented with the parallel nonlinearity or flow shear. Aborting.')
+         ! NOTE: The momentum-flux diagnostic (diagnostics_fluxes_fluxtube) still uses the grid kx through theta0,
+         ! so it is not exact for the non-twisting flux tube. The heat and particle fluxes are fine.
+
+         ! (∇x . ∇y)/|∇x|^2 along the field line, minus the ballooning kx of the central field line (kperp minimal)
+         allocate (ftwist(-nzgrid:nzgrid))
+         ftwist = gradx_dot_grady(1, :) / gradx_dot_gradx(1, :)
+
+         do iky = 1, naky
+            if (abs(aky(iky)) < epsilon(0.)) cycle
+            arg0 = aky(iky) * ((1.0 - delta) * ftwist(0) + delta * ftwist(1)) / dkx
+            do iz = -nzgrid, nzgrid - 1
+               m0_ntft(iky, iz) = -nint(aky(iky) * ((1.0 - delta) * ftwist(iz) + delta * ftwist(iz + 1)) / dkx) + nint(arg0)
+            end do
+            n_twist_ntft(iky) = nint(aky(iky) * (ftwist(nzgrid) - ftwist(-nzgrid)) / dkx)
+            m0_ntft(iky, nzgrid) = m0_ntft(iky, -nzgrid) - n_twist_ntft(iky)
+            kx_shift(iky, :) = m0_ntft(iky, :) * dkx
+            delta_kx(iky, :) = aky(iky) * ftwist + m0_ntft(iky, :) * dkx
+         end do
+
+         deallocate (ftwist)
+
+      end subroutine init_non_twisting_flux_tube
 
       !*************************************************************************
       !                Initialise the (kx,ky) grids: Range mode                !
@@ -455,6 +548,7 @@ contains
          use grids_z, only: boundary_option_switch
          use grids_z, only: boundary_option_linked
          use grids_z, only: boundary_option_linked_stellarator
+         use grids_z, only: boundary_option_non_twisting
          
          ! Geometry
          use parameters_physics, only: rhostar
@@ -523,6 +617,16 @@ contains
             dkx = (2 * nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
          case (boundary_option_linked_stellarator)
             dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
+         ! For the non-twisting flux tube <twist_and_shift_geo_fac> is the twist over the whole tube;
+         ! without twist (no global shear) every chain closes on itself and x0 sets dkx
+         case (boundary_option_non_twisting)
+            if (abs(twist_and_shift_geo_fac) > epsilon(0.0)) then
+               dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
+            else if (x0 < epsilon(0.0)) then
+               dkx = dky
+            else
+               dkx = 1./x0
+            end if
          case default
             if (x0 < epsilon(0.0)) then
                dkx = dky
@@ -642,10 +746,12 @@ contains
          dx = (2 * pi * x0) / nx
          dy = (2 * pi * y0) / ny
    
+         ! The shift of the x-grid is only used for radial variation (and multibox) simulations,
+         ! and requires radial derivatives which are not calculated for VMEC equilibria
          x_shift = pi * x0
          pfac = 1.0
          if (periodic_variation) pfac = 0.5
-         if (centered_in_rho) then
+         if (centered_in_rho .and. (radial_variation .or. runtype_option_switch == runtype_multibox)) then
             if (q_as_x) then
                dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
                x_shift = pi * x0 * (1.0 - 0.5 * pfac * rhostar * pi * x0 * geo_surf%d2qdr2 / (dqdrho**2 * dxdpsi))
@@ -768,6 +874,8 @@ contains
       if (allocated(rho_clamped)) deallocate (rho_clamped)
       if (allocated(rho_d_clamped)) deallocate (rho_d_clamped)
       if (allocated(g0x)) deallocate (g0x)
+      if (allocated(kx_shift)) deallocate (kx_shift, delta_kx, m0_ntft, n_twist_ntft)
+      non_twisting = .false.
 
       reality = .false.
       initialised_grids_kxky = .false.

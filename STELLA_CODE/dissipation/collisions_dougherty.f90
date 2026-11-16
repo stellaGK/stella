@@ -16,6 +16,7 @@ module collisions_dougherty
    public :: read_parameters_dougherty
    public :: init_collisions_dougherty
    public :: finish_collisions_dougherty
+   public :: reset_dt_collisions_dougherty
    public :: advance_collisions_dougherty_explicit
    public :: advance_collisions_dougherty_implicit
 
@@ -77,21 +78,24 @@ contains
    !****************************************************************************
    !                       Initialise the collision model                       
    !****************************************************************************
-   subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
+   subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_collisions)
 
       use grids_species, only: spec, nspec
-      use grids_velocity, only: dvpa, dmu, mu, nmu
+      use grids_velocity, only: nvpa, nmu, vpa, dvpa, dmu
+      use grids_velocity, only: mu_cell, dmu_cell, wgts_mu_bare
+      use grids_z, only: nzgrid
       use geometry, only: bmag
+      use arrays, only: kperp2
 
       implicit none
 
       ! Arguments
       logical, intent(in) :: collisions_implicit
-      real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
+      real, intent(out) :: cfl_dt_collisions
 
       ! Local variables
-      integer :: is
-      real :: vnew_max
+      integer :: is, iv, imu, iz, ia
+      real :: kfac, rate_vpa, rate_mu, rate_flr, row, mm, m0, mp
 
       !----------------------------------------------------------------------
 
@@ -112,12 +116,48 @@ contains
          
       ! Initialise explicit collision scheme
       else
-         vnew_max = 0.0
+         ! The explicit time advance is stable if code_dt * |lambda| < 2 for every eigenvalue
+         ! lambda of the collision operator (forward Euler; the Runge-Kutta schemes are at least
+         ! as stable for real negative eigenvalues). The vpa operator, the mu operator and the
+         ! classical (gyro-)diffusion act on the same h, so their rates add: bound |lambda| by the
+         ! largest row sum of the operator applied in <advance_collisions_dougherty_explicit>
+         ! (Gershgorin). Separate limits for the vpa and mu operators allowed time steps for
+         ! which the sum is unstable.
+         ia = 1
+         kfac = 0.0
+         if (mu_operator) kfac = kfac + 0.5
+         if (vpa_operator) kfac = kfac + 0.5
+
+         ! Rows of <vpa_differential_operator> (tfac = 1)
+         rate_vpa = 0.0
+         if (vpa_operator) then
+            do iv = 2, nvpa - 1
+               row = (0.5 * abs(1.0 / dvpa + vpa(iv + 1)) + 1.0 / dvpa + 0.5 * abs(1.0 / dvpa - vpa(iv - 1))) / dvpa
+               rate_vpa = max(rate_vpa, row)
+            end do
+         end if
+
+         ! Rows of <mu_differential_operator> (tfac = 1)
+         rate_mu = 0.0
+         if (mu_operator) then
+            do iz = -nzgrid, nzgrid
+               do imu = 2, nmu - 1
+                  mm = mu_cell(imu - 1) * (1.0 / (bmag(ia, iz) * dmu(imu - 1)) - 1.0) / wgts_mu_bare(imu)
+                  m0 = -(mu_cell(imu) / dmu(imu) + mu_cell(imu - 1) / dmu(imu - 1)) &
+                       / (wgts_mu_bare(imu) * bmag(ia, iz)) + dmu_cell(imu) / wgts_mu_bare(imu)
+                  mp = mu_cell(imu) * (1.0 / (bmag(ia, iz) * dmu(imu)) + 1.0) / wgts_mu_bare(imu)
+                  rate_mu = max(rate_mu, abs(mm) + abs(m0) + abs(mp))
+               end do
+            end do
+         end if
+
+         ! The classical (gyro-)diffusion, 0.5 * kfac * kperp^2 (smz/B)^2, differs per species
+         cfl_dt_collisions = huge(0.0)
          do is = 1, nspec
-            vnew_max = max(vnew_max, maxval(spec(is)%vnew))
+            rate_flr = 0.5 * kfac * maxval(kperp2) * (spec(is)%smz / minval(bmag))**2
+            cfl_dt_collisions = min(cfl_dt_collisions, &
+               2.0 / max(maxval(spec(is)%vnew) * (rate_vpa + rate_mu + rate_flr), epsilon(0.0)))
          end do
-         cfl_dt_vpadiff = 2.0 * dvpa**2 / vnew_max
-         cfl_dt_mudiff = minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2))
       end if
       
    end subroutine init_collisions_dougherty
@@ -766,6 +806,38 @@ contains
 !############################ FINISH COLLISION MODEL ###########################
 !###############################################################################
  
+   subroutine reset_dt_collisions_dougherty(collisions_implicit)
+
+      implicit none
+
+      ! Arguments
+      logical, intent(in) :: collisions_implicit
+
+      !----------------------------------------------------------------------
+
+      ! The explicit algorithm multiplies by code_dt at every time step, but the matrices and
+      ! response matrices of the implicit algorithm contain code_dt, so rebuild them for the new
+      ! time step (otherwise the collision frequency is effectively multiplied by dt_old/dt_new)
+      if (.not. collisions_implicit) return
+      if (.not. initialised_dougherty) return
+      if (vpa_operator) then
+         call finish_vpadiff_matrix
+         call finish_vpadiff_response
+         call init_vpadiff_matrix
+         call init_vpadiff_conserve
+      end if
+      if (mu_operator) then
+         call finish_mudiff_matrix
+         call finish_mudiff_response
+         call init_mudiff_matrix
+         call init_mudiff_conserve
+      end if
+
+   end subroutine reset_dt_collisions_dougherty
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_collisions_dougherty
 
       implicit none
@@ -913,8 +985,11 @@ contains
          iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         !g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
-         g0 = g(:, :, ikxkyz) * spread((vperp2(1, iz, :) - 0.5) * aj1v(:, ikxkyz), 1, nvpa)
+         ! Perpendicular momentum: the moment that goes with the restoring term of init_mudiff_conserve,
+         ! 2 nu kperp^2 (smz/B)^2 vperp^2 J1/a F0, i.e. vperp^2 J1/a (as in the explicit algorithm,
+         ! conserve_momentum, and in conserve_momentum_vmulo). It used to be (vperp^2 - 1/2) J1/a, which
+         ! made the implicit momentum conservation differ from the explicit one (benchmark C1, Oct 2026)
+         g0 = g(:, :, ikxkyz) * spread(vperp2(1, iz, :) * aj1v(:, ikxkyz), 1, nvpa)
          call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
       end do
       
@@ -1417,8 +1492,11 @@ contains
 
       ia = 1
       T_fac = 0.0
-      if (vpa_operator) T_fac = spread(aj0v(:, ikxkyz), 1, nvpa) * (spread(vpa**2, 2, nmu)) - 0.5
+      ! The gyro-average J0 multiplies the whole energy factor (v_par^2 + v_perp^2 - 3/2), as in the implicit
+      ! algorithm and in conserve_energy_vmulo; before, J0 multiplied only v_par^2 (benchmark C1, Oct 2026)
+      if (vpa_operator) T_fac = spread(vpa**2, 2, nmu) - 0.5
       if (mu_operator) T_fac = T_fac + spread(vperp2(ia, iz, :), 1, nvpa) - 1.0
+      T_fac = spread(aj0v(:, ikxkyz), 1, nvpa) * T_fac
       call integrate_vmu(T_fac * h, iz, integral)
 
       !norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
@@ -1750,7 +1828,7 @@ contains
       integer :: imu
       integer :: idx
       real, dimension(:, :), allocatable :: tmp
-      complex, dimension(:, :, :, :, :), allocatable :: flds
+      complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:), allocatable :: tmp2
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
@@ -1790,6 +1868,11 @@ contains
       ! Get temp_inh^{n+1}
       if (energy_conservation) call get_temp(g, flds(:, :, :, :, idx:idx + nspec - 1))
 
+      ! The response matrix is only applied on the processor that owns is = 1 for each
+      ! (ky,kx,z,tube) point, so store the solution in <flds_solved>, which is summed over
+      ! all processors below, since the conservation terms need it for every species
+      allocate (flds_solved(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse_vpa)); flds_solved = 0.
+
       phi = 0.0
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -1801,12 +1884,18 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz); if (is /= 1) cycle
          call lu_back_substitution(vpadiff_response(:, :, ikxkyz), vpadiff_idx(:, ikxkyz), &
                                    flds(iky, ikx, iz, it, :))
+         flds_solved(iky, ikx, iz, it, :) = flds(iky, ikx, iz, it, :)
          if (.not. has_electron_species(spec) .and. zonal_mode(iky) &
              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             flds_zf(ikx, it, :) = flds_zf(ikx, it, :) + dl_over_b(ia, iz) * flds(iky, ikx, iz, it, :)
          end if
          phi(iky, ikx, iz, it) = flds(iky, ikx, iz, it, 1)
       end do
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -1926,7 +2015,7 @@ contains
       integer :: idx
       real, dimension(:, :), allocatable :: tmp
       complex, dimension(:), allocatable :: tmp2
-      complex, dimension(:, :, :, :, :), allocatable :: flds
+      complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
       !----------------------------------------------------------------------
@@ -1966,6 +2055,11 @@ contains
       ! Get temp_inh^{n+1}
       if (energy_conservation) call get_temp_mu(g, flds(:, :, :, :, idx:idx + nspec - 1))
 
+      ! The response matrix is only applied on the processor that owns is = 1 for each
+      ! (ky,kx,z,tube) point, so store the solution in <flds_solved>, which is summed over
+      ! all processors below, since the conservation terms need it for every species
+      allocate (flds_solved(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse_mu)); flds_solved = 0.
+
       phi = 0.0
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -1977,12 +2071,18 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz); if (is /= 1) cycle
          call lu_back_substitution(mudiff_response(:, :, ikxkyz), mudiff_idx(:, ikxkyz), &
                                    flds(iky, ikx, iz, it, :))
+         flds_solved(iky, ikx, iz, it, :) = flds(iky, ikx, iz, it, :)
          if (.not. has_electron_species(spec) .and. zonal_mode(iky) &
              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             flds_zf(ikx, it, :) = flds_zf(ikx, it, :) + dl_over_b(ia, iz) * flds(iky, ikx, iz, it, :)
          end if
          phi(iky, ikx, iz, it) = flds(iky, ikx, iz, it, 1)
       end do
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then

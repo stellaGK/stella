@@ -34,7 +34,7 @@ contains
       use grids_kxky, only: nx
       use grids_z, only: delzed
       use grids_velocity, only: dvpa
-      use grids_kxky, only: akx, aky, rho
+      use grids_kxky, only: akx, aky, rho, kx_shift
       
       ! CFL parameters
       use grids_time, only: code_dt, write_dt, cfl_dt_linear
@@ -57,7 +57,7 @@ contains
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
-      use dissipation_and_collisions, only: cfl_dt_vpadiff, cfl_dt_mudiff
+      use dissipation_and_collisions, only: cfl_dt_collisions
       
       ! Radial variation - multibox - flow shear
       use parameters_physics, only: radial_variation
@@ -91,7 +91,8 @@ contains
          end if
          
          ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
-         cfl_dt_wdriftx = abs(code_dt) / max(maxval(abs(akx)) * wdriftx_max, zero)
+         ! For the non-twisting flux tube the ballooning kx is akx + kx_shift (kx_shift = 0 otherwise)
+         cfl_dt_wdriftx = abs(code_dt) / max((maxval(abs(akx)) + maxval(abs(kx_shift))) * wdriftx_max, zero)
          cfl_dt_linear = cfl_dt_wdriftx
          
       end if
@@ -134,8 +135,7 @@ contains
       end if
 
       if (include_collisions .and. .not. collisions_implicit) then
-         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_vpadiff)
-         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_mudiff)
+         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_collisions)
       end if
 
       if (.not. drifts_implicit .and. include_ydrift) then
@@ -181,6 +181,7 @@ contains
          if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '   wstar: ', cfl_dt_wstar
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
+         if (include_collisions .and. .not. collisions_implicit) write (*, '(A15,ES12.4)') '   collisions: ', cfl_dt_collisions
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *) ''
       end if
@@ -227,12 +228,11 @@ contains
       use gk_sources, only: init_quasineutrality_source
       use gk_parallel_streaming, only: init_parallel_streaming
       use response_matrix, only: init_response_matrix
-      use dissipation_and_collisions, only: init_collisions
+      use dissipation_and_collisions, only: reset_dt_collisions
       use dissipation_and_collisions, only: include_collisions
       
       ! Flags -> Logicals for initalisation (true or false)
       use gk_parallel_streaming, only: initialised_parallel_streaming
-      use dissipation_and_collisions, only: initialised_collisions
       use response_matrix, only: initialised_response_matrix
       use gk_flow_shear, only: initialised_flow_shear
       use gk_sources, only: initialised_qn_source
@@ -271,10 +271,11 @@ contains
          if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
          call init_radial_variation
       end if
+      ! The collision operator has its own initialisation flags, so <init_collisions> would return
+      ! without recomputing anything: rebuild the time-step dependent (implicit) matrices instead
       if (include_collisions) then
-         if (debug) write (6, *) 'time_advance::reset_dt::init_collisions'
-         initialised_collisions = .false.
-         call init_collisions
+         if (debug) write (6, *) 'time_advance::reset_dt::reset_dt_collisions'
+         call reset_dt_collisions
       end if
       
       ! Do not try to re-init response matrix before it has been initialised the first time

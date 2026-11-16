@@ -64,6 +64,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx, aky, rho_clamped
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, nx, ny
+      use grids_kxky, only: non_twisting, delta_kx
       use grids_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
 
       ! Flow shear
@@ -88,7 +89,9 @@ contains
       ! Local variables
       complex, dimension(:, :), allocatable :: apar_kykx, bpar_kykx
       complex, dimension(:, :), allocatable :: g0k, g0a, g0k_swap
-      complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac
+      complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac, prefac_z
+      real, dimension(:, :), allocatable :: dkx_over_ky
+      complex, dimension(:, :, :), allocatable :: phase_ntft
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
       complex, dimension(:, :), allocatable :: tmp
       integer :: ivmu, iz, it, imu, is
@@ -109,8 +112,9 @@ contains
       restart_time_step = .false.
       
       ! By default, prp_shear_enabled = .false. and thus yfirst = .true., and we Fourier transform y first
-      ! If perpendicular flow shear is included, it is important to Fourier transform x first
-      yfirst = .not. prp_shear_enabled
+      ! If perpendicular flow shear is included, it is important to Fourier transform x first.
+      ! The non-twisting flux tube also needs the x transform first, to multiply by exp(i ΔKx x) in (ky, x)
+      yfirst = .not. (prp_shear_enabled .or. non_twisting)
 
       ! Allocate arrays
       allocate (apar_kykx(naky, nakx))
@@ -121,6 +125,7 @@ contains
       allocate (g1xy(ny, nx))
       allocate (bracket(ny, nx))
       allocate (prefac(naky, nx))
+      allocate (prefac_z(naky, nx))
       allocate (tmp(size(gout, 1), size(gout, 2)))
 
       ! Here naky_all = 2*naky-1
@@ -137,6 +142,21 @@ contains
          prefac = exp(-zi * g_exb * g_exbfac * spread(x, 1, naky) * spread(aky * shift_state, 2, nx))
       end if
 
+      ! Non-twisting flux tube (Ball and Brunner 2021, eq. B.7-B.9): the modes on the kx grid are
+      ! exp(i (akx + ΔKx) x + i ky Y) with ΔKx = <delta_kx>(ky, z), and Y the non-twisting binormal
+      ! coordinate. The x derivatives are i (akx + ΔKx), and the phase exp(i ΔKx x) is applied in
+      ! (ky, x) space, before the transform to Y (and removed after the transform back). The Poisson
+      ! bracket has the same form in (x, Y) as in (x, y). i ΔKx <chi> is obtained from i ky <chi>.
+      if (non_twisting) then
+         allocate (dkx_over_ky(naky, -nzgrid:nzgrid)); dkx_over_ky = 0.0
+         where (spread(abs(aky), 2, 2 * nzgrid + 1) > epsilon(0.0)) &
+            dkx_over_ky = delta_kx / spread(aky, 2, 2 * nzgrid + 1)
+         allocate (phase_ntft(naky, nx, -nzgrid:nzgrid))
+         do iz = -nzgrid, nzgrid
+            phase_ntft(:, :, iz) = exp(zi * spread(delta_kx(:, iz), 2, nx) * spread(x, 1, naky))
+         end do
+      end if
+
       ! Incoming pdf is g = <f>.
       ! For EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
@@ -148,6 +168,13 @@ contains
          is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
+
+               ! Phase factor in (ky, x) space: flow shear and/or the non-twisting flux tube
+               if (non_twisting) then
+                  prefac_z = prefac * phase_ntft(:, :, iz)
+               else
+                  prefac_z = prefac
+               end if
             
                ! Get the fields (to avoid indexing arrays which aren't allocated)
                if (include_apar) apar_kykx = apar(:, :, iz, it)
@@ -164,6 +191,12 @@ contains
                   call get_dgdx(phi_gyro(:, :, iz, it, ivmu), g0k)
                else
                   call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
+               end if
+
+               ! Non-twisting flux tube: add i ΔKx <chi> = (ΔKx/ky) i ky <chi>
+               if (non_twisting) then
+                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0a)
+                  g0k = g0k + spread(dkx_over_ky(:, iz), 2, nakx) * g0a
                end if
                
                ! Zero out the zonal contribution to d<chi>/dx if requested
@@ -203,8 +236,9 @@ contains
                   cfl_dt_ExB = min(cfl_dt_ExB, 2.*pi / max(maxval(abs(g1xy)) * aky(naky), zero))
                end if
 
-               ! Compute dg/dx in k-space (= i*kx*g)
+               ! Compute dg/dx in k-space (= i*kx*g); for the non-twisting flux tube i (akx + ΔKx) g
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
+               if (non_twisting) g0k = g0k + zi * spread(delta_kx(:, iz), 2, nakx) * g(:, :, iz, it, ivmu)
                
                ! Zero out the zonal contribution to dg/dx if requested
                if (suppress_zonal_interaction) then
@@ -263,7 +297,7 @@ contains
                   end if
                else
                   call transform_y2ky_xfirst(bracket, g0xky)
-                  g0xky = g0xky / prefac
+                  g0xky = g0xky / prefac_z
                   call transform_x2kx_xfirst(g0xky, tmp)
                   gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + code_dt * tmp
                end if
@@ -275,6 +309,8 @@ contains
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
+      deallocate (prefac, prefac_z)
+      if (allocated(dkx_over_ky)) deallocate (dkx_over_ky, phase_ntft)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
       if (allocated(g0xky)) deallocate (g0xky)
       if (allocated(g0kxy)) deallocate (g0kxy)
@@ -362,7 +398,7 @@ contains
          ! Fourier transform g(kx,ky) to g(x,ky) and then to g(x,y)
          else
                call transform_kx2x_xfirst(gk, g0xky)
-               g0xky = g0xky * prefac
+               g0xky = g0xky * prefac_z
                call transform_ky2y_xfirst(g0xky, gx)
          end if
 

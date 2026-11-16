@@ -189,45 +189,53 @@ contains
       if (radial_variation) then
          if (.not. allocated(prl_shear_p)) then
             allocate (prl_shear_p(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            prl_shear_p = 0.0
          end if
       end if 
       
       !--------------------- Calculate parallel flow shear ---------------------
 
-      ! Iterate over the (z, mu,vpa,s) points
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         is = is_idx(vmu_lo, ivmu)
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
+      ! The parallel flow shear vanishes if <g_exb> or <omprimfac> are zero. Skip the
+      ! calculation in that case, since the geometric factors are not always defined,
+      ! e.g. q/r diverges for the z-pinch geometry where rhoc = 0.
+      if (abs(omprimfac * g_exb) > epsilon(0.0)) then
+      
+         ! Iterate over the (z, mu,vpa,s) points
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
          
-         ! Calculate parallel flow shear
-         !     omega_{zeta,k,s} = -k_y * sqrt(m_s/T_s) * q*a/r * I/B * exp(-v²) * gamma_E
-         !     gamma_E = (r/q) (dOmega_zeta(dr) (a/v_{th,ref})
-         ! TODO - make formula match code
-         do iz = -nzgrid, nzgrid
-            prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-              * dydalpha * drhodpsi * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
-              * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
+            ! Calculate parallel flow shear
+            !     omega_{zeta,k,s} = -k_y * sqrt(m_s/T_s) * q*a/r * I/B * exp(-v²) * gamma_E
+            !     gamma_E = (r/q) (dOmega_zeta(dr) (a/v_{th,ref})
+            ! TODO - make formula match code
+            do iz = -nzgrid, nzgrid
+               prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
+                 * dydalpha * drhodpsi * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
+                 * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
+            end do
+         
+            ! Add the Mawellian exp(v²)
+            do iz = -nzgrid, nzgrid
+               prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
+                     * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+            end do
+         
+            ! Add correction due to radial variation
+            if (radial_variation) then
+               energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
+               prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
+                     - spread(dBdrho, 1, nalpha) / bmag &
+                     - spec(is)%fprim - spec(is)%tprim * (energy - 2.5) &
+                     - 2.*mu(imu) * spread(dBdrho, 1, nalpha))
+            end if
          end do
-         
-         ! Add the Mawellian exp(v²)
-         do iz = -nzgrid, nzgrid
-            prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
-                  * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-         end do
-         
-         ! Add correction due to radial variation
-         if (radial_variation) then
-            energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
-            prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
-                  - spread(dBdrho, 1, nalpha) / bmag &
-                  - spec(is)%fprim - spec(is)%tprim * (energy - 2.5) &
-                  - 2.*mu(imu) * spread(dBdrho, 1, nalpha))
-         end if
-      end do
 
-      ! The definition of parallel flow shear depends on the definition of psi (or x)
-      if (q_as_x) prl_shear = prl_shear / geo_surf%shat_psi0
+         ! The definition of parallel flow shear depends on the definition of psi (or x)
+         if (q_as_x) prl_shear = prl_shear / geo_surf%shat_psi0
+
+      end if
 
       ! Deallocate the temporary arrays
       if (radial_variation) deallocate (energy)
@@ -276,6 +284,7 @@ contains
       
       ! Physics flags
       use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_apar, include_bpar
       
       ! Calculations
       use calculations_kxky_derivatives, only: get_dchidy
@@ -291,6 +300,7 @@ contains
 
       ! Local variables
       complex, dimension(:, :), allocatable :: g0k
+      complex, dimension(:, :), allocatable :: apar_kykx, bpar_kykx
       integer :: ivmu, iz, it, ia
 
       !-------------------------------------------------------------------------
@@ -300,6 +310,8 @@ contains
 
       ! Allocate temporary arrays
       allocate (g0k(naky, nakx))
+      allocate (apar_kykx(naky, nakx)); apar_kykx = 0.
+      allocate (bpar_kykx(naky, nakx)); bpar_kykx = 0.
 
       ! Abort for full-flux-surface simulations
       if (full_flux_surface) then
@@ -312,9 +324,13 @@ contains
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
             
+               ! Get the fields (to avoid indexing arrays which aren't allocated)
+               if (include_apar) apar_kykx = apar(:, :, iz, it)
+               if (include_bpar) bpar_kykx = bpar(:, :, iz, it)
+
                ! Take the derivate w.r.t. y in Fourier space
                ! <g0k> = i ky J_0 ϕ_k = d<chi>_theta/dy = get_dchidy(iz, ivmu, phi, apar, bpar, g0)
-               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
 
                ! Add, - omega_{zeta,k,s} * J0 * phi to the right-hand-side of the gyrokinetic equation
                ! TODO - check the sign of this term?
@@ -325,7 +341,7 @@ contains
       end do
 
       ! Deallocate temporary arrays
-      deallocate (g0k)
+      deallocate (g0k, apar_kykx, bpar_kykx)
 
    end subroutine advance_parallel_flow_shear
 

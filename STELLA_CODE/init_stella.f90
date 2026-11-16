@@ -518,8 +518,9 @@ contains
       
       ! Load the fields and the distribution function g(kx,ky,z,mu,vpa,species)
       use arrays_fields, only: phi, apar, bpar
-      use arrays_distribution_function, only: gnew
-      
+      use arrays_distribution_function, only: gnew, gold
+      use gyrokinetic_equation_explicit, only: enforce_parallel_boundary_conditions
+
       ! Radial variation runs
       use parameters_physics, only: radial_variation
       use file_utils, only: runtype_option_switch
@@ -540,7 +541,14 @@ contains
       !----------------------------------------------------------------------
 
       ! The distribution function g(kx,ky,z,mu,vpa,species) has been initialised
-      ! in initialise_distribution(). Use the quasineutrality condition to initialise 
+      ! in initialise_distribution(). Make it satisfy the parallel boundary conditions
+      ! (the two copies of the periodic end points and of the twist-and-shift joins).
+      if (.not. restarted) then
+         call enforce_parallel_boundary_conditions(gnew)
+         gold = gnew
+      end if
+
+      ! Use the quasineutrality condition to initialise
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       call advance_fields(gnew, phi, apar, bpar, dist='g')

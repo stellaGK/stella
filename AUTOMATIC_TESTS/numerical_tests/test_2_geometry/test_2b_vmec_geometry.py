@@ -18,8 +18,6 @@ with open(module_path, 'r') as file: exec(file.read())
 # Global variables 
 vmec_filename = 'wout_w7x_kjm.nc'
 input_filename = 'vmec_geometry.in'
-stella_local_run_directory = 'Not/Run/Yet'
-run_data = {}
 
 #-------------------------------------------------------------------------------
 #                           Get the stella version                             #
@@ -29,21 +27,21 @@ def stella_version(pytestconfig):
     return pytestconfig.getoption("stella_version")
     
 #-------------------------------------------------------------------------------
+#                         Run local stella simulation                          #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def stella_run(tmp_path_factory, stella_version):
+    '''Run a local stella simulation, which is shared by all the tests in this 
+    module, so that each test can also be run on its own.'''
+    if stella_version!='master': pytest.skip('The VMEC geometry test has not been implemented for older stella versions.')
+    tmp_path = tmp_path_factory.mktemp('vmec_geometry')
+    return run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
+
+#-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_VMEC_output_files_are_present(tmp_path, stella_version, error=False):
-    
-    # Save the temporary folder <tmp_path> as a global variable so the
-    # other tests can access the output files from the local stella run.
-    global stella_local_run_directory, input_filename, run_data
-    stella_local_run_directory = tmp_path
-    
-    # Run stella inside of <tmp_path> based on <input_filename>
-    if stella_version!='master': 
-        input_filename = input_filename.replace('.in', f'_v{stella_version}.in') 
-        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
-        return 
-    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
+def test_whether_VMEC_output_files_are_present(stella_run, error=False):
+    stella_local_run_directory = stella_run['tmp_path']
     
     # Gather the output files generated during the local stella run inside <tmp_path>
     local_files = os.listdir(stella_local_run_directory)
@@ -70,7 +68,8 @@ def test_whether_VMEC_output_files_are_present(tmp_path, stella_version, error=F
 #-------------------------------------------------------------------------------
 #                     Check whether VMEC output files match                    #
 #-------------------------------------------------------------------------------
-def test_whether_vmec_output_files_are_correct():
+def test_whether_vmec_output_files_are_correct(stella_run):
+    stella_local_run_directory = stella_run['tmp_path']
 
     # Initialize
     geometry_files_match = True
@@ -83,7 +82,7 @@ def test_whether_vmec_output_files_are_correct():
     expected_vmec_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.vmec.geo'
 
     # Compare the *.geometry files
-    compare_geometry_files(local_geometry_file, expected_geometry_file, error=False, with_btor=False)
+    compare_geometry_files(local_geometry_file, expected_geometry_file, error=False)
     compare_vmecgeo_files(local_vmec_file, expected_vmec_file, error=False)
 
     # If we made it here the test was run correctly 
@@ -93,7 +92,7 @@ def test_whether_vmec_output_files_are_correct():
 #-------------------------------------------------------------------------------
 #              Check whether the data in the netcdf file matches               #
 #-------------------------------------------------------------------------------
-def test_whether_vmec_geometry_data_in_netcdf_file_is_correct(error=False): 
-    compare_geometry_in_netcdf_files(run_data, error=False)
+def test_whether_vmec_geometry_data_in_netcdf_file_is_correct(stella_run, error=False): 
+    compare_geometry_in_netcdf_files(stella_run, error=False)
     print('  -->  All VMEC geometry data in the netcdf file matches the expected output.')
     return
