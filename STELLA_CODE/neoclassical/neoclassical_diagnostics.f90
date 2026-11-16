@@ -122,16 +122,13 @@ contains
 ! -------------------------------------------------------- Reads the moments of the neoclassical H_1 distribution on stellas z grid. ---------------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine write_distribution_moment_diagnostic(neo_grid, moment, file_tag)
+    subroutine write_distribution_moment_diagnostic(moment, file_tag)
         ! Grids.
         use grids_z, only: nzgrid, zed
-
-        ! NEO. 
-        use NEO_interface, only: neo_grid_data
-      
+        use grids_species, only: nspec
+ 
         implicit none
 
-        type(neo_grid_data), intent(in) :: neo_grid
         real, intent(in) :: moment(-nzgrid:, :)        
         character(len=*), intent(in) :: file_tag 
         
@@ -154,7 +151,7 @@ contains
         write(unit,'(A)') '#'
         write(unit,'(A)') '#  is            iz            z                mom'
         
-        do is = 1, neo_grid%n_species
+        do is = 1, nspec
             do iz = -nzgrid, nzgrid
                 write(unit,'(I6, 1X, I6, 1X, ES16.8, 1X, ES16.8)') is, iz, zed(iz), moment(iz, is)
             end do

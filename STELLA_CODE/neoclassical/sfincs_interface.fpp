@@ -1448,12 +1448,13 @@ contains
          ! to be consistent with stella distribution functions,
          ! want H_nc / (n_s / vt_s^3 * pi^(3/2)) / exp(-v^2/vts^2)
          f_neoclassical(:, imu) = f_neoclassical(:, imu) &
-                                  * pi**1.5 * spec(is)%stm**3 / spec(is)%dens
+                                  * pi**1.5 * spec(is)%stm**3 / ( spec(is)%dens &
+                                  * maxwell_vpa(:, is) * maxwell_mu(ialpha, iz, imu, is) )
 
          ! phi_sfincs is e phi / Tref as long as alpha=1 (default)
          ! need to multiply by Z_s * Tref/T_s
-         f_neoclassical(:, imu) = f_neoclassical(:, imu) &
-                                  - phi_neoclassical * spec(is)%zt * maxwell_vpa(:, is) * maxwell_mu(ialpha, iz, imu, is)
+         ! f_neoclassical(:, imu) = f_neoclassical(:, imu) &
+         !                        - phi_neoclassical * spec(is)%zt * maxwell_vpa(:, is) * maxwell_mu(ialpha, iz, imu, is)
       end do
 
       deallocate (xi_stella, hstella, legpoly)

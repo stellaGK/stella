@@ -47,6 +47,8 @@ module neoclassical_terms_neo
 
     public :: initialised_neoclassical_terms_neo
 
+    public :: get_neo_moment
+
     private
 
     ! Copies the ia = 1 slice of an array (α is the first dimension) on to all other ia.
@@ -170,6 +172,8 @@ contains
         ! Holds NEO H_1 data on the left and right flux surfaces for ia = 1, compacted into 2 indices: (-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc).
         real, dimension(:, :), allocatable :: neo_h_right, neo_h_left                 
 
+        real, dimension(nspec) :: fsa_u_B
+
         integer :: iz, ivmu, iv, imu, is, ia
         integer :: surface_index
         integer :: output_unit 
@@ -255,29 +259,29 @@ contains
         ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, neo_h_global, surface_index, 'neo_h_on_stella_grids_central')
  
         ! DIAGNOSTIC.
-        call get_neo_moment(neo_h_global, neo_phi(ia, :), neo_grid, "zeroeth", neo_dens)
-        ! call get_neo_moment(neo_h_global_right, neo_phi_right, neo_grid, "zeroeth", neo_dens_right)
-        ! call get_neo_moment(neo_h_global_left, neo_phi_left, neo_grid, "zeroeth", neo_dens_left)
+        call get_neo_moment(neo_h_global, neo_phi(ia, :), "zeroeth", neo_dens)
+        ! call get_neo_moment(neo_h_global_right, neo_phi_right, "zeroeth", neo_dens_right)
+        ! call get_neo_moment(neo_h_global_left, neo_phi_left, "zeroeth", neo_dens_left)
 
         ! DIAGNOSTIC.
         ! Write out the density arrays to output files.  
         if (proc0) then
-            call write_distribution_moment_diagnostic(neo_grid, neo_dens, "zeroeth_moment_on_stella_z_grid_central_surface")
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_right, "zeroeth_moment_on_stella_z_grid_right_surface")
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_dens_left, "zeroeth_moment_on_stella_z_grid_left_surface")
+            call write_distribution_moment_diagnostic(neo_dens, "zeroeth_moment_on_stella_z_grid_central_surface")
+            ! call write_distribution_moment_diagnostic(neo_dens_right, "zeroeth_moment_on_stella_z_grid_right_surface")
+            ! call write_distribution_moment_diagnostic(neo_dens_left, "zeroeth_moment_on_stella_z_grid_left_surface")
         end if
 
         ! DIAGNOSTIC.
-        call get_neo_moment(neo_h_global, neo_phi(ia, :), neo_grid, "first", neo_u_par)
-        ! call get_neo_moment(neo_h_global_right, neo_phi_right, neo_grid, "first", neo_u_par_right)
-        ! call get_neo_moment(neo_h_global_left, neo_phi_left, neo_grid, "first", neo_u_par_left)
+        call get_neo_moment(neo_h_global, neo_phi(ia, :), "first", neo_u_par, fsa_mom_B=fsa_u_B)
+        ! call get_neo_moment(neo_h_global_right, neo_phi_right, "first", neo_u_par_right)
+        ! call get_neo_moment(neo_h_global_left, neo_phi_left, "first", neo_u_par_left)
 
         ! DIAGNOSTIC.
         ! Write out the parallel flow arrays to output files.  
         if (proc0) then
-            call write_distribution_moment_diagnostic(neo_grid, neo_u_par, "first_moment_on_stella_z_grid_central_surface")
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_u_par_right, "first_moment_on_stella_z_grid_right_surface")
-            ! call write_distribution_moment_diagnostic(neo_grid, neo_u_par_left, "first_moment_on_stella_z_grid_left_surface")
+            call write_distribution_moment_diagnostic(neo_u_par, "first_moment_on_stella_z_grid_central_surface")
+            ! call write_distribution_moment_diagnostic(neo_u_par_right, "first_moment_on_stella_z_grid_right_surface")
+            ! call write_distribution_moment_diagnostic(neo_u_par_left, "first_moment_on_stella_z_grid_left_surface")
         end if
 
         ! Now compact distribution into 3 indices for use in the GKE and also for calculating the derivatives.  
@@ -349,8 +353,8 @@ contains
 
         ! DIAGNOSTIC.
         if (proc0) then
-            call write_distribution_moment_diagnostic(neo_grid, neo_dens_vpa_deriv, "neo_distribution_vpa_deriv_first_moment_on_stella_z_grid_central_surface") 
-            call write_distribution_moment_diagnostic(neo_grid, neo_dens_mu_deriv, "neo_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
+            call write_distribution_moment_diagnostic(neo_dens_vpa_deriv, "neo_distribution_vpa_deriv_first_moment_on_stella_z_grid_central_surface") 
+            call write_distribution_moment_diagnostic(neo_dens_mu_deriv, "neo_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
         end if
 
         ! NEO is axisymmetric, so every field line is identical: copy the ia = 1 data on to ia = 2, ..., nalpha.
@@ -788,7 +792,7 @@ contains
        	    the_sum = the_sum + P(1) * L(ie, 1) * neo_h_hat_z_grid(1, ie)
 
             do ix = 2, neo_grid%n_xi + 1
-                the_sum = the_sum + P(ix) * L(ie, 2) * neo_h_hat_z_grid(ix, ie)
+                the_sum = the_sum + P(ix) * sqrt(E_in) * L(ie, 2) * neo_h_hat_z_grid(ix, ie)
             end do
         end do
 
@@ -839,7 +843,7 @@ contains
 
             ! Now add in all the other xi indicies.
             do ix = 2, neo_grid%n_xi + 1
-                the_sum = the_sum + dP(ix) * L(ie, 2) * neo_h_hat_z_grid(ix, ie)
+                the_sum = the_sum + dP(ix) * sqrt(E_in) * L(ie, 2) * neo_h_hat_z_grid(ix, ie)
             end do
         end do
 
@@ -858,41 +862,40 @@ contains
 ! ================================================================================================================================================================================= !
 
     pure real function get_neo_h_at_xi_energy_deriv(neo_h_hat_z_grid, E_in, xi_in, neo_grid) result(the_sum)
-        use polynomials, only: get_legendre, get_laguerre_deriv
+    
+        use polynomials, only: get_legendre, get_laguerre, get_laguerre_deriv
         use NEO_interface, only: neo_grid_data
 
         implicit none
 
-        real, dimension(:, :), intent(in) :: neo_h_hat_z_grid ! A 2-D slice of the 5-dimensional neo_h_hat_z_grid data, at fixed z, species and surface index. 
+        real, dimension(:, :), intent(in) :: neo_h_hat_z_grid
         real, intent(in) :: xi_in, E_in
         type(neo_grid_data), intent(in) :: neo_grid
 
-        ! Local variables.
         integer :: ie, ix
-        real, dimension(:), allocatable    :: P ! To hold Legendre Polynomials.
-        real, dimension(:, :), allocatable :: dL ! To holds two sets of Laguerre derivative polynomials.
+        real :: sqrtE
+        real, dimension(:), allocatable    :: P   ! Legendre polynomials.
+        real, dimension(:, :), allocatable :: dL  ! (:,1) dL^{1/2}/dE, (:,2) dL^{3/2}/dE, (:,3) L^{3/2}.
 
         allocate(P(neo_grid%n_xi + 1))
-        allocate(dL(neo_grid%n_energy + 1, 2))
+        allocate(dL(neo_grid%n_energy + 1, 3))
 
         the_sum = 0.0
+        sqrtE = sqrt(max(E_in, tiny(E_in)))
 
-        ! Evaluate the Legendre polynomials.
         call get_legendre(xi_in, P)
-
-        ! We need to evaluate the Laguerre function with two different values of k, the first for the first ξ index and the other for all other ξ indices.
-
         call get_laguerre_deriv(E_in, 0.5, dL(:, 1))
         call get_laguerre_deriv(E_in, 1.5, dL(:, 2))
+        call get_laguerre(E_in, 1.5, dL(:, 3))
 
-        ! Now iterate over data and perform the sum. 
         do ie = 1, neo_grid%n_energy + 1
-            ! First add in the piece for the first ξ index at a given E index.
+            ! xi index 0: basis L_e^{1/2}(E), unchanged.
             the_sum = the_sum + P(1) * dL(ie, 1) * neo_h_hat_z_grid(1, ie)
 
-            ! Now add in all the other ξ indicies.
+            ! xi index > 0: basis sqrt(E) L_e^{3/2}(E) (NEO laguerre_method = 1).
             do ix = 2, neo_grid%n_xi + 1
-                the_sum = the_sum + P(ix) * dL(ie, 2) * neo_h_hat_z_grid(ix, ie)
+                the_sum = the_sum + P(ix) * (0.5 * dL(ie, 3) / sqrtE + sqrtE * dL(ie, 2)) &
+                                  * neo_h_hat_z_grid(ix, ie)
             end do
         end do
 
@@ -1115,62 +1118,112 @@ contains
 !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_neo_moment(neo_h_global, neo_phi, neo_grid, moment_type, neo_mom)
+    subroutine get_neo_moment(neo_h_global, neo_phi, moment_type, neo_mom, fsa_mom_B)
         ! Grids.
         use grids_z, only: nzgrid
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, nvpa, vpa, nmu
-        use grids_species, only: spec
+        use grids_species, only: spec, nspec
 
-        ! NEO data.
-        use NEO_interface, only: neo_grid_data 
+        ! Geometry (flux-surface average weights and |B|).
+        use geometry, only: dl_over_b, bmag, geo_surf
 
-        ! Calculations. 
+        ! Calculations.
         use calculations_velocity_integrals, only: integrate_vmu
+
+        ! Output.
+        use mp, only: proc0
 
         implicit none
 
         real, dimension(-nzgrid:, :, :, :), intent(in)    :: neo_h_global
-        real, dimension(-nzgrid:)                         :: neo_phi 
-        type(neo_grid_data), intent(in)                   :: neo_grid
+        real, dimension(-nzgrid:)                         :: neo_phi
         character(len=*), intent(in)                      :: moment_type
-        real, dimension(-nzgrid:, :), intent(out)         :: neo_mom        
-        
-        ! Local variables.
-        integer           :: is, imu, iv, iz, ia 
-        real, allocatable :: tmp(:, :, :, :)
-        real :: vel_weight
+        real, dimension(-nzgrid:, :), intent(out)         :: neo_mom
+        ! Optional, "first" moment only: < neo_mom * B >, the flux-surface average of (n_s u_par,s) B,
+        ! one value per species, in the same units as neo_mom times B_ref.
+        real, dimension(:), intent(out), optional         :: fsa_mom_B
 
-        allocate(tmp(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species))
+        ! Local variables.
+        integer           :: is, imu, iv, iz, ia
+        real, allocatable :: tmp(:, :, :, :)
+        real, allocatable :: w(:)
+        real :: bref_over_bunit, u_B_neo
+
+        allocate(tmp(-nzgrid:nzgrid, nvpa, nmu, nspec))
         tmp = 0.0
         neo_mom = 0.0
 
-        ia = 1 
+        ia = 1
 
-        ! Calculate the physical F_1. 
-        do is = 1, neo_grid%n_species
+        ! Calculate the physical F_1.
+        do is = 1, nspec
             do iv = 1, nvpa
                 do imu = 1, nmu
-                    do iz = -nzgrid, nzgrid           
+                    do iz = -nzgrid, nzgrid
                         select case (trim(moment_type))
 
                         case ("zeroeth")
-                            tmp(iz, iv, imu, is) = ( neo_h_global(iz, iv, imu, is) - spec(is)%z * neo_phi(iz) ) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                            tmp(iz, iv, imu, is) = ( neo_h_global(iz, iv, imu, is) &
+                            - spec(is)%z * neo_phi(iz) ) &
+                            * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                         case ("first")
-                            tmp(iz, iv, imu, is) = vpa(iv) * sqrt(2.0) * spec(is)%stm * neo_h_global(iz, iv, imu, is) &
+                            tmp(iz, iv, imu, is) = vpa(iv) * neo_h_global(iz, iv, imu, is) &
                             * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                         end select
                     end do
                 end do
             end do
-        end do 
+        end do
 
         ! Integrate over velocity space.
-        do is = 1, neo_grid%n_species
+        do is = 1, nspec
             do iz = -nzgrid, nzgrid
                 call integrate_vmu(tmp(iz, :, :, is), iz, neo_mom(iz, is))
             end do
         end do
+
+        ! ------------------------------------------------------------------------------------------
+        ! Flux-surface-average diagnostic of the first moment:  < (n_s u_par,s) B >
+        !
+        !   < A > = sum_z A(z) dl_over_b(z) / sum_z dl_over_b(z),   dl_over_b = delzed * jacob,
+        !
+        ! i.e. < A > = int A J dz / int J dz, stella's own flux-surface average for axisymmetric
+        ! quantities (the duplicated end point has zero weight; with nperiod > 1 every 2 pi period
+        ! is weighted equally, so the result is the one-period average).
+        !
+        ! Conversion to NEO's normalisation, < u_par,s B > / (v_norm B_unit), as in out.neo.transport
+        ! and in the NEO/SFINCS benchmark figure (NEO's v_norm = sqrt(T_ref/m_ref), stella's
+        ! v_th,ref = sqrt(2 T_ref/m_ref); stella's vpa is in units of v_th,s = stm * v_th,ref):
+        !
+        !   < u_par,s B > / (v_norm B_unit) = fsa_mom_B * sqrt(2) * stm_s / dens_s * (B_ref / B_unit)
+        !
+        ! with B_ref / B_unit = sqrt(1 - (r/R0)^2) for a circular, unshifted Miller surface
+        ! (B_unit = B_0 / sqrt(1 - eps^2), B_ref = B_0 at R = rgeo = rmaj). For shaped surfaces replace
+        ! bref_over_bunit with the correct B_ref/B_unit.
+        ! ------------------------------------------------------------------------------------------
+        if (present(fsa_mom_B)) then
+            fsa_mom_B = 0.0
+            if (trim(moment_type) == "first") then
+                allocate(w(-nzgrid:nzgrid))
+                w = dl_over_b(ia, :) / sum(dl_over_b(ia, :))
+                do is = 1, nspec
+                    fsa_mom_B(is) = sum(w * neo_mom(:, is) * bmag(ia, :))
+                end do
+                deallocate(w)
+
+                bref_over_bunit = sqrt(1.0 - (geo_surf%rhoc / geo_surf%rmaj)**2)
+                if (proc0) then
+                    write (*, '(a)') ' Flux-surface average of the first neoclassical moment:'
+                    do is = 1, nspec
+                        u_B_neo = fsa_mom_B(is) * sqrt(2.0) * spec(is)%stm / spec(is)%dens * bref_over_bunit
+                        write (*, '(a, i2, a, es14.6, a, es14.6)') '   species ', is, &
+                            ':  <n u_par B> (stella units) = ', fsa_mom_B(is), &
+                            '   <u_par B>/(v_norm B_unit) (NEO units) = ', u_B_neo
+                    end do
+                end if
+            end if
+        end if
 
         ! Deallocate the temporary array.
         deallocate(tmp)

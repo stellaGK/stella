@@ -72,9 +72,11 @@ contains
       use sfincs_interface, only: get_neo_from_sfincs
       use namelist_neoclassical_input, only: read_namelist_neoclassical_input
 
-      ! Neoclassical diagnostics.
+      ! Neoclassical diagnostics & moments.
       use neoclassical_diagnostics, only: write_neo_phi_on_stella_z_grid_diagnostic
       use neoclassical_diagnostics, only: write_distribution_moment_diagnostic
+      use neoclassical_diagnostics, only: write_distribution_moment_diagnostic
+      use neoclassical_terms_neo, only: get_neo_moment
 
       implicit none
 
@@ -82,6 +84,12 @@ contains
       real, dimension(:, :, :, :, :, :), allocatable :: f_neoclassical
       real, dimension(:, :, :), allocatable :: phi_neoclassical
       real, dimension(:, :, :, :, :), allocatable :: dfneo_dalpha_local
+
+      ! DIAGNOSTICS. 
+      real, dimension(:, :), allocatable :: neo_dens
+      real, dimension(:, :), allocatable :: neo_u_par
+
+      real, dimension(nspec) :: fsa_u_B
 
       integer :: iz, ialpha
 
@@ -147,6 +155,24 @@ contains
             call write_neo_phi_on_stella_z_grid_diagnostic(dneo_phi_drho(1, :), "sfincs_dneo_phi_drho_on_stella_z_grid_central_surface")
          end if
 
+         ! DIAGNOSTIC.
+         ! Get the zeroth order moment of the neoclassical distribution. 
+         call get_neo_moment(f_neoclassical(1, :, :, :, :, 0), &
+            phi_neoclassical(1, :, 0), "zeroeth", neo_dens)
+         if (proc0) then
+            call write_distribution_moment_diagnostic(neo_dens, &
+               "sfincs_zeroeth_moment_on_stella_z_grid_central_surface")
+         end if
+
+         ! DIAGNOSTIC.
+         ! Get the first order moment of the neoclassical distribution. 
+         call get_neo_moment(f_neoclassical(1, :, :, :, :, 0), &
+            phi_neoclassical(1, :, 0), "first", neo_u_par, fsa_mom_B=fsa_u_B)
+         if (proc0) then
+            call write_distribution_moment_diagnostic(neo_u_par, &
+               "sfincs_first_moment_on_stella_z_grid_central_surface")
+         end if 
+
          ! Deallocate all temporary arrays.
          call deallocate_temp_arrays
       end if
@@ -178,6 +204,10 @@ contains
          if (.not. allocated(dfneo_dalpha_local)) &
          allocate(dfneo_dalpha_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
 
+         ! DIAGNOSTICS. 
+         if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, nspec))
+         if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, nspec))
+
       end subroutine allocate_temp_arrays
 
 
@@ -189,6 +219,10 @@ contains
          if (allocated(phi_neoclassical)) deallocate(phi_neoclassical)
          if (allocated(dfneo_dalpha_local)) deallocate(dfneo_dalpha_local)
     
+         ! DIAGNOSTICS. 
+         if (allocated(neo_dens)) deallocate(neo_dens)
+         if (allocated(neo_u_par)) deallocate(neo_u_par)
+
        end subroutine deallocate_temp_arrays
 
    end subroutine init_neoclassical_terms_sfincs
@@ -417,7 +451,10 @@ contains
       allocate (tmp1(nztot), tmp2(nztot))
 
       do ia = 1, nalpha
-         call periodic_spline_dzed(phineo(ia, :), dphineo(ia, :))
+         ! hack to avoid dealing with negative indices in fd5pt
+         tmp1 = phineo(ia, :)
+         call fd5pt(tmp1, tmp2, delzed(0))
+         dphineo(ia, :) = tmp2
       end do
 
       deallocate (tmp1, tmp2)
@@ -449,11 +486,10 @@ contains
             tmp1 = phineo(ia, iz, :)
             if (nradii == 5) then
                call fd5pt(tmp1, tmp2, drho)
-               dphineo(ia, iz) = tmp2(nradii / 2 + 1)
             else
-               ! The phi derivative is trivial to calculate via a central difference algorithm.
-               dneo_phi_drho(ia, iz) = ( phineo(ia, iz, 1) - phineo(ia, iz, -1) ) / (2.0 * drho)
+               call fd3pt(tmp1, tmp2, drho)
             end if
+            dphineo(ia, iz) = tmp2(nradii / 2 + 1)
          end do
       end do
 
@@ -535,36 +571,6 @@ contains
       deallocate (dfdv_local, dfdr_local, dfdz_local)
 
    end subroutine write_neoclassical
-
-
-   ! z derivative of a 2*pi-periodic quantity on stella's zed grid, using the same
-   ! periodic tension spline as the NEO interface.
-   ! Assumes zed = theta (tokamak geometry).
-   subroutine periodic_spline_dzed(f, df)
-      ! Splines.
-      use periodic_splines, only: periodic_spline, new_periodic_spline, delete_periodic_spline
-      
-      ! Grids. 
-      use grids_z, only: nzgrid, nzed, zed
-      
-      ! Constants.
-      use constants, only: twopi
-
-      implicit none
-
-      real, dimension(-nzgrid:), intent(in) :: f
-      real, dimension(-nzgrid:), intent(out) :: df
-
-      type(periodic_spline) :: the_spline
-      integer :: iz
-
-      the_spline = new_periodic_spline(zed(-nzed / 2:nzed / 2 - 1), f(-nzed / 2:nzed / 2 - 1), twopi)
-      do iz = -nzgrid, nzgrid
-         df(iz) = the_spline%derivative(zed(iz))
-      end do
-      call delete_periodic_spline(the_spline)
-
-   end subroutine periodic_spline_dzed
 
 
 end module neoclassical_terms_sfincs
