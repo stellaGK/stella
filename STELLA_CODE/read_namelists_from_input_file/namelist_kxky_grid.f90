@@ -447,7 +447,7 @@ contains
       !---------------------------- Check parameters ---------------------------
       ! Note that we can launch a range of ky-modes for kx = 0, where each
       ! mode is unconnected. Or we can launch a range of kx-modes for a fixed
-      ! value of ky, where the modes will form a single eigenmode if jtwist = 1.
+      ! value of ky, where the modes are also unconnected (the twist-and-shift connections need a box).
       !-------------------------------------------------------------------------
       subroutine check_kxky_grid_range_parameters
       

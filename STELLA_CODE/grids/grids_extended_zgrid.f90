@@ -107,7 +107,7 @@ contains
       use grids_z, only: boundary_option_linked
       use grids_z, only: boundary_option_linked_stellarator
       use grids_z, only: nperiod, nzgrid, nzed, ntubes
-      use grids_kxky, only: nakx, naky, ikx_max
+      use grids_kxky, only: nakx, naky, ikx_max, box
       use grids_kxky, only: jtwist, ikx_twist_shift, phase_shift_angle
       use grids_kxky, only: aky
       use constants, only: zi
@@ -143,7 +143,9 @@ contains
       phase_shift = exp(zi * aky * phase_shift_angle)
 
       if (debug) write (*, *) 'extended_zgrid::boundary_option_switch'  
-      if (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator) then
+      ! The twist-and-shift connections are only defined for a (kx,ky) box, where ky = (iky-1)*dky.
+      ! A (kx,ky) range has no such lattice (and no <jtwist>), so its modes are unconnected.
+      if (box .and. (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator)) then
 
          ! All periodic modes (e.g., the zonal mode) have no connections
          do iky = 1, naky

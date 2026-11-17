@@ -108,3 +108,33 @@ def test_kxky_grid_singlemode_linear(tmp_path, stella_version, error=False):
     print('  -->  The grid_option="range" choosing a single (kx,ky) mode is evolving correctly during a linear simulation.')
     return
     
+
+#-------------------------------------------------------------------------------
+#            RANGE LINEAR, PARALLEL STREAMING WITH LINKED BOUNDARY             #
+#-------------------------------------------------------------------------------
+# The modes of a (kx,ky) range are unconnected. Check that the implicit parallel 
+# streaming is still applied to them when boundary_option = 'linked', by comparing 
+# the singlemode run with a run where the parallel streaming is switched off.
+#-------------------------------------------------------------------------------
+def test_kxky_grid_singlemode_linear_applies_implicit_parallel_streaming(tmp_path, stella_version, error=False):
+
+    # Run the input file with and without parallel streaming
+    input_file = 'kxky_grid_singlemode_linear.in'
+    phi2 = {}
+    for name, include_streaming in [('with_streaming', True), ('without_streaming', False)]:
+        run_path = tmp_path / name
+        run_path.mkdir()
+        path_input_file = copy_input_file(input_file, run_path)
+        if not include_streaming:
+            text = path_input_file.read_text().replace('include_nonlinear = .false.', 'include_nonlinear = .false.\n  include_parallel_streaming = .false.')
+            path_input_file.write_text(text)
+        os.chdir(run_path)
+        run_stella(get_stella_path(stella_version), input_file)
+        with xr.open_dataset(run_path / input_file.replace('.in', '.out.nc')) as netcdf:
+            phi2[name] = netcdf['phi2'].values.copy()
+
+    # The parallel streaming has to change the potential
+    assert not np.allclose(phi2['with_streaming'][1:], phi2['without_streaming'][1:], rtol=1e-3), \
+        'The implicit parallel streaming has no effect on a (kx,ky) range with linked boundary conditions.'
+    print('  -->  The implicit parallel streaming is applied to the unconnected modes of a (kx,ky) range.')
+    return
