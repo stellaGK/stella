@@ -27,8 +27,14 @@
 ! out.neo.phi.left
 ! out.neo.version
 ! out.neo.species
+! out.neo.equil
+! out.neo.equil.right         < === Profiles on the neighbouring surfaces, for verifying the transport on those surfaces.
+! out.neo.equil.left
 ! out.neo.grid
 ! out.neo.version
+! out.neo.transport          < === Needed for verifying correctness of interpolation & reconstruction.
+! out.neo.transport.right
+! out.neo.transport.left
 !
 ! Files without a "left" or "right" suffix correspond to the central flux surface for which stella simulations are to be run.
 !
@@ -38,8 +44,8 @@ module NEO_interface
 
     implicit none
 
-    public :: read_basic_neo_files, read_neo_f_and_phi, neo_version_data, neo_equil_data
-    public :: neo_grid_data, neo_species_data
+    public :: read_basic_neo_files, read_neo_f_and_phi, read_neo_transport, read_neo_equil
+    public :: neo_version_data, neo_equil_data, neo_grid_data, neo_species_data, neo_transport_data
 
     private
 
@@ -99,6 +105,43 @@ module NEO_interface
         real, dimension(:), allocatable :: charge
     end type neo_species_data
 
+! ================================================================================================================================================================================ !
+! --------------------------------------------- Represents the contents of out.neo.transport - NEO transport data (one set per surface). ----------------------------------------- !
+! ------------------------------------------------------- See: https://gacode.io/neo/outputs.html#neo-out-neo-transport ---------------------------------------------------------- !
+! ================================================================================================================================================================================ !
+
+    type neo_transport_data
+        ! .true. only if the file was found and every column was read successfully.
+        logical :: found = .false.
+
+        ! \rho = r/a
+        real, dimension(:), allocatable :: radius       
+        ! (\phi^1_0)^2
+        real, dimension(:), allocatable :: phi_sq_avg  
+        ! < j_par B > / (e n_norm v_norm B_unit); first order bootstrap current. 
+        real, dimension(:), allocatable :: jpar         
+        ! v_phi^(0)(theta = 0) / v_norm; zeroth-order toroidal flow at the outboard midplane.  
+        real, dimension(:), allocatable :: vtor0_th0    
+         ! < u_par^(0) B > / (v_norm B_unit); zeroeth-order parallel flow. 
+        real, dimension(:), allocatable :: uparB0        
+        ! Gamma_sigma / (n_norm v_norm) ; Second-order radial particle flux.
+        real, dimension(:, :), allocatable :: pflux      
+        ! Q_sigma / (n_norm v_norm T_norm); Second-order radial energy flux.
+        real, dimension(:, :), allocatable :: eflux  
+        ! Pi_sigma / (n_norm T_norm a_norm); Second-order radial momentum flux.
+        real, dimension(:, :), allocatable :: mflux      
+        ! < u_par,sigma B > / (v_norm B_unit); First-order parallel flow.
+        real, dimension(:, :), allocatable :: uparB      
+        ! k_sigma; First-order dimensionless flow coefficient.        
+        real, dimension(:, :), allocatable :: k_small    
+        ! K_sigma / (n_norm v_norm / B_unit); First-order dimensional flow coefficient.
+        real, dimension(:, :), allocatable :: K_big      
+        ! v_theta,sigma(theta = 0) / v_norm; First-order poloidal flow, outboard midplane.
+        real, dimension(:, :), allocatable :: vpol_th0   
+        ! v_phi,sigma(theta = 0) / v_norm; First-order toroidal flow, outboard midplane.
+        real, dimension(:, :), allocatable :: vtor_th0
+    end type neo_transport_data
+
 
 ! ================================================================================================================================================================================ !
 
@@ -146,6 +189,30 @@ contains
 
 
 ! ================================================================================================================================================================================ !
+! ----------------------------------------------------------------- Number of whitespace-separated fields in a line. ------------------------------------------------------------- !
+! ================================================================================================================================================================================ !
+
+    pure integer function count_fields(line) result(n)
+        implicit none
+
+        character(len=*), intent(in) :: line
+        integer :: i
+        logical :: in_field
+
+        n = 0
+        in_field = .false.
+        do i = 1, len(line)
+            if (line(i:i) == ' ' .or. line(i:i) == achar(9)) then
+                in_field = .false.
+            else if (.not. in_field) then
+                in_field = .true.
+                n = n + 1
+            end if
+        end do
+    end function count_fields
+
+
+! ================================================================================================================================================================================ !
 ! --------------------------------------------------------------------------------- Reading in NEO Data. ------------------------------------------------------------------------- !
 ! ================================================================================================================================================================================ !
 
@@ -164,6 +231,9 @@ contains
         basename_internal = get_option_with_default(basename, "out.neo")
         version = get_neo_version_data(basename_internal)
         grid = get_neo_grid_data(basename_internal)
+        if (present(species)) species = get_neo_species_data(basename_internal, grid)
+        if (present(equil))   equil   = get_neo_equil_data(basename_internal, grid)
+
 
   
     end subroutine read_basic_neo_files
@@ -267,17 +337,22 @@ contains
 ! ---------------------------------------- Read out.neo.equil - see: http://gafusion.github.io/doc/neo/outputs.html#neo-out-neo-equil. ------------------------------------------- !
 ! ================================================================================================================================================================================ !
 
-    function get_neo_equil_data(basename, grid) result(equil)
+    function get_neo_equil_data(basename, grid, extra_suffix) result(equil)
+        use iso_fortran_env, only: output_unit
+        use optionals, only: get_option_with_default
+
         implicit none
     
         character(len=*), parameter :: suffix = ".equil"
         character(len=*), intent(in) :: basename
         type(neo_grid_data), intent(in) :: grid
+        ! Optional surface suffix, e.g. ".left" -> out.neo.equil.left.
+        character(len=*), intent(in), optional :: extra_suffix
         type(neo_equil_data) :: equil
         integer :: unit, ir, is, err
         character(len=:), allocatable :: filename
 
-        filename = basename // suffix
+        filename = basename // suffix // get_option_with_default(extra_suffix, "")
 
         if ( file_exists(filename) ) then
             open(newunit = unit, file = filename, status="old", action="read")
@@ -316,8 +391,32 @@ contains
             end do
 
             close(unit)
+        else
+            write (output_unit, '(3a)') ' WARNING: ', filename, ' not found.'
         end if
     end function get_neo_equil_data
+
+
+! ================================================================================================================================================================================ !
+! ------------------------------------------------------ Read the NEO equilibrium profiles of one flux surface (suffix '', '.left' or '.right'). --------------------------------- !
+! ================================================================================================================================================================================ !
+
+    subroutine read_neo_equil(equil, grid, basename, suffix)
+        use optionals, only: get_option_with_default
+
+        implicit none
+
+        type(neo_equil_data), intent(out)      :: equil
+        type(neo_grid_data), intent(in)        :: grid
+        character(len=*), intent(in), optional :: basename
+        character(len=*), intent(in), optional :: suffix
+        character(len=:), allocatable :: basename_internal, suffix_internal
+
+        basename_internal = get_option_with_default(basename, "out.neo")
+        suffix_internal = get_option_with_default(suffix, "")
+
+        equil = get_neo_equil_data(basename_internal, grid, suffix_internal)
+    end subroutine read_neo_equil
 
 
 ! ================================================================================================================================================================================ !
@@ -409,11 +508,146 @@ contains
 
 
 ! ================================================================================================================================================================================ !
+! ---------------------------------------------------- Read the NEO transport coefficients of one flux surface (suffix '', '.left' or '.right'). --------------------------------- !
+! ================================================================================================================================================================================ !
+
+    subroutine read_neo_transport(transport, grid, basename, suffix, verbose)
+        ! Optionals.
+        use optionals, only: get_option_with_default
+
+        implicit none
+
+        type(neo_transport_data), intent(out) :: transport
+        type(neo_grid_data), intent(in) :: grid
+        character(len=*), intent(in), optional :: basename
+        character(len=*), intent(in), optional :: suffix
+        
+        ! Local variables. 
+        ! Print the column check and the values read (pass proc0).
+        logical, intent(in), optional :: verbose      
+        character(len=:), allocatable :: basename_internal, suffix_internal
+
+        basename_internal = get_option_with_default(basename, "out.neo")
+        suffix_internal = get_option_with_default(suffix, "")
+
+        transport = get_neo_transport_data(basename_internal, grid, suffix_internal, &
+        get_option_with_default(verbose, .false.))
+    end subroutine read_neo_transport
+
+
+! ================================================================================================================================================================================ !
+! ----------------------------------------- Read out.neo.transport - see: http://gafusion.github.io/doc/neo/outputs.html#neo-out-neo-transport. ---------------------------------- !
+! ================================================================================================================================================================================ !
+
+    function get_neo_transport_data(basename, grid, suffix, verbose) result(transport)
+        ! Fortran. 
+        use iso_fortran_env, only: output_unit
+
+        implicit none
+
+        character(len=*), intent(in) :: basename, suffix
+        type(neo_grid_data), intent(in) :: grid
+        logical, intent(in) :: verbose
+        type(neo_transport_data) :: transport
+
+        ! Local variables. 
+        character(len=:), allocatable :: filename, first_line
+        real, dimension(:), allocatable :: row
+        integer :: unit, ir, is, ncol_expected, ncol_found, ios, c0
+
+        filename = basename // ".transport" // suffix
+        ncol_expected = 5 + 8 * grid%n_species
+        transport%found = .false.
+
+        if (.not. file_exists(filename)) then
+            if (verbose) write (output_unit, '(3a)') ' WARNING: ', filename, ' not found: NEO transport comparison skipped.'
+            return
+        end if
+
+        ! Check the number of columns on the first row before reading anything.
+        open(newunit = unit, file = filename, status = "old", action = "read")
+        first_line = read_line(unit)
+        close(unit)
+        ncol_found = count_fields(first_line)
+        if (ncol_found /= ncol_expected) then
+            if (verbose) write (output_unit, '(3a, i0, a, i0, a, i0, a)') &
+            ' WARNING: ', filename, ' has ', ncol_found, &
+            ' columns, expected 5 + 8 x ', grid%n_species, &
+            ' = ', ncol_expected, ': NEO transport comparison skipped.'
+            return
+        end if
+
+        ! Allocate transport coeffecient arrays. 
+        allocate(transport%radius(grid%n_radial)) 
+        allocate(transport%phi_sq_avg(grid%n_radial))
+        allocate(transport%jpar(grid%n_radial))
+        allocate(transport%vtor0_th0(grid%n_radial))
+        allocate(transport%uparB0(grid%n_radial))
+        allocate(transport%pflux(grid%n_species, grid%n_radial))
+        allocate(transport%eflux(grid%n_species, grid%n_radial))
+        allocate(transport%mflux(grid%n_species, grid%n_radial))
+        allocate(transport%uparB(grid%n_species, grid%n_radial))
+        allocate(transport%k_small(grid%n_species, grid%n_radial)) 
+        allocate(transport%K_big(grid%n_species, grid%n_radial))
+        allocate(transport%vpol_th0(grid%n_species, grid%n_radial))
+        allocate(transport%vtor_th0(grid%n_species, grid%n_radial))
+        allocate(row(ncol_expected))
+
+        open(newunit = unit, file = filename, status = "old", action = "read")
+        do ir = 1, grid%n_radial
+            read(unit, *, iostat = ios) row
+            if (ios /= 0) then
+                if (verbose) write (output_unit, '(3a, i0, a)') &
+                ' WARNING: could not read row ', filename, ' ', ir, &
+                ': NEO transport comparison skipped.'
+                close(unit)
+                return
+            end if
+
+            transport%radius(ir)     = row(1)
+            transport%phi_sq_avg(ir) = row(2)
+            transport%jpar(ir)       = row(3)
+            transport%vtor0_th0(ir)  = row(4)
+            transport%uparB0(ir)     = row(5)
+            do is = 1, grid%n_species
+                c0 = 5 + 8 * (is - 1)
+                transport%pflux(is, ir)    = row(c0 + 1)
+                transport%eflux(is, ir)    = row(c0 + 2)
+                transport%mflux(is, ir)    = row(c0 + 3)
+                transport%uparB(is, ir)    = row(c0 + 4)
+                transport%k_small(is, ir)  = row(c0 + 5)
+                transport%K_big(is, ir)    = row(c0 + 6)
+                transport%vpol_th0(is, ir) = row(c0 + 7)
+                transport%vtor_th0(is, ir) = row(c0 + 8)
+            end do
+        end do
+        close(unit)
+
+        transport%found = .true.
+
+        if (verbose) then
+            write (output_unit, '(3a, i0, a)') ' Read ', filename, ' (', ncol_found, ' columns):'
+            do ir = 1, grid%n_radial
+                write (output_unit, '(a, es14.6)') '############################################################'
+                write (output_unit, '(a, es14.6)') '   r/a                           = ', transport%radius(ir)
+                write (output_unit, '(a, es14.6)') '   <(e Phi_1/T_norm)^2>          = ', transport%phi_sq_avg(ir)
+                write (output_unit, '(a, es14.6)') '   <j_par B>/(e n v_norm B_unit) = ', transport%jpar(ir)
+                write (output_unit, '(a, 2es14.6)') '   zeroth-order v_tor, <u_par B> = ', transport%vtor0_th0(ir), transport%uparB0(ir)
+                write (output_unit, '(a)') '   species   Gamma          Q              Pi             <u_par B>      k              K' // &
+                                           '              v_pol(0)       v_tor(0)'
+                do is = 1, grid%n_species
+                    write (output_unit, '(i9, 8es15.6)') is, transport%pflux(is, ir), transport%eflux(is, ir), &
+                    transport%mflux(is, ir), transport%uparB(is, ir), transport%k_small(is, ir), &
+                    transport%K_big(is, ir), transport%vpol_th0(is, ir), transport%vtor_th0(is, ir)
+                end do
+                write (output_unit, '(a, es14.6)') '############################################################'
+            end do
+        end if
+    end function get_neo_transport_data
+
+
+! ================================================================================================================================================================================ !
 ! -------------------------------------------------------------------------------- End of NEO interface. ------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================ !
 
 end module NEO_interface
-
-
-
-

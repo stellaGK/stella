@@ -15,8 +15,10 @@ module neoclassical_terms_sfincs
    use arrays_neoclassical, only: include_neoclassical_terms
    use arrays_neoclassical, only: dneo_h_dz, dneo_phi_dz 
    use arrays_neoclassical, only: dneo_h_drho, dneo_phi_drho
-   use arrays_neoclassical, only: dneo_h_dvpa, neo_vpa_fac, neo_vpa_fac_global
-   use arrays_neoclassical, only: neo_mu_fac, neo_mu_fac_global 
+   use arrays_neoclassical, only: dneo_h_dvpa, dneo_h_dvpa_global, neo_vpa_fac, neo_vpa_fac_global
+   use arrays_neoclassical, only: dneo_h_dmu, dneo_h_dmu_global, neo_mu_fac, neo_mu_fac_global 
+   use arrays_neoclassical, only: dneo_h_dz, dneo_phi_dz, neo_zed_fac
+   use arrays_neoclassical, only: neo_h, neo_phi
    use arrays_neoclassical, only: dneo_phi_dalpha, neo_alpha_fac
    
    implicit none
@@ -43,11 +45,9 @@ contains
 ! ================================================================================================================================================================================= !
 
       logical function sfincs_is_enabled()
-         ! The neoclassical namelist is read once, by read_parameters_neoclassical (neoclassical_terms_neo),
-         ! before any provider is initialised. This module's own neo_option_switch is only set inside
-         ! init_neoclassical_terms_sfincs, so it cannot be used here. With two providers, SFINCS is the
-         ! selected one whenever neoclassical terms are on and NEO is not selected.
+         ! Neoclassical. 
          use neoclassical_terms_neo, only: neo_is_enabled
+
          sfincs_is_enabled = include_neoclassical_terms .and. .not. neo_is_enabled()
       end function sfincs_is_enabled
 
@@ -76,7 +76,7 @@ contains
       use neoclassical_diagnostics, only: write_neo_phi_on_stella_z_grid_diagnostic
       use neoclassical_diagnostics, only: write_distribution_moment_diagnostic
       use neoclassical_diagnostics, only: write_distribution_moment_diagnostic
-      use neoclassical_terms_neo, only: get_neo_moment
+      use neoclassical_terms_neo, only: get_neo_moment, get_neo_h_velocity_derivative_moment
 
       implicit none
 
@@ -88,6 +88,8 @@ contains
       ! DIAGNOSTICS. 
       real, dimension(:, :), allocatable :: neo_dens
       real, dimension(:, :), allocatable :: neo_u_par
+      real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
+      real, dimension(:, :), allocatable :: neo_dens_mu_deriv
 
       real, dimension(nspec) :: fsa_u_B
 
@@ -113,16 +115,20 @@ contains
             call get_neo_from_sfincs(nradii, drho, f_neoclassical, phi_neoclassical, dfneo_dalpha_local, dneo_phi_dalpha)
          end select
 
-                  
+         if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_h_and_phi_central_surface'
+         call get_h_and_phi_on_central_surface(f_neoclassical(:, :, :, :, :, 0), phi_neoclassical(:, :, 0), &
+         neo_h, neo_phi)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dzed'
-         call get_dfneo_dzed(f_neoclassical(:, :, :, :, :, 0), dneo_h_dz)
+         call get_neo_zed_factor(f_neoclassical(:, :, :, :, :, 0), phi_neoclassical(:, :, 0), &
+         dneo_h_dz, dneo_phi_dz, neo_zed_fac)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dvpa'
-         call get_neo_vpa_factors(f_neoclassical(:, :, :, :, :, 0), phi_neoclassical, &
-            dneo_h_dvpa, neo_vpa_fac, neo_vpa_fac_global)
+         call get_neo_vpa_factors(f_neoclassical(:, :, :, :, :, 0), phi_neoclassical(:, :, 0), &
+            dneo_h_dvpa, dneo_h_dvpa_global, neo_vpa_fac, neo_vpa_fac_global)
+         if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_dmu'
+         call get_neo_mu_factors(f_neoclassical(:, :, :, :, :, 0), phi_neoclassical(:, :, 0), &
+            dneo_h_dmu, dneo_h_dmu_global, neo_mu_fac, neo_mu_fac_global)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_drho'
          call get_dfneo_drho(f_neoclassical, dneo_h_drho)
-         if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_dzed'
-         call get_dphineo_dzed(phi_neoclassical(:, :, 0), dneo_phi_dz)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_drho'
          call get_dphineo_drho(phi_neoclassical, dneo_phi_drho)
          ! TODO (OR): neo_alpha_fac currently holds the raw dF_1/dalpha from SFINCS, not the full alpha factor appearing in the GKE.
@@ -167,11 +173,21 @@ contains
          ! DIAGNOSTIC.
          ! Get the first order moment of the neoclassical distribution. 
          call get_neo_moment(f_neoclassical(1, :, :, :, :, 0), &
-            phi_neoclassical(1, :, 0), "first", neo_u_par, fsa_mom_B=fsa_u_B)
+            phi_neoclassical(1, :, 0), "first", neo_u_par)
          if (proc0) then
             call write_distribution_moment_diagnostic(neo_u_par, &
                "sfincs_first_moment_on_stella_z_grid_central_surface")
          end if 
+
+         ! DIAGNOSTIC. 
+         call get_neo_h_velocity_derivative_moment(dneo_h_dvpa_global(1, :, :, :, :), f_neoclassical(1, :, :, :, :, 0), phi_neoclassical(1, :, 0), "vpa", neo_dens_vpa_deriv)
+         call get_neo_h_velocity_derivative_moment(dneo_h_dmu_global(1, :, :, :, :), f_neoclassical(1, :, :, :, :, 0), phi_neoclassical(1, :, 0), "mu", neo_dens_mu_deriv)
+
+         ! DIAGNOSTIC.
+         if (proc0) then
+            call write_distribution_moment_diagnostic(neo_dens_vpa_deriv, "sfincs_distribution_vpa_deriv_first_moment_on_stella_z_grid_central_surface") 
+            call write_distribution_moment_diagnostic(neo_dens_mu_deriv, "sfincs_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
+         end if
 
          ! Deallocate all temporary arrays.
          call deallocate_temp_arrays
@@ -207,6 +223,8 @@ contains
          ! DIAGNOSTICS. 
          if (.not. allocated(neo_dens)) allocate(neo_dens(-nzgrid:nzgrid, nspec))
          if (.not. allocated(neo_u_par)) allocate(neo_u_par(-nzgrid:nzgrid, nspec))
+         if (.not. allocated(neo_dens_vpa_deriv)) allocate(neo_dens_vpa_deriv(-nzgrid:nzgrid, nspec))
+         if (.not. allocated(neo_dens_mu_deriv)) allocate(neo_dens_mu_deriv(-nzgrid:nzgrid, nspec))
 
       end subroutine allocate_temp_arrays
 
@@ -222,6 +240,8 @@ contains
          ! DIAGNOSTICS. 
          if (allocated(neo_dens)) deallocate(neo_dens)
          if (allocated(neo_u_par)) deallocate(neo_u_par)
+         if (allocated(neo_dens_vpa_deriv)) deallocate(neo_dens_vpa_deriv)
+         if (allocated(neo_dens_mu_deriv)) deallocate(neo_dens_mu_deriv)
 
        end subroutine deallocate_temp_arrays
 
@@ -254,10 +274,45 @@ contains
 
 
    !****************************************************************************
-   ! Get the three different parallel velocity derivative arrays that are used 
+   ! Isolate the non-adiabatic distribution and phi on the central surface;
+   ! needed in gk_neo_drive.f90.  
+   !****************************************************************************
+   subroutine get_h_and_phi_on_central_surface(fneo, phineo, neo_h, neo_phi)
+      ! Parallelisation.
+      use parallelisation_layouts, only: vmu_lo
+     
+      ! Grids.
+      use grids_z, only: nzgrid
+      use grids_kxky, only: nalpha
+
+      implicit none
+
+      real, dimension(:, -nzgrid:, :, :, :), intent(in) :: fneo
+      real, dimension(:, -nzgrid:), intent(in) :: phineo
+      real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: neo_h
+      real, dimension(:, -nzgrid:), intent(out) :: neo_phi
+
+      ! Local variables.
+      integer :: ia, iz, imu, is
+
+      ! Store phi on the central surface in the module level array. 
+      neo_phi = phineo
+
+      ! Distribute fneo over processors in the module level array.
+      do iz = -nzgrid, nzgrid
+         do ia = 1, nalpha
+            call distribute_vmus_over_procs(fneo(ia, iz, :, :, :), neo_h(ia, iz, :))
+         end do
+      end do
+
+   end subroutine get_h_and_phi_on_central_surface
+
+
+   !****************************************************************************
+   ! Get the different parallel velocity derivative arrays that are used 
    ! in the HO corrections.  
    !****************************************************************************
-   subroutine get_neo_vpa_factors(fneo, phineo, dneo_h_dvpa, neo_vpa_fac, neo_vpa_fac_global)
+   subroutine get_neo_vpa_factors(fneo, phineo, dneo_h_dvpa, dneo_h_dvpa_global, neo_vpa_fac, neo_vpa_fac_global)
       ! Parallelisation.
       use parallelisation_layouts, only: vmu_lo
 
@@ -274,18 +329,16 @@ contains
       implicit none
 
       real, dimension(:, -nzgrid:, :, :, :), intent(in) :: fneo
-      real, dimension(:, -nzgrid:, :), intent(in) :: phineo
+      real, dimension(:, -nzgrid:), intent(in) :: phineo
       real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: dneo_h_dvpa, neo_vpa_fac
-      real, dimension(:, -nzgrid:, :, :, :), intent(out) :: neo_vpa_fac_global
+      real, dimension(:, -nzgrid:, :, :, :), intent(out) :: dneo_h_dvpa_global, neo_vpa_fac_global
 
       ! Local variables.
       integer :: ia, iz, imu, is
       real, dimension(:), allocatable :: tmp1, tmp2
-      real, dimension(:, :, :, :, :), allocatable :: tmp3
 
       ! Allocate temporary arrays. 
       allocate(tmp1(nvpa), tmp2(nvpa))
-      allocate(tmp3(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
       
       ! First calculate neo_vpa_fac_global.
       ! Calculate the vpa derivative of the non-adiabatic distribution first, then subtract the 
@@ -298,82 +351,187 @@ contains
                   ! Hack to avoid dealing with negative indices in fd5pt.
                   tmp1 = fneo(ia, iz, :, imu, is)
                   call fd5pt(tmp1, tmp2, dvpa)
-                  neo_vpa_fac_global(ia, iz, :, imu, is) = tmp2
-                  tmp3(ia, iz, :, imu, is) = tmp2
+                  dneo_h_dvpa_global(ia, iz, :, imu, is) = tmp2
 
-                  ! neo_vpa_fac_global currently holds the vpa derivative of the non-adiabatic 
-                  ! distribution only. 
-                  ! Now we subtract the maxwellian vpa derivative factor.
-                  ! The result is neo_vpa_fac_global.
-                  neo_vpa_fac_global(ia, iz, :, imu, is) = neo_vpa_fac_global(ia, iz, :, imu, is) &
-                  - 2.0 * vpa(:) * fneo(ia, iz, :, imu, is) ! &
-                  ! + 2.0 * vpa(:) * spec(is)%z * neo_phi(iz)  
+                  neo_vpa_fac_global(ia, iz, :, imu, is) = dneo_h_dvpa_global(ia, iz, :, imu, is) &
+                  - 2.0 * vpa(:) * fneo(ia, iz, :, imu, is) + 2.0 * vpa(:) * spec(is)%zt * phineo(ia, iz)  
                end do
             end do
          end do
       end do
 
       ! Distribute neo_vpa_fac_global over processors to get neo_vpa_fac.
-      ! Distribute tmp3 over processors to get dneo_h_dvpa. 
       do iz = -nzgrid, nzgrid
          do ia = 1, nalpha
             call distribute_vmus_over_procs(neo_vpa_fac_global(ia, iz, :, :, :), neo_vpa_fac(ia, iz, :))
-            call distribute_vmus_over_procs(tmp3(ia, iz, :, :, :), dneo_h_dvpa(ia, iz, :))
+            call distribute_vmus_over_procs(dneo_h_dvpa_global(ia, iz, :, :, :), dneo_h_dvpa(ia, iz, :))
          end do
       end do
 
       ! Deallocate temporary arrays.
-      deallocate (tmp1, tmp2, tmp3)
+      deallocate (tmp1, tmp2)
 
    end subroutine get_neo_vpa_factors
 
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   subroutine get_dfneo_dzed(fneo, dfneo)
 
-      use calculations_finite_differences, only: fd5pt
-      use grids_z, only: nztot, nzgrid, delzed
-      use grids_velocity, only: nvpa, nmu
-      use grids_species, only: nspec
+   !****************************************************************************
+   ! Get the different parallel velocity derivative arrays that are used 
+   ! in the HO corrections.  
+   !****************************************************************************
+   subroutine get_neo_mu_factors(fneo, phineo, dneo_h_dmu, dneo_h_dmu_global, neo_mu_fac, neo_mu_fac_global)
+      ! Parallelisation.
       use parallelisation_layouts, only: vmu_lo
+
+      ! Grids. 
+      use grids_z, only: nzgrid
+      use grids_velocity, only: vpa, nvpa 
+      use grids_velocity, only: nmu, dmu
+      use grids_species, only: nspec, spec
       use grids_kxky, only: nalpha
 
+      ! Geometry.
+      use geometry, only: bmag 
+
+      ! Calculations. 
+      use calculations_finite_differences, only: fd3pt
+         
       implicit none
 
       real, dimension(:, -nzgrid:, :, :, :), intent(in) :: fneo
-      real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: dfneo
+      real, dimension(:, -nzgrid:), intent(in) :: phineo
+      real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: dneo_h_dmu, neo_mu_fac
+      real, dimension(:, -nzgrid:, :, :, :), intent(out) :: dneo_h_dmu_global, neo_mu_fac_global
 
-      integer :: iv, imu, is, iz, ia
+      ! Local variables.
+      integer :: ia, iz, iv, is
       real, dimension(:), allocatable :: tmp1, tmp2
-      real, dimension(:), allocatable :: dfneo_local(:, :, :, :, :)
 
-      allocate (tmp1(nztot), tmp2(nztot))
-      allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
-
+      ! Allocate temporary arrays. 
+      allocate(tmp1(nmu), tmp2(nmu))
+      
       do is = 1, nspec
-         do imu = 1, nmu
-            do iv = 1, nvpa
+         do iv = 1, nvpa
+            do iz = -nzgrid, nzgrid
                do ia = 1, nalpha
-                  ! hack to avoid dealing with negative indices in fd5pt
-                  tmp1 = fneo(ia, :, iv, imu, is)
-                  call fd5pt(tmp1, tmp2, delzed(0))
-                  dfneo_local(ia, :, iv, imu, is) = tmp2
+                  ! Hack to avoid dealing with negative indices in fd5pt.
+                  tmp1 = fneo(ia, iz, iv, :, is)
+                  call fd3pt(tmp1, tmp2, dmu)
+                  dneo_h_dmu_global(ia, iz, iv, :, is) = tmp2
+
+                  neo_mu_fac_global(ia, iz, iv, :, is) = dneo_h_dmu_global(ia, iz, iv, :, is) &
+                  - 2.0 * bmag(ia, iz) * fneo(ia, iz, iv, :, is) &
+                  + 2.0 * bmag(ia, iz) * spec(is)%zt * phineo(ia, iz)  
                end do
             end do
          end do
       end do
 
+      ! Distribute neo_mu_fac_global over processors to get neo_mu_fac. 
       do iz = -nzgrid, nzgrid
          do ia = 1, nalpha
-            call distribute_vmus_over_procs(dfneo_local(ia, iz, :, :, :), dfneo(ia, iz, :))
+            call distribute_vmus_over_procs(neo_mu_fac_global(ia, iz, :, :, :), neo_mu_fac(ia, iz, :))
+            call distribute_vmus_over_procs(dneo_h_dmu_global(ia, iz, :, :, :), dneo_h_dmu(ia, iz, :))
          end do
       end do
 
-      deallocate (dfneo_local)
+      ! Deallocate temporary arrays.
       deallocate (tmp1, tmp2)
 
-   end subroutine get_dfneo_dzed
+   end subroutine get_neo_mu_factors
+
+
+   !****************************************************************************
+   ! Get the different zed derivative arrays that are used 
+   ! in the HO corrections.  
+   !****************************************************************************
+   subroutine get_neo_zed_factor(fneo, phineo, dfneo_dz, dphineo_dz, neo_zed_fac)
+      ! Parallelisation. 
+      use parallelisation_layouts, only: vmu_lo
+
+      ! Grids.
+      use grids_z, only: nztot, nzgrid, delzed
+      use grids_velocity, only: vpa, mu, nvpa, nmu
+      use grids_species, only: spec, nspec
+      use grids_kxky, only: nalpha
+
+      ! Geometry. 
+      use geometry, only: bmag, dbdzed 
+
+      ! Calculations. 
+      use calculations_finite_differences, only: fd5pt
+
+      implicit none    
+
+      real, dimension(:, -nzgrid:, :, :, :), intent(in)            :: fneo
+      real, dimension(:, -nzgrid:), intent(in)                     :: phineo
+      real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: dfneo_dz
+      real, dimension(:, -nzgrid:), intent(out)                    :: dphineo_dz
+      real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: neo_zed_fac
+
+      ! Local variables. 
+      integer :: iv, imu, is, iz, ia
+      real, dimension(:), allocatable :: tmp1, tmp2
+      real, dimension(:, :, :, :, :), allocatable :: dfneo_dz_global, neo_zed_fac_global
+
+      ! Allocate temporary arrays. 
+      allocate(tmp1(nztot), tmp2(nztot))
+      allocate(neo_zed_fac_global(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
+      allocate(dfneo_dz_global(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
+
+      ! First calculate the zed derivative of the non-adiabatic distribution. 
+      do is = 1, nspec
+         do imu = 1, nmu
+            do iv = 1, nvpa
+               do ia = 1, nalpha
+                  ! Hack to avoid dealing with negative indices in fd5pt.
+                  tmp1 = fneo(ia, :, iv, imu, is)
+                  call fd5pt(tmp1, tmp2, delzed(0))
+                  ! Store the result in neo_zed_fac_global.
+                  dfneo_dz_global(ia, :, iv, imu, is) = tmp2
+               end do
+            end do
+         end do
+      end do
+
+      ! Now calculate he zed derivative of the neoclassical potential. 
+      ! Hack to avoid dealing with negative indices in fd5pt.
+      do ia = 1, nalpha
+        tmp1 = phineo(ia, :)
+         call fd5pt(tmp1, tmp2, delzed(0))
+         dphineo_dz(ia, :) = tmp2
+      end do 
+
+      ! Now get the zed factor appearing in the GKE. 
+      do is = 1, nspec
+         do iv = 1, nvpa
+            do imu = 1, nmu
+               do iz = -nzgrid, nzgrid
+                  do ia = 1, nalpha 
+                     neo_zed_fac_global(ia, iz, iv, imu, is) =  &
+                     dfneo_dz_global(ia, iz, iv, imu, is) &
+                     - spec(is)%zt * dphineo_dz(ia, iz) - 2.0 * mu(imu) * dbdzed(ia, iz) &
+                     * ( fneo(ia, iz, iv, imu, is) - spec(is)%zt * phineo(ia, iz) )
+                  end do
+               end do
+            end do
+         end do
+      end do
+
+      ! Distribute end result over processors. 
+      do iz = -nzgrid, nzgrid
+         do ia = 1, nalpha
+            call distribute_vmus_over_procs(dfneo_dz_global(ia, iz, :, :, :), dfneo_dz(ia, iz, :))
+            call distribute_vmus_over_procs(neo_zed_fac_global(ia, iz, :, :, :), neo_zed_fac(ia, iz, :))
+         end do
+      end do
+
+      ! Deallocate temporary arrays.
+      deallocate(dfneo_dz_global)
+      deallocate(neo_zed_fac_global)
+      deallocate(tmp1, tmp2)
+
+    end subroutine get_neo_zed_factor
+
 
    !****************************************************************************
    !                                      Title
@@ -429,37 +587,6 @@ contains
 
    end subroutine get_dfneo_drho
 
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   subroutine get_dphineo_dzed(phineo, dphineo)
-
-      use calculations_finite_differences, only: fd5pt
-      use grids_z, only: nztot, nzgrid, delzed
-      use grids_kxky, only: nalpha
-
-      implicit none
-
-      real, dimension(:, -nzgrid:), intent(in) :: phineo
-      real, dimension(:, -nzgrid:), intent(out) :: dphineo
-
-      integer :: ia
-      real, dimension(:), allocatable :: tmp1, tmp2
-
-      !-------------------------------------------------------------------------
-
-      allocate (tmp1(nztot), tmp2(nztot))
-
-      do ia = 1, nalpha
-         ! hack to avoid dealing with negative indices in fd5pt
-         tmp1 = phineo(ia, :)
-         call fd5pt(tmp1, tmp2, delzed(0))
-         dphineo(ia, :) = tmp2
-      end do
-
-      deallocate (tmp1, tmp2)
-
-   end subroutine get_dphineo_dzed
 
    !****************************************************************************
    !                                      Title

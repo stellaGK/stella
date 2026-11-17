@@ -47,7 +47,7 @@ module neoclassical_terms_neo
 
     public :: initialised_neoclassical_terms_neo
 
-    public :: get_neo_moment
+    public :: get_neo_moment, get_neo_h_velocity_derivative_moment
 
     private
 
@@ -74,6 +74,16 @@ module neoclassical_terms_neo
     real, dimension(:, :), allocatable :: neo_u_par, neo_u_par_right, neo_u_par_left
     real, dimension(:, :), allocatable :: neo_dens_vpa_deriv
     real, dimension(:, :), allocatable :: neo_dens_mu_deriv
+
+    ! Ratios of stella reference units to NEO normalisation units (stella / NEO), used to verify the NEO data on stella grids against out.neo.transport:
+    !   n   = n_ref / n_norm,  T = T_ref / T_norm,  m = m_ref / m_norm,  vth = v_th,ref / v_norm = sqrt(2 T / m),  B = B_ref / B_unit.
+    ! The type must be defined here, in the specification part, before any variable of this type is declared.
+    type stella_to_neo_units_data
+        real :: n = 1.0, T = 1.0, m = 1.0, vth = sqrt(2.0), B = 1.0
+    end type stella_to_neo_units_data
+
+    type(stella_to_neo_units_data) :: stella_to_neo_units
+
 
     logical :: initialised_neoclassical_terms_neo = .false.
 
@@ -132,11 +142,12 @@ contains
         use grids_z, only: nzgrid, delzed
         use grids_kxky, only: nalpha
         use grids_velocity, only: nvpa, nmu 
-        use grids_species, only: nspec
-        
+        use grids_species, only: nspec, spec
+
         ! For NEO's data. 
-        use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi
-        use NEO_interface, only: neo_grid_data, neo_version_data    
+        use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi, read_neo_transport, read_neo_equil
+        use NEO_interface, only: neo_grid_data, neo_version_data, neo_transport_data
+        use NEO_interface, only: neo_equil_data, neo_species_data    
         use neoclassical_diagnostics, only: write_neo_phi_on_stella_z_grid_diagnostic
         use neoclassical_diagnostics, only: write_neo_distribution_on_stella_grids_diagnostic
         use neoclassical_diagnostics, only: write_distribution_moment_diagnostic
@@ -172,14 +183,20 @@ contains
         ! Holds NEO H_1 data on the left and right flux surfaces for ia = 1, compacted into 2 indices: (-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_proc).
         real, dimension(:, :), allocatable :: neo_h_right, neo_h_left                 
 
-        real, dimension(nspec) :: fsa_u_B
 
         integer :: iz, ivmu, iv, imu, is, ia
         integer :: surface_index
-        integer :: output_unit 
  
         type(neo_grid_data) :: neo_grid
+        type(neo_transport_data) :: neo_transport_central, neo_transport_left, neo_transport_right
         type(neo_version_data) :: neo_version
+        type(neo_equil_data)   :: neo_equil
+        type(neo_species_data) :: neo_species
+
+        ! Profiles on the left and right surfaces (used only to verify the NEO data against out.neo.transport on those surfaces).
+        ! Species masses and charges are the same on every surface, so the central neo_species is used throughout.
+        type(neo_equil_data)           :: neo_equil_left, neo_equil_right
+        type(stella_to_neo_units_data) :: stella_to_neo_units_left, stella_to_neo_units_right
 
         ! ===================================================================================== !
 
@@ -190,7 +207,7 @@ contains
         initialised_neoclassical_terms_neo = .true.
 
         if (proc0) then
-            call read_basic_neo_files(neo_grid, neo_version)
+            call read_basic_neo_files(neo_grid, neo_version, neo_equil, neo_species)
             write(*, '(A)') '############################################################'
             write(*, '(A)') '               O(Δ¹ δ¹ v_th/L F₀) CORRECTIONS               ' 
             write(*, '(A)') '############################################################'
@@ -198,7 +215,6 @@ contains
             write(*, '(A)') '                                                            '
         end if
     
-
         ! Broadcasst grid sizes to all processors. 
         call broadcast(neo_grid%n_species)     
         call broadcast(neo_grid%n_energy)
@@ -228,7 +244,14 @@ contains
             call read_neo_f_and_phi(neo_h_hat_right_in, neo_phi_right_in, neo_grid, suffix = '.right')   
             call read_neo_f_and_phi(neo_h_hat_left_in, neo_phi_left_in, neo_grid, suffix = '.left')    
         end if        
-        
+
+        ! Read in transport data on all three surfaces.
+        if (proc0) then
+            call read_neo_transport(neo_transport_central, neo_grid, verbose = proc0)
+            call read_neo_transport(neo_transport_left, neo_grid, suffix = ".left",  verbose = proc0)
+            call read_neo_transport(neo_transport_right, neo_grid, suffix = ".right", verbose = proc0)
+        end if 
+
         call broadcast(neo_h_hat_in) ; call broadcast(neo_phi_in)             
         call broadcast(neo_h_hat_right_in) ; call broadcast(neo_phi_right_in)
         call broadcast(neo_h_hat_left_in) ; call broadcast(neo_phi_left_in)
@@ -252,8 +275,9 @@ contains
 
         ! Now reconstruct H_1 on stellas v∥​ and μ grids for all three surfaces (ia = 1).
         call get_neo_h_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, neo_h_global)
-        ! call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_global_right)                                             
-        ! call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_global_left)    
+        ! The left and right surfaces are needed for the ρ derivatives (via neo_h_right, neo_h_left) and for the transport verification.
+        call get_neo_h_on_stella_grids(neo_h_hat_right_z_grid, neo_grid, 1, neo_h_global_right)
+        call get_neo_h_on_stella_grids(neo_h_hat_left_z_grid, neo_grid, 1, neo_h_global_left)
 
         ! DIAGNOSTIC.
         ! call write_neo_distribution_on_stella_grids_diagnostic(neo_grid, neo_h_global, surface_index, 'neo_h_on_stella_grids_central')
@@ -272,7 +296,7 @@ contains
         end if
 
         ! DIAGNOSTIC.
-        call get_neo_moment(neo_h_global, neo_phi(ia, :), "first", neo_u_par, fsa_mom_B=fsa_u_B)
+        call get_neo_moment(neo_h_global, neo_phi(ia, :), "first", neo_u_par)
         ! call get_neo_moment(neo_h_global_right, neo_phi_right, "first", neo_u_par_right)
         ! call get_neo_moment(neo_h_global_left, neo_phi_left, "first", neo_u_par_left)
 
@@ -282,6 +306,29 @@ contains
             call write_distribution_moment_diagnostic(neo_u_par, "first_moment_on_stella_z_grid_central_surface")
             ! call write_distribution_moment_diagnostic(neo_u_par_right, "first_moment_on_stella_z_grid_right_surface")
             ! call write_distribution_moment_diagnostic(neo_u_par_left, "first_moment_on_stella_z_grid_left_surface")
+        end if
+
+        ! VERIFICATION. Recompute the out.neo.transport quantities from the NEO data on stella grids, convert to NEO units and compare, on each surface.
+        ! Only proc0 holds the NEO profiles and the transport data.
+        !
+        ! The NEO data on each surface are functions of v / v_th,s on that surface, but are evaluated on stella's (v∥, μ) grid in units of the central v_th,s.
+        ! Moments of the left/right H_1 are therefore in units of the local n_s and v_th,s, so the flows and the current are converted with that surface's
+        ! profiles (stella_to_neo_units_left/right). Φ_1 is normalised to the same T_norm on every surface, so <Φ_1^2> always uses the central conversion.
+        ! The left/right surfaces still use the central stella geometry (bmag, dl_over_b, B_ref/B_unit).
+        if (proc0) then
+            call read_neo_equil(neo_equil_left, neo_grid, suffix = '.left')
+            call read_neo_equil(neo_equil_right, neo_grid, suffix = '.right')
+
+            call get_stella_to_neo_units(stella_to_neo_units, neo_equil, neo_species, neo_grid%n_species, 'central')
+            call get_stella_to_neo_units(stella_to_neo_units_left, neo_equil_left, neo_species, neo_grid%n_species, 'left')
+            call get_stella_to_neo_units(stella_to_neo_units_right, neo_equil_right, neo_species, neo_grid%n_species, 'right')
+
+            call verify_neo_transport_on_surface('central', neo_h_global, neo_phi(ia, :), neo_transport_central, neo_equil, &
+                                                 stella_to_neo_units, stella_to_neo_units)
+            call verify_neo_transport_on_surface('left', neo_h_global_left, neo_phi_left, neo_transport_left, neo_equil_left, &
+                                                 stella_to_neo_units, stella_to_neo_units_left)
+            call verify_neo_transport_on_surface('right', neo_h_global_right, neo_phi_right, neo_transport_right, neo_equil_right, &
+                                                 stella_to_neo_units, stella_to_neo_units_right)
         end if
 
         ! Now compact distribution into 3 indices for use in the GKE and also for calculating the derivatives.  
@@ -348,8 +395,8 @@ contains
         end if
              
         ! DIAGNOSTIC. 
-        call get_neo_h_velocity_derivative_moment(dneo_h_dvpa_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), neo_grid, "vpa", neo_dens_vpa_deriv)
-        call get_neo_h_velocity_derivative_moment(dneo_h_dmu_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), neo_grid, "mu", neo_dens_mu_deriv)        
+        call get_neo_h_velocity_derivative_moment(dneo_h_dvpa_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), "vpa", neo_dens_vpa_deriv)
+        call get_neo_h_velocity_derivative_moment(dneo_h_dmu_global(ia, :, :, :, :), neo_h_global, neo_phi(ia, :), "mu", neo_dens_mu_deriv)        
 
         ! DIAGNOSTIC.
         if (proc0) then
@@ -1005,11 +1052,11 @@ contains
                     do iz = -nzgrid, nzgrid
                         ! Calculate the parallel velocity derivative factor.
                         neo_vpa_fac_global(iz, iv, imu, is) = dneo_h_dvpa_global(iz, iv, imu, is) - 2.0 * vpa(iv) * neo_h_global(iz, iv, imu, is) &
-                        + 2.0 * vpa(iv) * spec(is)%z * neo_phi(iz)
+                        + 2.0 * vpa(iv) * spec(is)%zt * neo_phi(iz)
 
                         ! Calculate the magnetic moment derivative factor.
                         neo_mu_fac_global(iz, iv, imu, is) = dneo_h_dmu_global(iz, iv, imu, is) - 2.0 * bmag(ia, iz) * neo_h_global(iz, iv, imu, is) &
-                        + 2.0 * bmag(ia, iz) * spec(is)%z * neo_phi(iz)
+                        + 2.0 * bmag(ia, iz) * spec(is)%zt * neo_phi(iz)
                     end do
                 end do
             end do
@@ -1056,8 +1103,8 @@ contains
             do iv = 1, nvpa
                 do imu = 1, nmu
                     do iz = -nzgrid, nzgrid
-                        neo_zed_fac_global(iz, iv, imu, is) = dneo_h_dz_global(iz, iv, imu, is) - spec(is)%z * dneo_phi_dz(iz) &
-                        - 2.0 * mu(imu) * dbdzed(ia, iz) * ( neo_h_global(iz, iv, imu, is) - spec(is)%z * neo_phi(iz) )
+                        neo_zed_fac_global(iz, iv, imu, is) = dneo_h_dz_global(iz, iv, imu, is) - spec(is)%zt * dneo_phi_dz(iz) &
+                        - 2.0 * mu(imu) * dbdzed(ia, iz) * ( neo_h_global(iz, iv, imu, is) - spec(is)%zt * neo_phi(iz) )
                     end do
                 end do
             end do
@@ -1118,14 +1165,14 @@ contains
 !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_neo_moment(neo_h_global, neo_phi, moment_type, neo_mom, fsa_mom_B)
+    subroutine get_neo_moment(neo_h_global, neo_phi, moment_type, neo_mom)
         ! Grids.
         use grids_z, only: nzgrid
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, nvpa, vpa, nmu
         use grids_species, only: spec, nspec
 
         ! Geometry (flux-surface average weights and |B|).
-        use geometry, only: dl_over_b, bmag, geo_surf
+        use geometry, only: dl_over_b, bmag, geo_surf, drhodpsip
 
         ! Calculations.
         use calculations_velocity_integrals, only: integrate_vmu
@@ -1139,15 +1186,10 @@ contains
         real, dimension(-nzgrid:)                         :: neo_phi
         character(len=*), intent(in)                      :: moment_type
         real, dimension(-nzgrid:, :), intent(out)         :: neo_mom
-        ! Optional, "first" moment only: < neo_mom * B >, the flux-surface average of (n_s u_par,s) B,
-        ! one value per species, in the same units as neo_mom times B_ref.
-        real, dimension(:), intent(out), optional         :: fsa_mom_B
-
+        
         ! Local variables.
         integer           :: is, imu, iv, iz, ia
         real, allocatable :: tmp(:, :, :, :)
-        real, allocatable :: w(:)
-        real :: bref_over_bunit, u_B_neo
 
         allocate(tmp(-nzgrid:nzgrid, nvpa, nmu, nspec))
         tmp = 0.0
@@ -1164,7 +1206,7 @@ contains
 
                         case ("zeroeth")
                             tmp(iz, iv, imu, is) = ( neo_h_global(iz, iv, imu, is) &
-                            - spec(is)%z * neo_phi(iz) ) &
+                            - spec(is)%zt * neo_phi(iz) ) &
                             * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                         case ("first")
@@ -1183,48 +1225,6 @@ contains
             end do
         end do
 
-        ! ------------------------------------------------------------------------------------------
-        ! Flux-surface-average diagnostic of the first moment:  < (n_s u_par,s) B >
-        !
-        !   < A > = sum_z A(z) dl_over_b(z) / sum_z dl_over_b(z),   dl_over_b = delzed * jacob,
-        !
-        ! i.e. < A > = int A J dz / int J dz, stella's own flux-surface average for axisymmetric
-        ! quantities (the duplicated end point has zero weight; with nperiod > 1 every 2 pi period
-        ! is weighted equally, so the result is the one-period average).
-        !
-        ! Conversion to NEO's normalisation, < u_par,s B > / (v_norm B_unit), as in out.neo.transport
-        ! and in the NEO/SFINCS benchmark figure (NEO's v_norm = sqrt(T_ref/m_ref), stella's
-        ! v_th,ref = sqrt(2 T_ref/m_ref); stella's vpa is in units of v_th,s = stm * v_th,ref):
-        !
-        !   < u_par,s B > / (v_norm B_unit) = fsa_mom_B * sqrt(2) * stm_s / dens_s * (B_ref / B_unit)
-        !
-        ! with B_ref / B_unit = sqrt(1 - (r/R0)^2) for a circular, unshifted Miller surface
-        ! (B_unit = B_0 / sqrt(1 - eps^2), B_ref = B_0 at R = rgeo = rmaj). For shaped surfaces replace
-        ! bref_over_bunit with the correct B_ref/B_unit.
-        ! ------------------------------------------------------------------------------------------
-        if (present(fsa_mom_B)) then
-            fsa_mom_B = 0.0
-            if (trim(moment_type) == "first") then
-                allocate(w(-nzgrid:nzgrid))
-                w = dl_over_b(ia, :) / sum(dl_over_b(ia, :))
-                do is = 1, nspec
-                    fsa_mom_B(is) = sum(w * neo_mom(:, is) * bmag(ia, :))
-                end do
-                deallocate(w)
-
-                bref_over_bunit = sqrt(1.0 - (geo_surf%rhoc / geo_surf%rmaj)**2)
-                if (proc0) then
-                    write (*, '(a)') ' Flux-surface average of the first neoclassical moment:'
-                    do is = 1, nspec
-                        u_B_neo = fsa_mom_B(is) * sqrt(2.0) * spec(is)%stm / spec(is)%dens * bref_over_bunit
-                        write (*, '(a, i2, a, es14.6, a, es14.6)') '   species ', is, &
-                            ':  <n u_par B> (stella units) = ', fsa_mom_B(is), &
-                            '   <u_par B>/(v_norm B_unit) (NEO units) = ', u_B_neo
-                    end do
-                end if
-            end if
-        end if
-
         ! Deallocate the temporary array.
         deallocate(tmp)
     end subroutine get_neo_moment
@@ -1238,17 +1238,14 @@ contains
 !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_neo_h_velocity_derivative_moment(neo_h_deriv_global, neo_h_global, neo_phi, neo_grid, vel_type, neo_mom)
+    subroutine get_neo_h_velocity_derivative_moment(neo_h_deriv_global, neo_h_global, neo_phi, vel_type, neo_mom)
         ! Grids.
         use grids_z, only: nzgrid
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, nvpa, vpa, nmu, mu
-        use grids_species, only: spec
+        use grids_species, only: spec, nspec
 
         ! Geometry. 
         use geometry, only: bmag
-
-        ! NEO data.
-        use NEO_interface, only: neo_grid_data 
 
         ! Calculations. 
         use calculations_velocity_integrals, only: integrate_vmu
@@ -1261,7 +1258,6 @@ contains
         real, intent(in)                :: neo_h_deriv_global(-nzgrid:, :, :, :)
         real, intent(in)                :: neo_h_global(-nzgrid:, :, :, :)
         real, intent(in)                :: neo_phi(-nzgrid:)
-        type(neo_grid_data), intent(in) :: neo_grid
         character(len=*), intent(in)    :: vel_type
         real, intent(out)               :: neo_mom(-nzgrid:, :)         
 
@@ -1271,24 +1267,24 @@ contains
 
         ia = 1
 
-        allocate(tmp(-nzgrid:nzgrid, nvpa, nmu, neo_grid%n_species))
+        allocate(tmp(-nzgrid:nzgrid, nvpa, nmu, nspec))
 
         tmp = 0.0
         neo_mom = 0.0        
  
-        do is = 1, neo_grid%n_species
+        do is = 1, nspec
             do iv = 1, nvpa
                 do imu = 1, nmu
                     do iz = -nzgrid, nzgrid           
                         select case (trim(vel_type))
                         case ("mu")
                             tmp(iz, iv, imu, is) = mu(imu) * ( neo_h_deriv_global(iz, iv, imu, is) &
-                            - 2 * bmag(ia, iz) * ( neo_h_global(iz, iv, imu, is) - spec(is)%z * neo_phi(iz) ) ) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
+                            - 2 * bmag(ia, iz) * ( neo_h_global(iz, iv, imu, is) - spec(is)%zt * neo_phi(iz) ) ) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
                             * maxwell_fac(is)
 
                         case ("vpa")
                             tmp(iz, iv, imu, is) = vpa(iv) * ( neo_h_deriv_global(iz, iv, imu, is) &
-                            - 2 * vpa(iv) * ( neo_h_global(iz, iv, imu, is) - spec(is)%z * neo_phi(iz) ) ) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
+                            - 2 * vpa(iv) * ( neo_h_global(iz, iv, imu, is) - spec(is)%zt * neo_phi(iz) ) ) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
                             * maxwell_fac(is)
               
                         end select
@@ -1298,7 +1294,7 @@ contains
         end do
 
         ! Integrate over velocity space.
-        do is = 1, neo_grid%n_species
+        do is = 1, nspec
             do iz = -nzgrid, nzgrid
                 call integrate_vmu(tmp(iz, :, :, is), iz, neo_mom(iz, is))
             end do
@@ -1307,6 +1303,822 @@ contains
         ! Deallocate the temporary array.
         deallocate(tmp)
     end subroutine get_neo_h_velocity_derivative_moment
+
+
+! ================================================================================================================================================================================= !
+! ---------------------------------- Convert NEO transport calculations in stella into NEO units. --------------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    subroutine get_stella_to_neo_units(conv, neo_equil, neo_species, nspec_neo, surface_label)
+        ! Fortran.
+        use iso_fortran_env, only: output_unit
+
+        ! Grids.
+        use grids_species, only: spec, nspec
+
+        ! Geometry.
+        use geometry, only: geo_surf, drhodpsip
+
+        ! NEO data types.
+        use NEO_interface, only: neo_equil_data, neo_species_data
+
+        implicit none
+
+        type(stella_to_neo_units_data), intent(out) :: conv
+        type(neo_equil_data), intent(in)            :: neo_equil
+        type(neo_species_data), intent(in)          :: neo_species
+        integer, intent(in)                         :: nspec_neo
+        character(len=*), intent(in)                :: surface_label
+
+        ! Local variables.
+        real, dimension(:), allocatable :: rn, rT, rm
+        integer :: is, ns
+        real, parameter :: tol = 1.0e-6
+
+        ! Missing out.neo.equil (or out.neo.species): keep the default ratios (n = T = m = B = 1, vth = sqrt(2)).
+        if (.not. (allocated(neo_equil%density) .and. allocated(neo_equil%temperature) .and. allocated(neo_species%mass))) then
+            write (output_unit, '(a)') ' WARNING: no NEO profiles for the '//trim(surface_label)//' surface; using default stella -> NEO ratios.'
+            return
+        end if
+
+        ns = min(nspec, nspec_neo)
+        if (nspec /= nspec_neo) write (output_unit, '(a, i3, a, i3)') &
+        ' WARNING: stella has nspec = ', nspec, ' but NEO has n_species = ', nspec_neo
+
+        ! Allocate temporaray arrays. 
+        allocate (rn(ns), rT(ns), rm(ns))
+
+        ! Ratios (NEO profile on this surface) / (stella profile on the central surface).
+        ! Central surface: n = n_ref/n_norm, T = T_ref/T_norm, m = m_ref/m_norm.
+        ! Left/right surfaces: n = (n_ref/n_norm), n_s(surface)/n_s(central);
+        ! T = (T_ref/T_norm) T_s(surface)/T_s(central),
+        ! Masses are obviously the same on all surfaces.
+        do is = 1, ns
+            rn(is) = neo_equil%density(is, 1) / spec(is)%dens
+            rT(is) = neo_equil%temperature(is, 1) / spec(is)%temp
+            rm(is) = neo_species%mass(is) / spec(is)%mass
+        end do
+
+        conv%n = rn(1); conv%T = rT(1); conv%m = rm(1)
+        if (any(abs(rn - conv%n) > tol * abs(conv%n)) .or. any(abs(rT - conv%T) > tol * abs(conv%T)) &
+            .or. any(abs(rm - conv%m) > tol * abs(conv%m))) &
+            write (output_unit, '(a)') ' WARNING: stella and NEO species ratios differ between species on the '//trim(surface_label)// &
+            ' surface (check species ordering, or unequal gradients across species).'
+
+        conv%vth = sqrt(2.0 * conv%T / conv%m)                      ! v_th,ref / v_norm
+        conv%B   = abs(geo_surf%rhoc * drhodpsip / geo_surf%qinp)   ! B_ref / B_unit
+
+        write (output_unit, '(a, a, a, 5es13.5)') ' stella -> NEO units (', trim(surface_label), ' surface): n, T, m, v_th, B ratios = ', &
+        conv%n, conv%T, conv%m, conv%vth, conv%B
+
+        ! Deallocate temporaray arrays. 
+        deallocate (rn, rT, rm)
+
+    end subroutine get_stella_to_neo_units
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------- Compare a quantity recomputed on stella grids (in NEO units) with the raw value from out.neo.transport. ----------------------------- !
+! ------------------------------------------------------- Here we compute all of the quantities found in out.neo.transport on each surface ---------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    subroutine compare_with_neo(label, stella_value, neo_value, rel_tol, abs_tol)
+        ! Fortran.
+        use iso_fortran_env, only: output_unit
+
+        implicit none
+
+        character(len=*), intent(in) :: label
+        real, intent(in)             :: stella_value, neo_value, rel_tol
+        ! Optional: when |neo_value| < abs_tol (e.g. a quantity that is zero in this run), compare absolute differences instead.
+        real, intent(in), optional   :: abs_tol
+
+        ! Local variables. 
+        real :: rel_diff, abs_diff
+        real, parameter :: tiny_value = 1.0e-30
+
+        if (present(abs_tol)) then
+            if (abs(neo_value) < abs_tol) then
+                abs_diff = abs(stella_value - neo_value)
+                if (abs_diff <= abs_tol) then
+                    write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a)') ' SUCCESS: ', label, ':  stella = ', stella_value, &
+                    '   NEO = ', neo_value, '   (absolute difference ', abs_diff, ')'
+                else
+                    write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' WARNING: ', label, ':  stella = ', stella_value, &
+                    '   NEO = ', neo_value, '   (absolute difference ', abs_diff, ', tolerance ', abs_tol, ')'
+                end if
+                return
+            end if
+        end if
+
+        rel_diff = abs(stella_value - neo_value) / max(abs(neo_value), tiny_value)
+
+        if (rel_diff <= rel_tol) then
+            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, f8.3, a)') ' SUCCESS: ', label, ':  stella = ', stella_value, &
+            '   NEO = ', neo_value, '   (', 100.0 * rel_diff, ' % difference)'
+        else
+            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, f8.3, a, f6.2, a)') ' WARNING: ', label, ':  stella = ', stella_value, &
+            '   NEO = ', neo_value, '   (', 100.0 * rel_diff, ' % difference, tolerance ', 100.0 * rel_tol, ' %)'
+        end if
+
+    end subroutine compare_with_neo
+
+
+! ================================================================================================================================================================================= !
+! ----------------------------------------------- Calculations of out.neo.transport quantities from NEO data on stella grids, in NEO units. --------------------------------------- !
+! ================================================================================================================================================================================= !
+!
+! All on a single field line (ia = 1), using stella's flux-surface average.
+!
+! ================================================================================================================================================================================= !
+
+    ! Calculate the flux surface average of a zed-dependent quantity.
+    real function calculate_fsa(a)
+        ! Grids. 
+        use grids_z, only: nzgrid
+
+        ! Geometry.
+        use geometry, only: dl_over_b
+
+        implicit none
+
+        real, dimension(-nzgrid:), intent(in) :: a
+        
+        ! Local variables. 
+        integer, parameter :: ia = 1
+
+        calculate_fsa = sum(dl_over_b(ia, :) * a) / sum(dl_over_b(ia, :))
+
+    end function calculate_fsa
+
+    ! ================================================================================= !
+    ! Calculate the square of the normalised NEO potential: 
+    ! < (e Φ_1 / T_norm)^2 >, with neo_phi = e Φ_1 / T_ref.
+    real function calculate_phi_sq(neo_phi, conv)
+        ! Grids. 
+        use grids_z, only: nzgrid
+
+        implicit none
+
+        real, dimension(-nzgrid:), intent(in)      :: neo_phi
+        type(stella_to_neo_units_data), intent(in) :: conv
+
+        calculate_phi_sq = calculate_fsa((conv%T * neo_phi)**2)
+
+    end function calculate_phi_sq
+
+
+    ! ================================================================================= !
+    ! Calculate the speices zeroth order parallel flow:  
+    ! < u_par,s B > / (v_norm B_unit) = 
+    ! < (u_par,s / v_th,s) (B / B_ref) > * stm_s * (v_th,ref / v_norm) * (B_ref / B_unit).
+    subroutine calculate_upar_B(neo_h_global, neo_phi, conv, upar_B)
+        ! Grids. 
+        use grids_z, only: nzgrid
+        use grids_species, only: spec, nspec
+        
+        ! Geometry.
+        use geometry, only: bmag
+
+        implicit none
+
+        real, dimension(-nzgrid:, :, :, :), intent(in) :: neo_h_global
+        real, dimension(-nzgrid:), intent(in)          :: neo_phi
+        type(stella_to_neo_units_data), intent(in)     :: conv
+        real, dimension(:), intent(out)                :: upar_B
+
+        ! Local variables. 
+        real, dimension(:, :), allocatable :: upar
+        real, dimension(:), allocatable    :: phi_copy
+        integer :: is
+        integer, parameter :: ia = 1
+
+        ! Allocate temporary arrays. 
+        allocate(upar(-nzgrid:nzgrid, nspec), phi_copy(-nzgrid:nzgrid))
+        
+        ! Create a copy of phi. 
+        phi_copy = neo_phi
+
+        ! Calculate the first moment.
+        call get_neo_moment(neo_h_global, phi_copy, "first", upar)
+
+        ! Calculate the parallel flow in NEO units. 
+        do is = 1, nspec
+            upar_B(is) = calculate_fsa(upar(:, is) * bmag(ia, :)) * spec(is)%stm * conv%vth * conv%B
+        end do
+
+        ! Deallocate temporary arrays. 
+        deallocate(upar, phi_copy)
+
+    end subroutine calculate_upar_B
+
+
+    ! ================================================================================= !
+    ! Calculate the first order bootstrap current:
+    ! < j_par B > / (e n_norm v_norm B_unit) = 
+    ! sum_s Z_s (n_s / n_norm) < u_par,s B > / (v_norm B_unit).
+    real function calculate_jpar(upar_B, conv)
+        ! Grids.
+        use grids_species, only: spec, nspec
+
+        implicit none
+
+        real, dimension(:), intent(in)             :: upar_B
+        type(stella_to_neo_units_data), intent(in) :: conv
+        
+        ! Local variables.
+        integer :: is
+
+        calculate_jpar = 0.0
+
+        ! Calculate the bootstrap current in NEO units.
+        do is = 1, nspec
+            calculate_jpar = calculate_jpar + spec(is)%z * spec(is)%dens * conv%n * upar_B(is)
+        end do
+
+    end function calculate_jpar
+
+
+    ! ================================================================================= !
+    ! Calculate the species first-order flow coefficients:
+    ! Dimensional: 
+    ! K_s = [ < u_par,s B > - (I/ψ') ρ_* (T_s / Z_s) (dlnndr_s - (Z_s / T_s) dΦ_0/dr + dlntdr_s) ] &
+    ! / < B² / n_s >  
+    ! Dimensionless: 
+    ! k_s = - K_s < B² / n_s > / ( dlntdr_s (I/ψ') ρ_* T_s / Z_s )                                    
+    subroutine calculate_flow_coefficients(upar_B, neo_equil, conv, conv_local, fprim, tprim, K_big, k_small)
+        ! Grids. 
+        use grids_z, only: nzgrid
+        use grids_species, only: spec, nspec
+        
+        ! Geometry.
+        use geometry, only: bmag, geo_surf, drhodpsip
+        
+        ! NEO equilibrium data.  
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        real, dimension(:), intent(in)             :: upar_B, fprim, tprim
+        type(neo_equil_data), intent(in)           :: neo_equil
+        type(stella_to_neo_units_data), intent(in) :: conv, conv_local
+        real, dimension(:), intent(out)            :: K_big, k_small
+
+        ! Local variables. 
+        real    :: I_div_psip, B2_avg, B2_div_dens, n_s, T_s, diamagnetic_fac
+        integer :: is
+        integer, parameter :: ia = 1
+
+        ! Calculate necessary geometry factors. 
+        I_div_psip = geo_surf%rgeo * drhodpsip
+        B2_avg = calculate_fsa((bmag(ia, :) * conv%B)**2)
+
+        ! Calculate the flow coeffecients. 
+        do is = 1, nspec
+            n_s = spec(is)%dens * conv_local%n
+            T_s = spec(is)%temp * conv_local%T
+            B2_div_dens = B2_avg / n_s
+
+            diamagnetic_fac = I_div_psip * neo_equil%rho_star(1) * T_s / spec(is)%z
+
+            K_big(is) = (upar_B(is) - diamagnetic_fac * (fprim(is) + tprim(is))) / B2_div_dens
+
+            if (abs(tprim(is)) > epsilon(0.0)) then
+                k_small(is) = -K_big(is) * B2_div_dens / (tprim(is) * diamagnetic_fac)
+            else
+                k_small(is) = 0.0
+            end if
+        end do
+
+    end subroutine calculate_flow_coefficients
+
+
+    ! ================================================================================= !
+    ! Calculate the species first-order poloidal flow at the outboard midplane:
+    subroutine calculate_vpol_th0(K_big, conv, conv_local, vpol_th0)
+        ! Grids. 
+        use grids_z, only: nzgrid, zed 
+        use grids_species, only: spec, nspec
+
+        ! Geometry. 
+        use geometry, only: bpol2
+
+        implicit none
+
+        real, dimension(:), intent(in)             :: K_big
+        type(stella_to_neo_units_data), intent(in) :: conv, conv_local
+        real, dimension(:), intent(out)            :: vpol_th0
+
+        ! Local variables. 
+        real    :: Bp_th0
+        integer :: is, iz0
+        integer, parameter :: ia = 1
+
+        ! Index of the outboard midplane, z = θ = 0.
+        iz0 = minloc(abs(zed), dim = 1) - nzgrid - 1
+
+        ! Calculate geometry coeffecients. 
+        Bp_th0 = sqrt(max(bpol2(ia, iz0), 0.0)) * conv%B
+
+        ! Calculate species first order toroidal flows at the outboard midplane. 
+        do is = 1, nspec
+            vpol_th0(is) = K_big(is) * Bp_th0 / (spec(is)%dens * conv_local%n)
+        end do
+
+    end subroutine calculate_vpol_th0
+
+
+    ! ================================================================================= !
+    ! Calculate the species first-order toroidal flow at the outboard midplane:
+    subroutine calculate_vtor_th0(K_big, neo_equil, conv, conv_local, fprim, tprim, vtor_th0)
+        ! Grids. 
+        use grids_z, only: nzgrid, zed
+        use grids_species, only: spec, nspec
+        
+        ! Geoemetry. 
+        use geometry, only: btor, geo_surf, drhodpsip
+        
+        ! Neo equilibrium data. 
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        real, dimension(:), intent(in)             :: K_big, fprim, tprim
+        type(neo_equil_data), intent(in)           :: neo_equil
+        type(stella_to_neo_units_data), intent(in) :: conv, conv_local
+        real, dimension(:), intent(out)            :: vtor_th0
+
+        ! Local variables. 
+        real    :: Bt_th0, I_div_psip, n_s, T_s
+        integer :: is, iz0
+
+        ! Index of the outboard midplane, z = θ = 0.
+        iz0 = minloc(abs(zed), dim = 1) - nzgrid - 1
+
+        ! Calculate necessary geometry factors.
+        Bt_th0 = btor(iz0) * conv%B
+        I_div_psip = geo_surf%rgeo * drhodpsip
+
+        ! Calculate the species first order toroidal flows at the outboard midplane.
+        do is = 1, nspec
+            n_s = spec(is)%dens * conv_local%n
+            T_s = spec(is)%temp * conv_local%T
+            vtor_th0(is) = K_big(is) * Bt_th0 / n_s &
+            + I_div_psip * neo_equil%rho_star(1) * T_s / spec(is)%z * (fprim(is) + tprim(is)) / Bt_th0
+        end do
+
+    end subroutine calculate_vtor_th0
+
+
+    ! ================================================================================= !
+    ! Calculate the species zeroeth-order toroidal flow at the outboard midplane:
+    ! v_φ^(0)(θ = 0) / v_norm.
+    ! This is zero unless NEO was run with rotation_model = 2.
+    real function calculate_vtor0_th0(neo_equil)
+        ! Grids. 
+        use grids_z, only: nzgrid, zed
+        
+        ! Geometry. 
+        use geometry, only: rmajor
+        
+        ! NEO equilibrium data. 
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        type(neo_equil_data), intent(in) :: neo_equil
+        
+        ! Local variables. 
+        integer :: iz0
+
+        ! Index of the outboard midplane, z = θ = 0.
+        iz0 = minloc(abs(zed), dim = 1) - nzgrid - 1
+
+        ! Calculate the species zeroeth-order toroidal flow at the outboard midplane.
+        calculate_vtor0_th0 = neo_equil%angular_frequency(1) * rmajor(iz0)
+
+    end function calculate_vtor0_th0
+
+
+    ! ================================================================================= !
+    ! Calculate the zeroth-order parallel flow of rigid toroidal rotation.
+    ! < u_par^(0) B > / (v_norm B_unit): 
+    ! u_par^(0) = ω_0 R B_t / B, so < u_par^(0) B > = ω_0 < R B_t >.
+    real function calculate_uparB0(neo_equil, conv)
+        ! Grids.
+        use grids_z, only: nzgrid
+        
+        ! Geometry. 
+        use geometry, only: rmajor, btor
+        
+        ! NEO equilibrium data. 
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        type(neo_equil_data), intent(in)           :: neo_equil
+        type(stella_to_neo_units_data), intent(in) :: conv
+
+        ! Calculate the zeroth-order parallel flow of rigid toroidal rotation.
+        calculate_uparB0 = neo_equil%angular_frequency(1) * calculate_fsa(rmajor * btor) * conv%B
+
+    end function calculate_uparB0
+
+    ! ================================================================================= !
+    ! A generalised second order species radial flux calculation; used for particle
+    ! heat and momentum fluxes. 
+    ! flux_s = < ∫ d³v F_0 H_1 E^p v_d,s · ∇r >,    
+    ! v_d,s · ∇r = (m_s / (Z_s e B)) (v∥² + v⊥²/2) (b × ∇B · ∇r) / B.
+    ! An optional extra weight w(z, v∥) multiplies the integrand (used for the momentum flux).
+    subroutine calculate_radial_flux(neo_h_global, neo_equil, conv, conv_local, energy_power, flux, flux_abs, weight)
+        ! Grids. 
+        use grids_z, only: nzgrid
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, nvpa, vpa, nmu, mu
+        use grids_species, only: spec, nspec
+        
+        ! Geometry. 
+        use geometry, only: bmag, B_times_gradB_dot_gradx, dxdpsi, drhodpsip
+        
+        ! Calculations.
+        use calculations_velocity_integrals, only: integrate_vmu
+        
+        ! NEO equilibrium data. 
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        real, dimension(-nzgrid:, :, :, :), intent(in) :: neo_h_global
+        type(neo_equil_data), intent(in)               :: neo_equil
+        ! conv: central ratios (B_ref / B_unit); conv_local: this surface's ratios (local n_s, T_s).
+        type(stella_to_neo_units_data), intent(in)     :: conv, conv_local
+        integer, intent(in)                            :: energy_power
+        real, dimension(:), intent(out)                :: flux, flux_abs
+        real, dimension(-nzgrid:, :), intent(in), optional :: weight   ! (z, v∥)
+
+
+        ! Local variables. 
+        real, dimension(:, :), allocatable :: tmp, tmp_abs
+        real, dimension(:), allocatable    :: drift_moment, drift_moment_abs
+        real    :: D, prefac, energy
+        integer :: is, iz, iv, imu
+        integer, parameter :: ia = 1
+
+        ! Allocate temporary arrays. 
+        allocate(tmp(nvpa, nmu), tmp_abs(nvpa, nmu))
+        allocate(drift_moment(-nzgrid:nzgrid), drift_moment_abs(-nzgrid:nzgrid))
+
+        ! Calculate necessary NEO factors. 
+        D = dxdpsi / drhodpsip
+
+        ! Calculate species second order flux. 
+        do is = 1, nspec
+            do iz = -nzgrid, nzgrid
+                do imu = 1, nmu
+                    do iv = 1, nvpa
+                        ! Calculate energy here for convenience. 
+                        energy = vpa(iv)**2 + 2.0 * mu(imu) * bmag(ia, iz)
+
+                        ! Calculate appropriate integrand. 
+                        tmp(iv, imu) = energy**energy_power * (vpa(iv)**2 + mu(imu) * bmag(ia, iz)) * neo_h_global(iz, iv, imu, is) &
+                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                        if (present(weight)) tmp(iv, imu) = tmp(iv, imu) * weight(iz, iv)
+                        tmp_abs(iv, imu) = abs(tmp(iv, imu))
+                    end do
+                end do
+                ! Integrate over velocity space. 
+                call integrate_vmu(tmp, iz, drift_moment(iz))
+                call integrate_vmu(tmp_abs, iz, drift_moment_abs(iz))
+            end do
+
+            ! (n_s / n_norm) * 2 (T_s / T_norm) / Z_s * ρ_* / (B_ref / B_unit) / D.
+            prefac = (spec(is)%dens * conv_local%n) * 2.0 * (spec(is)%temp * conv_local%T) &
+            / spec(is)%z * neo_equil%rho_star(1) / conv%B / D
+
+            ! Finally get the fluxes, including the flux surface average. 
+            flux(is)     = prefac * calculate_fsa(drift_moment * B_times_gradB_dot_gradx(ia, :))
+            flux_abs(is) = abs(prefac) * calculate_fsa(abs(drift_moment_abs * B_times_gradB_dot_gradx(ia, :)))
+        end do
+
+        ! Deallocate temporary arrays. 
+        deallocate(tmp, tmp_abs, drift_moment, drift_moment_abs)
+
+    end subroutine calculate_radial_flux
+
+
+    ! ================================================================================= !
+    ! Calculate the second order radial particle flux for each species. 
+    ! Γ_s / (n_norm v_norm), and the same with no cancellation.
+    subroutine calculate_pflux(neo_h_global, neo_equil, conv, conv_local, pflux, pflux_abs)
+        ! Grids. 
+        use grids_z, only: nzgrid
+        
+        ! NEO equilibrium data. 
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        real, dimension(-nzgrid:, :, :, :), intent(in) :: neo_h_global
+        type(neo_equil_data), intent(in)               :: neo_equil
+        type(stella_to_neo_units_data), intent(in)     :: conv, conv_local
+        real, dimension(:), intent(out)                :: pflux, pflux_abs
+
+        call calculate_radial_flux(neo_h_global, neo_equil, conv, conv_local, 0, pflux, pflux_abs)
+
+    end subroutine calculate_pflux
+
+    ! ================================================================================= !
+    ! Calculate the second order radial energy/heat flux for each species.
+    ! Q_s / (n_norm v_norm T_norm), and the same with no cancellation. 
+    ! NEO's eflux column is Q_s + ω_0 Π_s.
+    subroutine calculate_eflux(neo_h_global, neo_equil, conv, conv_local, eflux, eflux_abs)
+        ! Grids. 
+        use grids_z, only: nzgrid
+        use grids_species, only: spec, nspec
+        
+        ! NEO equilibriumd data. 
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        real, dimension(-nzgrid:, :, :, :), intent(in) :: neo_h_global
+        type(neo_equil_data), intent(in)               :: neo_equil
+        type(stella_to_neo_units_data), intent(in)     :: conv, conv_local
+        real, dimension(:), intent(out)                :: eflux, eflux_abs
+
+        ! Local variables. 
+        integer :: is
+
+        call calculate_radial_flux(neo_h_global, neo_equil, conv, conv_local, 1, eflux, eflux_abs)
+
+        ! m v² / 2 = T_s E, with T_s / T_norm on this surface.
+        do is = 1, nspec
+            eflux(is)     = eflux(is)     * spec(is)%temp * conv_local%T
+            eflux_abs(is) = eflux_abs(is) * spec(is)%temp * conv_local%T
+        end do
+
+    end subroutine calculate_eflux
+
+
+    ! ================================================================================= !
+    ! Calculate the second order radial momentum flux for each species.
+    ! Π_s / (n_norm T_norm a_norm), and the same with no cancellation. 
+    ! For an up-down symmetric equilibrium without rotation: Π_s = 0. 
+    ! WARNING: THIS IS NOT A GENERAL CALCULATION, IT IS NOT ACCURATE FOR UP-DOWN
+    ! ASYMMETRIC EQUILIBRIA.
+    subroutine calculate_mflux(neo_h_global, neo_equil, conv, conv_local, mflux, mflux_abs)
+        ! Grids. 
+        use grids_z, only: nzgrid
+        use grids_velocity, only: vpa, nvpa
+        use grids_species, only: spec, nspec
+        
+        ! Geomtery.
+        use geometry, only: rmajor, btor, bmag
+        
+        ! NEO equilibrium data. 
+        use NEO_interface, only: neo_equil_data
+
+        implicit none
+
+        real, dimension(-nzgrid:, :, :, :), intent(in) :: neo_h_global
+        type(neo_equil_data), intent(in)               :: neo_equil
+        type(stella_to_neo_units_data), intent(in)     :: conv, conv_local
+        real, dimension(:), intent(out)                :: mflux, mflux_abs
+
+        ! Local variables. 
+        real, dimension(:, :), allocatable :: weight
+        real    :: fac
+        integer :: is, iz, iv
+        integer, parameter :: ia = 1
+
+        ! Allocate temporary arrays. 
+        allocate(weight(-nzgrid:nzgrid, nvpa))
+       
+        do iv = 1, nvpa
+            do iz = -nzgrid, nzgrid
+                weight(iz, iv) = vpa(iv) * rmajor(iz) * btor(iz) / bmag(ia, iz)
+            end do
+        end do
+
+        call calculate_radial_flux(neo_h_global, neo_equil, conv, conv_local, 0, mflux, mflux_abs, weight)
+
+        ! m_s v_th,s v_norm / T_norm = sqrt(2 (m_s / m_norm)(T_s / T_norm)), with T_s on this surface.
+        do is = 1, nspec
+            fac = sqrt(2.0 * (spec(is)%mass * conv_local%m) * (spec(is)%temp * conv_local%T))
+            mflux(is)     = mflux(is) * fac
+            mflux_abs(is) = mflux_abs(is) * fac
+        end do
+
+        ! Deallocate temporary arrays. 
+        deallocate(weight)
+
+    end subroutine calculate_mflux
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------ Warn when a verified quantity is a small residual of much larger, cancelling contributions. ------------------------------------------ !
+! ================================================================================================================================================================================= !
+!
+! ratio = |value| / value_abs, where value_abs is the same calculation with |.| taken everywhere. For ratio < cancellation_threshold, the stella/NEO difference
+! is printed relative to value_abs too: if that is small, the mismatch is consistent with integration error amplified by the cancellation rather than a bug.
+!
+! ================================================================================================================================================================================= !
+
+    subroutine warn_if_cancelling(label, stella_value, neo_value, value_abs)
+        ! Fortran. 
+        use iso_fortran_env, only: output_unit
+
+        implicit none
+
+        character(len=*), intent(in) :: label
+        real, intent(in)             :: stella_value, neo_value, value_abs
+
+        ! Local variables. 
+        real :: ratio
+        real, parameter :: cancellation_threshold = 1.0e-3
+
+        if (value_abs <= 0.0) return
+        ratio = abs(stella_value) / value_abs
+
+        if (ratio < cancellation_threshold) then
+            write (output_unit, '(a, a, a, es10.3, a)') ' WARNING: ', label, ' is strongly cancelling (|value| / |value|_no-cancellation = ', ratio, ');'
+            write (output_unit, '(a, es10.3, a)') '          |stella - NEO| / |value|_no-cancellation = ', abs(stella_value - neo_value) / value_abs, &
+            ', so the relative difference above is limited by velocity/z resolution (increase nvgrid, nmu to test).'
+        end if
+
+    end subroutine warn_if_cancelling
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------- Check that a quantity that should vanish by symmetry is consistent with zero in both codes. ----------------------------------------- !
+! ================================================================================================================================================================================= !
+!
+! Both |stella| / value_abs and |NEO| / value_abs must be below zero_tol, where value_abs is the stella calculation with no cancellation. A relative stella/NEO
+! difference is meaningless here, since both values are numerical noise.
+!
+! ================================================================================================================================================================================= !
+
+    subroutine compare_zero_with_neo(label, stella_value, neo_value, value_abs, reason)
+        ! Fortran. 
+        use iso_fortran_env, only: output_unit
+
+        implicit none
+
+        character(len=*), intent(in) :: label, reason
+        real, intent(in)             :: stella_value, neo_value, value_abs
+
+        ! Local variables. 
+        real :: r_stella, r_neo
+        real, parameter :: zero_tol = 1.0e-4
+
+        r_stella = abs(stella_value) / max(value_abs, tiny(1.0))
+        r_neo    = abs(neo_value) / max(value_abs, tiny(1.0))
+
+        if (r_stella <= zero_tol .and. r_neo <= zero_tol) then
+            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' SUCCESS: ', label, ':  stella = ', stella_value, &
+            '   NEO = ', neo_value, '   (both zero: |stella|, |NEO| / |value|_no-cancellation = ', r_stella, ', ', r_neo, ')'
+        else
+            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' WARNING: ', label, ':  stella = ', stella_value, &
+            '   NEO = ', neo_value, '   (expected zero: |stella|, |NEO| / |value|_no-cancellation = ', r_stella, ', ', r_neo, ')'
+            write (output_unit, '(a, a)') '          expected zero because: ', reason
+        end if
+
+    end subroutine compare_zero_with_neo
+
+
+! ================================================================================================================================================================================= !
+! ------------------------------------------------------- Compute and compare all out.neo.transport quantities on one flux surface. ------------------------------------------------ !
+! ================================================================================================================================================================================= !
+
+    subroutine verify_neo_transport_on_surface(surface_label, neo_h_global, neo_phi, transport, equil, conv, conv_local)
+        ! Fortran.
+        use iso_fortran_env, only: output_unit
+        
+        ! Grids. 
+        use grids_z, only: nzgrid
+        use grids_species, only: nspec, spec
+        
+        ! Neo equilibrium and transport data. 
+        use NEO_interface, only: neo_transport_data, neo_equil_data
+
+        implicit none
+
+        character(len=*), intent(in)                   :: surface_label
+        real, dimension(-nzgrid:, :, :, :), intent(in) :: neo_h_global
+        real, dimension(-nzgrid:), intent(in)          :: neo_phi
+        type(neo_transport_data), intent(in)           :: transport
+        ! NEO profiles on this surface (for ω_0).
+        type(neo_equil_data), intent(in)               :: equil
+        ! conv: central-surface ratios (for quantities normalised to fixed NEO units, e.g. Φ_1).
+        ! conv_local: this surface's ratios (for moments of H_1, which are in local n_s, v_th,s units).
+        type(stella_to_neo_units_data), intent(in)     :: conv, conv_local
+
+        ! Local variables. 
+        real, dimension(nspec) :: upar_B, pflux, pflux_abs, eflux, eflux_abs, mflux, mflux_abs
+        real, dimension(nspec) :: fprim_used, tprim_used, K_big, k_small, vpol_th0, vtor_th0
+        character(len=128)     :: label
+        integer                :: is
+        real, parameter        :: rel_tol = 0.01
+        ! Absolute tolerance for quantities that vanish in a non-rotating run.
+        real, parameter        :: abs_tol = 1.0e-8
+
+        write (output_unit, '(a, es14.6)') '############################################################'
+        write (output_unit, '(a)') ' Verifying NEO data on stella grids against out.neo.transport, '//trim(surface_label)//' surface:'
+
+        if (.not. transport%found) then
+            write (output_unit, '(a)') ' WARNING: no transport data for the '//trim(surface_label)//' surface; skipping.'
+            return
+        end if
+
+        ! Equilibrium potential correction. 
+        call compare_with_neo('<(e Phi_1/T_norm)^2>', calculate_phi_sq(neo_phi, conv), transport%phi_sq_avg(1), rel_tol)
+
+        ! Zeroth-order toroidal rotation.
+        if (allocated(equil%angular_frequency)) then
+            if (abs(equil%angular_frequency(1)) > 0.0) write (output_unit, '(a, es14.6, a)') &
+            ' WARNING: NEO was run with zeroth-order rotation, omega_0 = ', equil%angular_frequency(1), &
+            ' (v_norm/a); stella assumes no zeroth-order rotation.'
+            call compare_with_neo('v_tor^(0)(theta=0)/v_norm', calculate_vtor0_th0(equil), transport%vtor0_th0(1), rel_tol, abs_tol)
+            call compare_with_neo('<u_par^(0) B>/(v_norm B_unit)', calculate_uparB0(equil, conv), transport%uparB0(1), rel_tol, abs_tol)
+
+            ! Second-order radial particle flux.
+            call calculate_pflux(neo_h_global, equil, conv, conv_local, pflux, pflux_abs)
+            do is = 1, nspec
+                write (label, '(a, i0)') 'Gamma/(n_norm v_norm), species ', is
+                call compare_with_neo(trim(label), pflux(is), transport%pflux(is, 1), rel_tol)
+                call warn_if_cancelling(trim(label), pflux(is), transport%pflux(is, 1), pflux_abs(is))
+            end do
+
+            ! Second-order radial energy flux.
+            call calculate_eflux(neo_h_global, equil, conv, conv_local, eflux, eflux_abs)
+            do is = 1, nspec
+                write (label, '(a, i0)') 'Q/(n_norm v_norm T_norm), species ', is
+                call compare_with_neo(trim(label), eflux(is), transport%eflux(is, 1), rel_tol)
+                call warn_if_cancelling(trim(label), eflux(is), transport%eflux(is, 1), eflux_abs(is))
+            end do
+
+            ! Second-order radial momentum flux.
+            call calculate_mflux(neo_h_global, equil, conv, conv_local, mflux, mflux_abs)
+            do is = 1, nspec
+                write (label, '(a, i0)') 'Pi/(n_norm T_norm a_norm), species ', is
+                call compare_zero_with_neo(trim(label), mflux(is), transport%mflux(is, 1), mflux_abs(is), &
+                'no zeroth-order rotation and an up-down symmetric equilibrium (stella omits NEO''s driftxrot3 term).')
+            end do
+        else
+            write (output_unit, '(a)') ' WARNING: no NEO profiles for the '//trim(surface_label)//' surface; skipping the zeroth-order flows and radial fluxes.'
+        end if
+
+        call calculate_upar_B(neo_h_global, neo_phi, conv_local, upar_B)
+        call compare_with_neo('<j_par B>/(e n_norm v_norm B_unit)', calculate_jpar(upar_B, conv_local), transport%jpar(1), rel_tol)
+
+        do is = 1, nspec
+            write (label, '(a, i0)') '<u_par B>/(v_norm B_unit), species ', is
+            call compare_with_neo(trim(label), upar_B(is), transport%uparB(is, 1), rel_tol)
+        end do
+
+        ! First-order flow coefficients.
+        if (allocated(equil%rho_star)) then
+            if (trim(surface_label) == 'central') then
+                do is = 1, nspec
+                    fprim_used(is) = spec(is)%fprim
+                    tprim_used(is) = spec(is)%tprim
+                    if (abs(spec(is)%fprim - equil%density_gradient(is, 1)) > 1.0e-4 * max(abs(spec(is)%fprim), 1.0) .or. &
+                    abs(spec(is)%tprim - equil%temperature_gradient(is, 1)) > 1.0e-4 * max(abs(spec(is)%tprim), 1.0)) &
+                        write (output_unit, '(a, i0, a, 2es13.5, a, 2es13.5)') ' WARNING: species ', is, &
+                        ' gradients differ: stella fprim, tprim = ', spec(is)%fprim, spec(is)%tprim, &
+                        '   NEO dlnndr, dlntdr = ', equil%density_gradient(is, 1), equil%temperature_gradient(is, 1)
+                end do
+            else
+                ! stella has no profile information off the central surface: use NEO's gradients there.
+                fprim_used = equil%density_gradient(:, 1)
+                tprim_used = equil%temperature_gradient(:, 1)
+            end if
+
+            call calculate_flow_coefficients(upar_B, equil, conv, conv_local, fprim_used, tprim_used, K_big, k_small)
+            do is = 1, nspec
+                write (label, '(a, i0)') 'k (dimensionless flow coefficient), species ', is
+                call compare_with_neo(trim(label), k_small(is), transport%k_small(is, 1), rel_tol)
+            end do
+            do is = 1, nspec
+                write (label, '(a, i0)') 'K/(n_norm v_norm/B_unit) (dimensional flow coefficient), species ', is
+                call compare_with_neo(trim(label), K_big(is), transport%K_big(is, 1), rel_tol)
+            end do
+
+            ! First-order poloidal flow at the outboard midplane.
+            call calculate_vpol_th0(K_big, conv, conv_local, vpol_th0)
+            do is = 1, nspec
+                write (label, '(a, i0)') 'v_pol(theta=0)/v_norm, species ', is
+                call compare_with_neo(trim(label), vpol_th0(is), transport%vpol_th0(is, 1), rel_tol)
+            end do
+
+            ! First-order toroidal flow at the outboard midplane.
+            call calculate_vtor_th0(K_big, equil, conv, conv_local, fprim_used, tprim_used, vtor_th0)
+            do is = 1, nspec
+                write (label, '(a, i0)') 'v_tor(theta=0)/v_norm, species ', is
+                call compare_with_neo(trim(label), vtor_th0(is), transport%vtor_th0(is, 1), rel_tol)
+            end do
+        end if
+
+    end subroutine verify_neo_transport_on_surface
 
 
 ! ================================================================================================================================================================================= !
