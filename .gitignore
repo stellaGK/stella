@@ -206,3 +206,6 @@ cython_debug/
 *.icloud
 AUTOMATIC_TESTS/convert_input_files/.pydevproject
 AUTOMATIC_TESTS/convert_input_files/.project
+
+# Baseline of the run time and memory usage (make performance-baseline)
+performance_baseline.json

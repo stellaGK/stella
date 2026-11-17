@@ -391,10 +391,10 @@ jobs:
 #                          Build in debug mode                          
 #-----------------------------------------------------------------------
 
-  # Build stella with Make in debug mode, here the python tests do not work!
-  # Specifically, the flush statement in mini_libstell's 
-  # read_wout_mod.F module in the readw_and_open() routine breaks 
-  # when reading a VMEC equilibirium during the python tests.
+  # Build stella with Make in debug mode, and run the flux tube tests with it.
+  # Note that the flush statement in mini_libstell's read_wout_mod.F module in the
+  # readw_and_open() routine used to break when reading a VMEC equilibrium in debug
+  # mode; the VMEC tests (2 and 5) pass in debug mode locally, so they are run as well.
   debug-build:
     runs-on: ubuntu-22.04
     name: "Build stella in debug mode"
@@ -419,6 +419,45 @@ jobs:
       # Build stella executable
       - name: Build stella in debug mode
         run: make -j 4
+
+      # Run the flux tube tests with the debug executable, which checks array bounds
+      # (-fcheck=all), traps invalid floating point operations, and initialises variables
+      # to unusual values, to catch memory errors.
+      - name: Install python packages
+        run: |
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini
+
+      - name: Python tests 1 - Does stella run (debug mode)
+        run: make numerical-tests-1
+
+      - name: Python tests 2 - Geometry (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-2
+
+      - name: Python tests 3 - Numerical reproducibility (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-3
+
+      - name: Python tests 4 - Gyrokinetic equation (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-4
+
+      - name: Python tests 5 - Flux tube (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-5
+
+      - name: Python tests 6 - Diagnostics (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-6
+
+      - name: Python tests 8 - Electromagnetic effects (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-8
+
+      - name: Python tests 9 - Restart simulations (debug mode)
+        if: success() || failure()
+        run: make numerical-tests-9
 
 
 # If the operating system is changed, we can check where modules are installed

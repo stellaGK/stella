@@ -85,8 +85,7 @@ def test_whether_miller_output_files_are_present(tmp_path, stella_version, error
     expected_miller_output_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file}.millerlocal.output' 
     
     # Check whether the txt files match
-    # Note that only 1 digit matches in the geometry file, but all digits match in the miller output file
-    compare_geometry_files(local_geometry_file, expected_geometry_file, error=False, digits=1)
+    compare_geometry_files(local_geometry_file, expected_geometry_file, error=False)
     shat = compare_miller_input_files(local_miller_input_file, expected_miller_input_file, error=False)
     compare_miller_output_files(local_miller_output_file, expected_miller_output_file, shat=shat, error=False)
     

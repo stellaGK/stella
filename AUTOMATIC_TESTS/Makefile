@@ -3,7 +3,7 @@
 
 # Test directory
 TEST_DIR = $(PROJECT_DIR)/AUTOMATIC_TESTS
-.PHONY: create-test-virtualenv check-tests-dependencies numerical-tests numerical-tests-verbose numerical-tests-slow benchmarks benchmarks-slow
+.PHONY: create-test-virtualenv check-tests-dependencies numerical-tests numerical-tests-verbose numerical-tests-slow performance-baseline performance-compare benchmarks benchmarks-slow
 
 # Create a virtualenv and install the test dependencies there
 create-test-virtualenv:
@@ -56,6 +56,11 @@ numerical-tests-9: check-tests-dependencies $(PROJECT_DIR)/stella
 numerical-tests-slow: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: slow automated stella tests"
 	@python3 -m pytest -v -rA -W ignore::DeprecationWarning --include-slow-tests -m slow $(TEST_DIR)/numerical_tests/
+# Measure the run time and memory usage of stella (see AUTOMATIC_TESTS/README.md)
+performance-baseline: $(PROJECT_DIR)/stella
+	@python3 $(TEST_DIR)/performance/measure_performance.py --output $(PROJECT_DIR)/performance_baseline.json
+performance-compare: $(PROJECT_DIR)/stella
+	@python3 $(TEST_DIR)/performance/measure_performance.py --compare $(PROJECT_DIR)/performance_baseline.json
 numerical-tests-system:
 	@python3 $(TEST_DIR)/system_information.py
 	

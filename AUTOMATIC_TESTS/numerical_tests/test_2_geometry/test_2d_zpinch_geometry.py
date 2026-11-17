@@ -17,8 +17,6 @@ with open(module_path, 'r') as file: exec(file.read())
 
 # Global variables  
 input_filename = 'zpinch_geometry.in'
-stella_local_run_directory = 'Not/Run/Yet'
-run_data = {}
 
 #-------------------------------------------------------------------------------
 #                           Get the stella version                             #
@@ -28,20 +26,21 @@ def stella_version(pytestconfig):
     return pytestconfig.getoption("stella_version")
     
 #-------------------------------------------------------------------------------
+#                         Run local stella simulation                          #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def stella_run(tmp_path_factory, stella_version):
+    '''Run a local stella simulation, which is shared by all the tests in this 
+    module, so that each test can also be run on its own.'''
+    if stella_version!='master': pytest.skip('The z-pinch geometry did not exist in stella versions 0.5, 0.6 and 0.7.')
+    tmp_path = tmp_path_factory.mktemp('zpinch_geometry')
+    return run_local_stella_simulation(input_filename, tmp_path, stella_version)
+
+#-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_zpinch_output_files_are_present(tmp_path, stella_version, error=False):  
-    
-    # Save the temporary folder <tmp_path> as a global variable so the
-    # other tests can access the output files from the local stella run.
-    global stella_local_run_directory, run_data
-    stella_local_run_directory = tmp_path
-    
-    # Run stella inside of <tmp_path> based on <input_filename>
-    if stella_version!='master': 
-        print("The z-pinch did not exist in stella version 0.5, 0.6 and 0.7")
-        return 
-    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version) 
+def test_whether_zpinch_output_files_are_present(stella_run, error=False):
+    stella_local_run_directory = stella_run['tmp_path']
     
     # Gather the output files generated during the local stella run inside <tmp_path>
     local_files = os.listdir(stella_local_run_directory)
@@ -68,13 +67,10 @@ def test_whether_zpinch_output_files_are_present(tmp_path, stella_version, error
 #-------------------------------------------------------------------------------
 #                    Check whether zpinch output files match                   #
 #-------------------------------------------------------------------------------
-def test_whether_zpinch_output_files_are_correct(stella_version):  
+def test_whether_zpinch_output_files_are_correct(stella_run, stella_version):  
     '''Check that the results are identical to a previous run.'''
+    stella_local_run_directory = stella_run['tmp_path']
     
-    # Turn off tests for older stella versions for now
-    if stella_version!='master': 
-        print("The z-pinch did not exist in stella version 0.5, 0.6 and 0.7")
-        return 
 
     # File names 
     local_geometry_file = stella_local_run_directory / 'zpinch_geometry.geometry' 
@@ -90,7 +86,7 @@ def test_whether_zpinch_output_files_are_correct(stella_version):
 #-------------------------------------------------------------------------------
 #              Check whether the data in the netcdf file matches               #
 #-------------------------------------------------------------------------------
-def test_whether_geometry_data_in_netcdf_file_is_correct(error=False):
-    compare_geometry_in_netcdf_files(run_data, error=False)
+def test_whether_geometry_data_in_netcdf_file_is_correct(stella_run, error=False):
+    compare_geometry_in_netcdf_files(stella_run, error=False)
     print('  -->  All geometry data in the netcdf file matches the expected output.')
     return
