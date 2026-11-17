@@ -3,7 +3,7 @@
 
 # Test directory
 TEST_DIR = $(PROJECT_DIR)/AUTOMATIC_TESTS
-.PHONY: create-test-virtualenv check-tests-dependencies numerical-tests numerical-tests-verbose benchmarks benchmarks-slow
+.PHONY: create-test-virtualenv check-tests-dependencies numerical-tests numerical-tests-verbose numerical-tests-slow benchmarks benchmarks-slow
 
 # Create a virtualenv and install the test dependencies there
 create-test-virtualenv:
@@ -52,6 +52,10 @@ numerical-tests-8: check-tests-dependencies $(PROJECT_DIR)/stella
 numerical-tests-9: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 9"
 	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_9_restarting
+# Run the slow tests (e.g. the KBM and TAE benchmarks), which are skipped by default
+numerical-tests-slow: check-tests-dependencies $(PROJECT_DIR)/stella
+	@echo "Running: slow automated stella tests"
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning --include-slow-tests -m slow $(TEST_DIR)/numerical_tests/
 numerical-tests-system:
 	@python3 $(TEST_DIR)/system_information.py
 	
