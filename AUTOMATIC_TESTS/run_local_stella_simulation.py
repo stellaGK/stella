@@ -317,11 +317,11 @@ def compare_local_potential_with_expected_potential_em(local_netcdf_file='', exp
 
         if check_apar:
            local_apar2 = local_netcdf['apar2']
-           expected_apar2 = local_netcdf['apar2']
+           expected_apar2 = expected_netcdf['apar2']
 
         if check_bpar:
            local_bpar2 = local_netcdf['bpar2']
-           expected_bpar2 = local_netcdf['bpar2']
+           expected_bpar2 = expected_netcdf['bpar2']
         
         # Check whether we have the same time and potential data
         if not (np.allclose(local_time, expected_time, equal_nan=True, atol=1e-20)):
@@ -341,12 +341,12 @@ def compare_local_potential_with_expected_potential_em(local_netcdf_file='', exp
             if not (np.allclose(local_bpar2, expected_bpar2, equal_nan=True, atol=1e-20)):
                 print('\nERROR: The <B_parallel> potential data does not match in the netCDF files.'); error = True 
                 print('\nCompare the <B_parallel> potential arrays in the local and expected netCDF files:')
-                compare_local_array_with_expected_array(local_bar2, expected_bpar2)
+                compare_local_array_with_expected_array(local_bpar2, expected_bpar2)
         
-        assert (not error), f'The potential data does not match in the netCDF files.' 
-    
+        assert (not error), f'The potential data does not match in the netCDF files.'
+
     return error
-    
+
 #-------------------------------------------------------------------------------
 def convert_byte_array(array):
     '''Tool to convert netcdf text arrays, to a text string that we can compare.'''
