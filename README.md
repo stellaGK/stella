@@ -186,15 +186,16 @@ python3 $STELLA/AUTOMATIC_TESTS/convert_input_files/convert_inputFile.py
 
 ## Verification of stella output
 
-To ensure that the $\texttt{stella}$ code is functioning correctly, a suite of numerical tests has been implemented and is automatically run on every push to GitHub. These tests cover a wide range of routines and options within $\texttt{stella}$. The numerical tests are organized into eight categories. Tests 1-5 use the electrostatic flux-tube version of $\texttt{stella}$, while tests 6 and 7 target the full-flux-surface and electromagnetic versions, respectively. Finally, test 8 checks whether simulations can be succesfully restarted.
+To ensure that the $\texttt{stella}$ code is functioning correctly, a suite of numerical tests has been implemented and is automatically run on every push to GitHub. These tests cover a wide range of routines and options within $\texttt{stella}$. The numerical tests are organized into nine categories. Tests 1, 2, 4, 5 and 6 use the electrostatic flux-tube version of $\texttt{stella}$, test 3 guards the numerical reproducibility of $\texttt{stella}$, while tests 7 and 8 target the full-flux-surface and electromagnetic versions, respectively. Finally, test 9 checks whether simulations can be succesfully restarted.
 - **Test 1**: Confirms that the $\texttt{stella}$ executable exists and that $\texttt{stella}$ runs correctly by checking that the executable **produces output files**.
 - **Test 2**: Verifies that the **magnetic geometries** are implemented correctly. This includes geometries based on Miller parameters, $\texttt{VMEC}$ equilibria, and slab geometry.
-- **Test 3**: Checks each term of the **gyrokinetic equation** independently. It confirms that the electrostatic potential remains constant when no terms (nor collisions or dissipation) are included; validates the initialization options for the distribution function, and verifies the correct evolution of the potential for each term. The $(k_x,k_y)$ grid options ("box" and "range") are also tested.
-- **Test 4**: Tests the **parallel boundary conditions**: (1) standard twist-and-shift, (2) stellarator-symmetric, (3) periodic, and (4) zero boundary conditions. Additionally, multiple input flags are tested simultaneously. In the future, each input parameter would be tested individually.
-- **Test 5**: Validates the **diagnostics**, including growth rates, fluxes, density and temperature, distribution function, and electrostatic potential.
-- **Test 6**: Checks the electrostatic **full-flux-surface** version of $\texttt{stella}$. Geometric quantities are verified first, followed by each term of the gyrokinetic equation.
-- **Test 7**: Tests the **electromagnetic** flux-tube version, verifying each term of the gyrokinetic equation and simulating a KBM and TAE instability.
-- **Test 8**: Checks whether a simulation can succesfully be **restarted**.
+- **Test 3**: Checks the **numerical reproducibility** of short nonlinear simulations, which switch on different numerical schemes (collisions, electromagnetic fields, adiabatic electrons, explicit algorithms, ...). The full state of the simulation (fields, moments, fluxes, frequency and distribution functions) is compared with a tight tolerance, it is verified that the results do not depend on the number of MPI processes or the data layouts, and that writing diagnostics does not change the time evolution. Run these tests before and after optimising the memory usage or speed of $\texttt{stella}$.
+- **Test 4**: Checks each term of the **gyrokinetic equation** independently. It confirms that the electrostatic potential remains constant when no terms (nor collisions or dissipation) are included; validates the initialization options for the distribution function, and verifies the correct evolution of the potential for each term. The $(k_x,k_y)$ grid options ("box" and "range") are also tested.
+- **Test 5**: Tests the **parallel boundary conditions**: (1) standard twist-and-shift, (2) stellarator-symmetric, (3) periodic, and (4) zero boundary conditions. Additionally, multiple input flags are tested simultaneously. In the future, each input parameter would be tested individually.
+- **Test 6**: Validates the **diagnostics**, including growth rates, fluxes, density and temperature, distribution function, and electrostatic potential.
+- **Test 7**: Checks the electrostatic **full-flux-surface** version of $\texttt{stella}$. Geometric quantities are verified first, followed by each term of the gyrokinetic equation.
+- **Test 8**: Tests the **electromagnetic** flux-tube version, verifying each term of the gyrokinetic equation and simulating a KBM and TAE instability.
+- **Test 9**: Checks whether a simulation can succesfully be **restarted**.
 
 
 <br>
@@ -227,6 +228,7 @@ make numerical-tests-5
 make numerical-tests-6
 make numerical-tests-7
 make numerical-tests-8
+make numerical-tests-9
 ```
 
 

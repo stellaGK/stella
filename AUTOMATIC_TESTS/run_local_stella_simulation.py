@@ -348,6 +348,39 @@ def compare_local_potential_with_expected_potential_em(local_netcdf_file='', exp
     return error
 
 #-------------------------------------------------------------------------------
+def compare_netcdf_quantities_normwise(local_netcdf_file, expected_netcdf_file, keys, rtol=1e-8, atol=1e-24, label='expected'):
+    '''Compare the full arrays <keys> in two netCDF files, requiring for each key that
+    max|local - expected| <= rtol * max|expected| + atol. A norm-wise check is used instead of an
+    element-wise one, since elements which are zero up to round-off errors (e.g. the
+    kx = ky = 0 mode) would otherwise make the comparison fail on numerical noise. The small
+    absolute tolerance <atol> handles quantities which vanish analytically, e.g. the particle
+    flux with adiabatic electrons is of the order of 1e-28.'''
+
+    failed = []
+    with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
+        print(f'\n    {"KEY":<18s} {"max|"+label+"|":>16s} {"max|diff|/max|"+label+"|":>24s}')
+        for key in keys:
+            if key not in local_netcdf.variables or key not in expected_netcdf.variables:
+                print(f'    {key:<18s} is missing in the {"local" if key not in local_netcdf.variables else label} netCDF file.')
+                failed.append(key); continue
+            local_quantity = local_netcdf[key].values
+            expected_quantity = expected_netcdf[key].values
+            if local_quantity.shape != expected_quantity.shape:
+                print(f'    {key:<18s} has shape {local_quantity.shape} instead of {expected_quantity.shape}.')
+                failed.append(key); continue
+            if np.isnan(local_quantity).sum() != np.isnan(expected_quantity).sum():
+                print(f'    {key:<18s} contains {np.isnan(local_quantity).sum()} NaNs instead of {np.isnan(expected_quantity).sum()}.')
+                failed.append(key); continue
+            scale = np.nanmax(np.abs(expected_quantity)) if expected_quantity.size else 0
+            difference = np.nanmax(np.abs(local_quantity - expected_quantity)) if expected_quantity.size else 0
+            relative_difference = difference / scale if scale > 0 else difference
+            status = 'OK' if difference <= rtol * scale + atol else 'MISMATCH'
+            print(f'    {key:<18s} {scale:16.6e} {relative_difference:24.3e}   {status}')
+            if status != 'OK': failed.append(key)
+    assert not failed, f'The quantities {failed} differ by more than rtol = {rtol:.0e} ({label}).'
+    return
+
+#-------------------------------------------------------------------------------
 def convert_byte_array(array):
     '''Tool to convert netcdf text arrays, to a text string that we can compare.'''
     return '\n'.join((str(line, encoding='utf-8').strip() for line in array.data))
