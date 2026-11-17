@@ -36,7 +36,6 @@
   include_nonlinear = .true.				           ! Already tested in test_4_gyrokinetic_equation
   include_parallel_nonlinearity = .false.	   ! (TOGGLE)
   include_electromagnetic = .false.
-  include_radial_variation = .false.
 /
 
 &scale_gyrokinetic_terms

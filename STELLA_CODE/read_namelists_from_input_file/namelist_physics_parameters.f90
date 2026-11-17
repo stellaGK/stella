@@ -14,8 +14,6 @@
 !     include_nonlinear = .false.
 !     include_parallel_nonlinearity = .false.
 !     include_electromagnetic = .false.
-!     include_full_flux_annulus = .false.
-!     include_radial_variation = .false.
 !   
 !   scale_gyrokinetic_terms
 !     xdriftknob = 1.0
@@ -78,8 +76,7 @@ contains
    !****************************************************************************
    subroutine read_namelist_gyrokinetic_terms(simulation_domain_switch, include_parallel_streaming, & 
       include_mirror, include_xdrift, include_ydrift, include_drive, include_nonlinear, &
-      include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
-      include_full_flux_annulus, include_radial_variation)
+      include_parallel_nonlinearity, include_electromagnetic, include_flow_shear)
 
       use mp, only: proc0
 
@@ -91,7 +88,6 @@ contains
       logical, intent(out) :: include_xdrift, include_ydrift, include_drive
       logical, intent(out) :: include_nonlinear, include_parallel_nonlinearity
       logical, intent(out) :: include_electromagnetic, include_flow_shear
-      logical, intent (out) :: include_full_flux_annulus, include_radial_variation
 
       ! Local variable to set <simulation_domain_switch>
       character(30) :: simulation_domain
@@ -128,8 +124,6 @@ contains
          ! By default electromagnetic and flow shear effects are not included
          include_electromagnetic = .false.
          include_flow_shear = .false.
-         include_full_flux_annulus = .false.
-         include_radial_variation = .false.
 
       end subroutine set_default_parameters_gyrokinetic_terms
 
@@ -158,7 +152,7 @@ contains
          namelist /gyrokinetic_terms/ simulation_domain, include_parallel_streaming, &
             include_mirror, include_xdrift, include_ydrift, include_drive, &
             include_nonlinear, include_parallel_nonlinearity, include_electromagnetic, &
-            include_flow_shear, include_full_flux_annulus, include_radial_variation
+            include_flow_shear
 
          !----------------------------------------------------------------------
 
@@ -203,8 +197,6 @@ contains
          write (unit, '(A, L1)') '  include_parallel_nonlinearity = ', include_parallel_nonlinearity
          write (unit, '(A, L1)') '  include_electromagnetic = ', include_electromagnetic
          write (unit, '(A, L1)') '  include_flow_shear = ', include_flow_shear
-         write (unit, '(A, L1)') '  include_full_flux_annulus = ', include_full_flux_annulus
-         write (unit, '(A, L1)') '  include_radial_variation = ', include_radial_variation
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

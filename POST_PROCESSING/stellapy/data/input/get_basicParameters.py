@@ -1,5 +1,6 @@
  
 import numpy as np 
+from stellapy.data.input.read_inputFile import is_full_flux_surface
 
 #===============================================================================
 #                    GET THE BASIC INPUT PARAMETERS
@@ -14,7 +15,7 @@ def get_basicParameters(self):
     # Linear or nonlinear simulations
     self.linear = True if (self.inputParameters['gyrokinetic_terms']['include_nonlinear']!=True) else False
     self.nonlinear = True if (self.inputParameters['gyrokinetic_terms']['include_nonlinear']==True) else False
-    self.full_flux_surface = True if (self.inputParameters['gyrokinetic_terms']['include_full_flux_annulus']==True) else False
+    self.full_flux_surface = is_full_flux_surface(self.inputParameters)
     
     # Read the number of periods or field periods
     self.nperiod = self.inputParameters['z_grid']['nperiod']
