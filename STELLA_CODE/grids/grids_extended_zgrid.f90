@@ -150,6 +150,9 @@ contains
             if (periodic(iky)) then
                neigen(iky) = nakx
             else
+               ! TODO: check whether range grids with linked boundary conditions are correct.
+               ! For the range grid jtwist = 0 (see read_parameters_kxky_grids in grids_kxky.f90),
+               ! hence neigen = 0 for all ky > 0, i.e., no mode is connected to any other.
                neigen(iky) = min((iky - 1) * jtwist, nakx)
             end if
          end do
