@@ -176,12 +176,12 @@ contains
       use grids_time, only: code_time
 
       ! Free-energy diagnostic (closure)
-      use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu
+      use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_xy
       use diagnostics_energy, only: get_free_energy
       use grids_velocity, only: set_vpa_weights
       use calculations_tofrom_ghf, only: g_to_h
       use parameters_physics, only: fphi
-      use write_diagnostics_to_netcdf, only: write_energy_kxkyz_nc, write_energy_vmu_nc
+      use write_diagnostics_to_netcdf, only: write_energy_kxkyz_nc, write_energy_vmu_nc, write_energy_xy_nc
       use parameters_physics, only: full_flux_surface
 
       ! Write data
@@ -277,7 +277,8 @@ contains
             call g_to_h(gnew, phi, bpar, fphi)
 
             ! Compute the closure.
-            call get_free_energy(gnew, g4, phi, istep, energy_unit, write_energy_vmu)
+            call get_free_energy(gnew, g4, phi, istep, energy_unit, write_energy_vmu, &
+                                 write_energy_xy .and. write_to_netcdf_file)
 
             ! Convert <h> back to <g> space.
             call g_to_h(gnew, phi, bpar, -fphi)
@@ -310,6 +311,9 @@ contains
       end if
       if (write_energy_vmu .and. proc0) then
          call write_energy_vmu_nc(nout)
+      end if
+      if (write_energy_xy .and. proc0) then
+         call write_energy_xy_nc(nout)
       end if
 
       ! Synchronize the disk copy of a netCDF dataset with in-memory buffers
@@ -374,7 +378,7 @@ contains
       use diagnostics_potential, only: init_diagnostics_potential
 
       ! Free-energy diagnostic (closure)
-      use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species
+      use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, write_energy_xy
       use diagnostics_energy, only: init_energy_diagnostic
       use file_utils, only: open_output_file, close_output_file
 
@@ -447,7 +451,7 @@ contains
 
       ! Initialize the free-energy diagnostic (only allocates arrays when <write_energy> = .true.)
       if (write_energy) then
-         call init_energy_diagnostic(write_energy_vmu, write_energy_species, restart)
+         call init_energy_diagnostic(write_energy_vmu, write_energy_species, write_energy_xy, restart)
 
          ! Open the '.energy' ascii file and create its header
          call open_energy_ascii_file(restart)

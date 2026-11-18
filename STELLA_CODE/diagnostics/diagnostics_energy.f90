@@ -141,6 +141,12 @@ module diagnostics_energy
       real, dimension(:, :, :, :, :), allocatable :: streaming_kxkyz, mirror_kxkyz, drifts_kxkyz
       real, dimension(:, :, :, :, :), allocatable :: field_energy_kxkyz
 
+      !> Real-space energy densities (unfolded: no dVolume/volume_total and no
+      !> 1/(nx*ny) FFT factor). Written to NetCDF when write_energy_xy.
+      !> field: (x,y,z,tube); particle: (x,y,z,tube,species).
+      real, dimension(:, :, :, :), allocatable :: field_energy_xy_z
+      real, dimension(:, :, :, :, :), allocatable :: particle_energy_xy_z
+
       !> Per-mode (vmu representation) closure terms,
       !> (vpa,mu,species). Written to NetCDF when write_energy_vmu.
       real, dimension(:, :, :), allocatable :: particle_energy_vmu
@@ -167,22 +173,29 @@ contains
    !> Initialise the free-energy diagnostic. Allocates all per-species scalar
    !> vectors, the work arrays, and (if requested) the per-mode kxkyz/vmu arrays.
    !> Opens the per-species ascii files when write_energy_species = .true.
-   subroutine init_energy_diagnostic(write_energy_vmu, write_energy_species, restart)
+   subroutine init_energy_diagnostic(write_energy_vmu, write_energy_species, write_energy_xy, restart)
 
       use mp, only: proc0
       use grids_species, only: nspec, spec, ion_species, electron_species
-      use grids_kxky, only: nakx, naky
+      use grids_kxky, only: nakx, naky, nx, ny, grid_option_switch, grid_option_box
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
+      use parameters_physics, only: radial_variation
       use file_utils, only: open_output_file, flush_output_file
 
       implicit none
 
       logical, intent(in) :: write_energy_vmu
       logical, intent(in) :: write_energy_species
+      logical, intent(in) :: write_energy_xy
       logical, intent(in) :: restart
 
       integer :: is, ion_count, elec_count
+
+      if (write_energy_xy .and. (grid_option_switch /= grid_option_box .or. radial_variation)) then
+         if (proc0) write (*, *) 'ERROR: write_energy_xy requires grid_option = box and radial_variation = .false.'
+         error stop
+      end if
 
       if (write_energy_species .and. proc0) then
          if (.not. allocated(energy_diag%energy_species_units)) allocate (energy_diag%energy_species_units(nspec))
@@ -243,6 +256,18 @@ contains
       if (.not. allocated(energy_diag%mirror_kxkyz)) allocate (energy_diag%mirror_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       if (.not. allocated(energy_diag%drifts_kxkyz)) allocate (energy_diag%drifts_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       if (.not. allocated(energy_diag%field_energy_kxkyz)) allocate (energy_diag%field_energy_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, 1))
+
+      ! The real-space arrays are only needed when write_energy_xy is on.
+      if (write_energy_xy) then
+         if (.not. allocated(energy_diag%field_energy_xy_z)) then
+            allocate (energy_diag%field_energy_xy_z(nx, ny, -nzgrid:nzgrid, ntubes))
+            energy_diag%field_energy_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%particle_energy_xy_z)) then
+            allocate (energy_diag%particle_energy_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%particle_energy_xy_z = 0.
+         end if
+      end if
 
       if (write_energy_vmu) then
          if (.not. allocated(energy_diag%particle_energy_vmu)) allocate (energy_diag%particle_energy_vmu(nvpa, nmu, nspec))
@@ -446,6 +471,30 @@ contains
 
    end subroutine get_one_energy_term_vmu
 
+   !> Transform a (ky,kx) Fourier slice to real space (y,x) using the same
+   !> unnormalised FFTW transforms as the rest of the code. The output is
+   !> Nx*Ny times the normalised inverse transform; callers that need the
+   !> volume-average scalar must apply 1/(nx*ny) themselves.
+   subroutine transform_kxky_to_xy(f_kxky, f_xy)
+
+      use calculations_kxky, only: swap_kxky
+      use calculations_transforms, only: transform_ky2y, transform_kx2x
+      use grids_kxky, only: naky, nakx, naky_all, ikx_max, nx, ny
+
+      implicit none
+
+      complex, dimension(naky, nakx), intent(in) :: f_kxky
+      real, dimension(ny, nx), intent(out) :: f_xy
+
+      complex, dimension(naky_all, ikx_max) :: f_swap
+      complex, dimension(ny, ikx_max) :: f_ykx
+
+      call swap_kxky(f_kxky, f_swap)
+      call transform_ky2y(f_swap, f_ykx)
+      call transform_kx2x(f_ykx, f_xy)
+
+   end subroutine transform_kxky_to_xy
+
    !> Calculate the electrostatic field energy H_chi = sum_k 0.5*mode_fac*dVolume*lambda*|phi_k|^2.
    !> lambda = denominator_fields is the k-dependent quasineutrality coefficient
    !> (1-Gamma_0 for kinetic species; already includes the Boltzmann efac for
@@ -453,11 +502,12 @@ contains
    !>
    !> field_energy_kxkyz stores the per-mode value WITHOUT the dVolume weight;
    !> the scalar applies dVolume/volume_total (see the module header).
-   subroutine get_field_energy(phi, field_energy_sum, field_energy_kxkyz, write_vmu, field_energy_vmu)
+   subroutine get_field_energy(phi, field_energy_sum, field_energy_kxkyz, write_vmu, field_energy_vmu, &
+                               write_energy_xy, field_energy_xy_z)
 
       use mp, only: proc0
       use arrays, only: denominator_fields
-      use grids_kxky, only: naky, nakx
+      use grids_kxky, only: naky, nakx, nx, ny, naky_all, ikx_max
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use calculations_volume_averages, only: mode_fac
@@ -470,9 +520,13 @@ contains
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: field_energy_kxkyz
       logical, intent(in) :: write_vmu
       real, dimension(:, :, :), intent(out) :: field_energy_vmu
+      logical, intent(in) :: write_energy_xy
+      real, dimension(:, :, -nzgrid:, :), intent(out), optional :: field_energy_xy_z
 
       integer :: ikx, iky, iz, it, ia
       real :: tmp
+      complex, dimension(naky, nakx) :: lam_phi
+      real, dimension(ny, nx) :: phi_xy, lam_phi_xy
 
       ia = 1
       field_energy_sum = 0.
@@ -497,6 +551,18 @@ contains
 
       field_energy_sum = field_energy_sum / volume_total
 
+      if (write_energy_xy .and. proc0 .and. present(field_energy_xy_z)) then
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               lam_phi = denominator_fields(:, :, iz) * phi(:, :, iz, it)
+               call transform_kxky_to_xy(phi(:, :, iz, it), phi_xy)
+               call transform_kxky_to_xy(lam_phi, lam_phi_xy)
+               ! Stored unfolded: no dVolume/volume_total and no 1/(nx*ny).
+               field_energy_xy_z(:, :, iz, it) = transpose(0.5 * phi_xy * lam_phi_xy)
+            end do
+         end do
+      end if
+
       if (write_vmu) field_energy_vmu(:, :, 1) = field_energy_sum
 
    end subroutine get_field_energy
@@ -510,10 +576,10 @@ contains
    !>   istep        - current time step (for the ExB nonlinearity restart flag)
    !>   energy_unit  - ascii unit number for the combined .energy file
    !>   write_energy_vmu - if .true., also compute the vmu-representation terms
-   subroutine get_free_energy(h, g, phi, istep, energy_unit, write_energy_vmu)
+   subroutine get_free_energy(h, g, phi, istep, energy_unit, write_energy_vmu, write_energy_xy)
 
       use file_utils, only: flush_output_file
-      use mp, only: proc0
+      use mp, only: proc0, sum_allreduce
       use arrays_distribution_function, only: g1
       use arrays, only: kperp2
       use arrays_fields, only: mod_bpar => bpar
@@ -522,8 +588,11 @@ contains
       use grids_species, only: spec, nspec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
+      use grids_velocity, only: wgts_vpa, wgts_mu, maxwell_fac, maxwell_vpa, maxwell_mu
       use parameters_physics, only: fphi
-      use grids_kxky, only: naky, nakx
+      use grids_kxky, only: naky, nakx, nx, ny, naky_all, ikx_max
+      use geometry, only: dVolume
+      use calculations_volume_averages, only: volume_total
       use grids_time, only: code_time, code_dt
       use parameters_physics, only: include_nonlinear
       use dissipation_hyper, only: D_hyper, k2max, advance_hyper_zed, advance_hyper_vpa, hyp_vpa, hyp_zed
@@ -549,6 +618,7 @@ contains
       integer, intent(in) :: istep
       integer, intent(in) :: energy_unit
       logical, intent(in) :: write_energy_vmu
+      logical, intent(in) :: write_energy_xy
 
       integer :: ivmu, imu, iv, iz, it, is, ia, ikx, iky
       real :: particle_energy
@@ -556,6 +626,8 @@ contains
       real :: drive_sum, coll_sum, diss_vpa_sum, diss_zed_sum, diss_perp_sum
       real :: nonlinearity_sum, streaming_sum, mirror_sum, drifts_sum
       real :: heat_sources_sum, total_energy
+      real :: check_num, check_den
+      real, dimension(ny, nx) :: h_xy
       logical :: restart_time_step
 
       ! Gate the drive and drifts (drifts) terms exactly like the GKE advance:
@@ -582,6 +654,10 @@ contains
       energy_diag%streaming_kxkyz = 0.
       energy_diag%mirror_kxkyz = 0.
       energy_diag%drifts_kxkyz = 0.
+      if (write_energy_xy) then
+         energy_diag%field_energy_xy_z = 0.
+         energy_diag%particle_energy_xy_z = 0.
+      end if
       if (write_energy_vmu) then
          energy_diag%particle_energy_vmu = 0.
          energy_diag%dedt_proj_vmu = 0.
@@ -627,12 +703,74 @@ contains
             energy_diag%particle_energy_vmu = 0.5 * energy_diag%particle_energy_vmu
          end if
 
+         ! Real-space particle-energy density (unfolded: no dVolume/volume_total
+         ! and no 1/(nx*ny)). Each rank handles its local vmu slices, then the
+         ! density is summed over all ranks.
+         if (write_energy_xy) then
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
+               do it = 1, ntubes
+                  do iz = -nzgrid, nzgrid
+                     call transform_kxky_to_xy(h(:, :, iz, it, ivmu), h_xy)
+                     ! 0.25 = 0.5 from the 0.5*<h|h> energy norm times the 0.5
+                     ! mode-counting factor used by get_one_energy_term_kxkyz.
+                     energy_diag%particle_energy_xy_z(:, :, iz, it, is) = &
+                        energy_diag%particle_energy_xy_z(:, :, iz, it, is) + &
+                        transpose(0.25 * energy_diag%factor_spec(is) &
+                           * wgts_vpa(iv) * wgts_mu(ia, iz, imu) &
+                           / (maxwell_fac(is) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)) &
+                           * h_xy**2)
+                  end do
+               end do
+            end do
+            call sum_allreduce(energy_diag%particle_energy_xy_z)
+         end if
+
          ! Field energy H_chi (electrostatic) and total energy H = H_p + H_chi
-         call get_field_energy(phi, energy_diag%field_energy_sum, energy_diag%field_energy_kxkyz, write_energy_vmu, energy_diag%field_energy_vmu)
+         if (write_energy_xy) then
+            call get_field_energy(phi, energy_diag%field_energy_sum, energy_diag%field_energy_kxkyz, &
+                                  write_energy_vmu, energy_diag%field_energy_vmu, &
+                                  write_energy_xy, energy_diag%field_energy_xy_z)
+         else
+            call get_field_energy(phi, energy_diag%field_energy_sum, energy_diag%field_energy_kxkyz, &
+                                  write_energy_vmu, energy_diag%field_energy_vmu, .false.)
+         end if
          total_energy = particle_energy + energy_diag%field_energy_sum
          energy_diag%particle_energy_sum = particle_energy
          energy_diag%total_energy_sum = total_energy
 
+         if (write_energy_xy .and. proc0) then
+            check_num = 0.
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  check_num = check_num + dVolume(ia, 1, iz) * &
+                     sum(energy_diag%field_energy_xy_z(:, :, iz, it))
+               end do
+            end do
+            check_num = check_num / (real(nx) * real(ny) * volume_total)
+            check_den = energy_diag%field_energy_sum
+            if (abs(check_den) > 0.) then
+               print '(A,ES16.8,A,ES16.8,A,ES16.8)', 'xy field check: ', check_num, &
+                  ' ref ', check_den, ' ratio ', check_num / check_den
+            end if
+            do is = 1, nspec
+               check_num = 0.
+               do it = 1, ntubes
+                  do iz = -nzgrid, nzgrid
+                     check_num = check_num + dVolume(ia, 1, iz) * &
+                        sum(energy_diag%particle_energy_xy_z(:, :, iz, it, is))
+                  end do
+               end do
+               check_num = check_num / (real(nx) * real(ny) * volume_total)
+               check_den = energy_diag%energy_spec(is)
+               if (abs(check_den) > 0.) then
+                  print '(A,I0,A,ES16.8,A,ES16.8,A,ES16.8)', 'xy particle check (', is, '): ', &
+                     check_num, ' ref ', check_den, ' ratio ', check_num / check_den
+               end if
+            end do
+         end if
          !--------------------------------------------------------------------
          ! col 4: drive (project the wstar rate onto h)
          !--------------------------------------------------------------------
@@ -902,6 +1040,8 @@ contains
       if (allocated(energy_diag%mirror_kxkyz)) deallocate (energy_diag%mirror_kxkyz)
       if (allocated(energy_diag%drifts_kxkyz)) deallocate (energy_diag%drifts_kxkyz)
       if (allocated(energy_diag%field_energy_kxkyz)) deallocate (energy_diag%field_energy_kxkyz)
+      if (allocated(energy_diag%field_energy_xy_z)) deallocate (energy_diag%field_energy_xy_z)
+      if (allocated(energy_diag%particle_energy_xy_z)) deallocate (energy_diag%particle_energy_xy_z)
 
       if (allocated(energy_diag%particle_energy_vmu)) deallocate (energy_diag%particle_energy_vmu)
       if (allocated(energy_diag%dedt_proj_vmu)) deallocate (energy_diag%dedt_proj_vmu)

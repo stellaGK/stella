@@ -758,6 +758,7 @@ contains
       use gk_flow_shear, only: hammett_flow_shear
       use gk_flow_shear, only: g_exb, g_exbfac
       use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
+      use parameters_diagnostics, only: write_energy_xy
 
       implicit none
       
@@ -782,6 +783,9 @@ contains
       
       ! If printing out flux-surface-averaged radial fluxes or moments, need FFTs
       if (write_radial_fluxes .or. write_radial_moments) fourier_transformations_are_needed = .true.
+
+      ! Real-space energy densities need the x/y FFT plans even in linear runs
+      if (write_energy_xy) fourier_transformations_are_needed = .true.
 
    end subroutine are_fourier_transformations_needed
 

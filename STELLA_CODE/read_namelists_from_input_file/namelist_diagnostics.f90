@@ -769,7 +769,7 @@ contains
    !****************************************************************************
    !                            DIAGNOSTICS ENERGY                             !
    !****************************************************************************
-   subroutine read_namelist_diagnostics_energy (write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species)
+   subroutine read_namelist_diagnostics_energy (write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, write_energy_xy)
 
       use mp, only: proc0
 
@@ -780,6 +780,7 @@ contains
       logical, intent (out) :: write_energy_kxkyz
       logical, intent (out) :: write_energy_vmu
       logical, intent (out) :: write_energy_species
+      logical, intent (out) :: write_energy_xy
 
       !-------------------------------------------------------------------------
 
@@ -805,6 +806,7 @@ contains
          write_energy_kxkyz = .false.
          write_energy_vmu = .false.
          write_energy_species = .false.
+         write_energy_xy = .false.
 
       end subroutine set_default_parameters_diagnostics_energy
 
@@ -816,7 +818,7 @@ contains
          implicit none
 
          ! Variables in the <diagnostics_energy> namelist
-         namelist /diagnostics_energy/ write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species
+         namelist /diagnostics_energy/ write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, write_energy_xy
 
          !----------------------------------------------------------------------
 
@@ -837,6 +839,7 @@ contains
             write_energy_kxkyz = .false.
             write_energy_vmu = .false.
             write_energy_species = .false.
+            write_energy_xy = .false.
          end if
 
       end subroutine check_inputs_diagnostics_energy
@@ -853,6 +856,7 @@ contains
          write (unit, '(A, L1)') '  write_energy_kxkyz = ', write_energy_kxkyz
          write (unit, '(A, L1)') '  write_energy_vmu = ', write_energy_vmu
          write (unit, '(A, L1)') '  write_energy_species = ', write_energy_species
+         write (unit, '(A, L1)') '  write_energy_xy = ', write_energy_xy
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

@@ -180,6 +180,7 @@ module write_diagnostics_to_netcdf
    public :: write_stresses_nc
    public :: write_energy_kxkyz_nc
    public :: write_energy_vmu_nc
+   public :: write_energy_xy_nc
    public :: get_nout
    public :: sync_nc
 
@@ -313,6 +314,8 @@ contains
       ! Grids
       use grids_kxky, only: nakx, naky, nalpha, phase_shift_angle
       use grids_kxky, only: x_d, rho_d, akx, aky, theta0
+      use grids_kxky, only: x, y, nx, ny
+      use grids_kxky, only: grid_option_switch, grid_option_box
       use grids_z, only: nzgrid, ntubes, zed
       use grids_velocity, only: nvpa, vpa, nmu, mu
       use grids_species, only: nspec
@@ -339,6 +342,10 @@ contains
       ! Dimensions (kx,ky,z,mu,vpa,s,t) as well as (alpha, tube) and (real, imaginary)
       call neasyf_dim(file_id, "kx", values=akx, long_name="Wavenumber in direction of grad alpha", units="1/rho_ref")
       call neasyf_dim(file_id, "ky", values=aky, long_name="Wavenumber perpendicular to flux surface", units="1/rho_ref")
+      if (grid_option_switch == grid_option_box) then
+         call neasyf_dim(file_id, "x", values=x, long_name="Real-space x coordinate", units="rho_ref")
+         call neasyf_dim(file_id, "y", values=y, long_name="Real-space y coordinate", units="rho_ref")
+      end if
       call neasyf_dim(file_id, "zed", values=zed)
       call neasyf_dim(file_id, "mu", values=mu)
       call neasyf_dim(file_id, "vpa", values=vpa)
@@ -360,6 +367,10 @@ contains
       ! Integers related to the dimensions
       call neasyf_write(file_id, "nkx", nakx, long_name="Number of kx points")
       call neasyf_write(file_id, "nky", naky, long_name="Number of ky points")
+      if (grid_option_switch == grid_option_box) then
+         call neasyf_write(file_id, "nx", nx, long_name="Number of real-space x points")
+         call neasyf_write(file_id, "ny", ny, long_name="Number of real-space y points")
+      end if
       call neasyf_write(file_id, "ntubes", ntubes, long_name="Number of tubes")
       call neasyf_write(file_id, "nzed_tot", 2 * nzgrid + 1, long_name="Number of zed points")
       call neasyf_write(file_id, "nspecies", nspec, long_name="Number of species")
@@ -1601,6 +1612,25 @@ contains
          long_name="Drift/drifts term")
 #endif
    end subroutine write_energy_kxkyz_nc
+
+   !------------------- real-space energy densities (xy) -----------------------
+   subroutine write_energy_xy_nc(nout)
+      use diagnostics_energy, only: energy_diag
+
+      implicit none
+      integer, intent(in) :: nout
+
+#ifdef NETCDF
+      call neasyf_write(ncid, "field_energy_xy_z", energy_diag%field_energy_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "t"], &
+         start=[1, 1, 1, 1, nout], &
+         long_name="Electrostatic field energy density 0.5*Re[phi* (Lambda phi)] (unfolded; apply dV/V and 1/(nx*ny))")
+      call neasyf_write(ncid, "particle_energy_xy_z", energy_diag%particle_energy_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Particle energy density 0.5*sum_s n_s T_s int dv w/F0 |h|^2 (unfolded; apply dV/V and 1/(nx*ny))")
+#endif
+   end subroutine write_energy_xy_nc
 
    !----------------------------- particle energy (vmu) ------------------------
    subroutine write_energy_vmu_nc(nout)

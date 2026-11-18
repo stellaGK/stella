@@ -48,6 +48,7 @@ CASES = [
     ('adiabatic_nombt', 'energy_adiabatic_nombt.in',  10, 1, True),
     ('adiabatic_mbt',   'energy_adiabatic_mbt.in',    10, 1, True),
     ('nonlinear',       'energy_nonlinear.in',         8, 1, True),
+    ('xy',              'energy_xy.in',               10, 2, True),
 ]
 
 # Special-configuration cases (single-file inputs)
@@ -97,6 +98,7 @@ def result(request, stella_version):
     res['nstep'] = nstep
     res['nspec'] = nspec
     res['has_nc'] = has_nc
+    res['name'] = name
     return res
 
 #-------------------------------------------------------------------------------
@@ -341,3 +343,53 @@ def test_ascii_only_path(stella_version):
     energy_vars = [v for v in ds.variables if 'kxkyz' in v or 'vmu' in v or 'particle_energy' in v or 'field_energy' in v]
     assert not energy_vars, f'free-energy NetCDF vars should be absent, got {energy_vars}'
     ds.close()
+
+
+#-------------------------------------------------------------------------------
+def test_real_space_energy_density(result):
+    """The unfolded real-space densities integrate back to the .energy columns.
+
+    Requires the xy case (energy_xy.in). The stored arrays exclude dV/V and
+    1/(nx*ny); those factors are applied here, exactly as in the Fortran
+    runtime check.
+    """
+    if result['name'] != 'xy':
+        pytest.skip('real-space energy output is only enabled in energy_xy.in')
+
+    ds = xr.open_dataset(result['nc'])
+    try:
+        for name in ('field_energy_xy_z', 'particle_energy_xy_z', 'x', 'y', 'nx', 'ny'):
+            assert name in ds.variables, f'NetCDF var {name} missing.'
+
+        fxy = ds['field_energy_xy_z']
+        pxy = ds['particle_energy_xy_z']
+        assert set(fxy.dims) == {'x', 'y', 'zed', 'tube', 't'}
+        assert set(pxy.dims) == {'x', 'y', 'zed', 'tube', 'species', 't'}
+
+        nx = ds.sizes['x']
+        ny = ds.sizes['y']
+        dV = ds['dVolume'].isel(alpha=0, kx=0)  # (zed,); replicated over kx
+        V = float(dV.sum())
+        data = np.loadtxt(result['energy'], dtype='float', comments='#')
+        assert fxy.sizes['t'] == data.shape[0], (
+            f"t dimension {fxy.sizes['t']} != .energy rows {data.shape[0]}"
+        )
+
+        Hf = (fxy * dV).sum(dim=('x', 'y', 'zed', 'tube')) / (nx * ny * V)
+        Hp = (pxy * dV).sum(dim=('x', 'y', 'zed', 'tube', 'species')) / (nx * ny * V)
+
+        assert np.allclose(Hf.values, data[:, 2], rtol=1e-5, atol=1e-12), (
+            f"field xy integral != .energy col 3: max rel err "
+            f"{np.max(np.abs(Hf.values - data[:, 2])) / np.max(np.abs(data[:, 2]))}"
+        )
+        assert np.allclose(Hp.values, data[:, 1], rtol=1e-5, atol=1e-12), (
+            f"particle xy integral != .energy col 2: max rel err "
+            f"{np.max(np.abs(Hp.values - data[:, 1])) / np.max(np.abs(data[:, 1]))}"
+        )
+        # The field density is 0.5*Re[phi* Lambda phi] with a k-dependent
+        # Lambda, so it is not guaranteed non-negative pointwise; its volume
+        # integral is the invariant. The particle density is a sum of |h|^2
+        # and must be non-negative.
+        assert np.nanmin(pxy.values) >= -1e-12
+    finally:
+        ds.close()

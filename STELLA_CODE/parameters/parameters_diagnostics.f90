@@ -57,6 +57,7 @@ module parameters_diagnostics
    public :: write_energy_kxkyz
    public :: write_energy_vmu
    public :: write_energy_species
+   public :: write_energy_xy
 
    private
 
@@ -124,6 +125,7 @@ module parameters_diagnostics
    logical :: write_energy_kxkyz
    logical :: write_energy_vmu
    logical :: write_energy_species
+   logical :: write_energy_xy
 
 contains
 
@@ -214,7 +216,7 @@ contains
          
          call read_namelist_diagnostics_stresses (write_stresses) 
 
-          call read_namelist_diagnostics_energy (write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species)
+          call read_namelist_diagnostics_energy (write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, write_energy_xy)
   
          !-------------------------------------------------------------------
          
