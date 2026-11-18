@@ -38,6 +38,7 @@ contains
         ! Geometry.
         use geometry, only: bmag
         use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
+        use geometry, only: b_dot_gradz
 
         ! Neoclassical.
         use neoclassical_terms_neo, only: neo_vpa_fac
@@ -70,27 +71,31 @@ contains
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
 
-            ! This is currently setup for the wdriftx testing. 
+            ! This is currently setup for the neo_stream testing. 
             do iz = -nzgrid, nzgrid
                 ! First calculate the magnetic geometry factor. 
-                neo_mms_source_term(:, iz, ivmu) = &
-                vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) 
+                neo_mms_source_term(:, iz, ivmu) = 4.0 * spec(is)%stm &
+                * b_dot_gradz(:, iz) * spec(is)%zt / 17.0 
 
                 ! Multiply by the neoclassical factor.
-                neo_mms_source_term(:, iz, ivmu) = - neo_mms_source_term(:, iz, ivmu) &
-                * 0.001 * ( ( mu(imu) / 2.0 * vpa(iv) ) -  vpa(iv) * mu(imu) ) 
+                neo_mms_source_term(:, iz, ivmu) = neo_mms_source_term(:, iz, ivmu) &
+                * ( vpa(iv) -  vpa(iv) *  vpa(iv) *  vpa(iv) ) 
 
                 ! Multiply by maxwellian and other factors.
-                neo_mms_source_term(:, iz, ivmu) = neo_mms_source_term(:, iz, ivmu) * code_dt &
-                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) / ( bmag(:, iz) * bmag(:, iz) )
+                neo_mms_source_term(:, iz, ivmu) = neo_mms_source_term(:, iz, ivmu) &
+                 * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) 
                 
                 ! Multiply by the phi factor.
-                neo_mms_source_term(:, iz, ivmu) = neo_mms_source_term(:, iz, ivmu) * zi * aky(1) * cos(2 * pi * code_time) &
-                * aky(1) * akx(1) * exp(-(zed(iz) - zed0(1,1))**2) / 2.0
+                neo_mms_source_term(:, iz, ivmu) = neo_mms_source_term(:, iz, ivmu) &
+                * sin(2 * pi * code_time) * code_dt &
+                * aky(1) * akx(1) * ( cos(0.5 * (zed(iz) - zed0(1,1))) ** 3 ) &
+                * sin(0.5 * (zed(iz) - zed0(1,1))) 
 
                 ! Add the g time derivative term term. 
-                neo_mms_source_term(:, iz, ivmu) = neo_mms_source_term(:, iz, ivmu) - 2.0 * pi * sin(2.0 * pi * code_time) * code_dt &
-                * aky(1) * akx(1) * exp(-(zed(iz) - zed0(1,1))**2) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
+                neo_mms_source_term(:, iz, ivmu) = neo_mms_source_term(:, iz, ivmu) &
+                + 2.0 * pi * cos(2.0 * pi * code_time) * code_dt &
+                * aky(1) * akx(1) * ( cos(0.5 * (zed(iz) - zed0(1,1))) ** 4 ) &
+                * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is)
             end do
         end do
 

@@ -19,9 +19,11 @@ module gk_neo_stream
    public :: advance_neo_stream_explicit
 
    private
-   
+
    ! Only initialise once.
    logical :: initialised_neo_stream = .false.
+   integer, dimension(:), allocatable :: neo_stream_sign
+   integer, dimension(:), allocatable :: neo_stream_apar_sign
 
 contains
 
@@ -38,18 +40,21 @@ contains
         use grids_time, only: code_dt
         use grids_species, only: spec, nspec
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-        use grids_velocity, only: mu, vperp2, vpa, nvpa
+        use grids_velocity, only: vpa, mu, nvpa, nmu, vperp2
         use grids_z, only: nzgrid, nztot
         use grids_kxky, only: nalpha
 
         ! Geometry.
         use geometry, only: bmag, dbdzed, b_dot_gradz
 
+        ! Parameters
+        use parameters_physics, only: include_apar
+
         ! Arrays.
-        use arrays, only: neo_stream, initialised_neo_stream
+        use arrays, only: neo_stream, neo_stream_apar, initialised_neo_stream
 
         ! NEO data.
-        use neoclassical_terms_neo, only: neo_vpa_fac
+        use neoclassical_terms_neo, only: neo_vpa_fac_global
 
         ! For switching neoclassical streaming on and off.
         use parameters_physics, only: neostreamknob
@@ -57,28 +62,83 @@ contains
         implicit none
 
         ! Local variables. 
-        integer :: iz, iv, is, imu, ivmu
+        integer :: ia, iz, imu, iv, is
 
         ! Only intialise once.
         if (initialised_neo_stream) return
         initialised_neo_stream = .true.
 
-        ! Allocate neo_stream = neo_stream[ialpha, iz, i[mu,vpa,s]].
+        ! Allocate neo_stream = neo_stream[ialpha, iz, ivpa, imu, is].
         if (.not. allocated(neo_stream)) then
-            allocate (neo_stream(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_stream = 0.0
+            allocate (neo_stream(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec)); neo_stream = 0.0
         end if
- 
-        ! Iterate over velocity space.
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            iv = iv_idx(vmu_lo, ivmu)
 
+        ! Allocate neo_stream_apar = neo_stream_apar[ialpha, iz, ivpa, imu, is].
+        if (.not. allocated(neo_stream_apar)) then
+            allocate (neo_stream_apar(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec)); neo_stream_apar = 0.0
+        end if
+
+        ! Allocate neo_stream_sign = neo_stream_sign[i[vpa]]
+        if (.not. allocated(neo_stream_sign)) then
+            allocate (neo_stream_sign(nvpa)); neo_stream_sign = 0.0
+        end if
+
+        ! Allocate neo_stream_apar_sign = neo_stream_apar_sign[i[vpa]]
+        if (.not. allocated(neo_stream_apar_sign)) then
+            allocate (neo_stream_apar_sign(nvpa)); neo_stream_apar_sign = 0.0
+        end if
+
+        ! Calculate the higher order streaming coefficient for phi and bpar.
+        do ia = 1, nalpha
             do iz = -nzgrid, nzgrid
-                neo_stream(:, iz, ivmu) = neostreamknob * code_dt * 0.5 * spec(is)%zt * spec(is)%stm * b_dot_gradz(:, iz) &
-                * neo_vpa_fac(iz, ivmu, 1) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) 
+                do iv = 1, nvpa
+                    do imu = 1, nmu
+                        do is = 1, nspec
+                            neo_stream(ia, iz, iv, imu, is) = neostreamknob * code_dt &
+                        * b_dot_gradz(ia, iz) * spec(is)%stm_psi0 * spec(is)%zt &
+                        * 0.5 * neo_vpa_fac_global(iz, iv, imu, is, 1) &
+                        * maxwell_fac(is) * maxwell_vpa(iv, is) &
+                        * maxwell_mu(ia, iz, imu, is)
+                        end do
+                    end do
+                end do
             end do
         end do
+
+        if (include_apar) then
+            ! Calculate the higher order streaming coefficient for apar.
+            do ia = 1, nalpha
+                do iz = -nzgrid, nzgrid
+                    do iv = 1, nvpa
+                        do imu = 1, nmu
+                            do is = 1, nspec
+                                neo_stream_apar(ia, iz, iv, imu, is) = - neostreamknob &
+                                * code_dt &
+                                * vpa(iv) * b_dot_gradz(ia, iz) &
+                                * spec(is)%stm_psi0 * spec(is)%stm_psi0 * spec(is)%zt &
+                                * neo_vpa_fac_global(iz, iv, imu, is, 1) &
+                                * maxwell_fac(is) * maxwell_vpa(iv, is) &
+                                * maxwell_mu(ia, iz, imu, is)
+                            end do
+                        end do
+                    end do
+                end do
+            end do
+        end if
+
+        ! Calculate the sign of the streaming term for phi and bpar
+        ! Do this for each point in the velocity space.
+        do iv = 1, nvpa
+            neo_stream_sign(iv) = int(sign(1.0, neo_stream(1, 0, iv, 1, 1))) 
+        end do 
+
+        if (include_apar) then
+            ! Calculate the sign of the streaming term for apar.
+            ! Do this for each point in the velocity space.
+            do iv = 1, nvpa
+                neo_stream_apar_sign(iv) = int(sign(1.0, neo_stream_apar(1, 0, iv, 1, 1))) 
+            end do
+        end if 
 
     end subroutine init_neo_stream
 
@@ -86,22 +146,23 @@ contains
 ! ------------------------------------------------------------------------- Advance the terms explicitly. ------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
-    subroutine advance_neo_stream_explicit(phi, apar, bpar, gout)
+subroutine advance_neo_stream_explicit(phi, apar, bpar, gout)
         ! Parallelisation.
-        use mp, only: proc0
+        use mp, only: proc0, iproc, mp_abort, barrier
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      
-        ! Data arrays.
-        use arrays, only: neo_stream
 
-        ! Grids. 
+        ! Data arrays.
+        use arrays, only: neo_stream, neo_stream_apar
+
+        ! Grids.
         use grids_species, only: spec
         use grids_z, only: nzgrid, ntubes
         use grids_kxky, only: naky, nakx
-        use grids_velocity, only: mu, vpa
-        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac      
+        use grids_velocity, only: mu, vpa, nvpa
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+        use grids_time, only: code_time
 
-        ! For calculating ∂<Χ_k>/∂z. 
+        ! For calculating ∂<Χ_k>/∂z.
         use gk_parallel_streaming, only: get_dgdz_centered
 
         ! Parameters
@@ -121,131 +182,489 @@ contains
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
         ! Local variables.
-        integer :: iz
-        integer :: iv, imu, is, ivmu
-        complex, dimension(:, :, :, :), allocatable :: field
-        complex, dimension(:, :, :, :, :), allocatable :: g0, dphi_dz, dapar_dz, dbpar_dz
+        integer :: ivmu, iv, imu, is, ia, iz, it
+        complex, dimension(:, :, :, :), allocatable :: g0, dgphi_dz, dgapar_dz, dgbpar_dz
 
+        ! DIAGNOSTIC: phase-space-wide check of the zed derivatives and contribution sizes,
+        ! written out over time. Every check_every calls, each processor writes one line per
+        ! (vpa, mu, species) point it owns to neo_check_c<call>_proc<iproc>.dat.
+        ! The run stops after the snapshot at call check_stop (set check_stop = 0 to never stop).
+        ! There are several calls per time step (one per explicit RK stage).
+        ! Set neo_diagnostics = .true. to switch the diagnostic on; with .false. nothing is
+        ! written, the run never stops here, and the term is computed exactly as before.
+        logical, parameter :: neo_diagnostics = .false.
+        integer, parameter :: check_every = 30
+        integer, parameter :: check_stop = 0
+        integer, save :: ncalls = 0
+        logical :: check
+        integer :: check_unit, nbad
+        real :: err_phi, err_apar, err_bpar, max_phi_bpar, max_apar
+        real :: max_dphi, max_dapar, max_dbpar
+        character(len=64) :: check_file
 
-        ! Allocate temporary arrays.
-        allocate(field(naky, nakx, -nzgrid:nzgrid, ntubes))
-        allocate(g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        allocate(dphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        allocate(dapar_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        allocate(dbpar_dz(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+        ! SNAPSHOTS: every snap_every time steps, write the fields and, at one velocity-space
+        ! point, the gyroaveraged fields and their zed derivatives, to neo_snap_step<N>_<name>.dat
+        ! in the run directory. Fields are written by proc0; the gyroaveraged fields and the
+        ! derivatives by whichever processor owns the chosen (iv, imu, is) point.
+        ! A new time step is detected from a change in code_time, so this works for any number
+        ! of explicit (RK) stages per step and snapshots are always taken at the first stage.
+        ! snap_iv = -1 picks nvpa/2 + 1, the smallest positive vpa.
+        logical, parameter :: neo_snapshots = .false.
+        integer, parameter :: snap_every = 5       ! time steps between snapshots
+        integer, parameter :: snap_max = 400       ! stop writing after this many snapshots
+        integer, parameter :: snap_iv = -1, snap_imu = 1, snap_is = 1
+        integer, save :: nsteps = 0, nsnaps = 0
+        real, save :: last_time = -huge(1.0)
+        logical :: snap
+        integer :: iv_snap
+        character(len=160) :: snap_info
 
-        ! ======================================================================================= ! 
-        ! --------------------------------------------------------------------------------------- !
-        ! ======================================================================================= ! 
-        !                                                                                         !
-        ! Calculate the parallel derivative of each field:                                        !
-        !                                                                                         !
-        ! <dphi_dz> = ∂<phi_k>/∂z, <dapar_dz> = ∂<apar_k>/∂z, <dbpar_dz> = ∂<bpar_k>/∂z           !
-        !                                                                                         !
-        ! Then construct the parallel derivative of the total gyrokinetic potential.              !
-        ! Mutlipy this by neo_stream and add to the right-hand-side of the GKE:                   !
-        !                                                                                         ! 
-        ! add_explicit_term(g0, neo_stream(1, :, :), gout)                                        !
-        !                                                                                         ! 
-        ! ======================================================================================= !
-        ! --------------------------------------------------------------------------------------- ! 
-        ! ======================================================================================= !
+        ! SNAPSHOTS: is this the first explicit call of a time step we want to write out?
+        snap = .false.
+        if (neo_snapshots) then
+            if (code_time /= last_time) then
+                last_time = code_time
+                nsteps = nsteps + 1
+                snap = (mod(nsteps - 1, snap_every) == 0 .and. nsnaps < snap_max)
+                if (snap) nsnaps = nsnaps + 1
+            end if
+        end if
+        iv_snap = snap_iv
+        if (iv_snap < 1) iv_snap = nvpa / 2 + 1
+
+        ! SNAPSHOTS: the fields themselves (identical on every processor, so proc0 writes them).
+        if (snap .and. proc0) then
+            write (snap_info, '(a, i8, a, es16.8e3)') 'step = ', nsteps, '   code_time = ', code_time
+            call write_array_4d(phi, snap_name(nsteps, 'phi'), snap_info)
+            if (include_apar) call write_array_4d(apar, snap_name(nsteps, 'apar'), snap_info)
+            if (include_bpar) call write_array_4d(bpar, snap_name(nsteps, 'bpar'), snap_info)
+        end if
+
+        ! Allocate arrays needed for intermmediate calculations
+        allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (dgapar_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+        allocate (dgbpar_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+        dgphi_dz = 0.0
+        dgapar_dz = 0.0
+        dgbpar_dz = 0.0
+
+        ! DIAGNOSTIC: open this processor's file on the chosen call.
+        ncalls = ncalls + 1
+        check = neo_diagnostics .and. (ncalls == 1 .or. mod(ncalls, check_every) == 0)
+        if (check) then
+            write (check_file, '(a, i7.7, a, i4.4, a)') 'neo_check_c', ncalls, '_proc', iproc, '.dat'
+            open (newunit=check_unit, file=trim(check_file), status='replace', action='write')
+            write (check_unit, '(a)') '#   iv  imu   is             vpa              mu' // &
+                '         err_phi        err_apar        err_bpar' // &
+                '       max_dphi       max_dapar       max_dbpar' // &
+                '   max_phi_bpar        max_apar  nonfinite'
+        end if
+
+        ! Assume only one field line.
+        ia = 1
 
         ! Start timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_stream advance')
 
-        ! Calculate the parallel derivative of each field and add to the RHS of the GKE. 
+        ! Calculate the parallel derivative of each field and add to the RHS of the GKE.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             iv = iv_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             is = is_idx(vmu_lo, ivmu)
 
-            ! Calculate phi.
-            field = fphi * phi
+            err_phi = 0.0; err_apar = 0.0; err_bpar = 0.0
+            nbad = 0
+
+            ! SNAPSHOTS: label for this velocity-space point, if it is the one being written.
+            if (snap .and. iv == iv_snap .and. imu == snap_imu .and. is == snap_is) then
+                write (snap_info, '(a, i8, a, es16.8e3, a, 3i5, a, es14.6e3, a, es14.6e3)') &
+                    'step = ', nsteps, '   code_time = ', code_time, '   iv imu is = ', iv, imu, is, &
+                    '   vpa = ', vpa(iv), '   mu = ', mu(imu)
+            end if
 
             ! Gyroaverage.
-            call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
+            call gyro_average(phi, ivmu, g0(:, :, :, :))
 
-            ! Get the z derivative.
-            call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dphi_dz(:, :, :, :, ivmu))
+            ! Get zed derivative.
+            call get_dgdz_centered_neo(g0, ivmu, dgphi_dz)
+            if (check) then
+                err_phi = interior_rel_err(g0, dgphi_dz)
+                nbad = nbad + count_nonfinite(g0) + count_nonfinite(dgphi_dz)
+            end if
+            if (snap .and. iv == iv_snap .and. imu == snap_imu .and. is == snap_is) then
+                call write_array_4d(g0, snap_name(nsteps, 'gyro_phi'), snap_info)
+                call write_array_4d(dgphi_dz, snap_name(nsteps, 'dgyro_phi_dz'), snap_info)
+            end if
+
+            ! If apar is present, we calculate and add the correciton.
+            if (include_apar) then
+                ! Gyroaverage.
+                call gyro_average(apar, ivmu, g0(:, :, :, :))
+
+                ! Get the zed derivative.
+                call get_dgdz_centered_neo_apar(g0, ivmu, dgapar_dz)
+                if (check) then
+                    err_apar = interior_rel_err(g0, dgapar_dz)
+                    nbad = nbad + count_nonfinite(g0) + count_nonfinite(dgapar_dz)
+                end if
+                if (snap .and. iv == iv_snap .and. imu == snap_imu .and. is == snap_is) then
+                    call write_array_4d(g0, snap_name(nsteps, 'gyro_apar'), snap_info)
+                    call write_array_4d(dgapar_dz, snap_name(nsteps, 'dgyro_apar_dz'), snap_info)
+                end if
+            end if
+
+            ! If bpar is present, we must account for this too.
+            if (include_bpar) then
+                ! Gyroaverage.
+                call gyro_average_j1(bpar, ivmu, g0(:, :, :, :))
+
+                ! Get the zed derivative.
+                call get_dgdz_centered_neo(g0, ivmu, dgbpar_dz)
+                if (check) then
+                    err_bpar = interior_rel_err(g0, dgbpar_dz)
+                    nbad = nbad + count_nonfinite(g0) + count_nonfinite(dgbpar_dz)
+                end if
+                if (snap .and. iv == iv_snap .and. imu == snap_imu .and. is == snap_is) then
+                    call write_array_4d(g0, snap_name(nsteps, 'gyro_bpar'), snap_info)
+                    call write_array_4d(dgbpar_dz, snap_name(nsteps, 'dgyro_bpar_dz'), snap_info)
+                end if
+            end if
+
+            ! Construct the full parallel derivative.
+            g0(:, :, :, :) = dgphi_dz(:, :, :, :) &
+            + 4.0 * mu(imu) * spec(is)%tz * dgbpar_dz(:, :, :, :)
+
+            ! DIAGNOSTIC: size of each piece's contribution to gout at this point.
+            if (check) then
+                max_phi_bpar = 0.0
+                max_apar = 0.0
+                do iz = -nzgrid, nzgrid
+                    max_phi_bpar = max(max_phi_bpar, &
+                        abs(neo_stream(1, iz, iv, imu, is)) * maxval(abs(g0(:, :, iz, :))))
+                    if (include_apar) max_apar = max(max_apar, &
+                        abs(neo_stream_apar(1, iz, iv, imu, is)) * maxval(abs(dgapar_dz(:, :, iz, :))))
+                end do
+                max_dphi = maxval(abs(dgphi_dz))
+                max_dapar = maxval(abs(dgapar_dz))
+                max_dbpar = maxval(abs(dgbpar_dz))
+                write (check_unit, '(3i5, 10es16.7e3, i10)') iv, imu, is, vpa(iv), mu(imu), &
+                    err_phi, err_apar, err_bpar, max_dphi, max_dapar, max_dbpar, &
+                    max_phi_bpar, max_apar, nbad
+            end if
+
+            ! Add neo_stream term to the right-hand-side of the GKE.
+            call add_neo_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
+
+            ! If we are including apar, add this term seperately.
+            if (include_apar) then
+                g0(:, :, :, :) = dgapar_dz(:, :, :, :)
+
+                ! Add neo_stream term to the right-hand-side of the GKE.
+                call add_neo_stream_apar_term(g0, ivmu, gout(:, :, :, :, ivmu))
+            end if
         end do
 
-        ! Add the term to the right-hand-side of the GKE. 
-        call add_explicit_term(dphi_dz, neo_stream(1, :, :), gout)
-
-
-        ! If apar is present, we calculate and add the correciton.
-        if (include_apar) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                iv = iv_idx(vmu_lo, ivmu)
-                imu = imu_idx(vmu_lo, ivmu)
-                is = is_idx(vmu_lo, ivmu)
-
-                field = 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
-
-                ! Gyroaverage.
-                call gyro_average(field, ivmu, g0(:, :, :, :, ivmu))
-
-                ! Get the z derivative.
-                call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dapar_dz(:, :, :, :, ivmu))
-            end do
-
-            ! Add the terms to the right-hand-side of the GKE.  
-            call add_explicit_term(dapar_dz, neo_stream(1, :, :), gout)
-        end if
-
-
-        ! If bpar is present, we must account for this too.
-        if (include_bpar) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                iv = iv_idx(vmu_lo, ivmu)
-                imu = imu_idx(vmu_lo, ivmu)
-                is = is_idx(vmu_lo, ivmu)
-
-                field = 4.0 * mu(imu) * spec(is)%tz * bpar
-               
-                ! Gyroaverage.
-                call gyro_average_j1(field, ivmu, g0(:, :, :, :, ivmu))
-
-                ! Get the z derivative.
-                call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, dbpar_dz(:, :, :, :, ivmu))
-            end do
-
-            ! Add the term to the right-hand-side of the GKE. 
-            call add_explicit_term(dbpar_dz, neo_stream(1, :, :), gout)
-        end if
-
-
         ! Deallocate temporary arrays.
-        deallocate(field)
-        deallocate(g0)                          
-        deallocate(dphi_dz)
-        deallocate(dapar_dz)
-        deallocate(dbpar_dz)
+        deallocate(g0)
+        deallocate(dgphi_dz)
+        deallocate(dgapar_dz)
+        deallocate(dgbpar_dz)
 
         ! Stop timing the advance.
         if (proc0) call time_message(.false., time_gke(:, 6), 'neo_stream advance')
 
+        ! DIAGNOSTIC: close this snapshot; stop once the last requested snapshot is written.
+        if (check) then
+            close (check_unit)
+            if (check_stop > 0 .and. ncalls >= check_stop) then
+                call barrier
+                call mp_abort('neo_stream check: wrote neo_check_c*_proc*.dat snapshots')
+            end if
+        end if
+
     end subroutine advance_neo_stream_explicit
 
+! ================================================================================================================================================================================= !
+! ------------------------------------------------------------------------ DIAGNOSTIC helper functions. --------------------------------------------------------------------------- !
+! ================================================================================================================================================================================= !
+
+    ! Max |dgdz - ref| / max |ref| over interior zed points, where ref is an independent
+    ! second-order centred difference. The end points of each segment are excluded, since
+    ! stella fills them from ghost zones (connected kx) or the boundary condition.
+    real function interior_rel_err(g, dgdz)
+        use grids_z, only: nzgrid, delzed
+
+        implicit none
+
+        complex, dimension(:, :, -nzgrid:, :), intent(in) :: g, dgdz
+        complex, dimension(size(g, 1), size(g, 2), -nzgrid + 1:nzgrid - 1, size(g, 4)) :: ref
+        real :: scale
+
+        ref = (g(:, :, -nzgrid + 2:nzgrid, :) - g(:, :, -nzgrid:nzgrid - 2, :)) / (2.0 * delzed(0))
+        scale = maxval(abs(ref))
+        if (scale > 0.0) then
+            interior_rel_err = maxval(abs(dgdz(:, :, -nzgrid + 1:nzgrid - 1, :) - ref)) / scale
+        else
+            interior_rel_err = maxval(abs(dgdz(:, :, -nzgrid + 1:nzgrid - 1, :)))
+        end if
+
+    end function interior_rel_err
+
+    ! Number of non-finite (NaN or Inf) real or imaginary parts in f.
+    integer function count_nonfinite(f)
+        use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+
+        implicit none
+
+        complex, dimension(:, :, :, :), intent(in) :: f
+
+        count_nonfinite = count(.not. ieee_is_finite(real(f))) + count(.not. ieee_is_finite(aimag(f)))
+
+    end function count_nonfinite
 
 ! ================================================================================================================================================================================= !
 ! ------------------------------------------------------------------------------- Finish the terms. ------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
     subroutine finish_neo_stream
-        use arrays, only: neo_stream, initialised_neo_stream
+        use arrays, only: neo_stream, neo_stream_apar, initialised_neo_stream
 
         implicit none
 
-        if (allocated(neo_stream)) deallocate (neo_stream)
+        if (allocated(neo_stream)) deallocate(neo_stream)
+        if (allocated(neo_stream_apar)) deallocate(neo_stream_apar)
+        if (allocated(neo_stream_sign)) deallocate(neo_stream_sign)
         initialised_neo_stream = .false.
 
     end subroutine finish_neo_stream
+
 
 ! ================================================================================================================================================================================= !
 ! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
 ! ================================================================================================================================================================================= !
 
+   ! Get second order accurate centered dg/dz, assuming delta zed is equally spaced
+   subroutine get_dgdz_centered_neo(g, ivmu, dgdz)
+
+      use calculations_finite_differences, only: second_order_centered_zed
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx
+      use grids_z, only: nzgrid, delzed, ntubes
+      use grids_extended_zgrid, only: neigen, nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: periodic
+      use grids_kxky, only: naky
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+      integer, intent(in) :: ivmu
+
+      integer :: iseg, ie, iky, iv, it
+      complex, dimension(2) :: gleft, gright
+
+      !-------------------------------------------------------------------------
+
+      iv = iv_idx(vmu_lo, ivmu)
+      do iky = 1, naky
+         do it = 1, ntubes
+            do ie = 1, neigen(iky)
+               do iseg = 1, nsegments(ie, iky)
+                  ! First fill in ghost zones at boundaries in g(z)
+                  call fill_zed_ghost_zones(it, iseg, ie, iky, g(:, :, :, :), gleft, gright)
+                  ! Now get dg/dz
+                  call second_order_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
+                     g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
+                     delzed(0), neo_stream_sign(iv), gleft, gright, periodic(iky), &
+                     dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
+               end do
+            end do
+         end do
+      end do
+
+   end subroutine get_dgdz_centered_neo
+
+! ================================================================================================================================================================================= !
+! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
+! ================================================================================================================================================================================= !
+
+   ! Get second order accurate centered dg/dz, assuming delta zed is equally spaced
+   subroutine get_dgdz_centered_neo_apar(g, ivmu, dgdz)
+
+      use calculations_finite_differences, only: second_order_centered_zed
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx
+      use grids_z, only: nzgrid, delzed, ntubes
+      use grids_extended_zgrid, only: neigen, nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: periodic
+      use grids_kxky, only: naky
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+      integer, intent(in) :: ivmu
+
+      integer :: iseg, ie, iky, iv, it
+      complex, dimension(2) :: gleft, gright
+
+      !-------------------------------------------------------------------------
+
+      iv = iv_idx(vmu_lo, ivmu)
+      do iky = 1, naky
+         do it = 1, ntubes
+            do ie = 1, neigen(iky)
+               do iseg = 1, nsegments(ie, iky)
+                  ! First fill in ghost zones at boundaries in g(z)
+                  call fill_zed_ghost_zones(it, iseg, ie, iky, g(:, :, :, :), gleft, gright)
+                  ! Now get dg/dz
+                  call second_order_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
+                     g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
+                     delzed(0), neo_stream_apar_sign(iv), gleft, gright, periodic(iky), &
+                     dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
+               end do
+            end do
+         end do
+      end do
+
+   end subroutine get_dgdz_centered_neo_apar
+
+! ==============================================================================================================================================$
+! ----------------------------------------------------------------------------------------------------------------------------------------------$
+! ==============================================================================================================================================$
+
+   subroutine add_neo_stream_term(g, ivmu, src)
+      ! Parallelisation.
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+
+      ! MP.
+      use mp, only: mp_abort
+
+      ! Grids.
+      use grids_z, only: nzgrid
+
+      ! Arrays.
+      use arrays, only: neo_stream
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
+      integer, intent(in) :: ivmu
+
+      integer :: iz, iv, is, imu
+
+      ! ================================================================================ ! 
+
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
+      do iz = -nzgrid, nzgrid
+         src(:, :, iz, :) = src(:, :, iz, :) + neo_stream(1, iz, iv, imu, is) * g(:, :, iz, :)
+      end do
+
+   end subroutine add_neo_stream_term
+
+! ==============================================================================================================================================$
+! ----------------------------------------------------------------------------------------------------------------------------------------------$
+! ==============================================================================================================================================$
+
+   subroutine add_neo_stream_apar_term(g, ivmu, src)
+      ! Parallelisation.
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+
+      ! MP.
+      use mp, only: mp_abort
+
+      ! Grids.
+      use grids_z, only: nzgrid
+
+      ! Arrays.
+      use arrays, only: neo_stream_apar
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
+      integer, intent(in) :: ivmu
+
+      integer :: iz, iv, is, imu
+
+      ! ================================================================================ ! 
+
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
+      do iz = -nzgrid, nzgrid
+         src(:, :, iz, :) = src(:, :, iz, :) + neo_stream_apar(1, iz, iv, imu, is) * g(:, :, iz, :)
+      end do
+
+   end subroutine add_neo_stream_apar_term
+
+! ================================================================================================================================================================================= !
+! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
+! ================================================================================================================================================================================= !
+
+   ! Snapshot file name: neo_snap_step<NNNNNNN>_<name>.dat
+   function snap_name(step, name) result(fname)
+      implicit none
+
+      integer, intent(in) :: step
+      character(len=*), intent(in) :: name
+      character(len=96) :: fname
+
+      write (fname, '(a, i7.7, a, a, a)') 'neo_snap_step', step, '_', trim(name), '.dat'
+
+   end function snap_name
+
+   ! Write a complex array f(iky, ikx, iz, it), with iz running from -nzgrid, to the named file.
+   ! Columns: iky  ikx  iz  it  zed  Re(f)  Im(f).
+   ! Blank line between (iky, ikx, it) blocks so each mode can be read/plotted separately.
+   ! The optional info string is written as a '# ' comment line at the top of the file.
+   subroutine write_array_4d(f, filename, info)
+      ! Grids
+      use grids_z, only: zed, nzgrid, ntubes
+      use grids_kxky, only: naky, nakx
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: f
+      character(len=*), intent(in) :: filename
+      character(len=*), intent(in), optional :: info
+
+      integer :: unit, iky, ikx, iz, it
+
+      open (newunit=unit, file=trim(filename), status='replace', action='write')
+      if (present(info)) write (unit, '(a)') '# ' // trim(info)
+      write (unit, '(a)') '#   iky   ikx    iz    it             zed         Re(f)           Im(f)'
+
+      do it = 1, ntubes
+         do iky = 1, naky
+            do ikx = 1, nakx
+               do iz = -nzgrid, nzgrid
+                  write (unit, '(4i6, 3es16.7e3)') iky, ikx, iz, it, zed(iz), real(f(iky, ikx, iz, it)), aimag(f(iky, ikx, iz, it))
+               end do
+               write (unit, *)
+            end do
+         end do
+      end do
+
+      close (unit)
+
+   end subroutine write_array_4d
+
+
+! ================================================================================================================================================================================= !
+! --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ! 
+! ================================================================================================================================================================================= !
 
 end module gk_neo_stream

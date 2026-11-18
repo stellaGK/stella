@@ -411,19 +411,6 @@ contains
         !                                                                                                                                                   !
         ! ================================================================================================================================================= !     
 
-        ! OR MMS test.
-        ! Add modification to QN.
-        do ikx = 1, nakx
-            do iky = 1, naky
-                do iz = -nzgrid, nzgrid
-                    do it = 1, ntubes
-                        phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) &
-                        + 5.0 * cos(2.0 * pi * code_time) * aky(1) * akx(1) * exp(-(zed(iz) - zed0(1,1))**2) / 4.0
-                    end do
-                end do
-            end do
-        end do 
-
         if (dist == 'gneo') then  
             allocate (denominator_fields_t_neo(naky, nakx, -nzgrid:nzgrid, ntubes))
             denominator_fields_t_neo = spread(denominator_fields_neo_gneo, 4, ntubes)
@@ -457,18 +444,6 @@ contains
                 call mp_abort('unknown dist option in calcuate_neo_phi. aborting')
             end if
         end if
-
-        ! OR MMS TEST.
-        ! Decouple GKE from QN by prescribing a chosen analytical form here. 
-        ! do ikx = 1, nakx
-            ! do iky = 1, naky
-                ! do iz = -nzgrid, nzgrid
-                    ! do it = 1, ntubes
-                        ! phi(iky, ikx, iz, it) = cos(2.0 * pi * code_time) * aky(1) * akx(1) * exp(-(zed(iz) - zed0(1,1))**2)
-                    ! end do
-                ! end do
-            ! end do
-        ! end do 
 
    end subroutine calculate_neo_phi
 
@@ -956,9 +931,6 @@ subroutine calculate_neo_phi_and_apar(phi, apar, dist, skip_fsa)
          if (.not. has_electron_species(spec)) then
              denominator_fields_neo_gneo = denominator_fields_neo_gneo + efac
          end if
-
-         if (proc0) write (*,*) 'denominator_fields_neo_gneo(1,1,1) = ', denominator_fields_neo_gneo(1, 1, 1)
-         if (proc0) write (*,*) 'efac = ', efac
 
          ! Deallocate temporary arrays.
          if (allocated(g0)) deallocate (g0)

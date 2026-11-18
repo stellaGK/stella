@@ -27,8 +27,7 @@ module arrays
    public :: initialised_wstar1x 
    public :: initialised_neo_wdrifty
    public :: initialised_neo_wdriftx
-   
-   ! OR MMS TESTING.
+
    public :: initialised_neo_mms_source_term
 
    !----------------------------------------------------------------------------
@@ -70,7 +69,7 @@ module arrays
    public :: qn_zf_window
 
    ! For neoclassical corrections. 
-   public :: neo_stream
+   public :: neo_stream, neo_stream_apar
    public :: neo_mirror_apar
    public :: wstar1y
    public :: wstar1x
@@ -106,6 +105,7 @@ module arrays
 
    ! Arrays for calculating the fields for HO electrostatic simulations. 
    public :: denominator_fields_neo_gneo
+   public :: denominator_fields_neo_MBR
 
    ! Arrays for calculating the fields for HO electromagnetic simulations. 
    public :: denominator_fields_neo_12_gneo, denominator_fields_neo_12_gbarneo
@@ -176,7 +176,8 @@ module arrays
    real, dimension(:), allocatable :: shift_state
 
    ! For neoclassical corrections. 
-   real, dimension(:, :, :), allocatable :: neo_stream
+   real, dimension(:, :, :, :, :), allocatable :: neo_stream
+   real, dimension(:, :, :, :, :), allocatable :: neo_stream_apar
    real, dimension(:, :, :), allocatable :: neo_mirror_apar
    real, dimension(:, :, :), allocatable :: wstar1y, wstar1x
    real, dimension(:, :, :), allocatable :: neo_wdriftx, neo_wdrifty
@@ -197,6 +198,7 @@ module arrays
 
    ! Arrays for calculating the fields for HO electrostatic simulations.
    real, dimension(:, :, :), allocatable :: denominator_fields_neo_gneo
+   real, dimension(:, :), allocatable :: denominator_fields_neo_MBR
 
    ! For electromagnetic simulations (nakx, naky, -nzgrid:nzgrid)
    real, dimension(:, :, :), allocatable :: denominator_fields_inv11

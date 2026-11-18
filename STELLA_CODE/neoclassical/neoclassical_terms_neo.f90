@@ -345,6 +345,9 @@ contains
         ! OR MMS TESTING.
         call mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global, neo_phi, neo_grid)
 
+        ! Write out F_0 and F_1 at the outboard midplane.
+        ! call write_f0_f1_vpa_mu_outboard(neo_h, neo_phi, neo_grid)
+
         ! Deallocate all temporary arrays.
         call deallocate_temp_arrays
 
@@ -1206,7 +1209,6 @@ contains
         ! Constants.
         use constants, only: pi
 
-
         implicit none
 
         real, intent(in out)                :: neo_h(-nzgrid:, vmu_lo%llim_proc:, :)
@@ -1237,13 +1239,13 @@ contains
          
             do iz = -nzgrid, nzgrid
                 ! neo_h. 
-                neo_h(iz, ivmu, 1) = 0.001 * vpa(iv) * mu(imu) 
+                neo_h(iz, ivmu, 1) = vpa(iv) * vpa(iv) 
 
                 ! neo_vpa_fac. 
-                neo_vpa_fac(iz, ivmu, 1) = 0.001 * mu(imu) - 0.002 * vpa(iv) * vpa(iv) * mu(imu)
+                neo_vpa_fac(iz, ivmu, 1) = 2 * vpa(iv) - 2 * vpa(iv) * vpa(iv) * vpa(iv) 
 
                 ! neo_mu_fac. 
-                neo_mu_fac(iz, ivmu, 1) = 0.001 * vpa(iv) - 0.002 * bmag(ia, iz) * vpa(iv) * mu(imu)
+                neo_mu_fac(iz, ivmu, 1) = - 2 * bmag(ia, iz) * vpa(iv) * vpa(iv)
             end do 
         end do
 
@@ -1253,7 +1255,8 @@ contains
             do iz = -nzgrid, nzgrid
                 do iv = 1, nvpa
                     do imu = 1, nmu
-                        neo_mu_fac_global(iz, iv, imu, is, 1) = 0.001 * vpa(iv) - 0.002 * bmag(ia, iz) * vpa(iv) * mu(imu)
+                        neo_mu_fac_global(iz, iv, imu, is, 1) = &
+                        - 2 * bmag(ia, iz) * vpa(iv) * vpa(iv)
                     end do
                 end do
             end do
@@ -1261,6 +1264,98 @@ contains
 
     end subroutine mms_overwrite
 
+
+subroutine write_f0_f1_vpa_mu_outboard(neo_h, neo_phi, neo_grid)
+    ! MP.
+    use mp, only: proc0, sum_allreduce
+
+    ! Parallelisation.
+    use parallelisation_layouts, only: vmu_lo
+    use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+
+    ! Grids.
+    use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, nvpa, nmu, vpa, mu
+    use grids_species, only: spec
+    use grids_z, only: nzgrid
+
+    ! Geometry.
+    use geometry, only: bmag
+
+    ! NEO_data.
+    use NEO_interface, only: neo_grid_data
+
+    implicit none
+
+    real, intent(in)                :: neo_h(-nzgrid:, vmu_lo%llim_proc:, :)
+    real, intent(in)                :: neo_phi(-nzgrid:)
+    type(neo_grid_data), intent(in) :: neo_grid
+
+    ! Local variables.
+    integer :: ivmu, iv, imu, is, ia, iz
+    real, allocatable :: f0(:, :), f1(:, :)
+    real :: bmag0
+
+    ! Assume one field line.
+    ia = 1
+
+    ! Restrict to outboard midplane.
+    iz = 0
+
+    ! bmag at the outboard midplane, needed downstream to compute energy contours.
+    bmag0 = bmag(ia, iz)
+
+    ! Allocate temporary arrays.
+    allocate (f0(nvpa, nmu), f1(nvpa, nmu))
+    f0 = 0.0
+    f1 = 0.0
+
+    ! Iterate over velocity space.
+    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        iv  = iv_idx(vmu_lo, ivmu)
+        imu = imu_idx(vmu_lo, ivmu)
+        is  = is_idx(vmu_lo, ivmu)
+        if (is /= 1) cycle   
+
+       ! Pure Maxwellian.
+       f0(iv, imu) = maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+       f1(iv, imu) = ( 1.0 + neo_h(iz, ivmu, 1) - spec(is)%z * neo_phi(iz) ) * f0(iv, imu)
+    end do
+
+    ! Send all data to proc0.
+    call sum_allreduce(f0)
+    call sum_allreduce(f1)
+
+    if (proc0) then
+        open (unit=101, file='f0_vpa_mu_outboard.dat', status='replace', action='write')
+        write (101, '(A)') '# iv   imu   vpa   mu   F0'
+        do iv = 1, nvpa
+            do imu = 1, nmu
+                write (101, '(2I6, 3ES18.8)') iv, imu, vpa(iv), mu(imu), f0(iv, imu)
+            end do
+        end do
+        close (101)
+
+        open (unit=102, file='f1_vpa_mu_outboard.dat', status='replace', action='write')
+        write (102, '(A)') '# iv   imu   vpa   mu   F1'
+        do iv = 1, nvpa
+            do imu = 1, nmu
+                write (102, '(2I6, 3ES18.8)') iv, imu, vpa(iv), mu(imu), f1(iv, imu)
+            end do
+        end do
+        close (102)
+
+        open (unit=103, file='bmag0_outboard.dat', status='replace', action='write')
+        write (103, '(A)') '# bmag at outboard midplane (z=0)'
+        write (103, '(ES18.8)') bmag0
+        close (103)
+
+        write (*, *) 'Wrote F0 and F1 at outboard midplane to f0_vpa_mu_outboard.dat / f1_vpa_mu_outboard.dat'
+        write (*, *) 'Wrote bmag(z=0) =', bmag0, 'to bmag0_outboard.dat'
+    end if
+
+    ! Deallocate temporary arrays.
+    deallocate (f0, f1)
+end subroutine write_f0_f1_vpa_mu_outboard
 
 ! ================================================================================================================================================================================= !
 ! ------------------------------------------------------------------------------ End Module. -------------------------------------------------------------------------------------- !
