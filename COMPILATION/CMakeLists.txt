@@ -412,6 +412,13 @@ else()
   set(STELLA_PFUNIT_LOCATION "Not used")
 endif()
 
+# Enforce the standard 
+if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel" OR CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -std08")
+else()
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -std=f2008")
+endif()
+
 ############################################################
 # Configure summary
 

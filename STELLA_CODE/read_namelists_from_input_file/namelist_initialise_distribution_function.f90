@@ -191,7 +191,7 @@ contains
 
          write (unit, '(A)') '&initialise_distribution'
          write (unit, '(A, A, A)') '  initialise_distribution_option = "', trim(initialise_distribution_option),'"'
-         write (unit, '(A, ES0.4)') '  phiinit = ', phiinit
+         write (unit, '(A, ES12.4)') '  phiinit = ', phiinit
          write (unit, '(A, L1)') '  scale_to_phiinit = ', scale_to_phiinit
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
@@ -265,9 +265,9 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&initialise_distribution_maxwellian'
-         write (unit, '(A, ES0.4)') '  width0 = ', width0
-         write (unit, '(A, ES0.4)') '  den0 = ', den0
-         write (unit, '(A, ES0.4)') '  upar0 = ', upar0
+         write (unit, '(A, ES12.4)') '  width0 = ', width0
+         write (unit, '(A, ES12.4)') '  den0 = ', den0
+         write (unit, '(A, ES12.4)') '  upar0 = ', upar0
          write (unit, '(A, L1)') '  oddparity = ', oddparity
          write (unit, '(A, L1)') '  left = ', left
          write (unit, '(A, L1)') '  chop_side = ', chop_side
@@ -340,7 +340,7 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&initialise_distribution_noise'
-         write (unit, '(A, ES0.4)') '  zf_init = ', zf_init
+         write (unit, '(A, ES12.4)') '  zf_init = ', zf_init
          write (unit, '(A, I0)') '  rng_seed = ', rng_seed
          write (unit, '(A, L1)') '  left = ', left
          write (unit, '(A, L1)') '  chop_side = ', chop_side
@@ -427,21 +427,21 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&initialise_distribution_kpar'
-         write (unit, '(A, ES0.4)') '  width0 = ', width0
-         write (unit, '(A, ES0.4)') '  imfac = ', imfac
-         write (unit, '(A, ES0.4)') '  refac = ', refac
-         write (unit, '(A, ES0.4)') '  den0 = ', den0
-         write (unit, '(A, ES0.4)') '  upar0 = ', upar0
-         write (unit, '(A, ES0.4)') '  tpar0 = ', tpar0
-         write (unit, '(A, ES0.4)') '  tperp0 = ', tperp0
-         write (unit, '(A, ES0.4)') '  den1 = ', den1
-         write (unit, '(A, ES0.4)') '  upar1 = ', upar1
-         write (unit, '(A, ES0.4)') '  tpar1 = ', tpar1
-         write (unit, '(A, ES0.4)') '  tperp1 = ', tperp1
-         write (unit, '(A, ES0.4)') '  den2 = ', den2
-         write (unit, '(A, ES0.4)') '  upar2 = ', upar2
-         write (unit, '(A, ES0.4)') '  tpar2 = ', tpar2
-         write (unit, '(A, ES0.4)') '  tperp2 = ', tperp2
+         write (unit, '(A, ES12.4)') '  width0 = ', width0
+         write (unit, '(A, ES12.4)') '  imfac = ', imfac
+         write (unit, '(A, ES12.4)') '  refac = ', refac
+         write (unit, '(A, ES12.4)') '  den0 = ', den0
+         write (unit, '(A, ES12.4)') '  upar0 = ', upar0
+         write (unit, '(A, ES12.4)') '  tpar0 = ', tpar0
+         write (unit, '(A, ES12.4)') '  tperp0 = ', tperp0
+         write (unit, '(A, ES12.4)') '  den1 = ', den1
+         write (unit, '(A, ES12.4)') '  upar1 = ', upar1
+         write (unit, '(A, ES12.4)') '  tpar1 = ', tpar1
+         write (unit, '(A, ES12.4)') '  tperp1 = ', tperp1
+         write (unit, '(A, ES12.4)') '  den2 = ', den2
+         write (unit, '(A, ES12.4)') '  upar2 = ', upar2
+         write (unit, '(A, ES12.4)') '  tpar2 = ', tpar2
+         write (unit, '(A, ES12.4)') '  tperp2 = ', tperp2
          write (unit, '(A, L1)') '  left = ', left
          write (unit, '(A, L1)') '  chop_side = ', chop_side
          write (unit, '(A)') '/'
@@ -507,10 +507,10 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&initialise_distribution_rh'
-         write (unit, '(A, ES0.4)') '  kxmin = ', kxmin
-         write (unit, '(A, ES0.4)') '  kxmax = ', kxmax
-         write (unit, '(A, ES0.4)') '  imfac = ', imfac
-         write (unit, '(A, ES0.4)') '  refac = ', refac
+         write (unit, '(A, ES12.4)') '  kxmin = ', kxmin
+         write (unit, '(A, ES12.4)') '  kxmax = ', kxmax
+         write (unit, '(A, ES12.4)') '  imfac = ', imfac
+         write (unit, '(A, ES12.4)') '  refac = ', refac
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       
@@ -584,8 +584,8 @@ contains
          write (unit, '(A)') '&restart_options'
          write (unit, '(A, A, A)') '  restart_file = "', trim(restart_file),'"'
          write (unit, '(A, A, A)') '  restart_dir = "', trim(restart_dir),'"'
-         write (unit, '(A, ES0.4)') '  tstart = ', tstart
-         write (unit, '(A, ES0.4)') '  scale = ', scale
+         write (unit, '(A, ES12.4)') '  tstart = ', tstart
+         write (unit, '(A, ES12.4)') '  scale = ', scale
          write (unit, '(A, L1)') '  save_many = ', save_many
          write (unit, '(A)') '/'
          write (unit, '(A)') ''

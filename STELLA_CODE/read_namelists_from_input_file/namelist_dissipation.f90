@@ -174,8 +174,8 @@ contains
          write (unit, '(A, A, A)') '  collision_model = "', trim(collision_model),'"'
          write (unit, '(A, L1)') '  collisions_implicit = ', collisions_implicit
          write (unit, '(A, L1)') '  ecoll_zeff = ', ecoll_zeff
-         write (unit, '(A, ES0.4)') '  zeff = ', zeff
-         write (unit, '(A, ES0.4)') '  vnew_ref = ', vnew_ref
+         write (unit, '(A, ES12.4)') '  zeff = ', zeff
+         write (unit, '(A, ES12.4)') '  vnew_ref = ', vnew_ref
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -379,18 +379,18 @@ contains
          write (unit, '(A, I0)') '  jmax = ', jmax
          write (unit, '(A, I0)') '  lmax = ', lmax
          write (unit, '(A, I0)') '  nvel_local = ', nvel_local
-         write (unit, '(A, ES0.4)') '  iiknob = ', iiknob
-         write (unit, '(A, ES0.4)') '  ieknob = ', ieknob
-         write (unit, '(A, ES0.4)') '  eeknob = ', eeknob
-         write (unit, '(A, ES0.4)') '  eiknob = ', eiknob
-         write (unit, '(A, ES0.4)') '  eiediffknob = ', eiediffknob
-         write (unit, '(A, ES0.4)') '  eideflknob = ', eideflknob
-         write (unit, '(A, ES0.4)') '  deflknob = ', deflknob
-         write (unit, '(A, ES0.4)') '  cfac = ', cfac
-         write (unit, '(A, ES0.4)') '  cfac2 = ', cfac2
-         write (unit, '(A, ES0.4)') '  nuxfac = ', nuxfac
-         write (unit, '(A, ES0.4)') '  i1fac = ', i1fac
-         write (unit, '(A, ES0.4)') '  i2fac = ', i2fac
+         write (unit, '(A, ES12.4)') '  iiknob = ', iiknob
+         write (unit, '(A, ES12.4)') '  ieknob = ', ieknob
+         write (unit, '(A, ES12.4)') '  eeknob = ', eeknob
+         write (unit, '(A, ES12.4)') '  eiknob = ', eiknob
+         write (unit, '(A, ES12.4)') '  eiediffknob = ', eiediffknob
+         write (unit, '(A, ES12.4)') '  eideflknob = ', eideflknob
+         write (unit, '(A, ES12.4)') '  deflknob = ', deflknob
+         write (unit, '(A, ES12.4)') '  cfac = ', cfac
+         write (unit, '(A, ES12.4)') '  cfac2 = ', cfac2
+         write (unit, '(A, ES12.4)') '  nuxfac = ', nuxfac
+         write (unit, '(A, ES12.4)') '  i1fac = ', i1fac
+         write (unit, '(A, ES12.4)') '  i2fac = ', i2fac
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
          
@@ -481,9 +481,9 @@ contains
          write (unit, '(A, L1)') '  scale_to_outboard = ', scale_to_outboard
          write (unit, '(A, L1)') '  hyp_vpa = ', hyp_vpa
          write (unit, '(A, L1)') '  hyp_zed = ', hyp_zed
-         write (unit, '(A, ES0.4)') '  D_hyper = ', D_hyper
-         write (unit, '(A, ES0.4)') '  D_zed = ', D_zed
-         write (unit, '(A, ES0.4)') '  D_vpa = ', D_vpa
+         write (unit, '(A, ES12.4)') '  D_hyper = ', D_hyper
+         write (unit, '(A, ES12.4)') '  D_zed = ', D_zed
+         write (unit, '(A, ES12.4)') '  D_vpa = ', D_vpa
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

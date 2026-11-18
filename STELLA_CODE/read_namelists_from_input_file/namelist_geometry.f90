@@ -437,20 +437,20 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&geometry_miller'
-         write (unit, '(A, ES0.4)') '  rhoc = ', rhoc
-         write (unit, '(A, ES0.4)') '  rmaj = ', rmaj
-         write (unit, '(A, ES0.4)') '  shift = ', shift
-         write (unit, '(A, ES0.4)') '  qinp = ', qinp
-         write (unit, '(A, ES0.4)') '  shat = ', shat
-         write (unit, '(A, ES0.4)') '  kappa = ', kappa
-         write (unit, '(A, ES0.4)') '  kapprim = ', kapprim
-         write (unit, '(A, ES0.4)') '  tri = ', tri
-         write (unit, '(A, ES0.4)') '  triprim = ', triprim
-         write (unit, '(A, ES0.4)') '  rgeo = ', rgeo
-         write (unit, '(A, ES0.4)') '  betaprim = ', betaprim
-         write (unit, '(A, ES0.4)') '  betadbprim = ', betadbprim
-         write (unit, '(A, ES0.4)') '  d2qdr2 = ', d2qdr2
-         write (unit, '(A, ES0.4)') '  d2psidr2 = ', d2psidr2
+         write (unit, '(A, ES12.4)') '  rhoc = ', rhoc
+         write (unit, '(A, ES12.4)') '  rmaj = ', rmaj
+         write (unit, '(A, ES12.4)') '  shift = ', shift
+         write (unit, '(A, ES12.4)') '  qinp = ', qinp
+         write (unit, '(A, ES12.4)') '  shat = ', shat
+         write (unit, '(A, ES12.4)') '  kappa = ', kappa
+         write (unit, '(A, ES12.4)') '  kapprim = ', kapprim
+         write (unit, '(A, ES12.4)') '  tri = ', tri
+         write (unit, '(A, ES12.4)') '  triprim = ', triprim
+         write (unit, '(A, ES12.4)') '  rgeo = ', rgeo
+         write (unit, '(A, ES12.4)') '  betaprim = ', betaprim
+         write (unit, '(A, ES12.4)') '  betadbprim = ', betadbprim
+         write (unit, '(A, ES12.4)') '  d2qdr2 = ', d2qdr2
+         write (unit, '(A, ES12.4)') '  d2psidr2 = ', d2psidr2
          write (unit, '(A, I0)') '  nzed_local = ', nzed_local
          write (unit, '(A, L1)') '  read_profile_variation = ', read_profile_variation
          write (unit, '(A, L1)') '  write_profile_variation = ', write_profile_variation
@@ -586,10 +586,10 @@ contains
 
          write (unit, '(A)') '&geometry_vmec'
          write (unit, '(A, A, A)') '  vmec_filename = "', trim(vmec_filename),'"'
-         write (unit, '(A, ES0.4)') '  alpha0 = ', alpha0
-         write (unit, '(A, ES0.4)') '  zeta_center = ', zeta_center
-         write (unit, '(A, ES0.8)') '  nfield_periods = ', nfield_periods
-         write (unit, '(A, ES0.4)') '  torflux = ', torflux
+         write (unit, '(A, ES12.4)') '  alpha0 = ', alpha0
+         write (unit, '(A, ES12.4)') '  zeta_center = ', zeta_center
+         write (unit, '(A, ES16.8)') '  nfield_periods = ', nfield_periods
+         write (unit, '(A, ES12.4)') '  torflux = ', torflux
          write (unit, '(A, I0)') '  z_grid_refinement_factor = ', z_grid_refinement_factor 
          write (unit, '(A, I0)') '  surface_option = ', surface_option 
          write (unit, '(A, I0)') '  n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
@@ -656,7 +656,7 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&geometry_zpinch'
-         write (unit, '(A, ES0.4)') '  betaprim = ', betaprim
+         write (unit, '(A, ES12.4)') '  betaprim = ', betaprim
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
       

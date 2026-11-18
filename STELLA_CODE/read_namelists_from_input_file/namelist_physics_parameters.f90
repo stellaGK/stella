@@ -384,7 +384,7 @@ contains
          write (unit, '(A)') '&electromagnetic'
          write (unit, '(A, L1)') '  include_apar = ', include_apar
          write (unit, '(A, L1)') '  include_bpar = ', include_bpar
-         write (unit, '(A, ES0.4)') '  beta = ', beta
+         write (unit, '(A, ES12.4)') '  beta = ', beta
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -444,7 +444,7 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&physics_inputs'
-         write (unit, '(A, ES0.4)') '  rhostar = ', rhostar
+         write (unit, '(A, ES12.4)') '  rhostar = ', rhostar
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

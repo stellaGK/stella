@@ -299,8 +299,8 @@ contains
          write (unit, '(A, F0.4)') '  x0 = ', x0
          write (unit, '(A, F0.4)') '  y0 = ', y0
          write (unit, '(A, I0)') '  jtwist = ', jtwist
-         write (unit, '(A, ES0.4)') '  jtwistfac = ', jtwistfac
-         write (unit, '(A, ES0.4)') '  phase_shift_angle = ', phase_shift_angle
+         write (unit, '(A, ES12.4)') '  jtwistfac = ', jtwistfac
+         write (unit, '(A, ES12.4)') '  phase_shift_angle = ', phase_shift_angle
          write (unit, '(A, L1)') '  centered_in_rho = ', centered_in_rho
          write (unit, '(A, L1)') '  periodic_variation = ', periodic_variation
          write (unit, '(A, L1)') '  randomize_phase_shift = ', randomize_phase_shift

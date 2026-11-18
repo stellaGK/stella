@@ -418,7 +418,7 @@ contains
       if (naky > 1) write (omega_unit, *)
 
       ! Flush the data from the buffer to the actual ascii file
-      call flush(omega_unit)
+      flush (omega_unit)
 
    end subroutine write_omega_to_ascii_file
 

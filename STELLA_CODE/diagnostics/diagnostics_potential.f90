@@ -300,7 +300,7 @@ contains
       real, intent(in) :: phi2, apar2, bpar2
 
       write (stdout_unit, '(i10,es14.4e3,es14.4e3,es14.4e3,es14.4e3)') istep, code_time, phi2, apar2, bpar2
-      call flush (stdout_unit)
+      flush (stdout_unit)
 
    end subroutine write_potential_to_ascii_file
 
