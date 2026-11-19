@@ -27,9 +27,9 @@ module gk_neo_mms_source_term
 
    ! Time-independent (z, velocity) factors of the source. The time dependence is applied in
    ! advance_neo_mms_source_term_explicit, at the stage time, every time the RHS is built:
-   !   S(t) = [ sin(2 pi t / tau) * neo_mms_source_term + cos(2 pi t / tau) * mms_source_dgdt ] * code_dt
-   ! neo_mms_source_term holds the part that cancels the neo streaming correction,
-   ! mms_source_dgdt the part from dg_MS/dt.
+   !   S(t) = [ -i sin(2 pi t / tau) * neo_mms_source_term + cos(2 pi t / tau) * mms_source_dgdt ] * code_dt
+   ! neo_mms_source_term holds the (real) part that cancels the neo wdrifty correction (the factor -i
+   ! is applied in the advance routine), mms_source_dgdt the part from dg_MS/dt.
    real, dimension(:, :, :), allocatable :: mms_source_dgdt
 
 contains
@@ -53,8 +53,7 @@ contains
 
         ! Geometry.
         use geometry, only: bmag
-        use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
-        use geometry, only: b_dot_gradz
+        use geometry, only: B_times_kappa_dot_grady, B_times_gradB_dot_grady
 
         ! Neoclassical.
         use neoclassical_terms_neo, only: neo_vpa_fac
@@ -71,7 +70,7 @@ contains
         ! Local variables. 
         integer :: iz, iv, is, imu, ivmu
         real    :: pi = acos(-1.0)
-        real    :: f, dfdz
+        real    :: f
 
         ! Only intialise once.
         if (initialised_neo_mms_source_term) return
@@ -86,34 +85,35 @@ contains
             allocate (mms_source_dgdt(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); mms_source_dgdt = 0.0
         end if
 
-        ! Manufactured solution for the neo_stream test (F1 = vpa^2, J0 = 0.5, adiabatic electrons, n = T = Z_i = 1):
+        ! Manufactured solution for the neo_wdrifty test (F1 = vpa^2, J0 = 0.5, adiabatic electrons, n = T = Z_i = 1):
         !   g_MS  = sin(2 pi t / tau) kx ky f(z) F0,
         !   Phi'  = (4/17) sin(2 pi t / tau) kx ky f(z),
         !   f(z)  = cos^4(z/2) [1 + sin(z)].
-        ! cos^4(z/2) makes f vanish (with its first three derivatives) at z = +/- pi; the [1 + sin(z)]
-        ! factor breaks the z -> -z symmetry so the field-line-averaged |g|^2 sees the streaming error.
-        ! No zed0 shift. The source S = dg_MS/dt - (neo streaming correction of g_MS) is split as
-        !   S = sin(2 pi t / tau) * neo_mms_source_term + cos(2 pi t / tau) * mms_source_dgdt,
-        ! with the time factors applied in advance_neo_mms_source_term_explicit.
+        ! (A global phase e^{i pi/4} on g_MS and Phi' changes nothing for a single ky > 0 mode, so it is omitted.)
+        ! The neo wdrifty correction of g_MS is
+        !   i ky (1/B) [b x (vpa^2 kappa + mu grad B)].grad(y) J0 Phi' F0 (1 - vpa^2)
+        ! = i sin(2 pi t / tau) * (2/17) ky (1 - vpa^2) [vpa^2 B_times_kappa_dot_grady + mu B B_times_gradB_dot_grady] F0 kx ky f(z),
+        ! using (1 - vpa^2) = d_vpa F1 shorthand for F1 = vpa^2, and stella's normalisations
+        ! B_times_kappa_dot_grady = (b x kappa).grad(y)/B and B_times_gradB_dot_grady = (b x grad B).grad(y)/B^2.
+        ! The source S = dg_MS/dt - (correction) is split as
+        !   S = -i sin(2 pi t / tau) * neo_mms_source_term + cos(2 pi t / tau) * mms_source_dgdt,
+        ! with the time factors and the -i applied in advance_neo_mms_source_term_explicit.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
 
             do iz = -nzgrid, nzgrid
-                ! Profile and its z-derivative.
-                f    = cos(0.5 * zed(iz))**4 * (1.0 + sin(zed(iz)))
-                dfdz = -2.0 * cos(0.5 * zed(iz))**3 * sin(0.5 * zed(iz)) * (1.0 + sin(zed(iz))) &
-                       + cos(0.5 * zed(iz))**4 * cos(zed(iz))
+                ! Profile.
+                f = cos(0.5 * zed(iz))**4 * (1.0 + sin(zed(iz)))
 
-                ! Part cancelling the neo streaming correction (multiplies sin(2 pi t / tau)):
-                ! the correction of g_MS is (2/17) vth b.grad(z) (Z/T) (vpa - vpa^3) F0 kx ky f'(z),
-                ! so the source carries minus that.
-                neo_mms_source_term(:, iz, ivmu) = -2.0 * spec(is)%stm &
-                    * b_dot_gradz(:, iz) * spec(is)%zt / 17.0 &
-                    * ( vpa(iv) - vpa(iv) * vpa(iv) * vpa(iv) ) &
+                ! Real factor of the part cancelling the neo wdrifty correction (multiplies -i sin(2 pi t / tau)).
+                neo_mms_source_term(:, iz, ivmu) = 2.0 / 17.0 * aky(1) &
+                    * ( 1.0 - vpa(iv) * vpa(iv) ) &
+                    * ( vpa(iv) * vpa(iv) * B_times_kappa_dot_grady(:, iz) &
+                      + mu(imu) * bmag(:, iz) * B_times_gradB_dot_grady(:, iz) ) &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                    * aky(1) * akx(1) * dfdz
+                    * aky(1) * akx(1) * f
 
                 ! Part from dg_MS/dt (multiplies cos(2 pi t / tau)): (2 pi / tau) kx ky f(z) F0.
                 mms_source_dgdt(:, iz, ivmu) = 2.0 * pi / mms_tau &
@@ -145,6 +145,9 @@ contains
         ! Time.
         use grids_time, only: code_dt
 
+        ! Constants.
+        use constants, only: zi
+
         implicit none
 
         complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout        
@@ -161,14 +164,17 @@ contains
         allocate(source_now(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
         ! Source at the current RK stage time, times the current time step
-        ! (add_explicit_gyrokinetic_terms returns rhs*dt).
-        source_now = ( sin(2.0 * pi * mms_stage_time / mms_tau) * neo_mms_source_term(1, :, :) &
-                     + cos(2.0 * pi * mms_stage_time / mms_tau) * mms_source_dgdt(1, :, :) ) * code_dt
+        ! (add_explicit_gyrokinetic_terms returns rhs*dt). The source is complex, so it is added in two
+        ! parts, with the complex constant carried by g0 and the real (z, velocity) factor by source_now.
 
-        ! The prefactor on the MMS term is simply 1.  
+        ! dg_MS/dt part: real, prefactor 1.
+        source_now = cos(2.0 * pi * mms_stage_time / mms_tau) * mms_source_dgdt(1, :, :) * code_dt
         g0 = 1.0
+        call add_explicit_term(g0, source_now, gout)
 
-        ! Add this term to the right-hand-side of the GKE.
+        ! Part cancelling the neo wdrifty correction: prefactor -i.
+        source_now = sin(2.0 * pi * mms_stage_time / mms_tau) * neo_mms_source_term(1, :, :) * code_dt
+        g0 = -zi
         call add_explicit_term(g0, source_now, gout)
 
         ! Deallocate temporary arrays.
