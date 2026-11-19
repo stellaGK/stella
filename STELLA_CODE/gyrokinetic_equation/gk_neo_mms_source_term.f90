@@ -53,7 +53,7 @@ contains
 
         ! Geometry.
         use geometry, only: bmag
-        use geometry, only: B_times_kappa_dot_grady, B_times_gradB_dot_grady
+        use geometry, only: B_times_kappa_dot_gradx, B_times_gradB_dot_gradx
 
         ! Neoclassical.
         use neoclassical_terms_neo, only: neo_vpa_fac
@@ -108,10 +108,10 @@ contains
                 f = cos(0.5 * zed(iz))**4 * (1.0 + sin(zed(iz)))
 
                 ! Real factor of the part cancelling the neo wdrifty correction (multiplies -i sin(2 pi t / tau)).
-                neo_mms_source_term(:, iz, ivmu) = 2.0 / 17.0 * aky(1) &
+                neo_mms_source_term(:, iz, ivmu) = 2.0 / 17.0 * akx(1) &
                     * ( 1.0 - vpa(iv) * vpa(iv) ) &
-                    * ( vpa(iv) * vpa(iv) * B_times_kappa_dot_grady(:, iz) &
-                      + mu(imu) * bmag(:, iz) * B_times_gradB_dot_grady(:, iz) ) &
+                    * ( vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) &
+                      + mu(imu) * bmag(:, iz) * B_times_gradB_dot_gradx(:, iz) ) &
                     * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
                     * aky(1) * akx(1) * f
 
