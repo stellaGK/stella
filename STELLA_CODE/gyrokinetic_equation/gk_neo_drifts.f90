@@ -72,12 +72,12 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
            
             do iz = -nzgrid, nzgrid            
-                neo_wdrifty(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_grady(:, iz) &
-                + mu(imu) * B_times_gradB_dot_grady(:, iz) / vpa(iv) 
+                neo_wdrifty(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_grady(:, iz) &
+                + mu(imu) * bmag(:, iz) * B_times_gradB_dot_grady(:, iz)  
 
                 neo_wdrifty(:, iz, ivmu) = neo_wdrifty(:, iz, ivmu) * neoydriftknob * code_dt * 0.5 &
                 * neo_vpa_fac(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                / ( bmag(:, iz) ** 2 )
+                / vpa(iv) 
             end do
         end do
 
@@ -126,18 +126,19 @@ contains
             allocate (neo_wdriftx(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); neo_wdriftx = 0.0
         end if
 
-        ! Iterate over velocity space.
+      ! Iterate over velocity space.
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
             iv = iv_idx(vmu_lo, ivmu)
            
-            do iz = -nzgrid, nzgrid                          
-                neo_wdriftx(:, iz, ivmu) = vpa(iv) * B_times_kappa_dot_gradx(:, iz) + mu(imu) * B_times_gradB_dot_gradx(:, iz) / vpa(iv)
+            do iz = -nzgrid, nzgrid            
+                neo_wdriftx(:, iz, ivmu) = vpa(iv) * vpa(iv) * B_times_kappa_dot_gradx(:, iz) &
+                + mu(imu) * bmag(:, iz) * B_times_gradB_dot_gradx(:, iz)  
 
-                neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * neoxdriftknob * code_dt * 0.5 & 
+                neo_wdriftx(:, iz, ivmu) = neo_wdriftx(:, iz, ivmu) * neoxdriftknob * code_dt * 0.5 &
                 * neo_vpa_fac(:, iz, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, iz, imu, is) * maxwell_fac(is) &
-                / ( bmag(:, iz) ** 2 )
+                / vpa(iv) 
             end do
         end do
 

@@ -141,6 +141,12 @@ contains
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::write_neoclassical'
          call write_neoclassical(f_neoclassical, phi_neoclassical)
 
+         ! VERIFICATION. Recompute the out.neo.transport quantities from the SFINCS data on stella grids, convert to NEO units and compare with
+         ! NEO on each surface. The full check goes to <run_name>.sfincs_transport_check.dat; a one-line summary is printed. Skipped if the NEO
+         ! output files are not in the run directory.
+         if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::verify_sfincs_against_neo'
+         if (proc0) call verify_sfincs_against_neo(f_neoclassical, phi_neoclassical)
+
          ! NEO COMPARISON DIAGNOSTICS.
          ! SFINCS PHI ON CENTRAL, LEFT AND RIGHT SURFACES. 
          if (proc0) then
@@ -246,6 +252,172 @@ contains
        end subroutine deallocate_temp_arrays
 
    end subroutine init_neoclassical_terms_sfincs
+
+! ================================================================================================================================================================================= !
+! -------------------------------------------- Compare transport quantities from the SFINCS data on stella grids with NEO's out.neo.transport, in NEO units. ---------------------- !
+! ================================================================================================================================================================================= !
+!
+! The same calculations as the NEO verification (neoclassical_terms_neo: verify_neo_transport_on_surface) are applied to the SFINCS H_1 and Φ_1 on stella's grids, using the NEO
+! profiles (out.neo.equil, out.neo.species) to convert to NEO units, and compared with out.neo.transport. This needs a NEO run with the same geometry, profiles, collisionality
+! and radial spacing drho in the run directory: out.neo.grid, out.neo.species, out.neo.equil(.left/.right) and out.neo.transport(.left/.right).
+!
+! Normalisation on the left/right surfaces. NEO's H_1 there is normalised to that surface's own Maxwellian (local n_s and v_th,s), whereas the SFINCS H_1 is normalised to the
+! central n_s and v_th,s (sfincs_vspace_to_stella_vspace). Both are functions of v / v_th,s on their own surface evaluated on stella's central (v∥, μ) grid. Multiplying the
+! SFINCS H_1 by (n_s,c / n_s,l) (T_s,l / T_s,c)^(3/2), with SFINCS's own surface profiles n_s,l = n_s,c (1 - Δρ fprim_s) and T_s,l = T_s,c (1 - Δρ tprim_s)
+! (pass_inputoptions_to_sfincs), puts it in NEO's local normalisation, so the NEO conversions (conv_local from that surface's out.neo.equil) apply unchanged.
+! Φ_1 is e Φ_1 / T_ref on every surface in both codes, so it needs no rescaling. The central surface needs no rescaling either.
+!
+! ================================================================================================================================================================================= !
+
+   subroutine verify_sfincs_against_neo(fneo, phineo)
+      ! Fortran.
+      use iso_fortran_env, only: output_unit
+
+      ! Grids.
+      use grids_z, only: nzgrid
+      use grids_velocity, only: nvpa, nmu
+      use grids_species, only: nspec, spec
+
+      ! Physics parameters and geometry.
+      use parameters_physics, only: rhostar
+      use geometry, only: geo_surf
+
+      ! NEO data.
+      use NEO_interface, only: read_basic_neo_files, read_neo_equil, read_neo_transport
+      use NEO_interface, only: neo_grid_data, neo_version_data, neo_equil_data, neo_species_data, neo_transport_data
+
+      ! Transport verification routines (shared with the NEO interface).
+      use neoclassical_terms_neo, only: stella_to_neo_units_data, get_stella_to_neo_units, verify_neo_transport_on_surface
+      use neoclassical_terms_neo, only: open_neo_check_file, close_neo_check_file_and_summarise, add_neo_check_notice
+
+      ! SFINCS settings.
+      use sfincs_interface, only: get_sfincs_radial_electric_field
+
+      implicit none
+
+      real, dimension(:, -nzgrid:, :, :, :, -nradii / 2:), intent(in) :: fneo
+      real, dimension(:, -nzgrid:, -nradii / 2:), intent(in)          :: phineo
+
+      ! Local variables.
+      type(neo_grid_data)                             :: neo_grid
+      type(neo_version_data)                          :: neo_version
+      type(neo_species_data)                          :: neo_species
+      type(neo_equil_data), dimension(-1:1)           :: neo_equil
+      type(neo_transport_data), dimension(-1:1)       :: neo_transport
+      type(stella_to_neo_units_data), dimension(-1:1) :: conv
+      real, dimension(:, :, :, :), allocatable        :: h_local
+
+      character(len=7), dimension(-1:1), parameter :: surface_label = [character(len=7) :: 'left', 'central', 'right']
+      character(len=6), dimension(-1:1), parameter :: suffix = [character(len=6) :: '.left', '', '.right']
+
+      character(len=256) :: message
+      logical :: found, er_calculated
+      real    :: dphihat_drn, delrho, rho_star_ratio_sfincs, rho_star_ratio_neo, dr_neo
+      integer :: irad, irad_lo, irad_hi, is
+      integer, parameter :: ia = 1
+      real, parameter :: tol = 1.0e-4
+
+      ! Without NEO output in the run directory there is nothing to compare with.
+      inquire (file='out.neo.grid', exist=found)
+      if (.not. found) then
+         write (output_unit, '(a)') ' SFINCS vs NEO transport check skipped: no NEO output (out.neo.grid) in the run directory.'
+         return
+      end if
+
+      ! NEO only has the central surface and one surface either side; SFINCS may have more (nradii = 5), or only the central one (nradii = 1).
+      irad_lo = max(-1, -nradii / 2)
+      irad_hi = min(1, nradii / 2)
+
+      ! Read the NEO files (quietly: missing files are reported as notices in the check file).
+      call read_basic_neo_files(neo_grid, neo_version, neo_equil(0), neo_species)
+      do irad = irad_lo, irad_hi
+         if (irad /= 0) call read_neo_equil(neo_equil(irad), neo_grid, suffix = trim(suffix(irad)))
+         call read_neo_transport(neo_transport(irad), neo_grid, suffix = trim(suffix(irad)), verbose = .false.)
+      end do
+
+      call open_neo_check_file(ext = '.sfincs_transport_check.dat', title = 'SFINCS vs NEO transport check', code_label = 'SFINCS', &
+         description = 'Transport quantities from the SFINCS data on stella grids (NEO units) against out.neo.transport (and .left, .right)')
+
+      ! ------------------------------------------------------------------------------------------------------------------------------------ !
+      ! Setup checks: things that make SFINCS and NEO differ for physical reasons, or that make the comparison inconsistent.
+      ! ------------------------------------------------------------------------------------------------------------------------------------ !
+
+      ! NEO (and stella) assume no equilibrium radial electric field.
+      call get_sfincs_radial_electric_field(er_calculated, dphihat_drn)
+      if (er_calculated) then
+         write (message, '(a, es13.5, a)') 'SFINCS solved for the ambipolar radial electric field (dPhiHat/drN = ', dphihat_drn, &
+            '); NEO and stella assume dPhi_0/dr = 0, so flows and fluxes will differ.'
+         call add_neo_check_notice(message)
+      else if (abs(dphihat_drn) > 0.0) then
+         write (message, '(a, es13.5, a)') 'SFINCS was run with dPhiHat/drN = ', dphihat_drn, &
+            '; NEO and stella assume dPhi_0/dr = 0, so flows and fluxes will differ.'
+         call add_neo_check_notice(message)
+      end if
+
+      ! ρ_* on the central surface: SFINCS uses stella's rhostar (Delta), NEO the value in out.neo.equil.
+      if (allocated(neo_equil(0)%rho_star)) then
+         if (abs(rhostar - neo_equil(0)%rho_star(1)) > tol * abs(neo_equil(0)%rho_star(1))) then
+            write (message, '(a, es13.5, a, es13.5)') 'rho_star differs on the central surface: stella/SFINCS = ', rhostar, &
+               ', NEO = ', neo_equil(0)%rho_star(1)
+            call add_neo_check_notice(message)
+         end if
+      end if
+
+      do irad = irad_lo, irad_hi
+         if (irad == 0) cycle
+         if (.not. (allocated(neo_equil(irad)%radius) .and. allocated(neo_equil(0)%radius))) cycle
+         delrho = irad * drho
+
+         ! Radial spacing: the left/right surfaces must be the same in both codes.
+         dr_neo = neo_equil(irad)%radius(1) - neo_equil(0)%radius(1)
+         if (abs(dr_neo - delrho) > 1.0e-3 * abs(delrho)) then
+            write (message, '(a, a, a, es13.5, a, es13.5)') 'the ', trim(surface_label(irad)), ' surface is at a different radius: SFINCS delta rho = ', &
+               delrho, ', NEO delta r/a = ', dr_neo
+            call add_neo_check_notice(message)
+         end if
+
+         ! ρ_* off the central surface: SFINCS rescales Delta by (r/q)_local / (r/q)_central (pass_inputoptions_to_sfincs); NEO uses out.neo.equil.
+         if (allocated(neo_equil(irad)%rho_star) .and. allocated(neo_equil(0)%rho_star)) then
+            rho_star_ratio_sfincs = ((geo_surf%rhoc + delrho) / (geo_surf%qinp * (1.0 + delrho * geo_surf%shat / geo_surf%rhoc))) &
+                                    / (geo_surf%rhoc / geo_surf%qinp)
+            rho_star_ratio_neo = neo_equil(irad)%rho_star(1) / neo_equil(0)%rho_star(1)
+            if (abs(rho_star_ratio_sfincs - rho_star_ratio_neo) > tol * abs(rho_star_ratio_neo)) then
+               write (message, '(a, a, a, es13.5, a, es13.5)') 'rho_star(', trim(surface_label(irad)), ') / rho_star(central): SFINCS = ', &
+                  rho_star_ratio_sfincs, ', NEO = ', rho_star_ratio_neo
+               call add_neo_check_notice(message)
+            end if
+         end if
+      end do
+
+      ! ------------------------------------------------------------------------------------------------------------------------------------ !
+      ! stella -> NEO unit ratios on each surface (central ratios, and each surface's local ratios from its out.neo.equil).
+      ! ------------------------------------------------------------------------------------------------------------------------------------ !
+      do irad = irad_lo, irad_hi
+         call get_stella_to_neo_units(conv(irad), neo_equil(irad), neo_species, neo_grid%n_species, trim(surface_label(irad)))
+      end do
+
+      ! ------------------------------------------------------------------------------------------------------------------------------------ !
+      ! Compare on each surface.
+      ! ------------------------------------------------------------------------------------------------------------------------------------ !
+      allocate (h_local(-nzgrid:nzgrid, nvpa, nmu, nspec))
+
+      do irad = irad_lo, irad_hi
+         delrho = irad * drho
+         ! Put the SFINCS H_1 in NEO's local normalisation (factor 1 on the central surface).
+         do is = 1, nspec
+            h_local(:, :, :, is) = fneo(ia, :, :, :, is, irad) &
+                                   * (1.0 - delrho * spec(is)%tprim)**1.5 / (1.0 - delrho * spec(is)%fprim)
+         end do
+
+         call verify_neo_transport_on_surface(trim(surface_label(irad)), h_local, phineo(ia, :, irad), neo_transport(irad), &
+                                              neo_equil(irad), conv(0), conv(irad))
+      end do
+
+      deallocate (h_local)
+
+      call close_neo_check_file_and_summarise
+
+   end subroutine verify_sfincs_against_neo
 
    !****************************************************************************
    !                Distributed local velocity data over processors. 

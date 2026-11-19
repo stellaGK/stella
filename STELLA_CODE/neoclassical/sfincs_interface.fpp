@@ -8,6 +8,8 @@ module sfincs_interface
    implicit none
 
    public :: get_neo_from_sfincs
+   ! Radial electric field settings, used when checking the SFINCS data against NEO (which assumes dPhi_0/dr = 0).
+   public :: get_sfincs_radial_electric_field
 
    private
 
@@ -174,6 +176,28 @@ contains
 # endif
 
    end subroutine get_neo_from_sfincs
+
+   !****************************************************************************
+   ! Return whether SFINCS solved for the ambipolar radial electric field, and the
+   ! dPhiHat/drN that was used (the converged value if it was solved for).
+   ! Without SFINCS (USE_SFINCS undefined), returns .false. and 0.
+   !****************************************************************************
+   subroutine get_sfincs_radial_electric_field(calculated, dphihat_drn)
+
+      implicit none
+
+      logical, intent(out) :: calculated
+      real, intent(out) :: dphihat_drn
+
+# ifdef USE_SFINCS
+      calculated = calculate_radial_electric_field
+      dphihat_drn = dPhiHatdrN
+# else
+      calculated = .false.
+      dphihat_drn = 0.0
+# endif
+
+   end subroutine get_sfincs_radial_electric_field
 
    !****************************************************************************
    !                                      Title

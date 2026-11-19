@@ -49,6 +49,13 @@ module neoclassical_terms_neo
 
     public :: get_neo_moment, get_neo_h_velocity_derivative_moment
 
+    ! Transport verification, also used by neoclassical_terms_sfincs to check SFINCS data on stella grids against NEO.
+    public :: stella_to_neo_units_data
+    public :: get_stella_to_neo_units
+    public :: verify_neo_transport_on_surface
+    public :: open_neo_check_file, close_neo_check_file_and_summarise
+    public :: add_neo_check_notice
+
     private
 
     ! Copies the ia = 1 slice of an array (α is the first dimension) on to all other ia.
@@ -83,6 +90,21 @@ module neoclassical_terms_neo
     end type stella_to_neo_units_data
 
     type(stella_to_neo_units_data) :: stella_to_neo_units
+
+    ! VERIFICATION against out.neo.transport. The full check is written to <run_name>//neo_check_ext; only a one-line summary goes to the screen.
+    ! check_unit is the unit every verification routine writes to (the screen until the file is opened).
+    character(len=*), parameter :: neo_check_ext = '.neo_transport_check.dat'
+    ! Relative tolerance for every stella/NEO comparison.
+    real, parameter :: neo_check_rel_tol = 0.01
+    integer, parameter :: check_pass = 0, check_warn = 1, check_fail = 2
+    integer :: check_unit = 6
+    ! File extension, summary title and name of the code whose data are on stella's grids (set by open_neo_check_file).
+    character(len=64) :: check_ext = neo_check_ext
+    character(len=64) :: check_title = 'NEO transport check'
+    character(len=16) :: check_code_label = 'stella'
+    ! Counts over all surfaces: diagnostics compared, passed, warned (outside tolerance but resolution-limited by cancellation), failed,
+    ! and setup notices (missing files, rotation in NEO, inconsistent gradients or species ratios) that are not diagnostics themselves.
+    integer :: n_checks = 0, n_pass = 0, n_warn = 0, n_fail = 0, n_notices = 0
 
 
     logical :: initialised_neoclassical_terms_neo = .false.
@@ -245,11 +267,11 @@ contains
             call read_neo_f_and_phi(neo_h_hat_left_in, neo_phi_left_in, neo_grid, suffix = '.left')    
         end if        
 
-        ! Read in transport data on all three surfaces.
+        ! Read in transport data on all three surfaces. Not verbose: the raw values and any missing files are reported in the verification file instead.
         if (proc0) then
-            call read_neo_transport(neo_transport_central, neo_grid, verbose = proc0)
-            call read_neo_transport(neo_transport_left, neo_grid, suffix = ".left",  verbose = proc0)
-            call read_neo_transport(neo_transport_right, neo_grid, suffix = ".right", verbose = proc0)
+            call read_neo_transport(neo_transport_central, neo_grid, verbose = .false.)
+            call read_neo_transport(neo_transport_left, neo_grid, suffix = ".left",  verbose = .false.)
+            call read_neo_transport(neo_transport_right, neo_grid, suffix = ".right", verbose = .false.)
         end if 
 
         call broadcast(neo_h_hat_in) ; call broadcast(neo_phi_in)             
@@ -319,6 +341,9 @@ contains
             call read_neo_equil(neo_equil_left, neo_grid, suffix = '.left')
             call read_neo_equil(neo_equil_right, neo_grid, suffix = '.right')
 
+            ! Everything below is written to <run_name>.neo_transport_check.dat; a one-line summary is printed at the end.
+            call open_neo_check_file
+
             call get_stella_to_neo_units(stella_to_neo_units, neo_equil, neo_species, neo_grid%n_species, 'central')
             call get_stella_to_neo_units(stella_to_neo_units_left, neo_equil_left, neo_species, neo_grid%n_species, 'left')
             call get_stella_to_neo_units(stella_to_neo_units_right, neo_equil_right, neo_species, neo_grid%n_species, 'right')
@@ -329,6 +354,8 @@ contains
                                                  stella_to_neo_units, stella_to_neo_units_left)
             call verify_neo_transport_on_surface('right', neo_h_global_right, neo_phi_right, neo_transport_right, neo_equil_right, &
                                                  stella_to_neo_units, stella_to_neo_units_right)
+
+            call close_neo_check_file_and_summarise
         end if
 
         ! Now compact distribution into 3 indices for use in the GKE and also for calculating the derivatives.  
@@ -1310,9 +1337,6 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine get_stella_to_neo_units(conv, neo_equil, neo_species, nspec_neo, surface_label)
-        ! Fortran.
-        use iso_fortran_env, only: output_unit
-
         ! Grids.
         use grids_species, only: spec, nspec
 
@@ -1337,13 +1361,16 @@ contains
 
         ! Missing out.neo.equil (or out.neo.species): keep the default ratios (n = T = m = B = 1, vth = sqrt(2)).
         if (.not. (allocated(neo_equil%density) .and. allocated(neo_equil%temperature) .and. allocated(neo_species%mass))) then
-            write (output_unit, '(a)') ' WARNING: no NEO profiles for the '//trim(surface_label)//' surface; using default stella -> NEO ratios.'
+            write (check_unit, '(a)') ' NOTICE: no NEO profiles for the '//trim(surface_label)//' surface; using default stella -> NEO ratios.'
+            n_notices = n_notices + 1
             return
         end if
 
         ns = min(nspec, nspec_neo)
-        if (nspec /= nspec_neo) write (output_unit, '(a, i3, a, i3)') &
-        ' WARNING: stella has nspec = ', nspec, ' but NEO has n_species = ', nspec_neo
+        if (nspec /= nspec_neo) then
+            write (check_unit, '(a, i3, a, i3)') ' NOTICE: stella has nspec = ', nspec, ' but NEO has n_species = ', nspec_neo
+            n_notices = n_notices + 1
+        end if
 
         ! Allocate temporaray arrays. 
         allocate (rn(ns), rT(ns), rm(ns))
@@ -1361,14 +1388,16 @@ contains
 
         conv%n = rn(1); conv%T = rT(1); conv%m = rm(1)
         if (any(abs(rn - conv%n) > tol * abs(conv%n)) .or. any(abs(rT - conv%T) > tol * abs(conv%T)) &
-            .or. any(abs(rm - conv%m) > tol * abs(conv%m))) &
-            write (output_unit, '(a)') ' WARNING: stella and NEO species ratios differ between species on the '//trim(surface_label)// &
+            .or. any(abs(rm - conv%m) > tol * abs(conv%m))) then
+            write (check_unit, '(a)') ' NOTICE: stella and NEO species ratios differ between species on the '//trim(surface_label)// &
             ' surface (check species ordering, or unequal gradients across species).'
+            n_notices = n_notices + 1
+        end if
 
         conv%vth = sqrt(2.0 * conv%T / conv%m)                      ! v_th,ref / v_norm
         conv%B   = abs(geo_surf%rhoc * drhodpsip / geo_surf%qinp)   ! B_ref / B_unit
 
-        write (output_unit, '(a, a, a, 5es13.5)') ' stella -> NEO units (', trim(surface_label), ' surface): n, T, m, v_th, B ratios = ', &
+        write (check_unit, '(a, a, a, 5es13.5)') ' stella -> NEO units (', trim(surface_label), ' surface): n, T, m, v_th, B ratios = ', &
         conv%n, conv%T, conv%m, conv%vth, conv%B
 
         ! Deallocate temporaray arrays. 
@@ -1382,9 +1411,13 @@ contains
 ! ------------------------------------------------------- Here we compute all of the quantities found in out.neo.transport on each surface ---------------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine compare_with_neo(label, stella_value, neo_value, rel_tol, abs_tol)
-        ! Fortran.
-        use iso_fortran_env, only: output_unit
+    ! Classification of each stella/NEO comparison (one diagnostic):
+    !   SUCCESS : within the tolerance.
+    !   WARNING : outside the tolerance, but the quantity is a small residual of much larger, cancelling contributions (value_abs given, |value| / value_abs <
+    !             cancellation_threshold) and the difference relative to value_abs is within the tolerance, i.e. limited by stella's velocity/z resolution.
+    !   FAILED  : outside the tolerance otherwise.
+    ! value_abs is the same calculation with |.| taken everywhere (no cancellation); pass it for the radial fluxes.
+    subroutine compare_with_neo(label, stella_value, neo_value, rel_tol, abs_tol, value_abs)
 
         implicit none
 
@@ -1392,20 +1425,24 @@ contains
         real, intent(in)             :: stella_value, neo_value, rel_tol
         ! Optional: when |neo_value| < abs_tol (e.g. a quantity that is zero in this run), compare absolute differences instead.
         real, intent(in), optional   :: abs_tol
+        real, intent(in), optional   :: value_abs
 
-        ! Local variables. 
-        real :: rel_diff, abs_diff
+        real :: rel_diff, abs_diff, ratio, diff_over_abs
+        logical :: cancelling
         real, parameter :: tiny_value = 1.0e-30
+        real, parameter :: cancellation_threshold = 1.0e-3
 
         if (present(abs_tol)) then
             if (abs(neo_value) < abs_tol) then
                 abs_diff = abs(stella_value - neo_value)
                 if (abs_diff <= abs_tol) then
-                    write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a)') ' SUCCESS: ', label, ':  stella = ', stella_value, &
-                    '   NEO = ', neo_value, '   (absolute difference ', abs_diff, ')'
+                    write (check_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a)') ' SUCCESS: ', label, ':  '//trim(check_code_label)//' = ', stella_value, &
+                        '   NEO = ', neo_value, '   (absolute difference ', abs_diff, ')'
+                    call record_check(check_pass)
                 else
-                    write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' WARNING: ', label, ':  stella = ', stella_value, &
-                    '   NEO = ', neo_value, '   (absolute difference ', abs_diff, ', tolerance ', abs_tol, ')'
+                    write (check_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' FAILED:  ', label, ':  '//trim(check_code_label)//' = ', stella_value, &
+                        '   NEO = ', neo_value, '   (absolute difference ', abs_diff, ', tolerance ', abs_tol, ')'
+                    call record_check(check_fail)
                 end if
                 return
             end if
@@ -1413,15 +1450,136 @@ contains
 
         rel_diff = abs(stella_value - neo_value) / max(abs(neo_value), tiny_value)
 
+        ! Degree of cancellation, if the no-cancellation value is available.
+        cancelling = .false.
+        if (present(value_abs)) then
+            if (value_abs > 0.0) then
+                ratio = abs(stella_value) / value_abs
+                diff_over_abs = abs(stella_value - neo_value) / value_abs
+                cancelling = ratio < cancellation_threshold
+            end if
+        end if
+
         if (rel_diff <= rel_tol) then
-            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, f8.3, a)') ' SUCCESS: ', label, ':  stella = ', stella_value, &
-            '   NEO = ', neo_value, '   (', 100.0 * rel_diff, ' % difference)'
+            write (check_unit, '(a, a, a, es14.6, a, es14.6, a, f8.3, a)') ' SUCCESS: ', label, ':  '//trim(check_code_label)//' = ', stella_value, &
+                '   NEO = ', neo_value, '   (', 100.0 * rel_diff, ' % difference)'
+            call record_check(check_pass)
+        else if (cancelling .and. diff_over_abs <= rel_tol) then
+            write (check_unit, '(a, a, a, es14.6, a, es14.6, a, f8.3, a, f6.2, a)') ' WARNING: ', label, ':  '//trim(check_code_label)//' = ', stella_value, &
+                '   NEO = ', neo_value, '   (', 100.0 * rel_diff, ' % difference, tolerance ', 100.0 * rel_tol, ' %)'
+            write (check_unit, '(a, es10.3, a, es10.3, a)') '          strongly cancelling: |value| / |value|_no-cancellation = ', ratio, &
+                ', |stella - NEO| / |value|_no-cancellation = ', diff_over_abs, ';'
+            write (check_unit, '(a)') '          the relative difference is limited by velocity/z resolution (increase nvgrid, nmu to test).'
+            call record_check(check_warn)
         else
-            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, f8.3, a, f6.2, a)') ' WARNING: ', label, ':  stella = ', stella_value, &
-            '   NEO = ', neo_value, '   (', 100.0 * rel_diff, ' % difference, tolerance ', 100.0 * rel_tol, ' %)'
+            write (check_unit, '(a, a, a, es14.6, a, es14.6, a, f8.3, a, f6.2, a)') ' FAILED:  ', label, ':  '//trim(check_code_label)//' = ', stella_value, &
+                '   NEO = ', neo_value, '   (', 100.0 * rel_diff, ' % difference, tolerance ', 100.0 * rel_tol, ' %)'
+            if (cancelling) write (check_unit, '(a, es10.3, a, es10.3, a)') '          strongly cancelling: |value| / |value|_no-cancellation = ', &
+                ratio, ', but |stella - NEO| / |value|_no-cancellation = ', diff_over_abs, ' is also outside the tolerance.'
+            call record_check(check_fail)
         end if
 
     end subroutine compare_with_neo
+
+
+    subroutine record_check(status)
+
+        implicit none
+
+        integer, intent(in) :: status
+
+        n_checks = n_checks + 1
+        select case (status)
+        case (check_pass)
+            n_pass = n_pass + 1
+        case (check_warn)
+            n_warn = n_warn + 1
+        case default
+            n_fail = n_fail + 1
+        end select
+
+    end subroutine record_check
+
+
+    ! Open <run_name>//ext (proc0 only) and reset the counters. Defaults (NEO run): ext = '.neo_transport_check.dat', title = 'NEO transport check',
+    ! code_label = 'stella' (the name printed for the value computed from the data on stella's grids). The SFINCS interface passes its own.
+    subroutine open_neo_check_file(ext, title, code_label, description)
+        use file_utils, only: open_output_file
+
+        implicit none
+
+        character(len=*), intent(in), optional :: ext, title, code_label, description
+
+        check_ext = neo_check_ext
+        check_title = 'NEO transport check'
+        check_code_label = 'stella'
+        if (present(ext)) check_ext = ext
+        if (present(title)) check_title = title
+        if (present(code_label)) check_code_label = code_label
+
+        call open_output_file(check_unit, trim(check_ext))
+        n_checks = 0; n_pass = 0; n_warn = 0; n_fail = 0; n_notices = 0
+
+        write (check_unit, '(a)') '############################################################################################'
+        if (present(description)) then
+            write (check_unit, '(a)') ' '//trim(description)
+        else
+            write (check_unit, '(a)') ' Verification of the NEO data on stella grids against out.neo.transport (and .left, .right)'
+        end if
+        write (check_unit, '(a, f6.2, a)') ' Relative tolerance: ', 100.0 * neo_check_rel_tol, ' %'
+        write (check_unit, '(a)') ' SUCCESS = within tolerance; WARNING = outside tolerance but limited by resolution in a strongly'
+        write (check_unit, '(a)') ' cancelling quantity; FAILED = outside tolerance; NOTICE = setup issue (not a diagnostic).'
+        write (check_unit, '(a)') '############################################################################################'
+
+    end subroutine open_neo_check_file
+
+
+    ! Write a setup notice (not a diagnostic) to the check file and count it in the summary.
+    subroutine add_neo_check_notice(message)
+
+        implicit none
+
+        character(len=*), intent(in) :: message
+
+        write (check_unit, '(a)') ' NOTICE: '//trim(message)
+        n_notices = n_notices + 1
+
+    end subroutine add_neo_check_notice
+
+
+    ! Write the totals to the file, close it, and print the one-line summary to the screen.
+    subroutine close_neo_check_file_and_summarise
+        use iso_fortran_env, only: output_unit
+        use file_utils, only: close_output_file, run_name
+
+        implicit none
+
+        character(len=512) :: summary
+        character(len=32)  :: frac_pass, frac_warn, frac_fail, tol
+
+        write (frac_pass, '(i0, a, i0)') n_pass, '/', n_checks
+        write (frac_warn, '(i0, a, i0)') n_warn, '/', n_checks
+        write (frac_fail, '(i0, a, i0)') n_fail, '/', n_checks
+        write (tol, '(f0.2, a)') 100.0 * neo_check_rel_tol, '%'
+        if (tol(1:1) == '.') tol = '0'//trim(tol)
+
+        summary = ' '//trim(check_title)//': '//trim(frac_pass)//' diagnostics pass to within '//trim(tol)//', ' &
+                  //trim(frac_warn)//' warnings, '//trim(frac_fail)//' FAILED.'
+        if (n_notices > 0) then
+            write (tol, '(i0)') n_notices
+            summary = trim(summary)//' '//trim(tol)//' setup notice(s).'
+        end if
+
+        write (check_unit, '(a)') ''
+        write (check_unit, '(a)') '############################################################################################'
+        write (check_unit, '(a)') trim(summary)
+        write (check_unit, '(a)') '############################################################################################'
+        call close_output_file(check_unit)
+        check_unit = output_unit
+
+        write (output_unit, '(a)') trim(summary)//' See '//trim(run_name)//trim(check_ext)//' for more details.'
+
+    end subroutine close_neo_check_file_and_summarise
 
 
 ! ================================================================================================================================================================================= !
@@ -1915,40 +2073,6 @@ contains
 
 
 ! ================================================================================================================================================================================= !
-! ------------------------------------------ Warn when a verified quantity is a small residual of much larger, cancelling contributions. ------------------------------------------ !
-! ================================================================================================================================================================================= !
-!
-! ratio = |value| / value_abs, where value_abs is the same calculation with |.| taken everywhere. For ratio < cancellation_threshold, the stella/NEO difference
-! is printed relative to value_abs too: if that is small, the mismatch is consistent with integration error amplified by the cancellation rather than a bug.
-!
-! ================================================================================================================================================================================= !
-
-    subroutine warn_if_cancelling(label, stella_value, neo_value, value_abs)
-        ! Fortran. 
-        use iso_fortran_env, only: output_unit
-
-        implicit none
-
-        character(len=*), intent(in) :: label
-        real, intent(in)             :: stella_value, neo_value, value_abs
-
-        ! Local variables. 
-        real :: ratio
-        real, parameter :: cancellation_threshold = 1.0e-3
-
-        if (value_abs <= 0.0) return
-        ratio = abs(stella_value) / value_abs
-
-        if (ratio < cancellation_threshold) then
-            write (output_unit, '(a, a, a, es10.3, a)') ' WARNING: ', label, ' is strongly cancelling (|value| / |value|_no-cancellation = ', ratio, ');'
-            write (output_unit, '(a, es10.3, a)') '          |stella - NEO| / |value|_no-cancellation = ', abs(stella_value - neo_value) / value_abs, &
-            ', so the relative difference above is limited by velocity/z resolution (increase nvgrid, nmu to test).'
-        end if
-
-    end subroutine warn_if_cancelling
-
-
-! ================================================================================================================================================================================= !
 ! ------------------------------------------- Check that a quantity that should vanish by symmetry is consistent with zero in both codes. ----------------------------------------- !
 ! ================================================================================================================================================================================= !
 !
@@ -1958,9 +2082,6 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine compare_zero_with_neo(label, stella_value, neo_value, value_abs, reason)
-        ! Fortran. 
-        use iso_fortran_env, only: output_unit
-
         implicit none
 
         character(len=*), intent(in) :: label, reason
@@ -1974,12 +2095,14 @@ contains
         r_neo    = abs(neo_value) / max(value_abs, tiny(1.0))
 
         if (r_stella <= zero_tol .and. r_neo <= zero_tol) then
-            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' SUCCESS: ', label, ':  stella = ', stella_value, &
+            write (check_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' SUCCESS: ', label, ':  '//trim(check_code_label)//' = ', stella_value, &
             '   NEO = ', neo_value, '   (both zero: |stella|, |NEO| / |value|_no-cancellation = ', r_stella, ', ', r_neo, ')'
+            call record_check(check_pass)
         else
-            write (output_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' WARNING: ', label, ':  stella = ', stella_value, &
+            write (check_unit, '(a, a, a, es14.6, a, es14.6, a, es10.3, a, es10.3, a)') ' FAILED:  ', label, ':  '//trim(check_code_label)//' = ', stella_value, &
             '   NEO = ', neo_value, '   (expected zero: |stella|, |NEO| / |value|_no-cancellation = ', r_stella, ', ', r_neo, ')'
-            write (output_unit, '(a, a)') '          expected zero because: ', reason
+            write (check_unit, '(a, a)') '          expected zero because: ', reason
+            call record_check(check_fail)
         end if
 
     end subroutine compare_zero_with_neo
@@ -1990,9 +2113,6 @@ contains
 ! ================================================================================================================================================================================= !
 
     subroutine verify_neo_transport_on_surface(surface_label, neo_h_global, neo_phi, transport, equil, conv, conv_local)
-        ! Fortran.
-        use iso_fortran_env, only: output_unit
-        
         ! Grids. 
         use grids_z, only: nzgrid
         use grids_species, only: nspec, spec
@@ -2017,15 +2137,16 @@ contains
         real, dimension(nspec) :: fprim_used, tprim_used, K_big, k_small, vpol_th0, vtor_th0
         character(len=128)     :: label
         integer                :: is
-        real, parameter        :: rel_tol = 0.01
+        real, parameter        :: rel_tol = neo_check_rel_tol
         ! Absolute tolerance for quantities that vanish in a non-rotating run.
         real, parameter        :: abs_tol = 1.0e-8
 
-        write (output_unit, '(a, es14.6)') '############################################################'
-        write (output_unit, '(a)') ' Verifying NEO data on stella grids against out.neo.transport, '//trim(surface_label)//' surface:'
+        write (check_unit, '(a)') ''
+        write (check_unit, '(a)') ' Verifying NEO data on stella grids against out.neo.transport, '//trim(surface_label)//' surface:'
 
         if (.not. transport%found) then
-            write (output_unit, '(a)') ' WARNING: no transport data for the '//trim(surface_label)//' surface; skipping.'
+            write (check_unit, '(a)') ' NOTICE: no transport data for the '//trim(surface_label)//' surface; skipping.'
+            n_notices = n_notices + 1
             return
         end if
 
@@ -2034,9 +2155,11 @@ contains
 
         ! Zeroth-order toroidal rotation.
         if (allocated(equil%angular_frequency)) then
-            if (abs(equil%angular_frequency(1)) > 0.0) write (output_unit, '(a, es14.6, a)') &
-            ' WARNING: NEO was run with zeroth-order rotation, omega_0 = ', equil%angular_frequency(1), &
-            ' (v_norm/a); stella assumes no zeroth-order rotation.'
+            if (abs(equil%angular_frequency(1)) > 0.0) then
+                write (check_unit, '(a, es14.6, a)') ' NOTICE: NEO was run with zeroth-order rotation, omega_0 = ', equil%angular_frequency(1), &
+                ' (v_norm/a); stella assumes no zeroth-order rotation.'
+                n_notices = n_notices + 1
+            end if
             call compare_with_neo('v_tor^(0)(theta=0)/v_norm', calculate_vtor0_th0(equil), transport%vtor0_th0(1), rel_tol, abs_tol)
             call compare_with_neo('<u_par^(0) B>/(v_norm B_unit)', calculate_uparB0(equil, conv), transport%uparB0(1), rel_tol, abs_tol)
 
@@ -2044,16 +2167,14 @@ contains
             call calculate_pflux(neo_h_global, equil, conv, conv_local, pflux, pflux_abs)
             do is = 1, nspec
                 write (label, '(a, i0)') 'Gamma/(n_norm v_norm), species ', is
-                call compare_with_neo(trim(label), pflux(is), transport%pflux(is, 1), rel_tol)
-                call warn_if_cancelling(trim(label), pflux(is), transport%pflux(is, 1), pflux_abs(is))
+                call compare_with_neo(trim(label), pflux(is), transport%pflux(is, 1), rel_tol, value_abs = pflux_abs(is))
             end do
 
             ! Second-order radial energy flux.
             call calculate_eflux(neo_h_global, equil, conv, conv_local, eflux, eflux_abs)
             do is = 1, nspec
                 write (label, '(a, i0)') 'Q/(n_norm v_norm T_norm), species ', is
-                call compare_with_neo(trim(label), eflux(is), transport%eflux(is, 1), rel_tol)
-                call warn_if_cancelling(trim(label), eflux(is), transport%eflux(is, 1), eflux_abs(is))
+                call compare_with_neo(trim(label), eflux(is), transport%eflux(is, 1), rel_tol, value_abs = eflux_abs(is))
             end do
 
             ! Second-order radial momentum flux.
@@ -2064,7 +2185,8 @@ contains
                 'no zeroth-order rotation and an up-down symmetric equilibrium (stella omits NEO''s driftxrot3 term).')
             end do
         else
-            write (output_unit, '(a)') ' WARNING: no NEO profiles for the '//trim(surface_label)//' surface; skipping the zeroth-order flows and radial fluxes.'
+            write (check_unit, '(a)') ' NOTICE: no NEO profiles for the '//trim(surface_label)//' surface; skipping the zeroth-order flows and radial fluxes.'
+            n_notices = n_notices + 1
         end if
 
         call calculate_upar_B(neo_h_global, neo_phi, conv_local, upar_B)
@@ -2082,10 +2204,12 @@ contains
                     fprim_used(is) = spec(is)%fprim
                     tprim_used(is) = spec(is)%tprim
                     if (abs(spec(is)%fprim - equil%density_gradient(is, 1)) > 1.0e-4 * max(abs(spec(is)%fprim), 1.0) .or. &
-                    abs(spec(is)%tprim - equil%temperature_gradient(is, 1)) > 1.0e-4 * max(abs(spec(is)%tprim), 1.0)) &
-                        write (output_unit, '(a, i0, a, 2es13.5, a, 2es13.5)') ' WARNING: species ', is, &
+                    abs(spec(is)%tprim - equil%temperature_gradient(is, 1)) > 1.0e-4 * max(abs(spec(is)%tprim), 1.0)) then
+                        write (check_unit, '(a, i0, a, 2es13.5, a, 2es13.5)') ' NOTICE: species ', is, &
                         ' gradients differ: stella fprim, tprim = ', spec(is)%fprim, spec(is)%tprim, &
                         '   NEO dlnndr, dlntdr = ', equil%density_gradient(is, 1), equil%temperature_gradient(is, 1)
+                        n_notices = n_notices + 1
+                    end if
                 end do
             else
                 ! stella has no profile information off the central surface: use NEO's gradients there.
