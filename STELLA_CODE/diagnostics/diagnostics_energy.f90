@@ -591,8 +591,6 @@ contains
       use grids_velocity, only: wgts_vpa, wgts_mu, maxwell_fac, maxwell_vpa, maxwell_mu
       use parameters_physics, only: fphi
       use grids_kxky, only: naky, nakx, nx, ny, naky_all, ikx_max
-      use geometry, only: dVolume
-      use calculations_volume_averages, only: volume_total
       use grids_time, only: code_time, code_dt
       use parameters_physics, only: include_nonlinear
       use dissipation_hyper, only: D_hyper, k2max, advance_hyper_zed, advance_hyper_vpa, hyp_vpa, hyp_zed
@@ -626,7 +624,6 @@ contains
       real :: drive_sum, coll_sum, diss_vpa_sum, diss_zed_sum, diss_perp_sum
       real :: nonlinearity_sum, streaming_sum, mirror_sum, drifts_sum
       real :: heat_sources_sum, total_energy
-      real :: check_num, check_den
       real, dimension(ny, nx) :: h_xy
       logical :: restart_time_step
 
@@ -741,36 +738,6 @@ contains
          energy_diag%particle_energy_sum = particle_energy
          energy_diag%total_energy_sum = total_energy
 
-         if (write_energy_xy .and. proc0) then
-            check_num = 0.
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  check_num = check_num + dVolume(ia, 1, iz) * &
-                     sum(energy_diag%field_energy_xy_z(:, :, iz, it))
-               end do
-            end do
-            check_num = check_num / (real(nx) * real(ny) * volume_total)
-            check_den = energy_diag%field_energy_sum
-            if (abs(check_den) > 0.) then
-               print '(A,ES16.8,A,ES16.8,A,ES16.8)', 'xy field check: ', check_num, &
-                  ' ref ', check_den, ' ratio ', check_num / check_den
-            end if
-            do is = 1, nspec
-               check_num = 0.
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     check_num = check_num + dVolume(ia, 1, iz) * &
-                        sum(energy_diag%particle_energy_xy_z(:, :, iz, it, is))
-                  end do
-               end do
-               check_num = check_num / (real(nx) * real(ny) * volume_total)
-               check_den = energy_diag%energy_spec(is)
-               if (abs(check_den) > 0.) then
-                  print '(A,I0,A,ES16.8,A,ES16.8,A,ES16.8)', 'xy particle check (', is, '): ', &
-                     check_num, ' ref ', check_den, ' ratio ', check_num / check_den
-               end if
-            end do
-         end if
          !--------------------------------------------------------------------
          ! col 4: drive (project the wstar rate onto h)
          !--------------------------------------------------------------------

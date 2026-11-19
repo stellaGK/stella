@@ -287,6 +287,7 @@ contains
          call broadcast(write_energy_kxkyz)
          call broadcast(write_energy_vmu)
          call broadcast(write_energy_species)
+         call broadcast(write_energy_xy)
          
       end subroutine broadcast_parameters
 
