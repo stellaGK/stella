@@ -592,7 +592,7 @@ contains
          do is = 1, nspec
             write (unit, '(A, I0)') '&species_parameters_', is
             write (unit, '(A, F0.2)') '  z = ', z
-            write (unit, '(A, ES0.4)') '  mass = ', mass
+            write (unit, '(A, ES12.4)') '  mass = ', mass
             write (unit, '(A, F0.2)') '  dens = ', dens
             write (unit, '(A, F0.2)') '  temp = ', temp
             write (unit, '(A, F0.2)') '  tprim = ', tprim
