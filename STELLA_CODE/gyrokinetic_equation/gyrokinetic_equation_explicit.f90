@@ -543,6 +543,10 @@ contains
       ! Grids
       use grids_z, only: nzgrid
 
+      ! OR MMS TESTING: stage times for the time-dependent MMS source.
+      use gk_neo_mms_source_term, only: mms_stage_time
+      use grids_time, only: code_time, code_dt
+
       implicit none
 
       ! Arguments
@@ -572,10 +576,12 @@ contains
          ! Second order Runge-Kutta Scheme
          select case (counter)
          case (1)
+            mms_stage_time = code_time
             call add_explicit_gyrokinetic_terms(g0, g1, restart_time_step, istep)
          case (2)
             g1 = g0 + g1
             if (rk_step) call mb_communicate(g1)
+            mms_stage_time = code_time + code_dt
             call add_explicit_gyrokinetic_terms(g1, g, restart_time_step, istep)
          end select
          
@@ -594,11 +600,6 @@ contains
 
    end subroutine advance_explicit_rk2
 
-   !****************************************************************************
-   !                         EXPLICIT RK3 TIME ADVANCE SUBROUTINE
-   !****************************************************************************
-   ! Uses strong stability-preserving rk3 to advance one time step.
-   !****************************************************************************
    subroutine advance_explicit_rk3(g, restart_time_step, istep)
    
       ! Parallelisation
@@ -611,6 +612,10 @@ contains
       
       ! Grids
       use grids_z, only: nzgrid
+
+      ! OR MMS TESTING: stage times for the time-dependent MMS source.
+      use gk_neo_mms_source_term, only: mms_stage_time
+      use grids_time, only: code_time, code_dt
 
       implicit none
 
@@ -641,14 +646,17 @@ contains
          ! Third order Runge-Kutta Scheme
          select case (counter)
          case (1)
+            mms_stage_time = code_time
             call add_explicit_gyrokinetic_terms(g0, g1, restart_time_step, istep)
          case (2)
             g1 = g0 + g1
             if (rk_step) call mb_communicate(g1)
+            mms_stage_time = code_time + code_dt
             call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
          case (3)
             g2 = g1 + g2
             if (rk_step) call mb_communicate(g2)
+            mms_stage_time = code_time + 2.0 * code_dt
             call add_explicit_gyrokinetic_terms(g2, g, restart_time_step, istep)
          end select
          
@@ -666,11 +674,6 @@ contains
 
    end subroutine advance_explicit_rk3
 
-   !****************************************************************************
-   !                         EXPLICIT RK4 TIME ADVANCE SUBROUTINE
-   !****************************************************************************
-   ! Uses rk4 to advance one time step.
-   !****************************************************************************
    subroutine advance_explicit_rk4(g, restart_time_step, istep)
    
       ! Parallelisation
@@ -683,6 +686,10 @@ contains
       
       ! Grids
       use grids_z, only: nzgrid
+
+      ! OR MMS TESTING: stage times for the time-dependent MMS source.
+      use gk_neo_mms_source_term, only: mms_stage_time
+      use grids_time, only: code_time, code_dt
 
       implicit none
 
@@ -713,20 +720,24 @@ contains
          ! Fourth order Runge-Kutta Scheme
          select case (counter)
          case (1)
+            mms_stage_time = code_time
             call add_explicit_gyrokinetic_terms(g0, g1, restart_time_step, istep)
          case (2)
             g3 = g0 + 0.5 * g1 ! g1 is h*k1
             if (rk_step) call mb_communicate(g3)
+            mms_stage_time = code_time + 0.5 * code_dt
             call add_explicit_gyrokinetic_terms(g3, g2, restart_time_step, istep)
             g1 = g1 + 2.*g2
          case (3)
             g2 = g0 + 0.5 * g2 ! g2 is h*k2
             if (rk_step) call mb_communicate(g2)
+            mms_stage_time = code_time + 0.5 * code_dt
             call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
             g1 = g1 + 2.*g3
          case (4)
             g3 = g0 + g3 ! g3 is h*k3
             if (rk_step) call mb_communicate(g3)
+            mms_stage_time = code_time + code_dt
             call add_explicit_gyrokinetic_terms(g3, g, restart_time_step, istep)
             g1 = g1 + g
          end select
@@ -745,5 +756,6 @@ contains
       g = g0 + g1 / 6.
 
    end subroutine advance_explicit_rk4
+
 
 end module gyrokinetic_equation_explicit

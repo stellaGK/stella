@@ -1093,12 +1093,11 @@ contains
        iky = iky_idx(kxkyz_lo, ikxkyz)
        is  = is_idx(kxkyz_lo, ikxkyz)
 
-           ! Calculate intial g manufactured solution.
-           gvmu(:, :, ikxkyz) = akx(ikx) * aky(iky) * exp(-(zed(iz) - zed0(1,1))**2) &
-           * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+           ! Initial g manufactured solution. For the neo_stream test g_MS = sin(2 pi t) ..., so g_MS(t=0) = 0.
+           ! (Drift tests used: akx(ikx) * aky(iky) * exp(-(zed(iz) - zed0(1,1))**2) * F0.)
+           gvmu(:, :, ikxkyz) = 0.
        end do
                      
    end subroutine overwrite_distribution_mms
-
-
+   
 end module initialise_distribution_function

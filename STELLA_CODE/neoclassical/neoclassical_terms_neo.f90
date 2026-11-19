@@ -343,7 +343,7 @@ contains
         ! end if
         
         ! OR MMS TESTING.
-        call mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global, neo_phi, neo_grid)
+        call mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_vpa_fac_global, neo_mu_fac_global, neo_phi, neo_grid)
 
         ! Write out F_0 and F_1 at the outboard midplane.
         ! call write_f0_f1_vpa_mu_outboard(neo_h, neo_phi, neo_grid)
@@ -1190,7 +1190,7 @@ contains
 ! ----------------------------------------------------- Overwrite neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global and neo_phi for MMS testing. ---------------------------------- !
 ! ================================================================================================================================================================================= !
 
-    subroutine mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_mu_fac_global, neo_phi, neo_grid)
+    subroutine mms_overwrite(neo_h, neo_vpa_fac, neo_mu_fac, neo_vpa_fac_global, neo_mu_fac_global, neo_phi, neo_grid)
         ! Parallelisation.
         use parallelisation_layouts, only: vmu_lo
         use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
@@ -1215,6 +1215,7 @@ contains
         real, intent(in out)                :: neo_vpa_fac(-nzgrid:, vmu_lo%llim_proc:, :)
         real, intent(in out)                :: neo_mu_fac(-nzgrid:, vmu_lo%llim_proc:, :)
         real, intent(in out)                :: neo_mu_fac_global(-nzgrid:, :, :, :, :)
+        real, intent(in out)                :: neo_vpa_fac_global(-nzgrid:, :, :, :, :)
         real, intent(in out)                :: neo_phi(-nzgrid:)
         type(neo_grid_data), intent(in)     :: neo_grid
 
@@ -1250,11 +1251,14 @@ contains
         end do
 
         ! Overwrite arrays that are not distributed over velocity space. 
-        ! Namely neo_mu_fac_global.
+        ! Namely neo_mu_fac_global and neo_vpa_fac_global.
         do is = 1, neo_grid%n_species
             do iz = -nzgrid, nzgrid
                 do iv = 1, nvpa
                     do imu = 1, nmu
+                        neo_vpa_fac_global(iz, iv, imu, is, 1) = &
+                        2 * vpa(iv) - 2 * vpa(iv) * vpa(iv) * vpa(iv)
+
                         neo_mu_fac_global(iz, iv, imu, is, 1) = &
                         - 2 * bmag(ia, iz) * vpa(iv) * vpa(iv)
                     end do
