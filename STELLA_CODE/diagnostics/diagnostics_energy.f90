@@ -79,10 +79,17 @@
 !
 ! Output representations
 ! -----------------------
-! The diagnostic is written out in two representations:
-!   - "kxkyz": on the full (ky,kx,zed,tube,species) grid, and
-!   - "vmu":  spatially averaged, on the (vpa,mu,species) grid.
-! Both are written to NetCDF when <write_energy_kxkyz> / <write_energy_vmu>.
+! The diagnostic is written out in three representations:
+!   - "kxkyz": on the full (ky,kx,zed,tube,species) grid,
+!   - "vmu":  spatially averaged, on the (vpa,mu,species) grid, and
+!   - "xy_z": true real-space densities on (x,y,zed,tube[,species]), computed
+!             by transforming the amplitudes and multiplying in real space
+!             (never by transforming a per-mode power spectrum).
+! The first two are written when <write_energy_kxkyz> / <write_energy_vmu>;
+! the real-space maps are written when <write_energy_xy> and are stored
+! unfolded (the consumer applies dVolume/volume_total and 1/(nx*ny)). All
+! NetCDF energy arrays are stored in double precision unless
+! <energy_precision> = 'single'.
 ! The combined (sum-over-species) scalars are written to an ascii file
 ! (<stem>.energy, 18 columns). Per-species files (<stem>.energy_species_<label>)
 ! are written when <write_energy_species> = .true. (default off).
@@ -143,9 +150,18 @@ module diagnostics_energy
 
       !> Real-space energy densities (unfolded: no dVolume/volume_total and no
       !> 1/(nx*ny) FFT factor). Written to NetCDF when write_energy_xy.
-      !> field: (x,y,z,tube); particle: (x,y,z,tube,species).
+      !> field: (x,y,z,tube); particle and terms: (x,y,z,tube,species).
       real, dimension(:, :, :, :), allocatable :: field_energy_xy_z
       real, dimension(:, :, :, :, :), allocatable :: particle_energy_xy_z
+
+      !> Real-space maps of the individual RHS energy terms. Each is the local
+      !> product Re[T(x,y,z) h*(x,y,z)] with the same velocity weights as the
+      !> corresponding <*_kxkyz> array, so a single term map is NOT the IFFT of
+      !> the per-mode array.
+      real, dimension(:, :, :, :, :), allocatable :: dedt_proj_xy_z
+      real, dimension(:, :, :, :, :), allocatable :: drive_xy_z, coll_xy_z
+      real, dimension(:, :, :, :, :), allocatable :: diss_vpa_xy_z, diss_zed_xy_z, diss_perp_xy_z
+      real, dimension(:, :, :, :, :), allocatable :: nonlinearity_xy_z, streaming_xy_z, mirror_xy_z, drifts_xy_z
 
       !> Per-mode (vmu representation) closure terms,
       !> (vpa,mu,species). Written to NetCDF when write_energy_vmu.
@@ -267,6 +283,46 @@ contains
             allocate (energy_diag%particle_energy_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
             energy_diag%particle_energy_xy_z = 0.
          end if
+         if (.not. allocated(energy_diag%dedt_proj_xy_z)) then
+            allocate (energy_diag%dedt_proj_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%dedt_proj_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%drive_xy_z)) then
+            allocate (energy_diag%drive_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%drive_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%coll_xy_z)) then
+            allocate (energy_diag%coll_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%coll_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%diss_vpa_xy_z)) then
+            allocate (energy_diag%diss_vpa_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%diss_vpa_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%diss_zed_xy_z)) then
+            allocate (energy_diag%diss_zed_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%diss_zed_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%diss_perp_xy_z)) then
+            allocate (energy_diag%diss_perp_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%diss_perp_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%nonlinearity_xy_z)) then
+            allocate (energy_diag%nonlinearity_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%nonlinearity_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%streaming_xy_z)) then
+            allocate (energy_diag%streaming_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%streaming_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%mirror_xy_z)) then
+            allocate (energy_diag%mirror_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%mirror_xy_z = 0.
+         end if
+         if (.not. allocated(energy_diag%drifts_xy_z)) then
+            allocate (energy_diag%drifts_xy_z(nx, ny, -nzgrid:nzgrid, ntubes, nspec))
+            energy_diag%drifts_xy_z = 0.
+         end if
       end if
 
       if (write_energy_vmu) then
@@ -314,7 +370,16 @@ contains
    !> array (term_kxkyz) stores 0.5*mode_fac(ky)*Re[factor*velocity_integral]
    !> WITHOUT the dVolume weight; the per-species scalars (sum_spec) apply
    !> dVolume/volume_total. See the module header for the convention.
-   subroutine get_one_energy_term_kxkyz(h, term, factor_spec, sum_spec, sum_total, term_kxkyz)
+   !>
+   !> When <write_xy> is true, the true real-space density of the term is also
+   !> accumulated in <term_xy_z>: the local product term(x,y) * h*(x,y), summed
+   !> over the local vmu slices with the same velocity weights. This requires
+   !> transforming BOTH amplitudes; transforming term_kxkyz instead would give
+   !> an autocorrelation, not a local density. There is no mode_fac in real
+   !> space (the full +-ky transform already counts both signs), leaving the
+   !> single 0.5 that matches the per-mode convention above.
+   subroutine get_one_energy_term_kxkyz(h, term, factor_spec, sum_spec, sum_total, term_kxkyz, &
+                                        write_xy, term_xy_z)
       use mp, only: proc0, sum_allreduce
       use arrays_distribution_function, only: g0
       use parallelisation_layouts, only: vmu_lo
@@ -324,7 +389,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: wgts_mu, wgts_vpa
       use calculations_volume_averages, only: mode_fac
-      use grids_kxky, only: naky, nakx
+      use grids_kxky, only: naky, nakx, nx, ny
       use geometry, only: dVolume
       use calculations_volume_averages, only: volume_total
 
@@ -335,14 +400,22 @@ contains
       real, dimension(nspec), intent(out) :: sum_spec
       real, intent(out) :: sum_total
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: term_kxkyz
+      logical, intent(in), optional :: write_xy
+      real, dimension(:, :, -nzgrid:, :, :), intent(out), optional :: term_xy_z
 
       integer :: ivmu, imu, iv, iz, it, is, ia, ikx, iky
+      logical :: do_xy
+      real, dimension(ny, nx) :: h_xy, term_xy
+
+      do_xy = .false.
+      if (present(write_xy) .and. present(term_xy_z)) do_xy = write_xy
 
       sum_spec = 0.
       term_kxkyz = 0.
       energy_diag%velocity_integral1 = 0.
       sum_total = 0.
       g0 = 0.
+      if (do_xy) term_xy_z = 0.
 
       ia = 1
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -354,10 +427,21 @@ contains
                                     / (maxwell_fac(is) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is))
             energy_diag%velocity_integral1(:, :, iz, :, is) = energy_diag%velocity_integral1(:, :, iz, :, is) + &
                                                           wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g0(:, :, iz, :, ivmu)
+            if (do_xy) then
+               do it = 1, ntubes
+                  call transform_kxky_to_xy(h(:, :, iz, it, ivmu), h_xy)
+                  call transform_kxky_to_xy(term(:, :, iz, it, ivmu), term_xy)
+                  term_xy_z(:, :, iz, it, is) = term_xy_z(:, :, iz, it, is) + &
+                     transpose(0.5 * factor_spec(is) * wgts_vpa(iv) * wgts_mu(ia, iz, imu) &
+                        / (maxwell_fac(is) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)) &
+                        * term_xy * h_xy)
+               end do
+            end if
          end do
       end do
 
       call sum_allreduce(energy_diag%velocity_integral1)
+      if (do_xy) call sum_allreduce(term_xy_z)
 
       if (proc0) then
          do is = 1, nspec
@@ -654,6 +738,16 @@ contains
       if (write_energy_xy) then
          energy_diag%field_energy_xy_z = 0.
          energy_diag%particle_energy_xy_z = 0.
+         energy_diag%dedt_proj_xy_z = 0.
+         energy_diag%drive_xy_z = 0.
+         energy_diag%coll_xy_z = 0.
+         energy_diag%diss_vpa_xy_z = 0.
+         energy_diag%diss_zed_xy_z = 0.
+         energy_diag%diss_perp_xy_z = 0.
+         energy_diag%nonlinearity_xy_z = 0.
+         energy_diag%streaming_xy_z = 0.
+         energy_diag%mirror_xy_z = 0.
+         energy_diag%drifts_xy_z = 0.
       end if
       if (write_energy_vmu) then
          energy_diag%particle_energy_vmu = 0.
@@ -747,7 +841,8 @@ contains
             g1 = 0.
             call advance_wstar_explicit(phi, g1)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%drive_spec, drive_sum, energy_diag%drive_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%drive_spec, drive_sum, &
+                                           energy_diag%drive_kxkyz, write_energy_xy, energy_diag%drive_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%drive_vmu)
          else
             drive_sum = 0.
@@ -764,7 +859,8 @@ contains
             g1 = 0.
             call advance_collisions_explicit(g, phi, mod_bpar, g1)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%coll_spec, coll_sum, energy_diag%coll_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%coll_spec, coll_sum, &
+                                           energy_diag%coll_kxkyz, write_energy_xy, energy_diag%coll_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%coll_vmu)
          else
             coll_sum = 0.
@@ -781,7 +877,8 @@ contains
             g1 = 0.
             call advance_hyper_vpa(g, g1)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%diss_vpa_spec, diss_vpa_sum, energy_diag%diss_vpa_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%diss_vpa_spec, diss_vpa_sum, &
+                                           energy_diag%diss_vpa_kxkyz, write_energy_xy, energy_diag%diss_vpa_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%diss_vpa_vmu)
          else
             diss_vpa_sum = 0.
@@ -798,7 +895,8 @@ contains
             g1 = 0.
             call advance_hyper_zed(g, g1)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%diss_zed_spec, diss_zed_sum, energy_diag%diss_zed_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%diss_zed_spec, diss_zed_sum, &
+                                           energy_diag%diss_zed_kxkyz, write_energy_xy, energy_diag%diss_zed_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%diss_zed_vmu)
          else
             diss_zed_sum = 0.
@@ -822,7 +920,8 @@ contains
                   end do
                end do
             end do
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%diss_perp_spec, diss_perp_sum, energy_diag%diss_perp_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%diss_perp_spec, diss_perp_sum, &
+                                           energy_diag%diss_perp_kxkyz, write_energy_xy, energy_diag%diss_perp_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%diss_perp_vmu)
          else
             diss_perp_sum = 0.
@@ -839,7 +938,8 @@ contains
             g1 = 0.
             call advance_ExB_nonlinearity(g, g1, restart_time_step, istep)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%nonlinearity_spec, nonlinearity_sum, energy_diag%nonlinearity_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%nonlinearity_spec, nonlinearity_sum, &
+                                           energy_diag%nonlinearity_kxkyz, write_energy_xy, energy_diag%nonlinearity_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%nonlinearity_vmu)
          else
             nonlinearity_sum = 0.
@@ -856,7 +956,8 @@ contains
             g1 = 0.
             call advance_parallel_streaming_explicit(g, phi, mod_bpar, g1)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%streaming_spec, streaming_sum, energy_diag%streaming_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%streaming_spec, streaming_sum, &
+                                           energy_diag%streaming_kxkyz, write_energy_xy, energy_diag%streaming_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%streaming_vmu)
          else
             streaming_sum = 0.
@@ -873,7 +974,8 @@ contains
             g1 = 0.
             call advance_mirror_explicit(g, g1)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%mirror_spec, mirror_sum, energy_diag%mirror_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%mirror_spec, mirror_sum, &
+                                           energy_diag%mirror_kxkyz, write_energy_xy, energy_diag%mirror_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%mirror_vmu)
          else
             mirror_sum = 0.
@@ -895,7 +997,8 @@ contains
             call advance_wdriftx_explicit(g, phi, mod_bpar, g1)
             call advance_wdrifty_explicit(g, phi, mod_bpar, g1)
             g1 = g1 / code_dt
-            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%drifts_spec, drifts_sum, energy_diag%drifts_kxkyz)
+            call get_one_energy_term_kxkyz(h, g1, energy_diag%factor_spec, energy_diag%drifts_spec, drifts_sum, &
+                                           energy_diag%drifts_kxkyz, write_energy_xy, energy_diag%drifts_xy_z)
             if (write_energy_vmu) call get_one_energy_term_vmu(h, g1, energy_diag%factor_spec, energy_diag%drifts_vmu)
          else
             drifts_sum = 0.
@@ -922,6 +1025,14 @@ contains
          energy_diag%dedt_proj_kxkyz = energy_diag%drive_kxkyz + energy_diag%coll_kxkyz + energy_diag%diss_vpa_kxkyz + &
                                        energy_diag%diss_zed_kxkyz + energy_diag%diss_perp_kxkyz + energy_diag%nonlinearity_kxkyz + &
                                        energy_diag%streaming_kxkyz + energy_diag%mirror_kxkyz + energy_diag%drifts_kxkyz
+         ! The same identity is linear, so the real-space map of dH/dt is the
+         ! sum of the term maps. No extra transforms are needed.
+         if (write_energy_xy) then
+            energy_diag%dedt_proj_xy_z = energy_diag%drive_xy_z + energy_diag%coll_xy_z + &
+               energy_diag%diss_vpa_xy_z + energy_diag%diss_zed_xy_z + energy_diag%diss_perp_xy_z + &
+               energy_diag%nonlinearity_xy_z + energy_diag%streaming_xy_z + energy_diag%mirror_xy_z + &
+               energy_diag%drifts_xy_z
+         end if
          if (write_energy_vmu) then
             energy_diag%dedt_proj_vmu = energy_diag%drive_vmu + energy_diag%coll_vmu + energy_diag%diss_vpa_vmu + &
                                         energy_diag%diss_zed_vmu + energy_diag%diss_perp_vmu + energy_diag%nonlinearity_vmu + &
@@ -1009,6 +1120,16 @@ contains
       if (allocated(energy_diag%field_energy_kxkyz)) deallocate (energy_diag%field_energy_kxkyz)
       if (allocated(energy_diag%field_energy_xy_z)) deallocate (energy_diag%field_energy_xy_z)
       if (allocated(energy_diag%particle_energy_xy_z)) deallocate (energy_diag%particle_energy_xy_z)
+      if (allocated(energy_diag%dedt_proj_xy_z)) deallocate (energy_diag%dedt_proj_xy_z)
+      if (allocated(energy_diag%drive_xy_z)) deallocate (energy_diag%drive_xy_z)
+      if (allocated(energy_diag%coll_xy_z)) deallocate (energy_diag%coll_xy_z)
+      if (allocated(energy_diag%diss_vpa_xy_z)) deallocate (energy_diag%diss_vpa_xy_z)
+      if (allocated(energy_diag%diss_zed_xy_z)) deallocate (energy_diag%diss_zed_xy_z)
+      if (allocated(energy_diag%diss_perp_xy_z)) deallocate (energy_diag%diss_perp_xy_z)
+      if (allocated(energy_diag%nonlinearity_xy_z)) deallocate (energy_diag%nonlinearity_xy_z)
+      if (allocated(energy_diag%streaming_xy_z)) deallocate (energy_diag%streaming_xy_z)
+      if (allocated(energy_diag%mirror_xy_z)) deallocate (energy_diag%mirror_xy_z)
+      if (allocated(energy_diag%drifts_xy_z)) deallocate (energy_diag%drifts_xy_z)
 
       if (allocated(energy_diag%particle_energy_vmu)) deallocate (energy_diag%particle_energy_vmu)
       if (allocated(energy_diag%dedt_proj_vmu)) deallocate (energy_diag%dedt_proj_vmu)

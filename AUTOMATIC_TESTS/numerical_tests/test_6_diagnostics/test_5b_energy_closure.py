@@ -17,6 +17,8 @@
 #   adiabatic_nombt : linear, adiabatic electrons (periodic / no MBR)
 #   adiabatic_mbt   : linear, adiabatic electrons (field-line average / MBR)
 #   nonlinear       : nonlinear, adiabatic electrons (small box)
+#   xy              : box grid + write_energy_xy (term maps, double NetCDF)
+#   xy_single       : same as xy with energy_precision = 'single'
 #   per_species     : kinetic + write_energy_species on
 #   default_off     : write_energy off (diagnostic must be fully gated)
 #   exact_zero      : drive/drifts/streaming/mirror/hyper off (columns = 0)
@@ -49,6 +51,7 @@ CASES = [
     ('adiabatic_mbt',   'energy_adiabatic_mbt.in',    10, 1, True),
     ('nonlinear',       'energy_nonlinear.in',         8, 1, True),
     ('xy',              'energy_xy.in',               10, 2, True),
+    ('xy_single',       'energy_single.in',           10, 2, True),
 ]
 
 # Special-configuration cases (single-file inputs)
@@ -171,7 +174,12 @@ def test_netcdf_energy_variables(result):
           ds['diss_perp_kxkyz'].values[-1] + ds['nonlinearity_kxkyz'].values[-1] +
           ds['streaming_kxkyz'].values[-1] + ds['mirror_kxkyz'].values[-1] +
           ds['drifts_kxkyz'].values[-1])
-    assert np.allclose(dd, sm, atol=1e-12), \
+    # The identity is exact in double precision. Single-precision storage
+    # rounds each array independently, so the stored sum closes only to
+    # ~1e-7 * max|term|.
+    scale = np.max(np.abs(sm))
+    atol = 2e-6 * scale if dd.dtype == np.float32 else 1e-12
+    assert np.allclose(dd, sm, atol=atol), \
         f'per-mode projection identity fails: max diff = {np.max(np.abs(dd - sm))}'
     ds.close()
 
@@ -278,8 +286,8 @@ def test_field_vmu_is_scalar_broadcast(result):
     ds = xr.open_dataset(result['nc'])
     data = np.loadtxt(result['energy'], dtype='float', comments='#')
     fv = ds['field_energy_vmu'].values          # (t, mu, vpa)
-    # Tolerances: the array is float32 in the NetCDF and the ASCII columns are
-    # written with ~5 significant digits.
+    # Tolerances: the array may be float32 in the NetCDF (energy_precision =
+    # 'single') and the ASCII columns are written with ~5 significant digits.
     assert np.allclose(fv, data[:, 2][:, None, None], rtol=1e-4, atol=1e-14), \
         'field_energy_vmu is not the scalar broadcast'
     if 'field_energy_em_vmu' in ds:
@@ -353,8 +361,8 @@ def test_real_space_energy_density(result):
     1/(nx*ny); those factors are applied here, exactly as in the Fortran
     runtime check.
     """
-    if result['name'] != 'xy':
-        pytest.skip('real-space energy output is only enabled in energy_xy.in')
+    if result['name'] not in ('xy', 'xy_single'):
+        pytest.skip('real-space energy output is only enabled in the xy cases')
 
     ds = xr.open_dataset(result['nc'])
     try:
@@ -378,11 +386,11 @@ def test_real_space_energy_density(result):
         Hf = (fxy * dV).sum(dim=('x', 'y', 'zed', 'tube')) / (nx * ny * V)
         Hp = (pxy * dV).sum(dim=('x', 'y', 'zed', 'tube', 'species')) / (nx * ny * V)
 
-        assert np.allclose(Hf.values, data[:, 2], rtol=1e-5, atol=1e-12), (
+        assert np.allclose(Hf.values, data[:, 2], rtol=1e-4, atol=1e-12), (
             f"field xy integral != .energy col 3: max rel err "
             f"{np.max(np.abs(Hf.values - data[:, 2])) / np.max(np.abs(data[:, 2]))}"
         )
-        assert np.allclose(Hp.values, data[:, 1], rtol=1e-5, atol=1e-12), (
+        assert np.allclose(Hp.values, data[:, 1], rtol=1e-4, atol=1e-12), (
             f"particle xy integral != .energy col 2: max rel err "
             f"{np.max(np.abs(Hp.values - data[:, 1])) / np.max(np.abs(data[:, 1]))}"
         )
@@ -393,3 +401,95 @@ def test_real_space_energy_density(result):
         assert np.nanmin(pxy.values) >= -1e-12
     finally:
         ds.close()
+
+#-------------------------------------------------------------------------------
+#                     Real-space maps of the energy terms
+#-------------------------------------------------------------------------------
+REAL_SPACE_TERM_COLUMNS = {
+    'drive_xy_z': 'drive',
+    'collisions_xy_z': 'collisions',
+    'diss_vpa_xy_z': 'diss_vpa',
+    'diss_zed_xy_z': 'diss_zed',
+    'diss_perp_xy_z': 'diss_perp',
+    'nonlinearity_xy_z': 'nonlinearity',
+    'streaming_xy_z': 'streaming',
+    'mirror_xy_z': 'mirror',
+    'drifts_xy_z': 'drifts',
+}
+
+def test_real_space_energy_terms(result):
+    """Every term map integrates back to its .energy column.
+
+    Each map is the local product Re[T(x,y) h*(x,y)] with the same velocity
+    weights as the kxkyz array; it is NOT the IFFT of the per-mode array.
+    """
+    if result['name'] not in ('xy', 'xy_single'):
+        pytest.skip('real-space term maps are only enabled in the xy cases')
+
+    ds = xr.open_dataset(result['nc'])
+    try:
+        data = np.loadtxt(result['energy'], dtype='float', comments='#')
+        header = open(result['energy']).readline().split('#')[1].split()
+        col = {name: i for i, name in enumerate(header)}
+        nx = ds.sizes['x']
+        ny = ds.sizes['y']
+        dV = ds['dVolume'].isel(alpha=0, kx=0).values  # (zed,)
+        V = float(dV.sum())
+        w = dV[None, None, None, :, None, None]
+
+        for var, cname in REAL_SPACE_TERM_COLUMNS.items():
+            assert var in ds.variables, f'NetCDF var {var} missing.'
+            var_da = ds[var]
+            assert set(var_da.dims) == {'x', 'y', 'zed', 'tube', 'species', 't'}
+            got = (var_da.values * w).sum(axis=(1, 2, 3, 4, 5)) / (nx * ny * V)
+            want = data[:, col[cname]]
+            # Some terms cancel strongly in the volume integral (e.g. drifts is
+            # ~1e-21 while its local values are ~1e-4). The integral is then
+            # only meaningful down to the round-off of the L1 norm of the map.
+            l1 = (np.abs(var_da.values) * w).sum(axis=(1, 2, 3, 4, 5)) / (nx * ny * V)
+            roundoff = 1e-5 if var_da.dtype == np.float32 else 1e-11
+            atol = roundoff * np.max(l1)
+            assert np.allclose(got[1:], want[1:], rtol=1e-4, atol=atol), \
+                f'{var} integral != .energy column {cname}: ' \
+                f'max abs diff {np.max(np.abs(got[1:] - want[1:]))}'
+
+        # dH/dt is the sum of the term maps (linear identity, no extra FFTs).
+        total = sum(ds[v].values for v in REAL_SPACE_TERM_COLUMNS)
+        dedt = ds['dedt_projected_xy_z'].values
+        scale = np.max(np.abs(total))
+        assert np.allclose(dedt, total, rtol=1e-4, atol=1e-6 * scale), \
+            'dedt_projected_xy_z is not the sum of the term maps'
+    finally:
+        ds.close()
+
+#-------------------------------------------------------------------------------
+def test_energy_precision(stella_version):
+    """energy_precision selects the on-disk dtype, halves the file size and does
+    not change the computed .energy columns."""
+    double = run_case('energy_xy.in', 'xy', stella_version)
+    single = run_case('energy_single.in', 'xy_single', stella_version)
+
+    dsd = xr.open_dataset(double['nc'])
+    dss = xr.open_dataset(single['nc'])
+    try:
+        names = [v for v in dsd.variables if v.endswith(('_kxkyz', '_vmu', '_xy_z'))]
+        assert names, 'no energy arrays found in the double-precision file'
+        for v in names:
+            assert dsd[v].dtype == np.float64, f'{v} should be float64'
+        for v in dss.variables:
+            if v.endswith(('_kxkyz', '_vmu', '_xy_z')):
+                assert v in names, f'{v} missing from the double-precision file'
+                assert dss[v].dtype == np.float32, f'{v} should be float32'
+        assert dsd.attrs.get('energy_precision') == 'double'
+        assert dss.attrs.get('energy_precision') == 'single'
+    finally:
+        dsd.close()
+        dss.close()
+
+    # The switch only affects storage: the ascii columns are bit-identical.
+    a = np.loadtxt(double['energy'], dtype='float', comments='#')
+    b = np.loadtxt(single['energy'], dtype='float', comments='#')
+    assert np.array_equal(a, b), 'energy_precision changed the .energy columns'
+
+    assert os.path.getsize(single['nc']) < 0.6 * os.path.getsize(double['nc']), \
+        'single-precision file is not smaller than expected'
