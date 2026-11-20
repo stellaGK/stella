@@ -42,7 +42,7 @@ contains
       use grids_z, only: nztot, nzgrid
       
       ! Only initialise once
-      use arrays, only: initialised_parallel_streaming
+      use arrays, only: initialised_parallel_nonlinearity
 
       ! Geometry
       use geometry, only: geo_surf, drhodpsi, q_as_x
@@ -98,7 +98,7 @@ contains
          end if
       end if
 
-      initialised_parallel_streaming = .true.
+      initialised_parallel_nonlinearity = .true.
 
    end subroutine init_parallel_nonlinearity
 
@@ -452,7 +452,7 @@ contains
    !****************************************************************************
    subroutine finish_parallel_nonlinearity
 
-      use arrays, only: initialised_parallel_streaming
+      use arrays, only: initialised_parallel_nonlinearity
 
       implicit none
 
@@ -465,7 +465,7 @@ contains
       if (allocated(d_par_nl_driftx_dr)) deallocate (d_par_nl_driftx_dr)
       if (allocated(d_par_nl_drifty_dr)) deallocate (d_par_nl_drifty_dr)
 
-      initialised_parallel_streaming = .false.
+      initialised_parallel_nonlinearity = .false.
 
    end subroutine finish_parallel_nonlinearity
 
