@@ -104,6 +104,9 @@
 
 ! Free-energy diagnostic (free-energy closure): write the 18-column ascii
 ! '.energy' file plus the full (kxkyz) and spatially-averaged (vmu) NetCDF.
+&diagnostics_potential
+  write_phi_vs_kxkyz = .true.
+/
 &diagnostics_energy
   write_energy = .true.
   write_energy_kxkyz = .true.
