@@ -110,7 +110,7 @@ contains
       ! Constants + Paralellisation
       use constants, only: zi
       use initialise_redistribute, only: xyz2vmu
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use mp, only: scope, allprocs, subprocs
       use mp, only: proc0, min_allreduce, mp_abort
       use redistribute, only: gather, scatter
@@ -132,7 +132,6 @@ contains
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
       use grids_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
-      use timers, only: time_parallel_nl
       use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
       
       ! Calculations
@@ -170,7 +169,7 @@ contains
       ! Which happens when be set grid_option = 'range'
 
       ! Alpha-component of magnetic drift (requires ky -> y)
-      if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')
+      call region_start('parallel_nonlinearity')
 
       ! Initialize cfl_dt_parallel
       cfl_dt_parallel = 10000000.
@@ -289,9 +288,9 @@ contains
 
       ! We now have the advection velocity in vpa in (x,y) space.
       ! Next redistribute it so that (vpa,mu) are local
-      if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
+      call region_start('parallel_nonlinearity_redistribute')
       call scatter(xyz2vmu, g0xy, gxy_vmulocal)
-      if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
+      call region_end('parallel_nonlinearity_redistribute')
       ! The advection speed depends on vpa through the drift and curvature terms (proportional to vpa),
       ! so keep it at every vpa point
       advect_speed = gxy_vmulocal
@@ -310,9 +309,9 @@ contains
       end do
 
       ! Redistribute so that (vpa,mu) local
-      if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
+      call region_start('parallel_nonlinearity_redistribute')
       call scatter(xyz2vmu, g0xy, gxy_vmulocal)
-      if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
+      call region_end('parallel_nonlinearity_redistribute')
 
       allocate (dgdv(nvpa), dgdv_minus(nvpa))
 
@@ -345,9 +344,9 @@ contains
 
       ! Now that we have the full parallel nonlinearity in (x,y)-space.
       ! Need to redistribute so that (x,y) local for transforms
-      if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
+      call region_start('parallel_nonlinearity_redistribute')
       call gather(xyz2vmu, gxy_vmulocal, g0xy)
-      if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
+      call region_end('parallel_nonlinearity_redistribute')
 
       ! Finished with gxy_vmulocal - deallocate
       deallocate (gxy_vmulocal)
@@ -414,7 +413,7 @@ contains
          restart_time_step = .true.
       end if
 
-      if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')
+      call region_end('parallel_nonlinearity')
 
    end subroutine advance_parallel_nonlinearity
 

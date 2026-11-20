@@ -1,0 +1,338 @@
+! Tests of utils/linear_solve, the LU decomposition and back substitution of the dense matrices
+! of stella (e.g. the response matrix). LAPACK and PLASMA themselves are not tested, only the
+! code of stella around them:
+!  - test_lu_*_backends and *_in_omp_loop: the factors of PLASMA (outside OpenMP parallel
+!    regions) are solved by LAPACK (inside them), so both must store them in the same way;
+!  - *_singular*: the zero pivots of a singular matrix are replaced by a small number;
+!  - *_matrix_nonsquare and real_complex: the shapes of the right-hand sides (ldb, nrhs) and
+!    the complex right-hand side of a real matrix;
+!  - *_determinant: the sign of the permutation.
+! Without PLASMA, both sides of these tests call LAPACK.
+module test_utils_linear_solve
+  use funit
+  use linear_solve
+  use plasma_interface, only: stella_linear_algebra_init, stella_linear_algebra_finish
+  implicit none
+
+  integer, parameter :: n = 12
+
+contains
+
+  ! PLASMA has to be initialised to be used, without PLASMA these do nothing
+  @before
+  subroutine set_up
+    call stella_linear_algebra_init
+  end subroutine set_up
+
+  @after
+  subroutine tear_down
+    call stella_linear_algebra_finish
+  end subroutine tear_down
+
+  ! Factorise A and solve A x = b, either outside or inside an OpenMP parallel region
+  subroutine factorise_and_solve_complex(a, b, in_omp, x)
+    complex, dimension(:, :), intent(in) :: a
+    complex, dimension(:), intent(in) :: b
+    logical, intent(in) :: in_omp
+    complex, dimension(:), intent(out) :: x
+    complex, dimension(size(a, 1), size(a, 2)) :: lu
+    integer, dimension(size(a, 1)) :: idx
+    real :: d
+
+    lu = a
+    x = b
+    if (in_omp) then
+      !$omp parallel
+      !$omp single
+      call lu_decomposition(lu, idx, d)
+      call lu_back_substitution(lu, idx, x)
+      !$omp end single
+      !$omp end parallel
+    else
+      call lu_decomposition(lu, idx, d)
+      call lu_back_substitution(lu, idx, x)
+    end if
+  end subroutine factorise_and_solve_complex
+
+  subroutine factorise_and_solve_real(a, b, in_omp, x)
+    real, dimension(:, :), intent(in) :: a
+    real, dimension(:), intent(in) :: b
+    logical, intent(in) :: in_omp
+    real, dimension(:), intent(out) :: x
+    real, dimension(size(a, 1), size(a, 2)) :: lu
+    integer, dimension(size(a, 1)) :: idx
+    real :: d
+
+    lu = a
+    x = b
+    if (in_omp) then
+      !$omp parallel
+      !$omp single
+      call lu_decomposition(lu, idx, d)
+      call lu_back_substitution(lu, idx, x)
+      !$omp end single
+      !$omp end parallel
+    else
+      call lu_decomposition(lu, idx, d)
+      call lu_back_substitution(lu, idx, x)
+    end if
+  end subroutine factorise_and_solve_real
+
+  ! PLASMA (outside) and LAPACK (inside an OpenMP parallel region) give the same solution, see
+  ! the top of this file. Without PLASMA, both are LAPACK
+  @test
+  subroutine test_lu_complex_backends
+    complex, dimension(n, n) :: a
+    complex, dimension(n) :: b, x_plasma, x_lapack
+    integer :: i
+
+    a = test_matrix()
+    b = [(cmplx(real(i), -0.5 * real(i)), i=1, n)]
+    call factorise_and_solve_complex(a, b, .false., x_plasma)
+    call factorise_and_solve_complex(a, b, .true., x_lapack)
+    @assertLessThan(maxval(abs(matmul(a, x_plasma) - b)), 1.0e-10 * maxval(abs(b)))
+    @assertLessThan(maxval(abs(matmul(a, x_lapack) - b)), 1.0e-10 * maxval(abs(b)))
+    @assertLessThan(maxval(abs(x_lapack - x_plasma)), 1.0e-10 * maxval(abs(x_plasma)))
+  end subroutine test_lu_complex_backends
+
+  @test
+  subroutine test_lu_real_backends
+    real, dimension(n, n) :: a
+    real, dimension(n) :: b, x_plasma, x_lapack
+    integer :: i
+
+    a = test_matrix_real()
+    b = [(real(i) - 0.3 * real(i * i), i=1, n)]
+    call factorise_and_solve_real(a, b, .false., x_plasma)
+    call factorise_and_solve_real(a, b, .true., x_lapack)
+    @assertLessThan(maxval(abs(matmul(a, x_plasma) - b)), 1.0e-10 * maxval(abs(b)))
+    @assertLessThan(maxval(abs(matmul(a, x_lapack) - b)), 1.0e-10 * maxval(abs(b)))
+    @assertLessThan(maxval(abs(x_lapack - x_plasma)), 1.0e-10 * maxval(abs(x_plasma)))
+  end subroutine test_lu_real_backends
+
+  ! A complex matrix that needs pivoting (small diagonal)
+  function test_matrix() result(a)
+    complex, dimension(n, n) :: a
+    integer :: i, j
+    do j = 1, n
+      do i = 1, n
+        a(i, j) = cmplx(sin(real(3 * i + 7 * j)), cos(real(5 * i - 2 * j)))
+      end do
+      a(j, j) = 1.0e-3 * a(j, j)
+    end do
+  end function test_matrix
+
+  ! A real matrix that needs pivoting (small diagonal)
+  function test_matrix_real() result(a)
+    real, dimension(n, n) :: a
+    integer :: i, j
+    do j = 1, n
+      do i = 1, n
+        a(i, j) = sin(real(3 * i + 7 * j)) + cos(real(5 * i - 2 * j))
+      end do
+      a(j, j) = 1.0e-3 * a(j, j)
+    end do
+  end function test_matrix_real
+
+  ! Several right-hand sides, fewer than size(lu, 1), and in a b with more rows than A. The
+  ! first nonzero of the second column comes before the one of the first column
+  @test
+  subroutine test_lu_complex_matrix_nonsquare
+    complex, dimension(n, n) :: a, lu
+    complex, dimension(n + 2, 3) :: b, x
+    integer, dimension(n) :: idx
+    real :: d
+    integer :: i
+
+    a = test_matrix()
+    b = 0.0
+    b(5:n, 1) = [(cmplx(real(i), 1.0), i=5, n)]
+    b(1:n, 2) = [(cmplx(1.0, real(i)), i=1, n)]
+    b(1:n, 3) = [(cmplx(cos(real(i)), 0.0), i=1, n)]
+    b(n + 1:, :) = cmplx(7.0, 7.0)
+    lu = a
+    x = b
+    call lu_decomposition(lu, idx, d)
+    call lu_back_substitution(lu, idx, x)
+    @assertLessThan(maxval(abs(matmul(a, x(1:n, :)) - b(1:n, :))), 1.0e-10 * maxval(abs(b(1:n, :))))
+    @assertTrue(all(x(n + 1:, :) == b(n + 1:, :)))
+  end subroutine test_lu_complex_matrix_nonsquare
+
+  ! The determinant d * prod(diag(U)) does not depend on the pivoting, so it also checks the sign d
+  @test
+  subroutine test_lu_complex_determinant
+    complex, dimension(3, 3) :: lu
+    integer, dimension(3) :: idx
+    real :: d
+    complex :: det
+    integer :: j
+
+    ! The rows (0,1,2), (1,0,3), (4,-3,8) give det = 0 - 1*(8-12) + 2*(-3) = -2, and the zero
+    ! in the first column needs pivoting
+    lu = transpose(reshape([cmplx(0.0), cmplx(1.0), cmplx(2.0), &
+                            cmplx(1.0), cmplx(0.0), cmplx(3.0), &
+                            cmplx(4.0), cmplx(-3.0), cmplx(8.0)], [3, 3]))
+    call lu_decomposition(lu, idx, d)
+    det = d
+    do j = 1, 3
+      det = det * lu(j, j)
+    end do
+    @assertLessThan(abs(det - cmplx(-2.0)), 1.0e-12)
+  end subroutine test_lu_complex_determinant
+
+  ! Solve with the same factors from several OpenMP threads at once, as stella does inside its
+  ! !$omp loops. Without OpenMP this is a plain loop
+  @test
+  subroutine test_lu_complex_solve_in_omp_loop
+    integer, parameter :: nb = 32
+    complex, dimension(n, n) :: a, lu
+    complex, dimension(n, nb) :: b, x
+    integer, dimension(n) :: idx
+    real :: d
+    integer :: i, k
+
+    a = test_matrix()
+    do k = 1, nb
+      b(:, k) = [(cmplx(real(i + k), sin(real(i * k))), i=1, n)]
+    end do
+    lu = a
+    x = b
+    call lu_decomposition(lu, idx, d)
+    !$omp parallel do
+    do k = 1, nb
+      call lu_back_substitution(lu, idx, x(:, k))
+    end do
+    !$omp end parallel do
+    @assertLessThan(maxval(abs(matmul(a, x) - b)), 1.0e-10 * maxval(abs(b)))
+  end subroutine test_lu_complex_solve_in_omp_loop
+
+  ! A singular matrix must not give NaNs or Infs (zero pivots are replaced by a small number)
+  @test
+  subroutine test_lu_complex_singular
+    complex, dimension(2, 2) :: lu
+    integer, dimension(2) :: idx
+    real :: d
+
+    lu = reshape([cmplx(1.0), cmplx(2.0), cmplx(2.0), cmplx(4.0)], [2, 2])
+    call lu_decomposition(lu, idx, d)
+    @assertTrue(all(abs(lu) < huge(1.0)))
+    @assertTrue(abs(d) == 1.0)
+    @assertTrue(abs(lu(2, 2)) > 0.0)
+  end subroutine test_lu_complex_singular
+
+  ! The factors of a singular matrix come from LAPACK also with PLASMA (which stops at a zero
+  ! pivot), and the solve with them, by PLASMA, must not give NaNs either
+  @test
+  subroutine test_lu_complex_singular_solve
+    complex, dimension(2, 2) :: lu
+    complex, dimension(2) :: x
+    integer, dimension(2) :: idx
+    real :: d
+
+    lu = reshape([cmplx(1.0), cmplx(2.0), cmplx(2.0), cmplx(4.0)], [2, 2])
+    x = [cmplx(1.0), cmplx(2.0)]
+    call lu_decomposition(lu, idx, d)
+    call lu_back_substitution(lu, idx, x)
+    @assertFalse(any(x /= x))
+  end subroutine test_lu_complex_singular_solve
+
+  ! Real version of test_lu_complex_solve_in_omp_loop
+  @test
+  subroutine test_lu_real_solve_in_omp_loop
+    integer, parameter :: nb = 32
+    real, dimension(n, n) :: a, lu
+    real, dimension(n, nb) :: b, x
+    integer, dimension(n) :: idx
+    real :: d
+    integer :: i, k
+
+    a = test_matrix_real()
+    do k = 1, nb
+      b(:, k) = [(real(i + k) * sin(real(i * k)), i=1, n)]
+    end do
+    lu = a
+    x = b
+    call lu_decomposition(lu, idx, d)
+    !$omp parallel do
+    do k = 1, nb
+      call lu_back_substitution(lu, idx, x(:, k))
+    end do
+    !$omp end parallel do
+    @assertLessThan(maxval(abs(matmul(a, x) - b)), 1.0e-10 * maxval(abs(b)))
+  end subroutine test_lu_real_solve_in_omp_loop
+
+  ! Real version of test_lu_complex_matrix_nonsquare
+  @test
+  subroutine test_lu_real_matrix_nonsquare
+    real, dimension(n, n) :: a, lu
+    real, dimension(n + 2, 3) :: b, x
+    integer, dimension(n) :: idx
+    real :: d
+    integer :: i
+
+    a = test_matrix_real()
+    b = 0.0
+    b(5:n, 1) = [(real(i), i=5, n)]
+    b(1:n, 2) = [(1.0 - real(i), i=1, n)]
+    b(1:n, 3) = [(cos(real(i)), i=1, n)]
+    b(n + 1:, :) = 7.0
+    lu = a
+    x = b
+    call lu_decomposition(lu, idx, d)
+    call lu_back_substitution(lu, idx, x)
+    @assertLessThan(maxval(abs(matmul(a, x(1:n, :)) - b(1:n, :))), 1.0e-10 * maxval(abs(b(1:n, :))))
+    @assertTrue(all(x(n + 1:, :) == b(n + 1:, :)))
+  end subroutine test_lu_real_matrix_nonsquare
+
+  ! Real A and complex b
+  @test
+  subroutine test_lu_real_complex_residual
+    real, dimension(n, n) :: a, lu
+    complex, dimension(n) :: b, x
+    integer, dimension(n) :: idx
+    real :: d
+    integer :: i
+
+    a = test_matrix_real()
+    b = [(cmplx(real(i), 2.0 - real(i * i)), i=1, n)]
+    lu = a
+    x = b
+    call lu_decomposition(lu, idx, d)
+    call lu_back_substitution(lu, idx, x)
+    @assertLessThan(maxval(abs(matmul(a, x) - b)), 1.0e-10 * maxval(abs(b)))
+  end subroutine test_lu_real_complex_residual
+
+  ! Real version of test_lu_complex_determinant
+  @test
+  subroutine test_lu_real_determinant
+    real, dimension(3, 3) :: lu
+    integer, dimension(3) :: idx
+    real :: d, det
+    integer :: j
+
+    lu = transpose(reshape([0.0, 1.0, 2.0, &
+                            1.0, 0.0, 3.0, &
+                            4.0, -3.0, 8.0], [3, 3]))
+    call lu_decomposition(lu, idx, d)
+    det = d
+    do j = 1, 3
+      det = det * lu(j, j)
+    end do
+    @assertLessThan(abs(det + 2.0), 1.0e-12)
+  end subroutine test_lu_real_determinant
+
+  ! Real version of test_lu_complex_singular
+  @test
+  subroutine test_lu_real_singular
+    real, dimension(2, 2) :: lu
+    integer, dimension(2) :: idx
+    real :: d
+
+    lu = reshape([1.0, 2.0, 2.0, 4.0], [2, 2])
+    call lu_decomposition(lu, idx, d)
+    @assertTrue(all(abs(lu) < huge(1.0)))
+    @assertTrue(abs(d) == 1.0)
+    @assertTrue(abs(lu(2, 2)) > 0.0)
+  end subroutine test_lu_real_singular
+
+end module test_utils_linear_solve

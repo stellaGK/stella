@@ -115,9 +115,11 @@ module calculations_transforms
    ! Arrays for transforming from alpha-space to k-alpha space
    real, dimension(:), allocatable :: fft_alpha_alpha       ! dimension: nalpha/2+1
    complex, dimension(:), allocatable :: fft_alpha_kalpha   ! dimension: nalpha
-
+   
    ! Only initialise the FFTW plans once
    logical :: transforms_initialized = .false.
+    
+   !$omp threadprivate(fft_y_in,fft_y_out,fft_x_k,fft_x_x,fft_xs_k,fft_xs_x,fft_ys_k,fft_ys_y,fftnp_x_k,fftnp_x_x,fftnp_y_k,fftnp_y_y,fft_alpha_alpha,fft_alpha_kalpha)
 
 contains
 
@@ -396,6 +398,10 @@ contains
       iky_max = vmu_lo%naky
       ipad_up = iky_max + vmu_lo%ny - (2 * vmu_lo%naky - 1)
 
+
+      if (.not. allocated(fft_y_in)) allocate (fft_y_in(vmu_lo%ny))
+      if (.not. allocated(fft_y_out)) allocate (fft_y_out(vmu_lo%ny))
+
       ! Iterate over vmu, tubes, z and positive kx since we Fourier transform along ny
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, vmu_lo%ntubes
@@ -445,6 +451,10 @@ contains
       ! Get the indices of the last positive ky <iky_max> and negative ky <ipad_up>
       iky_max = vmu_lo%naky
       ipad_up = iky_max + vmu_lo%ny - (2 * vmu_lo%naky - 1)
+
+
+      if (.not. allocated(fft_y_in)) allocate (fft_y_in(vmu_lo%ny))
+      if (.not. allocated(fft_y_out)) allocate (fft_y_out(vmu_lo%ny))
 
       ! Iterate over positive kx since we Fourier transform along ny
       do ikx = 1, vmu_lo%nakx / 2 + 1
@@ -535,6 +545,11 @@ contains
       ! Get the indices of the last positive ky <iky_max> and negative ky <ipad_up>
       iky_max = vmu_lo%naky
       ipad_up = iky_max + vmu_lo%ny - (2 * vmu_lo%naky - 1)
+
+
+      if (.not. allocated(fft_y_in)) allocate (fft_y_in(vmu_lo%ny))
+      if (.not. allocated(fft_y_out)) allocate (fft_y_out(vmu_lo%ny))
+
       
       ! Iterate over positive kx since we Fourier transform along ny
       do ikx = 1, vmu_lo%nakx / 2 + 1
@@ -571,6 +586,10 @@ contains
 
       integer :: iy
 
+
+      if (.not. allocated(fft_x_k)) allocate (fft_x_k(vmu_lo%nx / 2 + 1))
+      if (.not. allocated(fft_x_x)) allocate (fft_x_x(vmu_lo%nx))
+
       ! Iterate over ny since we Fourier transform along nx
       do iy = 1, vmu_lo%ny
          ! Pad the remainder of the array with zeros (since the real array is longer
@@ -604,6 +623,10 @@ contains
       complex, dimension(:, :), intent(out) :: gkx       ! gkx(ny,nakx/2+1)
 
       integer :: iy
+
+
+      if (.not. allocated(fft_x_k)) allocate (fft_x_k(vmu_lo%nx / 2 + 1))
+      if (.not. allocated(fft_x_x)) allocate (fft_x_x(vmu_lo%nx))
 
       ! Iterate over ny since we Fourier transform gx(ny,nx) along nx
       do iy = 1, vmu_lo%ny
@@ -641,6 +664,10 @@ contains
       ikx_max = vmu_lo%nakx / 2 + 1
       ipad_up = ikx_max + vmu_lo%nx - vmu_lo%nakx
 
+
+      if (.not. allocated(fft_xs_k)) allocate (fft_xs_k(vmu_lo%nx))
+      if (.not. allocated(fft_xs_x)) allocate (fft_xs_x(vmu_lo%nx))
+      
       ! Iterate over naky since we Fourier transform gkx(nakx,nakx) along nx
       do iky = 1, vmu_lo%naky
           ! Pad the middle of the array with zeros: zero padding in the wavenumber
@@ -683,6 +710,9 @@ contains
       ikx_max = vmu_lo%nakx / 2 + 1
       ipad_up = ikx_max + vmu_lo%nx - vmu_lo%nakx
 
+      if (.not. allocated(fft_xs_k)) allocate (fft_xs_k(vmu_lo%nx))
+      if (.not. allocated(fft_xs_x)) allocate (fft_xs_x(vmu_lo%nx))
+
       ! Iterate over naky since we Fourier transform gx(naky,nx) along nx 
       do iky = 1, vmu_lo%naky
          ! Fill in the array with gx(naky,nx)
@@ -718,6 +748,9 @@ contains
 
       integer :: ix
 
+      if (.not. allocated(fft_ys_k)) allocate (fft_ys_k(vmu_lo%ny / 2 + 1))
+      if (.not. allocated(fft_ys_y)) allocate (fft_ys_y(vmu_lo%ny))
+
       ! Iterate over nx since we Fourier transform gky(naky,nx) along ny
       do ix = 1, vmu_lo%nx
          ! Pad the remainder of the array with zeros (since the real array is longer)
@@ -751,6 +784,9 @@ contains
       complex, dimension(:, :), intent(out) :: gky
 
       integer :: ix
+
+      if (.not. allocated(fft_ys_k)) allocate (fft_ys_k(vmu_lo%ny / 2 + 1))
+      if (.not. allocated(fft_ys_y)) allocate (fft_ys_y(vmu_lo%ny))
 
       ! Iterate over nx since we Fourier transform gy(ny,nx) along ny
       do ix = 1, vmu_lo%nx

@@ -50,9 +50,7 @@ ifdef USE_NETCDF
   F90FLAGS = -DNETCDF
 endif
 
-ifdef USE_LAPACK
-  LAPACK_LIB = -qmkl
-endif
+LAPACK_LIB = -qmkl
 
 ifdef USE_SFINCS
       SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs

@@ -396,8 +396,7 @@ contains
       use parallelisation_layouts, only: vmu_lo
       use job_manage, only: njobs
       use file_utils, only: get_unused_unit
-      use job_manage, only: time_message
-      use timers, only: time_multibox
+      use timers, only: region_start, region_end
 
       ! Grids
       use constants, only: zi
@@ -445,7 +444,7 @@ contains
       if (lr_debug_switch /= lr_debug_option_default) return
       if (njobs /= 3) call mp_abort("Multibox only supports 3 domains at the moment.")
 
-      if (proc0) call time_message(.false., time_multibox(:, 1), ' mb_comm')
+      call region_start('multibox_comm')
 
       allocate (prefac(naky, x_fft_size)); prefac = 1.0
 
@@ -593,7 +592,7 @@ contains
 
       deallocate (prefac)
 
-      if (proc0) call time_message(.false., time_multibox(:, 1), ' mb_comm')
+      call region_end('multibox_comm')
 
    end subroutine multibox_communicate
 
@@ -677,9 +676,8 @@ contains
       use grids_kxky, only: nakx, naky, periodic_variation
       use parameters_multibox, only: boundary_size
       use grids_z, only: nzgrid, ntubes
-      use mp, only: job, proc0
-      use job_manage, only: time_message
-      use timers, only: time_multibox
+      use mp, only: job
+      use timers, only: region_start, region_end
       use parameters_multibox, only: nu_krook_mb
       use parameters_multibox, only: use_dirichlet_BC
 
@@ -694,7 +692,7 @@ contains
       complex, allocatable, dimension(:, :) :: g0x, g0k
       if (job /= 1 .and. .not. use_dirichlet_BC) return
 
-      if (proc0) call time_message(.false., time_multibox(:, 2), ' mb_krook')
+      call region_start('multibox_krook')
 
       allocate (g0k(naky, nakx))
       allocate (g0x(naky, x_fft_size))
@@ -736,7 +734,7 @@ contains
 
       deallocate (g0k, g0x)
 
-      if (proc0) call time_message(.false., time_multibox(:, 2), ' mb_krook')
+      call region_end('multibox_krook')
 
    end subroutine add_multibox_krook
 

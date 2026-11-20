@@ -10,3 +10,7 @@
 [submodule "EXTERNALS/pyrokinetics"]
 	path = EXTERNALS/pyrokinetics
 	url = https://github.com/pyro-kinetics/pyrokinetics
+[submodule "EXTERNALS/plasma"]
+	path = EXTERNALS/plasma
+	url = https://github.com/icl-utk-edu/plasma.git
+	ignore = untracked

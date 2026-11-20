@@ -40,9 +40,14 @@ contains
       ! Local variables
       integer :: ivmu
       integer :: iky, ikx, iz, it
-      
+
       !-------------------------------------------------------------------------
 
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, nzgrid, ntubes, naky, nakx) &
+      !$omp private(ivmu, it, iz, ikx, iky) &
+      !$omp shared(g, src, pre_factor)
+      !$omp do collapse(3)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -54,6 +59,8 @@ contains
             end do
          end do
       end do
+      !$omp end do
+      !$omp end parallel
 
    end subroutine add_explicit_term
 
@@ -77,9 +84,14 @@ contains
       ! Local variables
       integer :: ivmu
       integer :: ia, ikx, iz, it
-      
+
       !-------------------------------------------------------------------------
 
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, nzgrid, ntubes, ikx_max, nalpha) &
+      !$omp private(ivmu, it, iz, ikx, ia) &
+      !$omp shared(g, src, pre_factor)
+      !$omp do collapse(3)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -91,6 +103,8 @@ contains
             end do
          end do
       end do
+      !$omp end do
+      !$omp end parallel
 
    end subroutine add_explicit_term_ffs
 

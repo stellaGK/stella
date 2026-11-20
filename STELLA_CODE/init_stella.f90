@@ -37,8 +37,7 @@ contains
 
       ! Parallelisation
       use mp, only: proc0
-      use job_manage, only: time_message
-      use timers, only: time_init
+      use timers, only: region_end
       
       ! Time trace
       use grids_time, only: init_tstart
@@ -157,7 +156,7 @@ contains
       call print_header
       
       ! Stop the timing of the Initialisation
-      if (proc0) call time_message(.false., time_init, ' Initialisation')
+      call region_end('initialisation')
 
    end subroutine initialise_stella
    
@@ -187,9 +186,7 @@ contains
       use file_utils, only: runtype_option_switch
       
       ! Start more timers
-      use job_manage, only: time_message
-      use timers, only: time_total
-      use timers, only: time_init
+      use timers, only: region_start
       
       ! Assign the <run_name> to each job
       use file_utils, only: run_name
@@ -197,6 +194,9 @@ contains
       
       ! Initialise the random number generator
       use interface_random_number_generator, only: init_random_number_generator
+      
+      ! Initialise the linear algebra libraries (PLASMA, does nothing without PLASMA)
+      use plasma_interface, only: stella_linear_algebra_init
       
       implicit none
       
@@ -208,7 +208,11 @@ contains
 
       ! Initialise MPI (Message Passing Interface) which allows us to parallelise
       ! computations over the <nproc> available processors. It will assign a <proc0>.
-      if (.not. mpi_initialised) call init_mp
+      if (.not. mpi_initialised) then
+         call init_mp
+         ! Initialise the linear algebra libraries once per MPI process, outside of any OpenMP region
+         call stella_linear_algebra_init
+      end if
       mpi_initialised = .true.
 
       ! Initialise timer, so that stella exits 5 minutes before <avail_cpu_time>
@@ -236,10 +240,8 @@ contains
       if (list) call job_fork
 
       ! Start internal timers, this is part of job_manage and needs to be called after job_fork
-      if (proc0) then
-         call time_message(.false., time_total, ' Total')
-         call time_message(.false., time_init, ' Initialisation')
-      end if
+      call region_start('total')
+      call region_start('initialisation')
 
       ! Assign a <run_name> to each job, generally this is the name of the input file
       if (proc0) cbuff = trim(run_name)
@@ -810,24 +812,10 @@ contains
       ! Parallelisation
       use mp, only: finish_mp
       use mp, only: proc0
+      use plasma_interface, only: stella_linear_algebra_finish
       
       ! Time routines
-      use job_manage, only: time_message
-      use timers, only: time_total
-      use timers, only: time_init
-      use timers, only: time_gke
-      use timers, only: time_mirror
-      use timers, only: time_sources
-      use timers, only: time_multibox
-      use timers, only: time_collisions
-      use timers, only: time_field_solve
-      use timers, only: time_parallel_nl
-      use timers, only: time_implicit_advance
-      use timers, only: time_all_diagnostics
-      use timers, only: time_parallel_streaming
-      use timers, only: time_individual_diagnostics
-      use timers, only: time_response_matrix
-      use timers, only: time_lu_decomposition
+      use timers, only: region_end, region_total_time
       
       ! Flags
       use file_utils, only: runtype_option_switch
@@ -918,19 +906,19 @@ contains
       call finish_z_grid
       if (debug) write (*, *) 'stella::finish_stella::finish_file_utils'
       
+      ! Finish the total timer
+      call region_end('total')
+      
       ! Print timings
       if (proc0 .and. print_extra_info_to_terminal) then
          
          ! Finish the files
          call finish_file_utils
          
-         ! Finish the total timer
-         call time_message(.false., time_total, ' Total')
-         
          ! If the total time is more than 5 minutes, print the timers in minutes
          ! If the total time is more than 5 hours, print the timers in hours
-         if (time_total(1)/60 > 5) seconds = .false.
-         if (time_total(1)/60/60 > 5) hours = .true.
+         if (region_total_time('total')/60 > 5) seconds = .false.
+         if (region_total_time('total')/60/60 > 5) hours = .true.
          
          ! Write the time message
          write (*, *)
@@ -942,20 +930,20 @@ contains
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                          REDISTRIBUTE'
          write (*, fmt='(A)') '                          -----------'
-         sum_timings = time_mirror(1, 2) + time_field_solve(1, 2) + time_parallel_nl(1, 2)
-         sum_timings = sum_timings + time_collisions(1, 2) + time_sources(1, 2)
-         call write_time_message('mirror:', time_mirror(1, 2), sum_timings)
+         sum_timings = region_total_time('mirror_redistribute') + region_total_time('fields_redistribute') + region_total_time('parallel_nonlinearity_redistribute')
+         sum_timings = sum_timings + region_total_time('collisions_redistribute') + region_total_time('sources_redistribute')
+         call write_time_message('mirror:', region_total_time('mirror_redistribute'), sum_timings)
          if (fields_kxkyz) then
-            call write_time_message('fields:', time_field_solve(1, 2), sum_timings)
+            call write_time_message('fields:', region_total_time('fields_redistribute'), sum_timings)
          end if
          if (include_parallel_nonlinearity) then
-            call write_time_message('parallel nonlin:', time_parallel_nl(1, 2), sum_timings)
+            call write_time_message('parallel nonlin:', region_total_time('parallel_nonlinearity_redistribute'), sum_timings)
          end if
          if (include_collisions) then
-            call write_time_message('collisions:', time_collisions(1, 2), sum_timings)
+            call write_time_message('collisions:', region_total_time('collisions_redistribute'), sum_timings)
          end if
          if (source_option_switch /= source_option_none) then
-            call write_time_message('sources:', time_sources(1, 2), sum_timings)
+            call write_time_message('sources:', region_total_time('sources_redistribute'), sum_timings)
          end if
          write (*, *)
          
@@ -963,10 +951,10 @@ contains
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                         RESPONSE MATRIX'
          write (*, fmt='(A)') '                         ---------------'
-         sum_timings = time_response_matrix(1) + time_lu_decomposition(1)
-         call write_time_message('response matrix:', time_response_matrix(1), sum_timings)
-         call write_time_message('LU decomposition:', time_lu_decomposition(1), sum_timings)
-         call write_time_message('total:', sum_timings, time_total(1))
+         sum_timings = region_total_time('response_matrix') + region_total_time('lu_decomposition')
+         call write_time_message('response matrix:', region_total_time('response_matrix'), sum_timings)
+         call write_time_message('LU decomposition:', region_total_time('lu_decomposition'), sum_timings)
+         call write_time_message('total:', sum_timings, region_total_time('total'))
          write (*, *)
          
          ! Collisions, sources and radial variation
@@ -974,17 +962,17 @@ contains
             write (*, fmt='(A)') ' '
             write (*, fmt='(A)') '                             OTHER'
             write (*, fmt='(A)') '                             -----'
-            sum_timings = time_collisions(1, 1) + time_sources(1, 1)
-            sum_timings = sum_timings + time_multibox(1, 1) + time_multibox(1, 2)
+            sum_timings = region_total_time('collisions') + region_total_time('sources')
+            sum_timings = sum_timings + region_total_time('multibox_comm') + region_total_time('multibox_krook')
             if (include_collisions) then
-               call write_time_message('collisions:', time_collisions(1, 1), time_total(1))
+               call write_time_message('collisions:', region_total_time('collisions'), region_total_time('total'))
             end if
             if (source_option_switch /= source_option_none) then
-               call write_time_message('sources:', time_sources(1, 1), time_total(1))
+               call write_time_message('sources:', region_total_time('sources'), region_total_time('total'))
             end if
             if (runtype_option_switch == runtype_multibox) then
-               call write_time_message('multibox comm:', time_multibox(1, 1), time_total(1))
-               call write_time_message('multibox krook:', time_multibox(1, 2), time_total(1))
+               call write_time_message('multibox comm:', region_total_time('multibox_comm'), region_total_time('total'))
+               call write_time_message('multibox krook:', region_total_time('multibox_krook'), region_total_time('total'))
             end if
             write (*, *)
          end if
@@ -993,80 +981,80 @@ contains
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                             FIELDS'
          write (*, fmt='(A)') '                             ------' 
-         sum_timings = time_field_solve(1, 3) + time_field_solve(1, 4) + time_field_solve(1, 5)
-         call write_time_message('int_dv_g:', time_field_solve(1, 3), sum_timings)
-         call write_time_message('calculate_phi:', time_field_solve(1, 4), sum_timings)
-         call write_time_message('phi_adia_elec:', time_field_solve(1, 5), sum_timings)
-         call write_time_message('total:', time_field_solve(1, 1), time_total(1))
+         sum_timings = region_total_time('int_dv_g') + region_total_time('calculate_phi') + region_total_time('calculate_phi_adia_elec')
+         call write_time_message('int_dv_g:', region_total_time('int_dv_g'), sum_timings)
+         call write_time_message('calculate_phi:', region_total_time('calculate_phi'), sum_timings)
+         call write_time_message('phi_adia_elec:', region_total_time('calculate_phi_adia_elec'), sum_timings)
+         call write_time_message('total:', region_total_time('fields'), region_total_time('total'))
          write (*, *)
          
          ! Gyrokinetic equation
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                      GYROKINETIC EQUATION'
          write (*, fmt='(A)') '                      ---------------------' 
-         sum_timings = time_mirror(1, 1) + time_implicit_advance(1, 1) + time_parallel_streaming(1, 1)
-         sum_timings = sum_timings + time_gke(1, 4) + time_gke(1, 5) + time_gke(1, 6) + time_gke(1, 7) + time_gke(1, 10)
-         sum_timings = sum_timings + time_parallel_nl(1, 1)
-         call write_time_message('mirror:', time_mirror(1, 1), sum_timings)
-         call write_time_message('ExB nonlin:', time_gke(1, 7), sum_timings)
+         sum_timings = region_total_time('mirror') + region_total_time('implicit_advance') + region_total_time('parallel_streaming')
+         sum_timings = sum_timings + region_total_time('magnetic_drift_y') + region_total_time('magnetic_drift_x') + region_total_time('drive_wstar') + region_total_time('exb_nonlinearity') + region_total_time('radial_variation')
+         sum_timings = sum_timings + region_total_time('parallel_nonlinearity')
+         call write_time_message('mirror:', region_total_time('mirror'), sum_timings)
+         call write_time_message('ExB nonlin:', region_total_time('exb_nonlinearity'), sum_timings)
          if (stream_implicit) then
-            call write_time_message('stream implicit:', time_implicit_advance(1, 1), sum_timings)
+            call write_time_message('stream implicit:', region_total_time('implicit_advance'), sum_timings)
          else
-            call write_time_message('stream explicit:', time_parallel_streaming(1, 1), sum_timings)
+            call write_time_message('stream explicit:', region_total_time('parallel_streaming'), sum_timings)
          end if
          if (.not. drifts_implicit) then
-            call write_time_message('magnetic drift x:', time_gke(1, 5), sum_timings)
-            call write_time_message('magnetic drift y:', time_gke(1, 4), sum_timings)
-            call write_time_message('diamagnetic drift:', time_gke(1, 6), sum_timings)
+            call write_time_message('magnetic drift x:', region_total_time('magnetic_drift_x'), sum_timings)
+            call write_time_message('magnetic drift y:', region_total_time('magnetic_drift_y'), sum_timings)
+            call write_time_message('diamagnetic drift:', region_total_time('drive_wstar'), sum_timings)
          end if
          if (include_parallel_nonlinearity) then
-            call write_time_message('parallel nonlin:', time_parallel_nl(1, 1), sum_timings)
+            call write_time_message('parallel nonlin:', region_total_time('parallel_nonlinearity'), sum_timings)
          end if
          if (radial_variation) then 
-            call write_time_message('radial var:', time_gke(1, 10), sum_timings)
+            call write_time_message('radial var:', region_total_time('radial_variation'), sum_timings)
          end if 
-         call write_time_message('total:', sum_timings, time_total(1))
+         call write_time_message('total:', sum_timings, region_total_time('total'))
          write (*, *)
          
          ! Diagnostics
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                          DIAGNOSTICS'
          write (*, fmt='(A)') '                          -----------'
-         sum_timings = time_individual_diagnostics(1, 1) + time_individual_diagnostics(1, 2) + time_individual_diagnostics(1, 3)
-         sum_timings = sum_timings + time_individual_diagnostics(1, 4) + time_individual_diagnostics(1, 5) + time_individual_diagnostics(1, 6)
-         call write_time_message('omega:', time_individual_diagnostics(1, 1), sum_timings)
-         call write_time_message('phi:', time_individual_diagnostics(1, 2), sum_timings)
-         call write_time_message('omega:', time_individual_diagnostics(1, 3), sum_timings)
-         call write_time_message('fluxes:', time_individual_diagnostics(1, 4), sum_timings)
-         call write_time_message('moments:', time_individual_diagnostics(1, 5), sum_timings)
-         call write_time_message('distribution:', time_individual_diagnostics(1, 6), sum_timings)
-         call write_time_message('total:', time_all_diagnostics(1), time_total(1))
+         sum_timings = region_total_time('diagnostics_calculate_omega') + region_total_time('diagnostics_potential') + region_total_time('diagnostics_write_omega')
+         sum_timings = sum_timings + region_total_time('diagnostics_fluxes') + region_total_time('diagnostics_moments') + region_total_time('diagnostics_distribution')
+         call write_time_message('omega:', region_total_time('diagnostics_calculate_omega'), sum_timings)
+         call write_time_message('phi:', region_total_time('diagnostics_potential'), sum_timings)
+         call write_time_message('omega:', region_total_time('diagnostics_write_omega'), sum_timings)
+         call write_time_message('fluxes:', region_total_time('diagnostics_fluxes'), sum_timings)
+         call write_time_message('moments:', region_total_time('diagnostics_moments'), sum_timings)
+         call write_time_message('distribution:', region_total_time('diagnostics_distribution'), sum_timings)
+         call write_time_message('total:', region_total_time('diagnostics'), region_total_time('total'))
          write (*, *)
         
          ! Gyrokinetic equations
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '          GYROKINETIC EQUATION AND FIELD EQUATIONS'
          write (*, fmt='(A)') '          ----------------------------------------'
-         sum_timings = time_gke(1, 9) + time_gke(1, 8) + time_field_solve(1, 1)
-         call write_time_message('implicit GKE:', time_gke(1, 9), sum_timings)
-         call write_time_message('explicit GKE:', time_gke(1, 8), sum_timings)
-         call write_time_message('fields:', time_field_solve(1, 1), sum_timings)
-         call write_time_message('total:', sum_timings, time_total(1))
+         sum_timings = region_total_time('implicit_gke') + region_total_time('explicit_gke') + region_total_time('fields')
+         call write_time_message('implicit GKE:', region_total_time('implicit_gke'), sum_timings)
+         call write_time_message('explicit GKE:', region_total_time('explicit_gke'), sum_timings)
+         call write_time_message('fields:', region_total_time('fields'), sum_timings)
+         call write_time_message('total:', sum_timings, region_total_time('total'))
          write (*, *)
 
          ! The entire stella code
          write (*, fmt='(A)') ' '
          write (*, fmt='(A)') '                        THE STELLA CODE'
          write (*, fmt='(A)') '                        ---------------'
-         sum_timings = time_init(1) + time_all_diagnostics(1) + time_gke(1, 1)
-         sum_redistribute = time_mirror(1, 2) + time_field_solve(1, 2) + time_parallel_nl(1, 2)
-         sum_redistribute = sum_redistribute + time_collisions(1, 2) + time_sources(1, 2)
-         sum_response_matrix = time_response_matrix(1) + time_lu_decomposition(1)
-         call write_time_message('initialisation:', time_init(1), time_total(1))
-         call write_time_message('diagnostics:', time_all_diagnostics(1), time_total(1))
-         call write_time_message('gyrokinetic equations:', time_gke(1, 1), time_total(1))
-         call write_time_message('redistribute:', sum_redistribute, time_total(1))
-         call write_time_message('sum:', sum_timings, time_total(1))
+         sum_timings = region_total_time('initialisation') + region_total_time('diagnostics') + region_total_time('gke')
+         sum_redistribute = region_total_time('mirror_redistribute') + region_total_time('fields_redistribute') + region_total_time('parallel_nonlinearity_redistribute')
+         sum_redistribute = sum_redistribute + region_total_time('collisions_redistribute') + region_total_time('sources_redistribute')
+         sum_response_matrix = region_total_time('response_matrix') + region_total_time('lu_decomposition')
+         call write_time_message('initialisation:', region_total_time('initialisation'), region_total_time('total'))
+         call write_time_message('diagnostics:', region_total_time('diagnostics'), region_total_time('total'))
+         call write_time_message('gyrokinetic equations:', region_total_time('gke'), region_total_time('total'))
+         call write_time_message('redistribute:', sum_redistribute, region_total_time('total'))
+         call write_time_message('sum:', sum_timings, region_total_time('total'))
          write (*, *)
         
       end if
@@ -1074,6 +1062,7 @@ contains
       ! Finish (clean up) mpi message passing
       if (debug) write (*, *) 'stella::finish_stella::finish_mp'
       if (present(last_call)) then
+         call stella_linear_algebra_finish
          call finish_mp
          mpi_initialised = .false.
       end if

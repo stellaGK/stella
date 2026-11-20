@@ -64,8 +64,9 @@ def test_whether_potential_data_in_netcdf_file_remains_constant(tmp_path, stella
         # Read the potential axis
         local_phi2 = local_netcdf['phi2']
         
-        # Check whether the potential did not evolve in time
-        if not (np.all(local_phi2 == local_phi2[0])):
+        # Check whether the potential did not evolve in time. The OpenMP reductions sum the
+        # contributions of the threads in an arbitrary order, so allow for round-off errors.
+        if not np.allclose(local_phi2, local_phi2[0], rtol=1e-10, atol=0.0):
             print(f'ERROR: The potential is evolving in time, while it should not.')
             for i in range(len(local_phi2)):
                 print(f'phi2 = {float(local_phi2.data[i]):.5e}')

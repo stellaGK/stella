@@ -129,6 +129,9 @@ VPATH := :$(STELLA_DIR):$(VPATH_SUBFOLDERS):$(OBJ):$(MOD):$(FPP):
 # Make the external modules 
 include $(COMPILATION_DIR)/Makefile.externals
 
+# The C library 'region_timer'
+include $(COMPILATION_DIR)/Makefile.region_timer
+
 # Add the external modules to the VPATH
 # Export VPATH so that the utils makefile can add its fpp folder to it
 export VPATH := $(VPATH):$(UTILS_DIR):$(UTILS_FPP):$(MINILIBSTELL_DIR):$(NEASYF_DIR):$(GIT_VERSION_DIR):
@@ -185,7 +188,7 @@ DEFAULT_LIB = $(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && e
 # In a static library, the modules are bound into the executable file before execution. 
 # Static libraries are commonly named libname.a. The *.a suffix refers to archive.  
 # TODO: Check whetere utils.a and mini_libstella.a are made so we can add the directories explictely.
-external_modules = $(BUILD_DIR)/utils.a $(BUILD_DIR)/mini_libstell.a $(GIT_VERSION_DIR)/git_version.f90 $(NEASYF_DIR)/neasyf.f90
+external_modules = $(BUILD_DIR)/utils.a $(BUILD_DIR)/mini_libstell.a $(REGION_TIMER_LIB) $(GIT_VERSION_DIR)/git_version.f90 $(NEASYF_DIR)/neasyf.f90
 
 # The dependencies of the stella program are automatically defined by the 
 # 'fortdep' script, executed by 'make depend' (see target 'depend' above).
@@ -218,8 +221,10 @@ stella: $(external_modules) $(stella_objects) | $(MOD) $(OBJ)
 compile-stella:
 	@echo " "; echo "Compile the stella Fortran program."
 	@$(MAKE) --no-print-directory setup-stella
+	@$(MAKE) --no-print-directory plasma
 	@$(MAKE) --no-print-directory utils
 	@$(MAKE) --no-print-directory mini_libstell
+	@$(MAKE) --no-print-directory region_timer
 	@$(MAKE) --no-print-directory git
 	@$(MAKE) --no-print-directory neasyf
 	@echo "  "; echo "Compile stella objects:"  
@@ -384,6 +389,8 @@ clean:
 	@echo "Clean externals:"
 	@$(MAKE) --no-print-directory -C $(MINILIBSTELL_DIR) clean
 	@$(MAKE) --no-print-directory -C $(UTILS_DIR) clean
+	@$(MAKE) --no-print-directory region_timer_clean
+	@$(MAKE) --no-print-directory plasma_clean
 	@$(MAKE) --no-print-directory clean-pfunit
 	@if [ -d "$(BUILD_DIR)" ]; then rmdir $(BUILD_DIR); fi
 
@@ -405,6 +412,8 @@ clean-submodules:
 	@-rm -rf $(PROJECT_DIR)/EXTERNALS/neasyf
 	@echo "   - remove pFUnit" 
 	@-rm -rf $(PROJECT_DIR)/EXTERNALS/pFUnit
+	@echo "   - remove plasma" 
+	@-rm -rf $(PROJECT_DIR)/EXTERNALS/plasma
 	@-rm -rf $(COMPILATION_DIR)/pFUnit_build
 	@echo "                     "
 

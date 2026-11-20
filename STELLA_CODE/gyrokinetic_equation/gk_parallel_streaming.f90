@@ -282,9 +282,7 @@ contains
    !****************************************************************************
    subroutine advance_parallel_streaming_explicit(g, phi, bpar, gout)
 
-      use mp, only: proc0
-      use job_manage, only: time_message
-      use timers, only: time_parallel_streaming
+      use timers, only: region_start, region_end
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
@@ -316,25 +314,19 @@ contains
 
       ! ------------------------------------------------------------------------
       ! Start the timer for the parallel streaming part of the time advance
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
+      call region_start('parallel_streaming')
 
       ! ========================================================================
-      ! Allocate arrays needed for intermmediate calculations
+      ! Allocate arrays needed for intermediate calculations
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dgbpar_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
-      ! ------------------------------------------------------------------------
-      !                            Full Flux Surface
-      ! ------------------------------------------------------------------------
-      ! If simulating a full flux surface, will also need version of the above arrays
-      ! that is Fourier transformed to y-space
       if (full_flux_surface) then
          allocate (g0_swap(naky_all, ikx_max))
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
       end if
 
-      ! ========================================================================
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! Get (iv,imu,is) indices corresponding to ivmu super-index
          iv = iv_idx(vmu_lo, ivmu)
@@ -342,7 +334,7 @@ contains
          is = is_idx(vmu_lo, ivmu)
 
          ! =====================================================================
-         ! Obtain <phi> 
+         ! Obtain <phi>
          if (full_flux_surface) then
             ! ------------------------------------------------------------------
             !                           Full Flux Surface
@@ -354,7 +346,7 @@ contains
             ! ------------------------------------------------------------------
             call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
-         
+
          ! =====================================================================
          ! Get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz .
          ! Note that this should be a centered difference to avoid numerical
@@ -369,7 +361,7 @@ contains
             call get_dgdz_centered(g0, ivmu, dgbpar_dz)
          else
             dgbpar_dz = 0.
-         end if 
+         end if
 
          ! =====================================================================
          ! Compute dg/dz in k-space and store in g0
@@ -380,7 +372,7 @@ contains
          ! ---------------------------------------------------------------------
          !                              Full Flux Surface
          ! ---------------------------------------------------------------------
-         ! If simulating a full flux surface, need to obtain the contribution 
+         ! If simulating a full flux surface, need to obtain the contribution
          ! from parallel streaming in y-space, so FFT d(g/F)/dz from ky to y.
          if (full_flux_surface) then
             do it = 1, ntubes
@@ -397,7 +389,7 @@ contains
 
             g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
                  * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
-               
+
             ! Multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_full_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
@@ -418,12 +410,12 @@ contains
       end do
 
       ! ========================================================================
-      ! Deallocate intermediate arrays used in this subroutine
+      ! Deallocate intermediate arrays
       deallocate (g0, dgphi_dz, dgbpar_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
       ! ========================================================================
       ! Finish timing the subroutine
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
+      call region_end('parallel_streaming')
 
    end subroutine advance_parallel_streaming_explicit
 
@@ -434,7 +426,6 @@ contains
 
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
-      use job_manage, only: time_message
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -667,6 +658,10 @@ contains
          call zed_operator_along_chains(g, dgdz, zop_upwind3, stream_sign(iv), 0.0)
          return
       end if
+      !$omp parallel do default(none) collapse(2) &
+      !$omp firstprivate(naky, ntubes, iv) &
+      !$omp private(iky, it, ie, iseg, gleft, gright) &
+      !$omp shared(g, dgdz, neigen, nsegments, iz_low, iz_up, ikxmod, delzed, periodic, stream_sign)
       do iky = 1, naky
          do it = 1, ntubes
             do ie = 1, neigen(iky)
@@ -682,6 +677,7 @@ contains
             end do
          end do
       end do
+      !$omp end parallel do
 
    end subroutine get_dgdz
 
@@ -722,6 +718,10 @@ contains
          call zed_operator_along_chains(g, dgdz, zop_centered2, stream_sign(iv), 0.0)
          return
       end if
+      !$omp parallel do default(none) collapse(2) &
+      !$omp firstprivate(naky, ntubes, iv) &
+      !$omp private(iky, it, ie, iseg, gleft, gright) &
+      !$omp shared(g, dgdz, neigen, nsegments, iz_low, iz_up, ikxmod, delzed, periodic, stream_sign)
       do iky = 1, naky
          do it = 1, ntubes
             do ie = 1, neigen(iky)
@@ -737,6 +737,7 @@ contains
             end do
          end do
       end do
+      !$omp end parallel do
 
    end subroutine get_dgdz_centered
 

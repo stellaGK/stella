@@ -228,15 +228,24 @@ contains
 
      ! Add hyper-dissipation of the form dg/dt = -D * (k/kmax)^4 * g
      if (use_physical_ksqr) then
-     
+
+         !$omp parallel do default(none) &
+         !$omp firstprivate(vmu_lo, ia, ntubes) &
+         !$omp private(ivmu) &
+         !$omp shared(g, code_dt, kperp2, k2max, D_hyper)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             g(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) / (1. + code_dt * (spread(kperp2(:, :, ia, :), 4, ntubes) / k2max)**2 * D_hyper)
          end do
-         
+         !$omp end parallel do
+
       ! Avoid spatially dependent kperp if <use_physical_ksqr> = .false.
       ! Use a simple s-alpha model: k_perp**2 = ky**2 ( 1 + hat{s}**2 (theta - theta0)**2 )
       ! Add in hyper-dissipation of the form dg/dt = -D * (k/kmax)^4 * g
       else
+         !$omp parallel do default(none) &
+         !$omp firstprivate(vmu_lo, ntubes, nzgrid, naky) &
+         !$omp private(ivmu, it, iz, iky) &
+         !$omp shared(g, code_dt, k2max, D_hyper, tfac, aky, akx, zed, theta0, zonal_mode)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -250,7 +259,8 @@ contains
                   end do
                end do
             end do
-         end do 
+         end do
+         !$omp end parallel do
       end if
 
    end subroutine advance_hyper_dissipation
@@ -342,8 +352,12 @@ contains
 
       !-------------------------------------------------------------------------
 
+      !$omp parallel default(none) &
+      !$omp firstprivate(kxkyz_lo, nmu, nvpa, dvpa) &
+      !$omp private(ikxkyz, imu, iz, is, tmp) &
+      !$omp shared(g, gout)
       allocate (tmp(nvpa))
-      
+      !$omp do
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
@@ -352,8 +366,9 @@ contains
             gout(:, imu, ikxkyz) = tmp
          end do
       end do
-
+      !$omp end do
       deallocate (tmp)
+      !$omp end parallel
       
    end subroutine get_dgdvpa_fourth_order
 
@@ -396,6 +411,10 @@ contains
       end if
 
       ! FLAG -- assuming delta zed is equally spaced below!
+      !$omp parallel do default(none) &
+      !$omp firstprivate(vmu_lo, naky, ntubes) &
+      !$omp private(ivmu, iky, iv, imu, it, ie, iseg, gleft, gright) &
+      !$omp shared(g, dgdz, neigen, nsegments, iz_low, iz_up, ikxmod, delzed, periodic)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -403,21 +422,22 @@ contains
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   do iseg = 1, nsegments(ie, iky)
-                  
+
                      ! Fill in ghost zones at boundaries in g(z)
                      call fill_zed_ghost_zones(it, iseg, ie, iky, g(:, :, :, :, ivmu), gleft, gright)
-                     
+
                      ! Get dg/dz
                      call fourth_derivative_second_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
                         g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu), &
                         delzed(0), gleft, gright, periodic(iky), &
                         dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu))
-                        
+
                   end do
                end do
             end do
          end do
       end do
+      !$omp end parallel do
    end subroutine get_dgdz_fourth_order
 
 end module dissipation_hyper

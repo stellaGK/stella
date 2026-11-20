@@ -17,7 +17,3 @@ else
 	endif
 endif
 
-ifdef USE_OPENMP
-	CFLAGS += -fopenmp
-endif
-

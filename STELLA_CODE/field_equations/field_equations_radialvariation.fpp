@@ -8,7 +8,6 @@
 !###############################################################################
 module field_equations_radialvariation
 
-   use mpi
    use debug_flags, only: debug => fields_debug
 
    implicit none
@@ -25,9 +24,6 @@ module field_equations_radialvariation
 
    private
 
-#ifdef ISO_C_BINDING
-   integer :: phi_shared_window = MPI_WIN_NULL
-#endif
 
    integer :: zm
 
@@ -43,7 +39,7 @@ contains
    subroutine calculate_phi_for_radial_variation(phi, dist, skip_fsa)
 
       use mp, only: proc0, mp_abort, job
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use parameters_physics, only: radial_variation
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use grids_z, only: nzgrid
@@ -54,7 +50,6 @@ contains
       use multibox, only: mb_calculate_phi
       use arrays, only: denominator_fields
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use timers, only: time_field_solve
 
       implicit none
 
@@ -87,7 +82,7 @@ contains
       multibox_mode = runtype_option_switch == runtype_multibox
       center_cell = multibox_mode .and. job == 1 .and. .not. ky_solve_real
 
-      if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi')
+      call region_start('calculate_phi')
       if (dist == 'gbar') then
          if (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
             call calculate_phi_radial(phi)
@@ -101,10 +96,10 @@ contains
       end if
 
       if (any(denominator_fields(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
-      if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi')
+      call region_end('calculate_phi')
 
       ! Now handle adiabatic electrons if needed
-      if (proc0) call time_message(.false., time_field_solve(:, 5), 'calculate_phi_adia_elec')
+      call region_start('calculate_phi_adia_elec')
       if (adia_elec .and. zonal_mode(1) .and. .not. skip_fsa_local) then
          if (debug) write (*, *) 'dist_fn::advance_stella::adiabatic_electrons'
 
@@ -119,7 +114,7 @@ contains
             call mp_abort('unknown dist option in get_fields. aborting')
          end if
       end if
-      if (proc0) call time_message(.false., time_field_solve(:, 5), 'calculate_phi_adia_elec')
+      call region_end('calculate_phi_adia_elec')
 
    end subroutine calculate_phi_for_radial_variation
 
@@ -131,14 +126,6 @@ contains
    subroutine calculate_phi_radial(phi)
 
       ! Parallelisation
-#ifdef ISO_C_BINDING
-      use mpi
-      use mp, only: curr_focus, sharedsubprocs, scope
-      use mp, only: split_n_tasks, sgproc0
-      use grids_z, only: nztot
-      use arrays_fields, only: phi_shared
-      use mp_lu_decomposition, only: lu_matrix_multiply_local
-#endif
       use linear_solve, only: lu_back_substitution
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: spec, has_electron_species
@@ -161,10 +148,6 @@ contains
       integer :: naky_r
       complex, dimension(:, :), allocatable :: g0k, g0x
       logical :: has_elec, adia_elec
-#ifdef ISO_C_BINDING
-      integer :: counter, c_lo, c_hi
-      integer :: prior_focus, ierr
-#endif
 
       !----------------------------------------------------------------------
 
@@ -177,32 +160,9 @@ contains
       adia_elec = .not. has_elec .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
       naky_r = min(naky, ky_solve_radial)
-#ifdef ISO_C_BINDING
-      prior_focus = curr_focus
-      call scope(sharedsubprocs)
-
-      call split_n_tasks(nztot * ntubes * naky_r, c_lo, c_hi)
-
-      call scope(prior_focus)
-      counter = 0
-      if (sgproc0) phi_shared = phi
-      call mpi_win_fence(0, phi_shared_window, ierr)
-#endif
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do iky = 1, naky_r
-#ifdef ISO_C_BINDING
-               counter = counter + 1
-               if ((counter >= c_lo) .and. (counter <= c_hi)) then
-                  if (.not. (adia_elec .and. zonal_mode(iky))) then
-                     zmi = 0
-                     if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
-                     call lu_back_substitution(phi_solve(iky, iz)%zloc, &
-                                               phi_solve(iky, iz)%idx, phi_shared(iky, (1 + zmi):, iz, it))
-                     if (zmi > 0) phi(iky, zmi, iz, it) = 0.0
-                  end if
-               end if
-#else
                if (.not. (adia_elec .and. zonal_mode(iky))) then
                   zmi = 0
                   if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
@@ -210,14 +170,9 @@ contains
                                             phi_solve(iky, iz)%idx, phi(iky, (1 + zmi):, iz, it))
                   if (zmi > 0) phi(iky, zmi, iz, it) = 0.0
                end if
-#endif
             end do
          end do
       end do
-#ifdef ISO_C_BINDING
-      call mpi_win_fence(0, phi_shared_window, ierr)
-      phi = phi_shared
-#endif
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
@@ -243,14 +198,7 @@ contains
    subroutine add_adiabatic_response_radial(phi)
 
       ! Parallelisation
-#ifdef ISO_C_BINDING
-      use mpi
-      use mp, only: sgproc0, comm_sgroup
-      use arrays, only: qn_zf_window
-      use mp_lu_decomposition, only: lu_matrix_multiply_local
-#else
       use linear_solve, only: lu_back_substitution
-#endif
 
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: boundary_size
@@ -272,9 +220,6 @@ contains
       integer :: ia, it, iz, ikx
       integer :: inmat
       complex, dimension(:, :), allocatable :: g0k, g1k, g0x
-#ifdef ISO_C_BINDING
-      integer :: ierr
-#endif
 
       !----------------------------------------------------------------------
 
@@ -319,26 +264,14 @@ contains
             end do
          end if
 
-#ifdef ISO_C_BINDING
-         if (sgproc0) then
-#endif
-            do iz = -nzgrid, nzgrid - 1
-               do ikx = 1, nakx
-                  inmat = ikx + nakx * (iz + nzgrid)
-                  phi_ext(inmat) = phi(1, ikx, iz, it)
-               end do
+         do iz = -nzgrid, nzgrid - 1
+            do ikx = 1, nakx
+               inmat = ikx + nakx * (iz + nzgrid)
+               phi_ext(inmat) = phi(1, ikx, iz, it)
             end do
-#ifdef ISO_C_BINDING
-         end if
-         call mpi_win_fence(0, qn_zf_window, ierr)
-#endif
+         end do
 
-#ifdef ISO_C_BINDING
-         call lu_matrix_multiply_local(comm_sgroup, qn_zf_window, phizf_solve%zloc, phi_ext)
-         call mpi_win_fence(0, qn_zf_window, ierr)
-#else
          call lu_back_substitution(phizf_solve%zloc, phizf_solve%idx, phi_ext)
-#endif
 
          do iz = -nzgrid, nzgrid - 1
             do ikx = 1, nakx
@@ -636,15 +569,6 @@ contains
       ! Parallelisation
       use mp, only: job
       use mp, only: sum_allreduce
-#ifdef ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use arrays, only: qn_window
-      use arrays_fields, only: phi_shared
-      use mp, only: sgproc0, curr_focus, sharedsubprocs
-      use mp, only: scope, real_size, nbytes_real
-      use mp, only: split_n_tasks, create_shared_memory_window
-      use mpi
-#endif
       use parallelisation_layouts, only: kxkyz_lo
       use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
 
@@ -679,14 +603,6 @@ contains
       integer :: iz, ikx, iky, ia, zmi, naky_r
       real :: dum
       logical :: has_elec, adia_elec
-#ifdef ISO_C_BINDING
-      integer :: prior_focus, ierr
-      integer :: counter, c_lo, c_hi
-      integer(c_intptr_t):: cur_pos
-      integer(kind=MPI_ADDRESS_KIND) :: win_size
-      complex, dimension(:), pointer :: phi_shared_temp
-      type(c_ptr) :: cptr
-#endif
       real, dimension(:, :), allocatable :: g0
       real, dimension(:), allocatable :: g1
       complex, dimension(:, :), allocatable :: g0k, g0x
@@ -755,67 +671,6 @@ contains
          allocate (g0x(1, nakx))
 
          if (.not. allocated(phi_solve)) allocate (phi_solve(naky_r, -nzgrid:nzgrid))
-#ifdef ISO_C_BINDING
-         prior_focus = curr_focus
-         call scope(sharedsubprocs)
-         !the following is to parallelize the calculation of QN for radial variation sims
-         if (debug) write (*, *) 'fields::init_fields::phi_shared_init'
-         if (phi_shared_window == MPI_WIN_NULL) then
-            win_size = 0
-            if (sgproc0) then
-               win_size = int(naky * nakx * nztot * ntubes, MPI_ADDRESS_KIND) * 2 * real_size !complex size
-            end if
-
-            call create_shared_memory_window(win_size, phi_shared_window, cur_pos)
-
-            cptr = transfer(cur_pos, cptr)
-
-            if (.not. associated(phi_shared)) then
-               ! associate array with lower bounds of 1
-               call c_f_pointer(cptr, phi_shared_temp, (/naky * nakx * nztot * ntubes/))
-               ! now get the correct bounds
-               phi_shared(1:naky, 1:nakx, -nzgrid:nzgrid, 1:ntubes) => phi_shared_temp
-            end if
-            call mpi_win_fence(0, phi_shared_window, ierr)
-         end if
-
-         if (debug) write (*, *) 'fields::init_field_equations::qn_window_init'
-         if (qn_window == MPI_WIN_NULL) then
-            win_size = 0
-            if (sgproc0) then
-               win_size = int(nakx * nztot * naky_r, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                          + int(nakx**2 * nztot * naky_r, MPI_ADDRESS_KIND) * 2 * real_size !complex size
-            end if
-
-            call create_shared_memory_window(win_size, qn_window, cur_pos)
-
-            ! Allocate the memory
-            do iky = 1, naky_r
-               zmi = 0
-               if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
-               do iz = -nzgrid, nzgrid
-                  if (.not. associated(phi_solve(iky, iz)%zloc)) then
-                     allocate (phi_solve(iky, iz)%zloc(nakx - zmi, nakx - zmi))
-                     cptr = transfer(cur_pos, cptr)
-                     call c_f_pointer(cptr, phi_solve(iky, iz)%zloc, (/nakx - zmi, nakx - zmi/))
-                  end if
-                  cur_pos = cur_pos + (nakx - zmi)**2 * 2 * nbytes_real
-                  if (.not. associated(phi_solve(iky, iz)%idx)) then
-                     cptr = transfer(cur_pos, cptr)
-                     call c_f_pointer(cptr, phi_solve(iky, iz)%idx, (/nakx - zmi/))
-                  end if
-                  cur_pos = cur_pos + (nakx - zmi) * 4
-               end do
-            end do
-
-            call mpi_win_fence(0, qn_window, ierr)
-         end if
-
-         call split_n_tasks(nztot * naky_r, c_lo, c_hi)
-
-         call scope(prior_focus)
-         counter = 0
-#else
          do iky = 1, naky_r
             zmi = 0
             if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
@@ -826,36 +681,28 @@ contains
                   allocate (phi_solve(iky, iz)%idx(nakx - zmi))
             end do
          end do
-#endif
 
          do iky = 1, naky_r
             zmi = 0
             if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
             do iz = -nzgrid, nzgrid
-#ifdef ISO_C_BINDING
-               counter = counter + 1
-               if ((counter >= c_lo) .and. (counter <= c_hi)) then
-#endif
-                  phi_solve(iky, iz)%zloc = 0.0
-                  phi_solve(iky, iz)%idx = 0
-                  do ikx = 1 + zmi, nakx
-                     g0k(1, :) = 0.0
-                     g0k(1, ikx) = denominator_fields_dr(iky, ikx, iz)
+               phi_solve(iky, iz)%zloc = 0.0
+               phi_solve(iky, iz)%idx = 0
+               do ikx = 1 + zmi, nakx
+                  g0k(1, :) = 0.0
+                  g0k(1, ikx) = denominator_fields_dr(iky, ikx, iz)
 
-                     call transform_kx2x_unpadded(g0k, g0x)
-                     g0x(1, :) = rho_d_clamped * g0x(1, :)
-                     call transform_x2kx_unpadded(g0x, g0k)
+                  call transform_kx2x_unpadded(g0k, g0x)
+                  g0x(1, :) = rho_d_clamped * g0x(1, :)
+                  call transform_x2kx_unpadded(g0x, g0k)
 
-                     !row column
-                     phi_solve(iky, iz)%zloc(:, ikx - zmi) = g0k(1, (1 + zmi):)
-                     phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) = phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) &
-                                                                     + denominator_fields(iky, ikx, iz)
-                  end do
+                  !row column
+                  phi_solve(iky, iz)%zloc(:, ikx - zmi) = g0k(1, (1 + zmi):)
+                  phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) = phi_solve(iky, iz)%zloc(ikx - zmi, ikx - zmi) &
+                                                                  + denominator_fields(iky, ikx, iz)
+               end do
 
-                  call lu_decomposition(phi_solve(iky, iz)%zloc, phi_solve(iky, iz)%idx, dum)
-#ifdef ISO_C_BINDING
-               end if
-#endif
+               call lu_decomposition(phi_solve(iky, iz)%zloc, phi_solve(iky, iz)%idx, dum)
             end do
          end do
 
@@ -948,25 +795,12 @@ contains
       use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use arrays, only: denominator_fields_dr
       use arrays, only: c_mat, theta
-#ifdef ISO_C_BINDING
-      use arrays, only: qn_window
-      use mpi
-#endif
 
       implicit none
 
-#ifdef ISO_C_BINDING
-      integer ierr
-#endif
 
       !-------------------------------------------------------------------------
 
-#ifdef ISO_C_BINDING
-      if (phi_shared_window /= MPI_WIN_NULL) call mpi_win_free(phi_shared_window, ierr)
-      if (qn_window /= MPI_WIN_NULL) then
-         call mpi_win_free(qn_window, ierr)
-      end if
-#endif
 
       if (allocated(c_mat)) deallocate (c_mat)
       if (allocated(theta)) deallocate (theta)

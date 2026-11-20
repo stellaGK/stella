@@ -29,6 +29,4 @@ ifdef USE_FFT
     FFT_INC = -I${EBROOTFFTW}/include
 endif
 
-ifdef USE_LAPACK
-    LAPACK_LIB = -L${EBROOTOPENBLAS} -lopenblas
-endif
+LAPACK_LIB = -L${EBROOTOPENBLAS} -lopenblas

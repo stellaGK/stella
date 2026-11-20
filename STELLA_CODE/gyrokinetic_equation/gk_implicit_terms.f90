@@ -55,9 +55,7 @@ contains
    !****************************************************************************
    subroutine advance_implicit_terms(g, phi, apar, bpar)
 
-      use mp, only: proc0
-      use job_manage, only: time_message
-      use timers, only: time_implicit_advance
+      use timers, only: region_start, region_end
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use arrays_distribution_function, only: g1, g2
@@ -100,7 +98,7 @@ contains
 
       if (debug) write (*, *) 'implicit_solve::advance_implicit_terms'
       ! Start timer 
-      if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
+      call region_start('implicit_advance')
 
       ! =====================================================================
       ! Allocate arrays that act as source terms for the RHS of the equation
@@ -234,10 +232,10 @@ contains
          !----------------------------------------------------------------------
          if (use_deltaphi_for_response_matrix) phi = phi - phi_old
          if (use_deltaphi_for_response_matrix .and. include_bpar) bpar = bpar - bpar_old
-         if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
+         call region_start('back_substitution')
          ! For Drift kinetic implicit this is full phi^{n+1, i+1}
          call invert_parstream_response(phi, apar, bpar)
-         if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
+         call region_end('back_substitution')
          
          ! If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
          ! tupwnd_p should multiply phi^{n+1}
@@ -293,7 +291,7 @@ contains
       if(driftkinetic_implicit) deallocate (fields_source_ffs)
       if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs)
 
-      if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
+      call region_end('implicit_advance')
 
    contains
 
@@ -321,8 +319,12 @@ contains
           
          if (debug) write (*, *) 'implicit_solve::update_pdf'
          ! Start the timer for the pdf update
-         if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
+         call region_start('bidiagonal_solve')
 
+         !$omp parallel default(none) &
+         !$omp private(ivmu, iky, it, ie, nz_ext, pdf1, pdf2, phiext, bparext, aparext, aparext_new, aparext_old, phiffsext, ulim) &
+         !$omp shared(vmu_lo, neigen, ntubes, naky, nzext, g1, phi_source, apar_source, apar, apar_old, bpar_source, phi_source_ffs, include_apar, include_bpar, mod, g)
+         !$omp do collapse(3)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! Solve for the pdf, given the sources for phi and the pdf on the RHS of the GK equation
             ! we do this on set of connected zed segments at a time
@@ -383,16 +385,20 @@ contains
                      call sweep_g_zext(iky, ie, it, ivmu, pdf2)
                      ! Map the pdf 'pdf2' from the extended zed domain
                      ! to the standard zed domain; the mapped pdf is called 'g'
+                     !$omp critical (write_back)
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
+                     !$omp end critical (write_back)
                      deallocate (pdf1, pdf2, phiext, aparext, aparext_new, aparext_old, bparext)
                      if (present(mod)) deallocate(phiffsext)
                   end do
                end do
             end do
          end do
+         !$omp end do
+         !$omp end parallel
 
          ! Stop the timer for the pdf update
-         if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
+         call region_end('bidiagonal_solve')
 
       end subroutine update_pdf
 
@@ -1512,6 +1518,10 @@ contains
       if (debug) write (*, *) 'implicit_solve::invert_parstream_response'
 
       ! Put the fields onto the extended zed grid and use LU back substitution
+      !$omp parallel default(none) &
+      !$omp private(iky, ie, it, ulim, ikx, offset_apar, offset_bpar, nresponse_per_field, nresponse, nzp, nz_ext, fld_ext, phi_ext, apar_ext, bpar_ext, fld) &
+      !$omp shared(phi,ntubes, periodic, naky, nzext, non_twisting, response_matrix, nzgrid, nfields, include_apar, include_bpar, apar, bpar, phase_shift, neigen)
+      !$omp do
       do iky = 1, naky
          ! Avoid double counting of periodic endpoints for zonal (and any other periodic) modes.
          ! In the non-twisting flux tube a periodic chain can change kx along z, so it uses the
@@ -1595,18 +1605,24 @@ contains
                   ! Get phi_ext contribution from fld_ext and map back to normal (z, kx) grid
                   phi_ext(:nresponse_per_field) = fld_ext(:nresponse_per_field)
                   if (periodic(iky)) phi_ext(nz_ext) = phi_ext(1) / phase_shift(iky)
+                  !$omp critical (write_phi)
                   call map_from_extended_zgrid(it, ie, iky, phi_ext, phi(iky, :, :, :))
+                  !$omp end critical (write_phi)
 
                   ! If advancing apar, get apar_ext from fld_ext and map back to (z, kx) grid
                   if (include_apar) then
                      apar_ext(:nresponse_per_field) = fld_ext(offset_apar + 1:nresponse_per_field + offset_apar)
                      if (periodic(iky)) apar_ext(nz_ext) = apar_ext(1) / phase_shift(iky)
+                     !$omp critical (write_apar)
                      call map_from_extended_zgrid(it, ie, iky, apar_ext, apar(iky, :, :, :))
+                     !$omp end critical (write_apar)
                   end if
                   if (include_bpar) then
                      bpar_ext(:nresponse_per_field) = fld_ext(offset_bpar + 1:nresponse_per_field + offset_bpar)
                      if (periodic(iky)) bpar_ext(nz_ext) = bpar_ext(1) / phase_shift(iky)
+                     !$omp critical (write_bpar)
                      call map_from_extended_zgrid(it, ie, iky, bpar_ext, bpar(iky, :, :, :))
+                     !$omp end critical (write_bpar)
                   end if
 
                   deallocate (fld_ext)
@@ -1617,6 +1633,7 @@ contains
             end do
          end if
       end do
+      !$omp end parallel
 
    end subroutine invert_parstream_response
 

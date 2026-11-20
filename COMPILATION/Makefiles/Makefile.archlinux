@@ -37,6 +37,10 @@ ifdef USE_NETCDF
 	NETCDF_LIB = -L/usr/lib -lnetcdf -lnetcdff
 endif
 
-ifdef USE_LAPACK
-	LAPACK_LIB = -L/usr/lib -llapack
-endif
+LAPACK_LIB = -L/usr/lib -llapack
+
+# PLASMA (USE_PLASMA, on by default): set PLASMA_DIR to the install prefix of 
+# PLASMA, or leave it unset to use a PLASMA found by pkg-config, or else to
+# compile the git submodule EXTERNALS/plasma, which
+# requires the cblas and lapacke packages
+#PLASMA_DIR = /path/to/plasma/install

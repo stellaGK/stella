@@ -172,10 +172,15 @@ contains
          
       ! If simulating a flux tube, a gyro-average is local in k-space
       else
+         !$omp parallel do default(none) &
+         !$omp   firstprivate(vmu_lo) &
+         !$omp   private(ivmu) &
+         !$omp   shared(field, gyro_field)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(field(:, :, :, :, ivmu), ivmu, gyro_field(:, :, :, :, ivmu))
          end do
-         
+         !$omp end parallel do
+
       end if
 
    end subroutine gyro_average_kxkyzv_local
@@ -528,15 +533,14 @@ contains
 
       use common_types, only: gam0_ffs_type
       use grids_kxky, only: naky
+      use banded_lu, only: band_lu_solve
 
       implicit none
 
       type(gam0_ffs_type), intent(in) :: lu
       complex, dimension(:), intent(in out) :: solvec
 
-      integer :: n, nsubdiag, nsupdiag, nrhs
-      integer :: info
-      complex, dimension(:, :), allocatable :: solmat
+      integer :: n, nsubdiag, nsupdiag
       
       !-------------------------------------------------------------------------
 
@@ -544,17 +548,9 @@ contains
       n = size(lu%pivot_index)
       ! nsubdiag and nsupdiag are the number of sub- and super-diagonals within the band of the matrix to be decomposed
       nsubdiag = naky - 1; nsupdiag = naky - 1
-      ! nrhs is the number of right-hand sides of the matrix equation lu%matrix * solvec = rhs for which to solve
-      nrhs = 1
-      ! initialise solmat = rhs, as it will be overwritten by zgbtrs below
-      allocate (solmat(size(solvec), 1))
-      solmat(:, 1) = solvec
 
-      call zgbtrs('N', n, nsubdiag, nsupdiag, nrhs, lu%matrix, size(lu%matrix, 1), lu%pivot_index, solmat, size(solmat, 1), info)
-
-      solvec = solmat(:, 1)
-
-      deallocate (solmat)
+      ! solvec = rhs on entry, and is overwritten by the solution
+      call band_lu_solve(n, nsubdiag, nsupdiag, lu%matrix, lu%pivot_index, solvec)
 
    end subroutine band_lu_solve_ffs_single
 
@@ -597,13 +593,14 @@ contains
 
       use common_types, only: gam0_ffs_type
       use grids_kxky, only: naky, naky_all
+      use banded_lu, only: band_ldab, band_lu_factorise
 
       implicit none
 
       complex, dimension(:, :), intent(in) :: gam0
       type(gam0_ffs_type), intent(out) :: lu_gam0
 
-      integer :: nrows, ncols, nsubdiag, nsupdiag, leading_dim
+      integer :: nrows, ncols, nsubdiag, nsupdiag, leading_dim, kd
       integer :: info
       integer :: i, imod
       
@@ -614,15 +611,17 @@ contains
       nrows = naky_all; ncols = naky_all
       ! nsubdiag and nsupdiag are the number of sub- and super-diagonals within the band of the matrix to be decomposed
       nsubdiag = naky - 1; nsupdiag = naky - 1
-      ! leading_dim is the 'leading dimension' of the lu_gam0 array
-      leading_dim = 2 * nsubdiag + nsupdiag + 1
+      ! leading_dim is the 'leading dimension' of the lu_gam0 array; it is larger with PLASMA (see banded_lu)
+      leading_dim = band_ldab(nsubdiag, nsupdiag)
+      ! kd is the row of lu_gam0 that contains the main diagonal
+      kd = nsubdiag + nsupdiag + 1
 
       ! lu_gam0 is a re-arranged version of gam0 on entry, and on exit contains details of LU factorisation
-      ! that can be used by zgbtrs to solve the linear system gam0 * phi = rhs
+      ! that can be used by band_lu_solve to solve the linear system gam0 * phi = rhs
       if (.not. associated(lu_gam0%matrix)) then
          allocate (lu_gam0%matrix(leading_dim, ncols))
-         ! initialise first nsubdiag rows to zero, as they are unused
-         lu_gam0%matrix(:nsubdiag, :) = 0.0
+         ! initialise to zero: the first nsubdiag rows, and the rows below the sub-diagonals, are unused
+         lu_gam0%matrix = 0.0
          ! fill next supdiag rows using elements from super-diagonals
          ! using reality of gam0 to set fourier(ky < 0) = conjg(fourier(ky > 0))
          do i = 1, nsupdiag
@@ -632,13 +631,13 @@ contains
             lu_gam0%matrix(nsubdiag + i, :imod - 1) = 0.0
          end do
          ! fill next row using main diagonal entries
-         lu_gam0%matrix(nsubdiag + nsupdiag + 1, :) = gam0(1, :)
+         lu_gam0%matrix(kd, :) = gam0(1, :)
          ! fill remaining nsubdiag rows using elements from sub-diagonals
          do i = 1, nsubdiag
             imod = naky + i - 1
-            lu_gam0%matrix(leading_dim - i + 1, :imod) = gam0(naky - i + 1, :imod)
+            lu_gam0%matrix(kd + nsubdiag - i + 1, :imod) = gam0(naky - i + 1, :imod)
             ! fill unused entries with zeroes
-            lu_gam0%matrix(leading_dim - i + 1, imod + 1:) = 0.0
+            lu_gam0%matrix(kd + nsubdiag - i + 1, imod + 1:) = 0.0
          end do
       end if
 
@@ -646,7 +645,7 @@ contains
       ! overwrites lu_gam0%matrix with information needed to solve the linear system gam0 * phi = rhs;
       ! also returns pivot_index, with pivot_index(i) giving the row of the matrix interchanged with the ith row,
       ! and info, which should be zero if the LU factorisation is successful
-      call zgbtrf(nrows, ncols, nsubdiag, nsupdiag, lu_gam0%matrix, leading_dim, lu_gam0%pivot_index, info)
+      call band_lu_factorise(ncols, nsubdiag, nsupdiag, lu_gam0%matrix, lu_gam0%pivot_index, info)
 
    !--------------------------------- band-lu ----------------------------------
    end subroutine band_lu_factorisation_single

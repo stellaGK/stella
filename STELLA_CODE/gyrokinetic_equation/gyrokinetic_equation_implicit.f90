@@ -30,10 +30,8 @@ contains
    subroutine advance_distribution_function_using_implicit_gyrokinetic_terms(istep, phi, apar, bpar, g)
 
       ! Parallelisation
-      use mp, only: proc0
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use parallelisation_layouts, only: vmu_lo
-      use timers, only: time_gke
       
       ! Fields
       use field_equations, only: advance_fields
@@ -81,7 +79,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! Start the timer for the implicit part of the solve
-      if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
+      call region_start('implicit_gke')
 
       ! Reverse the order of operations every time step
       ! as part of alternating direction operator splitting
@@ -184,7 +182,7 @@ contains
       end if
 
       ! Stop the timer for the implict part of the solve
-      if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
+      call region_end('implicit_gke')
 
    end subroutine advance_distribution_function_using_implicit_gyrokinetic_terms
 

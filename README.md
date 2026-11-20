@@ -39,12 +39,13 @@ On Ubuntu, the following commands download, compile and run $\texttt{stella}$:
 ```bash
 git clone https://github.com/stellaGK/stella.git
 cd stella
-sudo apt install gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin openmpi-bin libopenmpi-dev libblas-dev liblapack-dev
+sudo apt install gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin openmpi-bin libopenmpi-dev libblas-dev liblapack-dev liblapacke-dev cmake
 export STELLA_SYSTEM=gnu_ubuntu
 make -j 4
 mkdir -p ../stella_runs/first_run
 cp DOCUMENTATION/example_input_files/miller_linear_CBC.in ../stella_runs/first_run/
 cd ../stella_runs/first_run
+export OMP_NUM_THREADS=1
 mpirun -n 4 ../../stella/stella miller_linear_CBC.in
 ```
 
@@ -61,15 +62,16 @@ In order to compile and run $\texttt{stella}$, install the following:
 - The NetCDF Fortran library, to write the diagnostics.
 - FFTW3, to compute the discrete Fourier transforms.
 - BLAS and LAPACK, for the linear algebra routines.
+- CBLAS, LAPACKE and $\texttt{cmake}$, to compile the PLASMA library (in `EXTERNALS/plasma`), which $\texttt{stella}$ uses by default for the LU decompositions (see [Make](#make) to compile without it).
 - $\texttt{make}$ or $\texttt{cmake}$, to build the code.
 - Python 3, for the automatic tests and the post-processing.
 
-NetCDF, FFTW3 and LAPACK can be switched off at compile time (see [CMake](#cmake)), but nonlinear simulations need FFTW3 and the diagnostics need NetCDF, so in practice all of them are required.
+LAPACK is required. NetCDF and FFTW3 can be switched off at compile time (see [CMake](#cmake)), but nonlinear simulations need FFTW3 and the diagnostics need NetCDF, so in practice both are required.
 
 On Ubuntu:
 
 ```bash
-sudo apt install gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin openmpi-bin libopenmpi-dev libblas-dev liblapack-dev
+sudo apt install gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin openmpi-bin libopenmpi-dev libblas-dev liblapack-dev liblapacke-dev cmake
 ```
 
 On macOS (with [Homebrew](https://brew.sh)):
@@ -100,6 +102,8 @@ There are two ways to build $\texttt{stella}$: using plain $\texttt{make}$ or $\
    - `NETCDF_INC_DIR`: directory containing netcdf.inc
 3. Run `make`, or `make -j 4` to compile on 4 cores.
 
+By default $\texttt{stella}$ is compiled with OpenMP (`USE_OPENMP = on`) and with the PLASMA library (`USE_PLASMA = on`), which is compiled from the `EXTERNALS/plasma` submodule during the first build. Use `make USE_PLASMA=` (or `export USE_PLASMA=`) to compile without PLASMA, in which case LAPACK is used, and `make USE_OPENMP=` to compile without OpenMP.
+
 On Ubuntu:
 
 ```bash
@@ -115,8 +119,11 @@ export FFTW_LIB_DIR=$(brew --prefix fftw)/lib/
 export FFTW_INC_DIR=$(brew --prefix)/include/
 export NETCDF_LIB_DIR="$(brew --prefix)/lib -L$(brew --prefix netcdf-fortran)/lib/"
 export NETCDF_INC_DIR=$(brew --prefix netcdf-fortran)/include/
+export USE_PLASMA=
 make -j 4
 ```
+
+On macOS $\texttt{stella}$ is compiled without PLASMA, as in the automatic tests on GitHub.
 
 Add the `export` lines to your `~/.bashrc` (or `~/.zshrc`) so that they are set in every new terminal. After changing the source code, `make` recompiles only what is needed; run `make depend` first when you add a new Fortran file or `use` statement. To clean the directory, the following commands exist:
 
@@ -162,7 +169,6 @@ cmake . -B COMPILATION/build_cmake \
 
 There are a few build options:
 
-- `STELLA_ENABLE_LAPACK`: Enable LAPACK (default: on)
 - `STELLA_ENABLE_FFT`: Enable FFTs (default: on)
 - `STELLA_ENABLE_NETCDF`: Enable NetCDF (default: on)
 - `STELLA_ENABLE_DOUBLE`: Promotes the precision of reals and complex numbers to double (default: on)
@@ -170,6 +176,7 @@ There are a few build options:
 - `STELLA_ENABLE_NAGLIB`: Use the NAG library (default: off)
 - `STELLA_ENABLE_POSIX`: Enable POSIX functions for command line functionality (default: off)
 - `STELLA_ENABLE_F200X`: Enable use of F2003/F2008 functionality (default: on)
+- `STELLA_ENABLE_PLASMA`: Use the [PLASMA](https://github.com/icl-utk-edu/plasma) linear algebra library for the dense and band LU routines (default: on). An installed PLASMA is used if CMake finds one (through `PLASMA_DIR`, `plasma_ROOT`, `CMAKE_PREFIX_PATH` or pkg-config), otherwise it is compiled from the `EXTERNALS/plasma` submodule, which needs the CBLAS and LAPACKE libraries. With Make, use `USE_PLASMA=` to build without PLASMA (and optionally `PLASMA_DIR`). When compiled in, PLASMA is always used, except inside OpenMP parallel regions, where LAPACK is called instead.
 
 You can turn these on or off with `-D<option name>=ON/OFF`. You can get a complete list of options by running the following in a build directory:
 
@@ -185,8 +192,11 @@ cmake -LH
 $\texttt{stella}$ reads one input file, and is run with MPI from the folder that contains it:
 
 ```bash
+export OMP_NUM_THREADS=1
 mpirun -n 4 /path/to/stella/stella input.in
 ```
+
+$\texttt{stella}$ is parallelised with MPI and, on top of that, with OpenMP threads. Always set `OMP_NUM_THREADS`, the number of threads of every MPI process: if it is not set, every MPI process may start one thread per core, which slows the simulation down enormously. With `OMP_NUM_THREADS=1`, $\texttt{stella}$ runs as a pure MPI code, with one MPI process per core.
 
 All output files start with the name of the input file:
 - `input.out.nc`: all diagnostics (fields, fluxes, moments, geometry, grids) in NetCDF format.
@@ -317,6 +327,7 @@ It is the responsibility of the respective authors to list their contributions t
 - The $\texttt{stella}$ code has been reorganised and cleaned up by H. Thienpondt and G. Acton in October 2025.
 - The shared-memory domains for the response matrix can now be parallelised over NUMA domains rather than over nodes. This is particularly useful on supercomputers with multiple sockets per node, where inter-socket communication can be relatively slow. To enable this feature, set `SPLIT_BY_NUMA = on` in the makefile and ensure that `--ntasks-per-socket` is specified in the sbatch script. This has been implemented by H. Thienpondt in December 2025.
 - More automatic tests have been added by H. Thienpondt in October 2026 to test the full numerical reproducibility of the code. The electromagnetic tests (test 8) now compare with the new $\texttt{stella}$ data.
+- The response matrix is now LU decomposed with PLASMA (or LAPACK) by every MPI process, which replaces the local and global parallel LU decompositions (`lu_option`) and the MPI shared-memory windows of the response matrix and of the radial variation. `SPLIT_BY_NUMA` has been removed with them, as have stella's own dense LU routines: LAPACK is now required (V. Seitz, October 2026).
 
 ### Diagnostics
 

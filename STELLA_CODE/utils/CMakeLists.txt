@@ -9,7 +9,6 @@ set(STELLA_UTILS_SOURCES_f90
   file_units.f90
   gauss_quad.f90
   interface_random_number_generator.f90
-  linear_solve.f90
   mt19937.f90
   spl.f90
   text_options.f90
@@ -17,12 +16,14 @@ set(STELLA_UTILS_SOURCES_f90
 
 # Source files that need preprocessing
 set(STELLA_UTILS_SOURCES_fpp
+  banded_lu.fpp
   command_line.fpp
   constants.fpp
   file_utils.fpp
   job_manage.fpp
+  linear_solve.fpp
   mp.fpp
-  mp_lu_decomposition.fpp
+  plasma_interface.fpp
   ran.fpp
   spfunc.fpp
   system_fortran.fpp
@@ -120,6 +121,20 @@ endif()
 
 if (STELLA_ENABLE_F200X)
   target_compile_definitions(stella_utils PRIVATE F200X_INTRINSICS ISO_C_BINDING)
+endif()
+
+if (STELLA_ENABLE_OPENMP)
+  target_compile_definitions(stella_utils PRIVATE USE_OPENMP)
+endif()
+
+# linear_solve and banded_lu call LAPACK
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
+  target_link_libraries(stella_utils PUBLIC "${LAPACK_LIBRARIES}")
+endif()
+
+if (STELLA_ENABLE_PLASMA)
+  target_link_libraries(stella_utils PUBLIC ${STELLA_PLASMA_LIBRARIES})
+  target_compile_definitions(stella_utils PRIVATE PLASMA)
 endif()
 
 if (STELLA_ENABLE_RANDOM_MT)

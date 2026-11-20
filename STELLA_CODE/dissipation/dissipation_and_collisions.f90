@@ -244,7 +244,6 @@ contains
 
       ! Parallelisation
       use mp, only: mp_abort
-      use timers, only: time_collisions
       
       ! Grids
       use grids_z, only: nzgrid
@@ -273,9 +272,9 @@ contains
 
       ! Advance the explicit collisions
       if (collision_model == "dougherty") then
-         call advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs, time_collisions)
+         call advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs)
       else if (collision_model == "fokker-planck") then
-         call advance_collisions_fp_explicit(g, phi, bpar, gke_rhs, time_collisions)
+         call advance_collisions_fp_explicit(g, phi, bpar, gke_rhs)
       end if
 
    end subroutine advance_collisions_explicit
@@ -284,11 +283,9 @@ contains
    subroutine advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
 
       ! Parallelisation
-      use mp, only: proc0
       use redistribute, only: gather, scatter
       use initialise_redistribute, only: kxkyz2vmu
-      use job_manage, only: time_message
-      use timers, only: time_collisions
+      use timers, only: region_start, region_end
       
       ! Grids
       use grids_z, only: nzgrid
@@ -317,16 +314,16 @@ contains
       !-------------------------------------------------------------------------
 
       ! Start timer
-      if (proc0) call time_message(.false., time_collisions(:, 1), ' collisions')
+      call region_start('collisions')
 
       ! Switch the vpa integration weights to ensure correct integration by parts
       conservative_wgts = .true.
       call set_vpa_weights(conservative_wgts)
 
       ! Redistribute the distribution function from ikxkyz to imuvpa
-      if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
+      call region_start('collisions_redistribute')
       call scatter(kxkyz2vmu, g, gvmu)
-      if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
+      call region_end('collisions_redistribute')
 
       ! Advance the implicit collisions
       if (collision_model == "dougherty") then
@@ -337,9 +334,9 @@ contains
 
       ! Take the results and remap again so ky,kx,z is local.
       if (.not. mirror_implicit) then
-         if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
+         call region_start('collisions_redistribute')
          call gather(kxkyz2vmu, gvmu, g)
-         if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
+         call region_end('collisions_redistribute')
       end if
 
       ! Switch the vpa integration weights back to its original definition
@@ -347,7 +344,7 @@ contains
       call set_vpa_weights(conservative_wgts)
 
       ! Stop timer
-      if (proc0) call time_message(.false., time_collisions(:, 1), ' collisions')
+      call region_end('collisions')
 
    end subroutine advance_collisions_implicit
 

@@ -155,6 +155,7 @@ clean:
 #===================================================================
 
 # Dependencies
+$(OBJ)/banded_lu.o: $(OBJ)/mp.o $(OBJ)/plasma_interface.o
 $(OBJ)/command_line.o: 
 $(OBJ)/constants.o: 
 $(OBJ)/convert.o: 
@@ -164,11 +165,11 @@ $(OBJ)/file_utils.o: $(OBJ)/command_line.o
 $(OBJ)/gauss_quad.o: $(OBJ)/file_utils.o $(OBJ)/mp.o $(OBJ)/constants.o
 $(OBJ)/interface_random_number_generator.o: $(OBJ_DIR)/file_utils.o  $(OBJ_DIR)/mp.o $(OBJ_DIR)/ran.o 
 $(OBJ)/job_manage.o: $(OBJ)/file_utils.o $(OBJ)/mp.o
-$(OBJ)/linear_solve.o:  
+$(OBJ)/linear_solve.o: $(OBJ)/plasma_interface.o
 $(OBJ)/mp.o: $(OBJ)/file_utils.o $(OBJ)/constants.o
-$(OBJ)/mp_lu_decomposition.o: $(OBJ)/linear_solve.o
 $(OBJ)/mt19937.o: 
 $(OBJ)/netcdf_utils.o: $(OBJ)/constants.o $(OBJ)/mp.o $(OBJ)/file_utils.o
+$(OBJ)/plasma_interface.o: $(OBJ)/mp.o
 $(OBJ)/ran.o: $(OBJ)/mt19937.o
 $(OBJ)/redistribute.o: $(OBJ)/mp.o $(OBJ)/job_manage.o
 $(OBJ)/spfunc.o: $(OBJ)/constants.o

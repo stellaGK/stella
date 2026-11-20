@@ -24,7 +24,7 @@ module redistribute
    public :: redist_type, delete_redist
 ! TT>
    public :: report_map_property, measure_gather, measure_scatter
-   public :: gather_count, scatter_count, time_redist
+   public :: gather_count, scatter_count
 ! <TT
 
    public :: init_redist, gather, scatter
@@ -65,7 +65,6 @@ module redistribute
    end interface
 
    integer :: gather_count = 0, scatter_count = 0
-   real, save :: time_redist(2) = 0.
 ! <TT
 
    interface fill
@@ -705,7 +704,6 @@ contains
 
    subroutine c_redist_32(r, from_here, to_here)
 
-      use job_manage, only: time_message
 
       type(redist_type), intent(in out) :: r
 
@@ -829,7 +827,6 @@ contains
 
    subroutine c_redist_32_inv(r, from_here, to_here)
 
-      use job_manage, only: time_message
 
       type(redist_type), intent(in out) :: r
 
@@ -4893,96 +4890,90 @@ contains
 
    subroutine measure_gather_32(map, gin, gout)
 
-      use job_manage, only: time_message
-      use mp, only: proc0
+      use timers, only: region_start, region_end
 
       type(redist_type), intent(in out) :: map
       complex, dimension(:, :, :), intent(in) :: gin
       complex, dimension(:, :), intent(out) :: gout
 
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_start('redistribute')
       call c_redist_32(map, gin, gout)
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_end('redistribute')
       gather_count = gather_count + 1
 
    end subroutine measure_gather_32
 
    subroutine measure_scatter_23(map, gin, gout)
 
-      use job_manage, only: time_message
-      use mp, only: proc0
+      use timers, only: region_start, region_end
 
       type(redist_type), intent(in out) :: map
       complex, dimension(:, :), intent(in) :: gin
       complex, dimension(:, :, :), intent(out) :: gout
 
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_start('redistribute')
       call c_redist_32_inv(map, gin, gout)
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_end('redistribute')
       scatter_count = scatter_count + 1
 
    end subroutine measure_scatter_23
 
    subroutine measure_gather_33(map, gin, gout)
 
-      use job_manage, only: time_message
-      use mp, only: proc0
+      use timers, only: region_start, region_end
 
       type(redist_type), intent(in out) :: map
       complex, dimension(:, :, :), intent(in) :: gin
       complex, dimension(:, :, :), intent(out) :: gout
 
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_start('redistribute')
       call c_redist_33(map, gin, gout)
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_end('redistribute')
       gather_count = gather_count + 1
 
    end subroutine measure_gather_33
 
    subroutine measure_scatter_33(map, gin, gout)
 
-      use job_manage, only: time_message
-      use mp, only: proc0
+      use timers, only: region_start, region_end
 
       type(redist_type), intent(in out) :: map
       complex, dimension(:, :, :), intent(in) :: gin
       complex, dimension(:, :, :), intent(out) :: gout
 
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_start('redistribute')
       call c_redist_33_inv(map, gin, gout)
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_end('redistribute')
       scatter_count = scatter_count + 1
 
    end subroutine measure_scatter_33
 
    subroutine measure_gather_22(map, gin, gout)
 
-      use job_manage, only: time_message
-      use mp, only: proc0
+      use timers, only: region_start, region_end
 
       type(redist_type), intent(in out) :: map
       complex, dimension(:, :), intent(in) :: gin
       complex, dimension(:, :), intent(out) :: gout
 
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_start('redistribute')
       call c_redist_22(map, gin, gout)
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_end('redistribute')
       gather_count = gather_count + 1
 
    end subroutine measure_gather_22
 
    subroutine measure_scatter_22(map, gin, gout)
 
-      use job_manage, only: time_message
-      use mp, only: proc0
+      use timers, only: region_start, region_end
 
       type(redist_type), intent(in out) :: map
       complex, dimension(:, :), intent(in) :: gin
       complex, dimension(:, :), intent(out) :: gout
 
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_start('redistribute')
       call c_redist_22_inv(map, gin, gout)
-      if (proc0) call time_message(.false., time_redist, ' Redistribution')
+      call region_end('redistribute')
       scatter_count = scatter_count + 1
 
    end subroutine measure_scatter_22

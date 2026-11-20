@@ -698,7 +698,7 @@ contains
       deallocate (denominator_fields_con)
       deallocate (gam0_const)
 
-      ! LU factorise array of gam0, using the LAPACK zgbtrf routine for banded matrices
+      ! LU factorise array of gam0, using the band LU routines of utils/banded_lu (LAPACK's zgbtrf, or PLASMA)
       if (.not. allocated(lu_gam0_ffs)) then
          allocate (lu_gam0_ffs(ikx_max, -nzgrid:nzgrid))
          !call test_band_lu_factorisation (gam0_ffs, lu_gam0_ffs)

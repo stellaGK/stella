@@ -11,10 +11,6 @@
 !###############################################################################
 module gk_sources
 
-#ifdef ISO_C_BINDING
-   use mpi
-#endif
-
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
    
@@ -208,15 +204,9 @@ contains
 
       use arrays_distribution_function, only: g_krook, g_proj, g_symm
       use arrays_fields, only: phi_proj, phi_proj_stage
-#ifdef ISO_C_BINDING
-      use arrays, only: qn_zf_window
-#else
       use arrays_fields, only: phizf_solve, phi_ext
-#endif
 
       implicit none
-
-      integer :: ierr
 
       !-------------------------------------------------------------------------
 
@@ -226,15 +216,9 @@ contains
       if (allocated(phi_proj)) deallocate (phi_proj)
       if (allocated(phi_proj_stage)) deallocate (phi_proj_stage)
 
-#ifdef ISO_C_BINDING
-      if (qn_zf_window /= MPI_WIN_NULL) then
-         call mpi_win_free(qn_zf_window, ierr)
-      end if
-#else
       if (associated(phizf_solve%zloc)) deallocate (phizf_solve%zloc)
       if (associated(phizf_solve%idx)) deallocate (phizf_solve%idx)
       if (associated(phi_ext)) deallocate (phi_ext)
-#endif
 
    end subroutine finish_sources
 
@@ -243,9 +227,7 @@ contains
    !****************************************************************************
    subroutine add_krook_operator(g, gke_rhs)
 
-      use mp, only: proc0
-      use timers, only: time_sources
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use grids_z, only: nzgrid, ntubes
       use constants, only: pi, zi
       use grids_kxky, only: akx, zonal_mode 
@@ -274,7 +256,7 @@ contains
       ia = 1
       if (.not. zonal_mode(1)) return
 
-      if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
+      call region_start('sources')
 
       if (debug) write (6, *) 'sources::add_krook_operator'
 
@@ -297,58 +279,58 @@ contains
          allocate (g1x(1, nakx))
          allocate (basis_func(npts))
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  g0k(1, :) = g_work(1, :, iz, it, ivmu)
-                  g1x = 0.
-                  call transform_kx2x_unpadded(g0k, g0x)
-                  do ikx = 1, ikxmax_source
-                     if (ikx == 1) then
-                        basis_func = 1.0
-                        tmp = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts)
-                     else
-                        do jkx = 1, npts
-                           basis_func(jkx) = sin(2.0 * pi * (ikx - 1) * jkx / real(npts + 1))
-                        end do
-                        tmp = 2.0 * sum(basis_func * g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts + 1)
-                     end if
-                     if (tcorr_source > epsilon(0.0)) then
-                        tmp = (code_dt * tmp + exp_fac * int_krook * g_krook(ikx, iz, it, ivmu)) &
-                              / (code_dt + exp_fac * int_krook)
-                     end if
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               g0k(1, :) = g_work(1, :, iz, it, ivmu)
+               g1x = 0.
+               call transform_kx2x_unpadded(g0k, g0x)
+               do ikx = 1, ikxmax_source
+                  if (ikx == 1) then
+                     basis_func = 1.0
+                     tmp = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts)
+                  else
                      do jkx = 1, npts
-                        g1x(1, boundary_size + jkx) = g1x(1, boundary_size + jkx) + tmp * basis_func(jkx)
+                        basis_func(jkx) = sin(2.0 * pi * (ikx - 1) * jkx / real(npts + 1))
                      end do
+                     tmp = 2.0 * sum(basis_func * g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts + 1)
+                  end if
+                  if (tcorr_source > epsilon(0.0)) then
+                     tmp = (code_dt * tmp + exp_fac * int_krook * g_krook(ikx, iz, it, ivmu)) &
+                           / (code_dt + exp_fac * int_krook)
+                  end if
+                  do jkx = 1, npts
+                     g1x(1, boundary_size + jkx) = g1x(1, boundary_size + jkx) + tmp * basis_func(jkx)
                   end do
-                  call transform_x2kx_unpadded(g1x, g0k)
-                  gke_rhs(1, :, iz, it, ivmu) = gke_rhs(1, :, iz, it, ivmu) - code_dt * nu_krook * g0k(1, :)
                end do
+               call transform_x2kx_unpadded(g1x, g0k)
+               gke_rhs(1, :, iz, it, ivmu) = gke_rhs(1, :, iz, it, ivmu) - code_dt * nu_krook * g0k(1, :)
             end do
+         end do
          end do
          deallocate (g0k, g0x, g1x, basis_func)
       else
          if (debug) write (6, *) 'sources::add_krook_operator::include_boundary_regions'
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  do ikx = 1, nakx
-                     if (abs(akx(ikx)) > akx(ikxmax_source)) cycle
-                     tmp = g_work(1, ikx, iz, it, ivmu)
-                     if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
-                     if (tcorr_source <= epsilon(0.0)) then
-                        gke_rhs(1, ikx, iz, it, ivmu) = gke_rhs(1, ikx, iz, it, ivmu) - code_dt * nu_krook * tmp
-                     else
-                        gke_rhs(1, ikx, iz, it, ivmu) = gke_rhs(1, ikx, iz, it, ivmu) - code_dt * nu_krook &
-                                                        * (code_dt * tmp + exp_fac * int_krook * g_krook(ikx, iz, it, ivmu)) &
-                                                        / (code_dt + exp_fac * int_krook)
-                     end if
-                  end do
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  if (abs(akx(ikx)) > akx(ikxmax_source)) cycle
+                  tmp = g_work(1, ikx, iz, it, ivmu)
+                  if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
+                  if (tcorr_source <= epsilon(0.0)) then
+                     gke_rhs(1, ikx, iz, it, ivmu) = gke_rhs(1, ikx, iz, it, ivmu) - code_dt * nu_krook * tmp
+                  else
+                     gke_rhs(1, ikx, iz, it, ivmu) = gke_rhs(1, ikx, iz, it, ivmu) - code_dt * nu_krook &
+                                                     * (code_dt * tmp + exp_fac * int_krook * g_krook(ikx, iz, it, ivmu)) &
+                                                     / (code_dt + exp_fac * int_krook)
+                  end if
                end do
             end do
          end do
+         end do
       end if
 
-      if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
+      call region_end('sources')
 
    end subroutine add_krook_operator
 
@@ -357,9 +339,7 @@ contains
    !****************************************************************************
    subroutine update_tcorr_krook(g)
 
-      use mp, only: proc0
-      use timers, only: time_sources
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use constants, only: pi, zi
       use arrays_distribution_function, only: g_krook, g_symm
       use grids_z, only: nzgrid, ntubes
@@ -385,7 +365,7 @@ contains
 
       if (.not. zonal_mode(1)) return
 
-      if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
+      call region_start('sources')
 
       ia = 1
 
@@ -408,42 +388,42 @@ contains
          allocate (g0k(1, nakx))
          allocate (g0x(1, nakx))
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  g0k(1, :) = g_work(1, :, iz, it, ivmu)
-                  call transform_kx2x_unpadded(g0k, g0x)
-                  do ikx = 1, ikxmax_source
-                     if (ikx == 1) then
-                        tmp = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts)
-                     else
-                        tmp = 0.
-                        do jkx = 1, npts
-                           tmp = tmp + sin(2.0 * pi * (ikx - 1) * jkx / real(npts + 1)) * g0x(1, boundary_size + jkx)
-                        end do
-                        tmp = 2.0 * tmp / real(npts + 1)
-                     end if
-                     g_krook(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_krook_old * g_krook(ikx, iz, it, ivmu)) &
-                                                  / int_krook
-                  end do
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               g0k(1, :) = g_work(1, :, iz, it, ivmu)
+               call transform_kx2x_unpadded(g0k, g0x)
+               do ikx = 1, ikxmax_source
+                  if (ikx == 1) then
+                     tmp = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts)
+                  else
+                     tmp = 0.
+                     do jkx = 1, npts
+                        tmp = tmp + sin(2.0 * pi * (ikx - 1) * jkx / real(npts + 1)) * g0x(1, boundary_size + jkx)
+                     end do
+                     tmp = 2.0 * tmp / real(npts + 1)
+                  end if
+                  g_krook(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_krook_old * g_krook(ikx, iz, it, ivmu)) &
+                                               / int_krook
                end do
             end do
+         end do
          end do
          deallocate (g0k, g0x)
       else
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  do ikx = 1, nakx
-                     tmp = g(1, ikx, iz, it, ivmu)
-                     if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
-                     g_krook(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_krook_old * g_krook(ikx, iz, it, ivmu)) / int_krook
-                  end do
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  tmp = g(1, ikx, iz, it, ivmu)
+                  if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
+                  g_krook(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_krook_old * g_krook(ikx, iz, it, ivmu)) / int_krook
                end do
             end do
          end do
+         end do
       end if
 
-      if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
+      call region_end('sources')
 
    end subroutine update_tcorr_krook
 
@@ -452,9 +432,7 @@ contains
    !****************************************************************************
    subroutine enforce_momentum_conservation(g_work)
 
-      use mp, only: proc0
-      use timers, only: time_sources
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use redistribute, only: scatter, gather
       use parallelisation_layouts, only: vmu_lo, kxkyz_lo
       use parallelisation_layouts, only: imu_idx, is_idx, iv_idx
@@ -472,24 +450,24 @@ contains
 
       !-------------------------------------------------------------------------
 
-      if (proc0) call time_message(.false., time_sources(:, 2), ' source_redist')
+      call region_start('sources_redistribute')
       call scatter(kxkyz2vmu, g_work, gvmu)
-      if (proc0) call time_message(.false., time_sources(:, 2), ' source_redist')
+      call region_end('sources_redistribute')
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          do imu = 1, nmu
-            do iv = 1, nvgrid
-               iv2 = nvpa - iv + 1
-               tmp = 0.5 * (gvmu(iv, imu, ikxkyz) + gvmu(iv2, imu, ikxkyz))
-               gvmu(iv, imu, ikxkyz) = tmp
-               gvmu(iv2, imu, ikxkyz) = tmp
-            end do
+         do iv = 1, nvgrid
+            iv2 = nvpa - iv + 1
+            tmp = 0.5 * (gvmu(iv, imu, ikxkyz) + gvmu(iv2, imu, ikxkyz))
+            gvmu(iv, imu, ikxkyz) = tmp
+            gvmu(iv2, imu, ikxkyz) = tmp
+         end do
          end do
       end do
 
-      if (proc0) call time_message(.false., time_sources(:, 2), ' source_redist')
+      call region_start('sources_redistribute')
       call gather(kxkyz2vmu, gvmu, g_work)
-      if (proc0) call time_message(.false., time_sources(:, 2), ' source_redist')
+      call region_end('sources_redistribute')
 
    end subroutine enforce_momentum_conservation
 
@@ -534,35 +512,35 @@ contains
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               is = is_idx(vmu_lo, ivmu)
-               imu = imu_idx(vmu_lo, ivmu)
-               iv = iv_idx(vmu_lo, ivmu)
-               gyro_g(:, ivmu) = g_work(:, iz, it, ivmu) * aj0x(1, :, iz, ivmu)
-               g0k = 0.0
-               if (radial_variation) then
-                  g0k(1, :) = gyro_g(:, ivmu) &
-                              * (-0.5 * aj1x(1, :, iz, ivmu) / aj0x(1, :, iz, ivmu) * (spec(is)%smz)**2 &
-                                 * (kperp2(1, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                 * (dkperp2dr(1, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                 + dBdrho(iz) / bmag(ia, iz))
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            gyro_g(:, ivmu) = g_work(:, iz, it, ivmu) * aj0x(1, :, iz, ivmu)
+            g0k = 0.0
+            if (radial_variation) then
+               g0k(1, :) = gyro_g(:, ivmu) &
+                           * (-0.5 * aj1x(1, :, iz, ivmu) / aj0x(1, :, iz, ivmu) * (spec(is)%smz)**2 &
+                              * (kperp2(1, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                              * (dkperp2dr(1, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                              + dBdrho(iz) / bmag(ia, iz))
 
-                  call transform_kx2x_unpadded(g0k, g0x)
-                  g0x(1, :) = rho_d_clamped * g0x(1, :)
-                  call transform_x2kx_unpadded(g0x, g0k)
-               end if
-               gyro_g(:, ivmu) = gyro_g(:, ivmu) + g0k(1, :)
-            end do
+               call transform_kx2x_unpadded(g0k, g0x)
+               g0x(1, :) = rho_d_clamped * g0x(1, :)
+               call transform_x2kx_unpadded(g0x, g0k)
+            end if
+            gyro_g(:, ivmu) = gyro_g(:, ivmu) + g0k(1, :)
+         end do
 
-            do ikx = 1, nakx
-               call integrate_species(gyro_g(ikx, :), iz, spec%dens_psi0, g0k(1, ikx), reduce_in=.false.)
-            end do
-            call sum_allreduce(g0k)
+         do ikx = 1, nakx
+            call integrate_species(gyro_g(ikx, :), iz, spec%dens_psi0, g0k(1, ikx), reduce_in=.false.)
+         end do
+         call sum_allreduce(g0k)
 
-            !we now have delta n. Flux surface average
-            call transform_kx2x_unpadded(g0k, g0x)
-            g_fsa = g_fsa + dl_over_b(ia, iz) * g0x(1, :)
-            if (radial_variation) g_fsa = g_fsa + d_dl_over_b_drho(ia, iz) * rho_d_clamped * g0x(1, :)
+         !we now have delta n. Flux surface average
+         call transform_kx2x_unpadded(g0k, g0x)
+         g_fsa = g_fsa + dl_over_b(ia, iz) * g0x(1, :)
+         if (radial_variation) g_fsa = g_fsa + d_dl_over_b_drho(ia, iz) * rho_d_clamped * g0x(1, :)
          end do
       end do
       g_fsa = g_fsa / ntubes
@@ -572,18 +550,18 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          iv = iv_idx(vmu_lo, ivmu)
          do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               g0x(1, :) = g_fsa
-               !multiply by f0
-               g0x(1, :) = g0x(1, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-               if (radial_variation) then !variation in the density cancels
-                  energy = (vpa(iv)**2 + vperp2(ia, iz, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
-                  g0x(1, :) = g0x(1, :) * (1.0 - rho_d_clamped * (spec(is)%tprim * (energy - 1.5) + 2.*mu(imu) * dBdrho(iz)))
-               end if
+         do iz = -nzgrid, nzgrid
+            g0x(1, :) = g_fsa
+            !multiply by f0
+            g0x(1, :) = g0x(1, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+            if (radial_variation) then !variation in the density cancels
+               energy = (vpa(iv)**2 + vperp2(ia, iz, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
+               g0x(1, :) = g0x(1, :) * (1.0 - rho_d_clamped * (spec(is)%tprim * (energy - 1.5) + 2.*mu(imu) * dBdrho(iz)))
+            end if
 
-               call transform_x2kx_unpadded(g0x, g0k)
-               g_work(:, iz, it, ivmu) = g_work(:, iz, it, ivmu) - g0k(1, :)
-            end do
+            call transform_x2kx_unpadded(g0x, g0k)
+            g_work(:, iz, it, ivmu) = g_work(:, iz, it, ivmu) - g0k(1, :)
+         end do
          end do
       end do
       deallocate (gyro_g, g0k, g0x, g_fsa)
@@ -595,9 +573,7 @@ contains
    !****************************************************************************
    subroutine project_out_zero(gold, gnew)
 
-      use mp, only: proc0
-      use timers, only: time_sources
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use grids_z, only: nzgrid, ntubes
       use constants, only: pi, zi
       use grids_kxky, only: zonal_mode, akx
@@ -626,7 +602,7 @@ contains
 
       if (debug) write (6, *) 'sources::project_out_zero'
 
-      if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
+      call region_start('sources')
 
       allocate (g(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -649,66 +625,66 @@ contains
          allocate (g1x(1, nakx))
          allocate (basis_func(npts))
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  g0k(1, :) = g(:, iz, it, ivmu)
-                  g1x = 0.
-                  call transform_kx2x_unpadded(g0k, g0x)
-                  do ikx = 1, ikxmax_source
-                     !physical region should have an odd number of collocation points
-                     if (ikx == 1) then
-                        basis_func = 1.0
-                        tmp = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts)
-                     else
-                        ! here we use a Fourier basis due to periodicity,
-                        ! though we could use Legendre polynomials
-                        ! NB: Only a constant or linear function (or nearly linear, i.e. first
-                        ! sine harmonic) make physical sense as sources, so ikxmax_source <= 2
-                        do jkx = 1, npts
-                           basis_func(jkx) = sin(2.0 * pi * (ikx - 1) * jkx / real(npts + 1))
-                        end do
-                        tmp = 2.0 * sum(basis_func * g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts + 1)
-                     end if
-                     if (tcorr_source > epsilon(0.)) then
-                        tmp = (code_dt * tmp + exp_fac * int_proj * g_proj(ikx, iz, it, ivmu)) &
-                              / (code_dt + exp_fac * int_proj)
-                        g_proj(ikx, iz, it, ivmu) = tmp
-                     end if
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               g0k(1, :) = g(:, iz, it, ivmu)
+               g1x = 0.
+               call transform_kx2x_unpadded(g0k, g0x)
+               do ikx = 1, ikxmax_source
+                  !physical region should have an odd number of collocation points
+                  if (ikx == 1) then
+                     basis_func = 1.0
+                     tmp = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts)
+                  else
+                     ! here we use a Fourier basis due to periodicity,
+                     ! though we could use Legendre polynomials
+                     ! NB: Only a constant or linear function (or nearly linear, i.e. first
+                     ! sine harmonic) make physical sense as sources, so ikxmax_source <= 2
                      do jkx = 1, npts
-                        g1x(1, boundary_size + jkx) = g1x(1, boundary_size + jkx) + tmp * basis_func(jkx)
+                        basis_func(jkx) = sin(2.0 * pi * (ikx - 1) * jkx / real(npts + 1))
                      end do
+                     tmp = 2.0 * sum(basis_func * g0x(1, (boundary_size + 1):(nakx - boundary_size))) / real(npts + 1)
+                  end if
+                  if (tcorr_source > epsilon(0.)) then
+                     tmp = (code_dt * tmp + exp_fac * int_proj * g_proj(ikx, iz, it, ivmu)) &
+                           / (code_dt + exp_fac * int_proj)
+                     g_proj(ikx, iz, it, ivmu) = tmp
+                  end if
+                  do jkx = 1, npts
+                     g1x(1, boundary_size + jkx) = g1x(1, boundary_size + jkx) + tmp * basis_func(jkx)
                   end do
-                  call transform_x2kx_unpadded(g1x, g0k)
-                  g(:, iz, it, ivmu) = g0k(1, :)
                end do
+               call transform_x2kx_unpadded(g1x, g0k)
+               g(:, iz, it, ivmu) = g0k(1, :)
             end do
+         end do
          end do
          deallocate (g0k, g0x, g1x, basis_func)
       else
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  do ikx = 1, nakx
-                     if (abs(akx(ikx)) > akx(ikxmax_source)) then
-                        g(ikx, iz, it, ivmu) = 0.0
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  if (abs(akx(ikx)) > akx(ikxmax_source)) then
+                     g(ikx, iz, it, ivmu) = 0.0
+                  else
+                     tmp = g(ikx, iz, it, ivmu)
+                     if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
+                     if (tcorr_source <= epsilon(0.)) then
+                        g(ikx, iz, it, ivmu) = tmp
                      else
-                        tmp = g(ikx, iz, it, ivmu)
-                        if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) tmp = zi * aimag(tmp)
-                        if (tcorr_source <= epsilon(0.)) then
-                           g(ikx, iz, it, ivmu) = tmp
-                        else
-                           g(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_proj * g_proj(ikx, iz, it, ivmu)) &
-                                                  / (code_dt + exp_fac * int_proj)
-                        end if
+                        g(ikx, iz, it, ivmu) = (code_dt * tmp + exp_fac * int_proj * g_proj(ikx, iz, it, ivmu)) &
+                                               / (code_dt + exp_fac * int_proj)
                      end if
-                     if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) then
-                        g_proj(ikx, iz, it, ivmu) = zi * aimag(g(ikx, iz, it, ivmu))
-                     else
-                        g_proj(ikx, iz, it, ivmu) = g(ikx, iz, it, ivmu)
-                     end if
-                  end do
+                  end if
+                  if (krook_odd .and. abs(akx(ikx)) > epsilon(0.0)) then
+                     g_proj(ikx, iz, it, ivmu) = zi * aimag(g(ikx, iz, it, ivmu))
+                  else
+                     g_proj(ikx, iz, it, ivmu) = g(ikx, iz, it, ivmu)
+                  end if
                end do
             end do
+         end do
          end do
       end if
 
@@ -718,7 +694,7 @@ contains
 
       deallocate (g)
 
-      if (proc0) call time_message(.false., time_sources(:, 1), ' sources')
+      call region_end('sources')
 
    end subroutine project_out_zero
 
@@ -727,14 +703,6 @@ contains
    !****************************************************************************
    subroutine init_quasineutrality_source
 
-#ifdef ISO_C_BINDING
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use arrays, only: qn_zf_window
-      use mp, only: sgproc0, sharedsubprocs, comm_sgroup
-      use mp, only: real_size, nbytes_real, create_shared_memory_window
-      use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
-      use mpi
-#endif
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use grids_z, only: nzgrid, nztot
@@ -751,13 +719,6 @@ contains
       integer :: iz, ikx, ia, jkx, jz
       integer :: inmat, jnmat, nmat_zf
       real :: dum
-#ifdef ISO_C_BINDING
-      integer :: ierr, temp_window
-      integer(c_intptr_t):: cur_pos
-      integer(kind=MPI_ADDRESS_KIND) :: win_size
-      type(c_ptr) :: cptr
-      complex, dimension(:, :), pointer :: temp_mat
-#endif
       complex, dimension(:, :), allocatable :: g0k, g0x, g1k
 
       !-------------------------------------------------------------------------
@@ -769,160 +730,87 @@ contains
 
       if (include_qn_source) then
          nmat_zf = nakx * (nztot - 1)
-#ifdef ISO_C_BINDING
-         if (qn_zf_window == MPI_WIN_NULL) then
-            win_size = 0
-            if (sgproc0) then
-               win_size = int(nmat_zf, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                          + int(nmat_zf * (nmat_zf + 1), MPI_ADDRESS_KIND) * 2 * real_size !complex size
-            end if
-
-            if (debug) write (6, *) 'sources::init_quasineutrality_source::win_allocate'
-
-            call create_shared_memory_window(win_size, qn_zf_window, cur_pos)
-
-            !allocate the memory
-            if (.not. associated(phizf_solve%zloc)) then
-               cptr = transfer(cur_pos, cptr)
-               call c_f_pointer(cptr, phizf_solve%zloc, (/nmat_zf, nmat_zf/))
-            end if
-            cur_pos = cur_pos + nmat_zf**2 * 2 * nbytes_real
-
-            if (.not. associated(phi_ext)) then
-               cptr = transfer(cur_pos, cptr)
-               call c_f_pointer(cptr, phi_ext, (/nmat_zf/))
-            end if
-            cur_pos = cur_pos + nmat_zf * 2 * nbytes_real
-
-            if (.not. associated(phizf_solve%idx)) then
-               cptr = transfer(cur_pos, cptr)
-               call c_f_pointer(cptr, phizf_solve%idx, (/nmat_zf/))
-            end if
-
-            call mpi_win_fence(0, qn_zf_window, ierr)
-         end if
-#else
          if (debug) write (6, *) 'sources::init_quasineutrality_source::allocate_phizf'
          if (.not. associated(phizf_solve%zloc)) allocate (phizf_solve%zloc(nmat_zf, nmat_zf))
          if (.not. associated(phizf_solve%idx)) allocate (phizf_solve%idx(nmat_zf))
          if (.not. associated(phi_ext)) allocate (phi_ext(nmat_zf))
-#endif
 
-#ifdef ISO_C_BINDING
-         if (sgproc0) then
-#endif
-            allocate (g0k(1, nakx))
-            allocate (g0x(1, nakx))
-            allocate (g1k(1, nakx))
+         allocate (g0k(1, nakx))
+         allocate (g0x(1, nakx))
+         allocate (g1k(1, nakx))
 
-            phizf_solve%zloc = 0.
+         phizf_solve%zloc = 0.
 
-            !get the big matrix
-            do jz = -nzgrid, nzgrid - 1
-               do jkx = 1, nakx
-                  jnmat = jkx + nakx * (jz + nzgrid)
-                  ! C.phi
+         !get the big matrix
+         do jz = -nzgrid, nzgrid - 1
+            do jkx = 1, nakx
+               jnmat = jkx + nakx * (jz + nzgrid)
+               ! C.phi
+               do ikx = 1, nakx
+                  inmat = ikx + nakx * (jz + nzgrid)
+                  phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) + c_mat(ikx, jkx)
+               end do
+
+               ! -C.<phi>_\psi
+               g0k = 0.0; g0k(1, jkx) = 1.0
+               call transform_kx2x_unpadded(g0k, g0x)
+               g0x(1, :) = (dl_over_b(ia, jz) + d_dl_over_b_drho(ia, jz) * rho_d_clamped) * g0x(1, :)
+               call transform_x2kx_unpadded(g0x, g0k)
+
+               !set the gauge potential
+               if (jkx == 1) g0k(1, 1) = 0.
+
+               do ikx = 1, nakx
+                  g1k(1, ikx) = sum(c_mat(ikx, :) * g0k(1, :))
+               end do
+
+               do iz = -nzgrid, nzgrid - 1
                   do ikx = 1, nakx
-                     inmat = ikx + nakx * (jz + nzgrid)
-                     phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) + c_mat(ikx, jkx)
+                     inmat = ikx + nakx * (iz + nzgrid)
+                     phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) - g1k(1, ikx)
                   end do
+               end do
 
-                  ! -C.<phi>_\psi
-                  g0k = 0.0; g0k(1, jkx) = 1.0
-                  call transform_kx2x_unpadded(g0k, g0x)
-                  g0x(1, :) = (dl_over_b(ia, jz) + d_dl_over_b_drho(ia, jz) * rho_d_clamped) * g0x(1, :)
-                  call transform_x2kx_unpadded(g0x, g0k)
+               ! get theta.phi
+               g1k(1, :) = theta(:, jkx, jz)
 
-                  !set the gauge potential
-                  if (jkx == 1) g0k(1, 1) = 0.
+               ! +theta.phi
+               do ikx = 1, nakx
+                  inmat = ikx + nakx * (jz + nzgrid)
+                  phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) + g1k(1, ikx)
+               end do
 
+               ! -<<theta.phi>_psi>_T
+               call transform_kx2x_unpadded(g1k, g0x)
+               g0x(1, :) = (dl_over_b(ia, jz) + d_dl_over_b_drho(ia, jz) * rho_d_clamped) * g0x(1, :)
+
+               if (exclude_boundary_regions_qn) then
+                  g0x(1, :) = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) &
+                              / (nakx - 2 * boundary_size)
+                  g0x(1, 1:boundary_size) = 0.0
+                  g0x(1, (nakx - boundary_size + 1):) = 0.0
+               else
+                  g0x(1, :) = sum(g0x(1, :)) / nakx
+               end if
+
+               call transform_x2kx_unpadded(g0x, g0k)
+
+               if (tcorr_source_qn > epsilon(0.)) then
+                  g0k = (1.-exp_fac_qn) * g0k
+               end if
+
+               do iz = -nzgrid, nzgrid - 1
                   do ikx = 1, nakx
-                     g1k(1, ikx) = sum(c_mat(ikx, :) * g0k(1, :))
-                  end do
-
-                  do iz = -nzgrid, nzgrid - 1
-                     do ikx = 1, nakx
-                        inmat = ikx + nakx * (iz + nzgrid)
-                        phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) - g1k(1, ikx)
-                     end do
-                  end do
-
-                  ! get theta.phi
-                  g1k(1, :) = theta(:, jkx, jz)
-
-                  ! +theta.phi
-                  do ikx = 1, nakx
-                     inmat = ikx + nakx * (jz + nzgrid)
-                     phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) + g1k(1, ikx)
-                  end do
-
-                  ! -<<theta.phi>_psi>_T
-                  call transform_kx2x_unpadded(g1k, g0x)
-                  g0x(1, :) = (dl_over_b(ia, jz) + d_dl_over_b_drho(ia, jz) * rho_d_clamped) * g0x(1, :)
-
-                  if (exclude_boundary_regions_qn) then
-                     g0x(1, :) = sum(g0x(1, (boundary_size + 1):(nakx - boundary_size))) &
-                                 / (nakx - 2 * boundary_size)
-                     g0x(1, 1:boundary_size) = 0.0
-                     g0x(1, (nakx - boundary_size + 1):) = 0.0
-                  else
-                     g0x(1, :) = sum(g0x(1, :)) / nakx
-                  end if
-
-                  call transform_x2kx_unpadded(g0x, g0k)
-
-                  if (tcorr_source_qn > epsilon(0.)) then
-                     g0k = (1.-exp_fac_qn) * g0k
-                  end if
-
-                  do iz = -nzgrid, nzgrid - 1
-                     do ikx = 1, nakx
-                        inmat = ikx + nakx * (iz + nzgrid)
-                        phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) &
-                                                         - g0k(1, ikx)
-                     end do
+                     inmat = ikx + nakx * (iz + nzgrid)
+                     phizf_solve%zloc(inmat, jnmat) = phizf_solve%zloc(inmat, jnmat) &
+                                                      - g0k(1, ikx)
                   end do
                end do
             end do
-            deallocate (g0k, g1k, g0x)
-#ifdef ISO_C_BINDING
-         end if
-
-         call mpi_win_fence(0, qn_zf_window, ierr)
-         if (debug) write (6, *) 'sources::init_quasineutrality_source::lu_decomposition'
-         call lu_decomposition_local(comm_sgroup, 0, qn_zf_window, &
-                                     phizf_solve%zloc, phizf_solve%idx, dum)
-
-         call mpi_win_fence(0, qn_zf_window, ierr)
-
-         if (debug) write (6, *) 'sources::init_quasineutrality_source::temp_mat'
-
-         win_size = 0
-         if (sgproc0) then
-            win_size = int(nmat_zf**2, MPI_ADDRESS_KIND) * 2 * real_size !complex size
-         end if
-
-         if (debug) write (6, *) 'sources::init_quasineutrality_source::win_allocate'
-         call create_shared_memory_window(win_size, temp_window, cur_pos)
-
-         cptr = transfer(cur_pos, cptr)
-
-         call c_f_pointer(cptr, temp_mat, (/nmat_zf, nmat_zf/))
-
-         if (sgproc0) temp_mat = phizf_solve%zloc
-
-         call mpi_win_fence(0, temp_window, ierr)
-
-         ! inverse is calculated since it is more straightforward to parallelize
-         ! inverse calculation/matrix multiplication than the lu back substitution
-         if (debug) write (6, *) 'sources::init_quasineutrality_source::lu_inverse'
-         call lu_inverse_local(comm_sgroup, qn_zf_window, &
-                               temp_mat, phizf_solve%idx, phizf_solve%zloc)
-         call mpi_win_free(temp_window, ierr)
-#else
+         end do
+         deallocate (g0k, g1k, g0x)
          if (debug) write (6, *) 'sources::init_quasineutrality_source::lu_decomposition'
          call lu_decomposition(phizf_solve%zloc, phizf_solve%idx, dum)
-#endif
       end if
    end subroutine init_quasineutrality_source
 

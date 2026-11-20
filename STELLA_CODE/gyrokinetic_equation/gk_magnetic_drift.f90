@@ -137,13 +137,19 @@ contains
       !    <wdrifty_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdrifty> + <wgbdrifty>)
       !-------------------------------------------------------------------------
 
-      ! Allocate temporary arrays
+      ! Iterate over velocity space
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, nalpha, nzgrid, code_dt, ydriftknob, xdriftknob, q_as_x, geo_surf) &
+      !$omp private(ivmu, iv, imu, is, fac, wcvdrifty, wgbdrifty, wcvdriftx, wgbdriftx) &
+      !$omp shared(wdriftx_g, wdrifty_g, wdriftx_phi, wdrifty_phi, wdriftx_bpar, wdrifty_bpar, &
+      !$omp        vpa, vperp2, mu, spec, maxwell_vpa, maxwell_mu, maxwell_fac, &
+      !$omp        B_times_kappa_dot_grady, B_times_gradB_dot_grady, &
+      !$omp        B_times_kappa_dot_gradx, B_times_gradB_dot_gradx)
       allocate (wcvdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wcvdriftx(nalpha, -nzgrid:nzgrid))
       allocate (wgbdriftx(nalpha, -nzgrid:nzgrid))
-
-      ! Iterate over velocity space
+      !$omp do
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -152,24 +158,24 @@ contains
          !----------------------------------------------------------------------
          !----------------------- Calculate y-components -----------------------
          !----------------------------------------------------------------------
-         
+
          ! Calculate <wcvdrifty> = 0.5 * code_dt * Ts/Zs * v_parallel² * <cvdrift>
          ! and <wgbdrifty> = 0.25 * code_dt * Ts/Zs * v_perp² * <gbvdrift>
          ! We also add the input parameter <ydriftknob> to rescale the y-drifts
          fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
          wcvdrifty = fac * 2 * B_times_kappa_dot_grady * vpa(iv) * vpa(iv)
          wgbdrifty = fac * B_times_gradB_dot_grady * vperp2(:, :, imu)
-         
+
          ! Calculate <wdrifty_g>[ialpha, iz, ivmu] = <wcvdrifty> + <wgbdrifty>
          wdrifty_g(:, :, ivmu) = wcvdrifty + wgbdrifty
-         
+
          ! Calculate <wdrifty_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdrifty> + <wgbdrifty>)
          wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wcvdrifty + wgbdrifty) &
                * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         
+
          ! TODO - write documentation and neoclassical terms not supported
          wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu) * spec(is)%tz
-         
+
          !----------------------------------------------------------------------
          !----------------------- Calculate x-components -----------------------
          !----------------------------------------------------------------------
@@ -184,20 +190,21 @@ contains
          end if
          wcvdriftx = fac * B_times_kappa_dot_gradx * 2. * geo_surf%shat * vpa(iv) * vpa(iv)
          wgbdriftx = fac * B_times_gradB_dot_gradx * geo_surf%shat * vperp2(:, :, imu)
-         
+
          ! Calculate <wdriftx_g>[ialpha, iz, ivmu] = <wcvdriftx> + <wgbdriftx>
          wdriftx_g(:, :, ivmu) = wcvdriftx + wgbdriftx
-         
+
          ! Calculate <wdriftx_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdriftx> + <wgbdriftx>)
          wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wcvdriftx + wgbdriftx) &
                * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         
+
          ! TODO - write documentation and neoclassical terms not supported
          wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu) * spec(is)%tz
 
       end do
-
-      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty) 
+      !$omp end do
+      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
+      !$omp end parallel
 
    end subroutine init_wdrift_without_neoclassical_terms
    
@@ -246,20 +253,29 @@ contains
       ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
       !-------------------------------------------------------------------------
 
-      ! Allocate temporary arrays
+      ! Iterate over velocity space
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, nalpha, nzgrid, code_dt, ydriftknob, xdriftknob, q_as_x, geo_surf, &
+      !$omp              include_neoclassical_terms, drhodpsi, dydalpha, dxdpsi, gds23, gds24) &
+      !$omp private(ivmu, iv, imu, is, fac, wcvdrifty, wgbdrifty, wcvdriftx, wgbdriftx) &
+      !$omp shared(wdriftx_g, wdrifty_g, wdriftx_phi, wdrifty_phi, wdriftx_bpar, wdrifty_bpar, &
+      !$omp        vpa, vperp2, mu, spec, maxwell_vpa, maxwell_mu, maxwell_fac, &
+      !$omp        B_times_kappa_dot_grady, B_times_gradB_dot_grady, &
+      !$omp        B_times_kappa_dot_gradx, B_times_gradB_dot_gradx, &
+      !$omp        dphineo_dzed, dphineo_drho, dphineo_dalpha, &
+      !$omp        dfneo_dvpa, dfneo_dzed, dfneo_dalpha)
       allocate (wcvdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wcvdriftx(nalpha, -nzgrid:nzgrid))
       allocate (wgbdriftx(nalpha, -nzgrid:nzgrid))
-
-      ! Iterate over velocity space
+      !$omp do
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         
+
          fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
-         
+
          ! Calculate <wcvdrifty> = 0.5 * code_dt * Ts/Zs * v_parallel² * 2 * <B_times_kappa_dot_grady>
          ! This is the curvature drift piece of wdrifty with missing factor of vpa
          ! vpa factor is missing to avoid singularity when including
@@ -331,8 +347,9 @@ contains
          end if
 
       end do
-
-      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty) 
+      !$omp end do
+      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
+      !$omp end parallel
 
    end subroutine init_wdrift_with_neoclassical_terms
       
@@ -397,9 +414,8 @@ contains
    !*****************************************************************************
    subroutine advance_wdrifty_explicit(g, phi, bpar, gout)
 
-      use mp, only: proc0
       use parallelisation_layouts, only: vmu_lo
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, ny
@@ -410,7 +426,6 @@ contains
       use arrays_distribution_function, only: phi_gyro
       use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy
-      use timers, only: time_gke
 
       implicit none
 
@@ -426,7 +441,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! start the timing of the y component of the magnetic drift advance
-      if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
+      call region_start('magnetic_drift_y')
 
       allocate (dphidy(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dbpardy(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -444,12 +459,18 @@ contains
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (g0k_swap(naky_all, ikx_max))
          ! transform dg/dy from k-space to y-space
+         !$omp parallel default(none) &
+         !$omp firstprivate(it) &
+         !$omp private(g0k_swap) &
+         !$omp shared(g0k,g0y, vmu_lo,nzgrid)
+         !$omp do collapse(2)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                do iz = -nzgrid, nzgrid
                call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
                end do
          end do
+         !$omp end parallel
 
          ! add vM . grad y dg/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
@@ -459,12 +480,18 @@ contains
          call get_dgdy(phi_gyro, g0k)
 
          ! transform d<phi>/dy from k-space to y-space
+         !$omp parallel default(none) &
+         !$omp firstprivate(it) &
+         !$omp private(g0k_swap) &
+         !$omp shared(g0k,g0y, vmu_lo,nzgrid)
+         !$omp do collapse(2)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                do iz = -nzgrid, nzgrid
                call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
                end do
          end do
+         !$omp end parallel
 
          ! add vM . grad y d<phi>/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_phi, gout)
@@ -481,18 +508,22 @@ contains
          call get_dgdy(phi, dphidy)
 
          ! get <dphi/dy> in k-space
+         !$omp parallel do default(none) firstprivate(vmu_lo) private(ivmu) shared(dphidy, g0k)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
          end do
+         !$omp end parallel do
 
          ! add vM . grad y d<phi>/dy term to equation
          call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
-         
+
          if (include_bpar) then
                ! get <dbpar/dy> in k-space
+               !$omp parallel do default(none) firstprivate(vmu_lo) private(ivmu) shared(dbpardy, g0k)
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                call gyro_average_j1(dbpardy, ivmu, g0k(:, :, :, :, ivmu))
                end do
+               !$omp end parallel do
                ! add vM . grad y (4 mu d<bpar>/dy) term to equation
                call add_explicit_term(g0k, wdrifty_bpar(1, :, :), gout)
          end if
@@ -500,7 +531,7 @@ contains
       deallocate (g0k, dphidy, dbpardy)
 
       ! stop the timing of the y component of the magnetic drift advance
-      if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
+      call region_end('magnetic_drift_y')
 
    end subroutine advance_wdrifty_explicit
 
@@ -512,9 +543,8 @@ contains
    !****************************************************************************
    subroutine advance_wdriftx_explicit(g, phi, bpar, gout)
 
-      use mp, only: proc0
       use parallelisation_layouts, only: vmu_lo
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, ny
@@ -526,7 +556,6 @@ contains
       use arrays_distribution_function, only: phi_gyro
       use calculations_kxky_derivatives, only: get_dgdx
       use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
-      use timers, only: time_gke
 
       implicit none
 
@@ -542,11 +571,11 @@ contains
       !-------------------------------------------------------------------------
 
       ! start the timing of the x component of the magnetic drift advance
-      if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
+      call region_start('magnetic_drift_x')
 
       ! do not calculate if wdriftx terms are all zero
       if (maxval(abs(akx)) < epsilon(0.)) then
-         if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
+         call region_end('magnetic_drift_x')
          return
       end if
 
@@ -567,12 +596,18 @@ contains
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (g0k_swap(naky_all, ikx_max))
          ! transform dg/dx from k-space to y-space
+         !$omp parallel default(none) &
+         !$omp firstprivate(it) &
+         !$omp private(g0k_swap) &
+         !$omp shared(g0k,g0y, vmu_lo,nzgrid)
+         !$omp do collapse(2)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                do iz = -nzgrid, nzgrid
                call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
                end do
          end do
+         !$omp end parallel
          ! add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
 
@@ -581,12 +616,18 @@ contains
          call get_dgdx(phi_gyro, g0k)
 
          ! transform d<phi>/dx from k-space to y-space
+         !$omp parallel default(none) &
+         !$omp firstprivate(it) &
+         !$omp private(g0k_swap) &
+         !$omp shared(g0k,g0y, vmu_lo,nzgrid)
+         !$omp do collapse(2)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                do iz = -nzgrid, nzgrid
                call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
                end do
          end do
+         !$omp end parallel
          ! add vM . grad x d<phi>/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_phi, gout)
          deallocate (g0y, g0k_swap)
@@ -597,16 +638,20 @@ contains
          ! calculate dphi/dx in (ky,kx) space
          call get_dgdx(phi, dphidx)
          ! get <dphi/dx> in k-space
+         !$omp parallel do default(none) firstprivate(vmu_lo) private(ivmu) shared(dphidx, g0k)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
          end do
+         !$omp end parallel do
          ! add vM . grad x d<phi>/dx term to equation
          call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
          if (include_bpar) then
                ! get <dbpar/dx> in k-space, bpar is gyro-averaged with J1/a (as for the y-drift)
+               !$omp parallel do default(none) firstprivate(vmu_lo) private(ivmu) shared(dbpardx, g0k)
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                call gyro_average_j1(dbpardx, ivmu, g0k(:, :, :, :, ivmu))
                end do
+               !$omp end parallel do
                ! add vM . grad x ( 4 mu d<bpar>/dx ) term to equation
                call add_explicit_term(g0k, wdriftx_bpar(1, :, :), gout)
          end if
@@ -614,7 +659,7 @@ contains
       deallocate (g0k, dphidx, dbpardx)
 
       ! stop the timing of the x component of the magnetic drift advance
-      if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
+      call region_end('magnetic_drift_x')
       
    end subroutine advance_wdriftx_explicit
 

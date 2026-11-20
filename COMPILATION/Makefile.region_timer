@@ -1,0 +1,46 @@
+#===================================================================
+#                          REGION TIMER                            #
+#===================================================================
+
+# The region_timer is a small C library (STELLA_CODE/region_timer) with
+# named timers, see region_timer.h. We compile it into a static library
+REGION_TIMER_DIR := $(STELLA_DIR)/region_timer
+REGION_TIMER_OBJ_DIR := $(BUILD_DIR)/region_timer
+
+# In the main make file we have "LIBS += $(REGION_TIMER_LIB)" so we have to define the static library here.
+REGION_TIMER_LIB = $(BUILD_DIR)/region_timer.a
+
+# We use the C compiler and flags of the stella makefile, and make sure the POSIX clock_gettime is declared
+REGION_TIMER_CFLAGS = $(CFLAGS) -std=c99 -D_POSIX_C_SOURCE=200809L
+
+# USE_NESMIK (see Makefile.compilerflags) builds region_timer against the
+# nesmik profiling library (https://gitlab.pm.bsc.es/beppp/nesmik), found
+# under $NESMIK_HOME.
+ifdef USE_NESMIK
+  ifndef NESMIK_HOME
+    $(error USE_NESMIK is set but NESMIK_HOME is not; point it at your nesmik install prefix)
+  endif
+  REGION_TIMER_SRC := region_timer_nesmik.c
+  REGION_TIMER_CFLAGS += -I$(NESMIK_HOME)/include
+  LIBS += -L$(NESMIK_HOME)/lib -Wl,-rpath,$(NESMIK_HOME)/lib -lnesmik
+else
+  REGION_TIMER_SRC := region_timer.c
+endif
+
+$(REGION_TIMER_OBJ_DIR)/region_timer.o: $(REGION_TIMER_DIR)/$(REGION_TIMER_SRC) $(REGION_TIMER_DIR)/region_timer.h | $(BUILD_DIR)
+	@mkdir -p $(REGION_TIMER_OBJ_DIR)
+	@echo "   (region_timer) *.c to *.o: $(notdir $<)"
+	@$(CC) $(REGION_TIMER_CFLAGS) -c $< -o $@
+
+$(REGION_TIMER_LIB): $(REGION_TIMER_OBJ_DIR)/region_timer.o
+	@$(AR) rcs $@ $^
+
+# Extra commands so we can compile the region_timer separately through
+# >> make region_timer_clean; make region_timer
+region_timer:
+	@echo " "; echo "Compile region_timer static library:"
+	@$(MAKE) --no-print-directory -s $(REGION_TIMER_LIB)
+	@echo "   ==> Finished compiling region_timer"
+region_timer_clean:
+	@-rm -rf $(REGION_TIMER_OBJ_DIR) $(REGION_TIMER_LIB)
+.PHONY: region_timer region_timer_clean

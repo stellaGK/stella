@@ -69,12 +69,10 @@ contains
    !============================================================================
    subroutine advance_fields(g, phi, apar, bpar, dist, implicit_solve)
 
-      use mp, only: proc0
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: full_flux_surface
       use grids_z, only: nzgrid
-      use timers, only: time_field_solve
       
       ! Routines from other field modules
       use field_equations_fluxtube, only: advance_fields_fluxtube
@@ -95,7 +93,7 @@ contains
       if (fields_updated) return
 
       ! Time the communications + field solve
-      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
+      call region_start('fields')
 
       !-------------------------------------------------------------------------
       !                    Fluxtube simulation (+ Radial Variation)
@@ -134,7 +132,7 @@ contains
       fields_updated = .true.
       
       ! Time the communications + field solve
-      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
+      call region_end('fields')
 
    end subroutine advance_fields
 

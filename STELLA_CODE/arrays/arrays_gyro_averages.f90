@@ -155,6 +155,12 @@ contains
       ! Calculate the Bessel functions J_0(x) and J_1(x) on the (nmu) grid
       ! Note that j1 returns J_1(x)/x, not J_1(x)
       if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::calculate_aj0v_aj1v'
+      !$omp parallel default(none) &
+      !$omp firstprivate(kxkyz_lo, ia) &
+      !$omp private(ikxkyz, iky, ikx, iz, is, imu, arg) &
+      !$omp shared(spec, vperp2, kperp2, nmu, bmag, aj0v, aj1v)
+      
+      !$omp do
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -171,6 +177,8 @@ contains
             
          end do
       end do
+      !$omp end do
+      !$omp end parallel
       
    end subroutine init_bessel_versus_mu_aj0v_aj1v
 

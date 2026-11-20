@@ -94,7 +94,7 @@ contains
    !============================================================================
    !================= CALCULATE AND WRITE FLUXES TO NETCDF FILE ================
    !============================================================================
-   subroutine write_fluxes_to_netcdf_file(nout, timer, write_to_netcdf_file)
+   subroutine write_fluxes_to_netcdf_file(nout, write_to_netcdf_file)
     
       ! Knowledge of first processor
       use mp, only: proc0
@@ -113,7 +113,7 @@ contains
       use parameters_diagnostics, only: write_radial_fluxes 
 
       ! Routines
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use mp, only: proc0
       
       ! Write to netCDF file 
@@ -125,7 +125,6 @@ contains
 
       integer, intent(in) :: nout   ! The pointer in the netcdf file
       logical, intent(in) :: write_to_netcdf_file
-      real, dimension(:), intent(in out) :: timer
 
       ! We want to write flux(ky,kx,z,tube,s) and flux(ky,kx,s) to the netcdf file
       real, dimension(:, :, :, :, :), allocatable :: pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts
@@ -134,7 +133,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Start timer
-      if (proc0) call time_message(.false., timer(:), 'Write fluxes')
+      call region_start('diagnostics_fluxes')
 
       ! Allocate the temporary arrays that we want to write to the netcdf file 
       ! Note that to calculate flux(s) we need flux(ky,kx,z,tube,s) and
@@ -190,7 +189,10 @@ contains
       !*************************************************************************
       
       ! Do not continue if we do not wish to write to the netCDF file right now
-      if (.not. write_to_netcdf_file) return  
+      if (.not. write_to_netcdf_file) then
+         call region_end('diagnostics_fluxes')
+         return
+      end if
 
       ! Write fluxes(s) to the netcdf file
       ! Here <pflux_vs_s>, <vflux_vs_s> and <qflux_vs_s> are global variables
@@ -221,7 +223,7 @@ contains
       if (allocated(qflux_vs_kxkys)) deallocate (qflux_vs_kxkys)
 
       ! End timer
-      if (proc0) call time_message(.false., timer(:), 'Write fluxes')
+      call region_end('diagnostics_fluxes')
 
    end subroutine write_fluxes_to_netcdf_file
 
@@ -312,7 +314,6 @@ contains
       use diagnostics_fluxes_radialvariation, only: calculate_fluxes_radialvariation
 
       ! Routines
-      use job_manage, only: time_message
       use mp, only: proc0
 
       implicit none
@@ -375,7 +376,6 @@ contains
       use diagnostics_fluxes_fullfluxsurface, only: calculate_fluxes_fullfluxsurface
 
       ! Routines
-      use job_manage, only: time_message
 
       implicit none
 
@@ -438,7 +438,7 @@ contains
       write (fluxes_unit, str) code_time, pflux_vs_s, vflux_vs_s, qflux_vs_s 
 
       ! Flush the data from the buffer to the actual ascii file
-      call flush(fluxes_unit) 
+      flush (fluxes_unit)
 
    end subroutine write_fluxes_to_ascii_file
 

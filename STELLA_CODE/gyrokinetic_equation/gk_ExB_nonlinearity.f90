@@ -30,7 +30,7 @@ contains
       use constants, only: pi, zi
 
       ! Parallelisation
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use mp, only: proc0, min_allreduce
       use mp, only: scope, allprocs, subprocs
       use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx
@@ -76,7 +76,6 @@ contains
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
       
       ! TImers
-      use timers, only: time_gke
 
       implicit none
 
@@ -94,14 +93,14 @@ contains
       complex, dimension(:, :, :), allocatable :: phase_ntft
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
       complex, dimension(:, :), allocatable :: tmp
-      integer :: ivmu, iz, it, imu, is
+      integer :: ivmu, iz, it
       real :: zero, cfl_dt
       logical :: yfirst
 
       !-------------------------------------------------------------------------
 
       ! Start timer
-      if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
+      call region_start('exb_nonlinearity')
       if (debug) write (*, *) 'time_advance::solve_gke::advance_ExB_nonlinearity::get_dgdy'
 
       ! Avoid dividing by zero in cfl_dt terms below
@@ -163,9 +162,13 @@ contains
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
 
       ! Iterate over velocity space
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, shift_state, exb_nonlin_fac, naky,nakx, ny ,rho_clamped, exb_nonlin_fac_p, ikx_max, code_dt, tmp) &
+      !$omp reduction(min: cfl_dt_ExB) &
+      !$omp private(g0k, g0xy, g0a, g1xy, bracket, g0xky, g0k_swap, g0kxy, apar_kykx, bpar_kykx, prefac_z) &
+      !$omp shared(g, gout, include_apar,phi_gyro, include_bpar, gfac, apar, phi, bpar, aky, ntubes, full_flux_surface, suppress_zonal_interaction,radial_variation, prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, prefac, yfirst, akx, fphi, phi_corr_GA, phi_corr_qn, zero, nzgrid, non_twisting, phase_ntft, dkx_over_ky, delta_kx)
+      !$omp do collapse(3)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
 
@@ -184,7 +187,7 @@ contains
                call get_dgdy(g(:, :, iz, it, ivmu), g0k)
                
                ! Take the FFT to get dg/dy in (y,x) space
-               call forward_transform(g0k, g0xy)
+               call forward_transform(g0k, g0xy, prefac_z)
                
                ! Compute i*kx*<chi>
                if (full_flux_surface) then
@@ -212,7 +215,7 @@ contains
                end if
                
                ! Take the FFT to get d<chi>/dx in (y,x) space
-               call forward_transform(g0k, g1xy)
+               call forward_transform(g0k, g1xy, prefac_z)
                
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
@@ -229,7 +232,7 @@ contains
                   call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
                   g0a = fphi * (g0a + phi_corr_GA(:, :, iz, it, ivmu))
                   call get_dgdx(g0a, g0k)
-                  call forward_transform(g0k, g1xy)
+                  call forward_transform(g0k, g1xy, prefac_z)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket + g0xy * g1xy
                   ! Estimate the CFL dt due to the above contribution
@@ -252,7 +255,7 @@ contains
                end if
                
                ! Take the FFT to get dg/dx in (y,x) space
-               call forward_transform(g0k, g0xy)
+               call forward_transform(g0k, g0xy, prefac_z)
                
                ! Compute d<chi>/dy in k-space
                if (full_flux_surface) then
@@ -262,7 +265,7 @@ contains
                end if
                
                ! Take the FFT to get d<chi>/dy in (y,x) space
-               call forward_transform(g0k, g1xy)
+               call forward_transform(g0k, g1xy, prefac_z)
                
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
@@ -279,7 +282,7 @@ contains
                   call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
                   g0a = fphi * (g0a + phi_corr_GA(:, :, iz, it, ivmu))
                   call get_dgdy(g0a, g0k)
-                  call forward_transform(g0k, g1xy)
+                  call forward_transform(g0k, g1xy, prefac_z)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket - g0xy * g1xy
                   ! Estimate the CFL dt due to the above contribution
@@ -304,6 +307,8 @@ contains
             end do
          end do
       end do
+      !$omp end do
+      !$omp end parallel
 
       ! Convert back from h to g = <f> (only needed for EM sims)
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, -fphi)
@@ -359,12 +364,12 @@ contains
          restart_time_step = .true.
       end if
 
-      if (proc0) call time_message(.false., time_gke(:, 7), ' ExB nonlinear advance')
+      call region_end('exb_nonlinearity')
 
    contains
 
       !-------------------------------------------------------------------------
-      subroutine forward_transform(gk, gx)
+      subroutine forward_transform(gk, gx, phase)
 
          use calculations_transforms, only: transform_ky2y, transform_kx2x
          use calculations_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
@@ -374,9 +379,16 @@ contains
          ! Arguments
          complex, dimension(:, :), intent(in) :: gk
          real, dimension(:, :), intent(out) :: gx
+         ! Phase factor in (ky, x) space of this thread (<prefac_z> is private in the OpenMP loop,
+         ! so it is passed explicitly instead of through host association)
+         complex, dimension(:, :), intent(in) :: phase
 
          !----------------------------------------------------------------------
-
+         !$omp critical (forward_transform_crit)
+         ! There is some shared state namely the g0k_swap, g0xky and g0kxy arrays.
+         ! The approach is as always: make if work first, before trying to do premature optimzizations. 
+         ! Even though the crtical might impede performance, we should measure first, before getting rid of it
+         
          ! Fourier transform g(kx,ky) to g(kx,y) and then to g(x,y)
          if (yfirst) then
                ! We have i*ky*g(kx,ky) for ky >= 0 and all kx.
@@ -398,10 +410,10 @@ contains
          ! Fourier transform g(kx,ky) to g(x,ky) and then to g(x,y)
          else
                call transform_kx2x_xfirst(gk, g0xky)
-               g0xky = g0xky * prefac_z
+               g0xky = g0xky * phase
                call transform_ky2y_xfirst(g0xky, gx)
          end if
-
+         !$omp end critical (forward_transform_crit)
       end subroutine forward_transform
 
    end subroutine advance_ExB_nonlinearity

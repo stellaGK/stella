@@ -284,34 +284,48 @@ contains
       c = c * tupwndfac
 
       if (full_flux_surface) then
+         !$omp parallel default(none) &
+         !$omp firstprivate(kxyz_lo, nmu, nvpa, tupwndfac) &
+         !$omp private(ikxyz, iy, iz, is, sgn, imu, iv) &
+         !$omp shared(mirror_tri_a, mirror_tri_b, mirror_tri_c, a, b, c, mirror, mirror_sign)
+         !$omp do collapse(3)
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
-            iy = iy_idx(kxyz_lo, ikxyz)
-            iz = iz_idx(kxyz_lo, ikxyz)
-            is = is_idx(kxyz_lo, ikxyz)
-            sgn = mirror_sign(iy, iz)
             do imu = 1, nmu
                do iv = 1, nvpa
+                  iy = iy_idx(kxyz_lo, ikxyz)
+                  iz = iz_idx(kxyz_lo, ikxyz)
+                  is = is_idx(kxyz_lo, ikxyz)
+                  sgn = mirror_sign(iy, iz)
                   mirror_tri_a(iv, imu, ikxyz) = -a(iv, sgn) * mirror(iy, iz, imu, is)
                   mirror_tri_b(iv, imu, ikxyz) = 1.0 - b(iv, sgn) * mirror(iy, iz, imu, is) * tupwndfac
                   mirror_tri_c(iv, imu, ikxyz) = -c(iv, sgn) * mirror(iy, iz, imu, is)
                end do
             end do
          end do
+         !$omp end do
+         !$omp end parallel
       else
          ! Multiply by mirror coefficient
+         !$omp parallel default(none) &
+         !$omp firstprivate(kxkyz_lo, nmu, nvpa, tupwndfac) &
+         !$omp private(ikxkyz, iy, iz, is, sgn, imu, iv) &
+         !$omp shared(mirror_tri_a, mirror_tri_b, mirror_tri_c, a, b, c, mirror, mirror_sign)
+         !$omp do collapse(3)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iy = 1
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            sgn = mirror_sign(iy, iz)
             do imu = 1, nmu
                do iv = 1, nvpa
+                  iy = 1
+                  iz = iz_idx(kxkyz_lo, ikxkyz)
+                  is = is_idx(kxkyz_lo, ikxkyz)
+                  sgn = mirror_sign(iy, iz)
                   mirror_tri_a(iv, imu, ikxkyz) = -a(iv, sgn) * mirror(iy, iz, imu, is)
                   mirror_tri_b(iv, imu, ikxkyz) = 1.0 - b(iv, sgn) * mirror(iy, iz, imu, is) * tupwndfac
                   mirror_tri_c(iv, imu, ikxkyz) = -c(iv, sgn) * mirror(iy, iz, imu, is)
                end do
             end do
          end do
+         !$omp end do
+         !$omp end parallel
       end if
 
       deallocate (a, b, c)
@@ -386,9 +400,7 @@ contains
    subroutine advance_mirror_explicit(g, gout)
 
       ! Parallelisation
-      use mp, only: proc0
-      use job_manage, only: time_message
-      use timers, only: time_mirror
+      use timers, only: region_start, region_end
       use initialise_redistribute, only: kxkyz2vmu, kxyz2vmu
       use redistribute, only: gather, scatter
       use parallelisation_layouts, only: fields_kxkyz
@@ -422,7 +434,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! Start the timer for this subroutine
-      if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
+      call region_start('mirror')
 
       if (full_flux_surface) then
          ! Assume we are simulating a single flux train
@@ -431,8 +443,14 @@ contains
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (dgdv(nvpa, nmu))
-         allocate (g_swap(naky_all, ikx_max))
 
+         ! g_swap is thread-private, allocated inside parallel region
+         !$omp parallel default(none) &
+         !$omp firstprivate(vmu_lo, nzgrid, it, naky_all, ikx_max) &
+         !$omp private(ivmu, iz, g_swap) &
+         !$omp shared(g, g0x)
+         allocate (g_swap(naky_all, ikx_max))
+         !$omp do collapse(2)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
                ! Swap from ky >= 0 and all kx to kx >= 0 and all ky
@@ -444,6 +462,10 @@ contains
                call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
             end do
          end do
+         !$omp end do
+         deallocate (g_swap)
+         !$omp end parallel
+
          ! Remap g so velocities are local
          call scatter(kxyz2vmu, g0x, g0v)
          ! Next, calculate dg/dvpa;
@@ -463,15 +485,15 @@ contains
 
          ! Finally add the mirror term to the RHS of the GK eqn
          call add_mirror_term_ffs(g0x, gout)
-         deallocate (dgdv, g_swap)
+         deallocate (dgdv)
       else
          allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          allocate (g0x(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
          if (.not. fields_kxkyz) then
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+            call region_start('mirror_redistribute')
             call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+            call region_end('mirror_redistribute')
          end if
 
          ! Incoming gvmu is g = <f>
@@ -481,15 +503,15 @@ contains
          call get_dgdvpa_explicit(g0v)
 
          ! Swap layouts so that (z,kx,ky) are local
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_start('mirror_redistribute')
          call gather(kxkyz2vmu, g0v, g0x)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_end('mirror_redistribute')
          ! Get mirror term and add to source
          call add_mirror_term(g0x, gout)
       end if
       deallocate (g0x, g0v)
 
-      if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
+      call region_end('mirror')
 
    end subroutine advance_mirror_explicit
 
@@ -585,17 +607,24 @@ contains
 
       !-------------------------------------------------------------------------
 
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, nzgrid, ntubes, nakx) &
+      !$omp private(ivmu, imu, is, it, iz, ikx) &
+      !$omp shared(g, src, mirror)
+      !$omp do collapse(3)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
                do ikx = 1, nakx
                   src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) + mirror(1, iz, imu, is) * g(:, ikx, iz, it, ivmu)
                end do
             end do
          end do
       end do
+      !$omp end do
+      !$omp end parallel
 
    end subroutine add_mirror_term
 
@@ -617,17 +646,26 @@ contains
       integer :: imu, is, ivmu
       integer :: it, iz, ikx
 
+      !-------------------------------------------------------------------------
+
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, nzgrid, ntubes, ikx_max) &
+      !$omp private(ivmu, imu, is, it, iz, ikx) &
+      !$omp shared(g, src, mirror)
+      !$omp do collapse(3)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
                do ikx = 1, ikx_max
                   src(:, ikx, iz, it, ivmu) = src(:, ikx, iz, it, ivmu) + mirror(:, iz, imu, is) * g(:, ikx, iz, it, ivmu)
                end do
             end do
          end do
       end do
+      !$omp end do
+      !$omp end parallel
 
    end subroutine add_mirror_term_ffs
 
@@ -641,9 +679,7 @@ contains
 
       ! Parallelisation
       use constants, only: zi
-      use mp, only: proc0
-      use job_manage, only: time_message
-      use timers, only: time_mirror
+      use timers, only: region_start, region_end
       use initialise_redistribute, only: kxkyz2vmu, kxyz2vmu
       use redistribute, only: gather, scatter
       use parallelisation_layouts, only: iy_idx
@@ -700,7 +736,7 @@ contains
 
       !-------------------------------------------------------------------------
 
-      if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
+      call region_start('mirror')
 
       tupwnd = (1.0 - time_upwind) * 0.5
       
@@ -722,9 +758,9 @@ contains
          ! For the mirror term, we need the velocity data to be local, therefore, scatter the
          ! g(naky, nakx, -nzgrid:nzgrid, ntubes, vmu-layout) data to gvmu(nvpa, nmu, kxkyz-layout) 
          if (.not. collisions_implicit) then 
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+            call region_start('mirror_redistribute')
             call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+            call region_end('mirror_redistribute')
          end if
 
          allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -794,9 +830,9 @@ contains
          end if
 
          ! then take the results and remap again so ky,kx,z local.
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_start('mirror_redistribute')
          call gather(kxkyz2vmu, g0v, g)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_end('mirror_redistribute')
          
       ! ------------------------------------------------------------------------
       !                            Full Flux Surface                            
@@ -836,9 +872,9 @@ contains
          end if
 
          ! Second, remap g so velocities are local
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_start('mirror_redistribute')
          call scatter(kxyz2vmu, g0x, g0v)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_end('mirror_redistribute')
 
          allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -888,7 +924,7 @@ contains
 
       deallocate (g0x, g0v)
 
-      if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
+      call region_end('mirror')
 
    end subroutine advance_mirror_implicit
 
@@ -995,10 +1031,8 @@ contains
    subroutine add_mirror_radial_variation(g, gout)
 
       ! Parallelisation
-      use mp, only: proc0
       use initialise_redistribute, only: kxkyz2vmu
-      use job_manage, only: time_message
-      use timers, only: time_mirror
+      use timers, only: region_start, region_end
       use redistribute, only: gather, scatter
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use parallelisation_layouts, only: is_idx, imu_idx
@@ -1029,17 +1063,17 @@ contains
          ! FLAG DSO - Someday one should be able to do full global
       else
          if (.not. fields_kxkyz) then
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+            call region_start('mirror_redistribute')
             call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+            call region_end('mirror_redistribute')
          end if
          ! Get dg/dvpa and store in g0v
          g0v = gvmu
          call get_dgdvpa_explicit(g0v)
          ! Swap layouts so that (z,kx,ky) are local
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_start('mirror_redistribute')
          call gather(kxkyz2vmu, g0v, gout)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call region_end('mirror_redistribute')
 
          ! Get mirror term and add to source
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

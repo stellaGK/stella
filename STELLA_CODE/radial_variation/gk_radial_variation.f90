@@ -243,8 +243,8 @@ contains
    !******************************************************************************
    subroutine advance_radial_variation(g, gout)
 
-      use mp, only: mp_abort, proc0
-      use job_manage, only: time_message
+      use mp, only: mp_abort
+      use timers, only: region_start, region_end
 
       use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
 
@@ -269,7 +269,6 @@ contains
       use arrays, only: wdriftpx_g, wdriftpy_g
       use arrays, only: wdriftpx_phi, wdriftpy_phi 
       use arrays, only: wstar, wstarp
-      use timers, only: time_gke
 
       use gk_mirror, only: add_mirror_radial_variation
       use gk_flow_shear, only: prl_shear, prl_shear_p
@@ -295,7 +294,7 @@ contains
 
       if (debug) write (*, *) 'time_advance::solve_gke::advance_radial_variation'
 
-      if (proc0) call time_message(.false., time_gke(:, 10), ' radial variation advance')
+      call region_start('radial_variation')
 
       if (include_mirror .or. include_parallel_streaming) then
          allocate (g_corr(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -388,7 +387,7 @@ contains
       if (allocated(g_corr)) deallocate (g_corr)
 
       ! Stop timer
-      if (proc0) call time_message(.false., time_gke(:, 10), ' radial variation advance')
+      call region_end('radial_variation')
 
    end subroutine advance_radial_variation
 

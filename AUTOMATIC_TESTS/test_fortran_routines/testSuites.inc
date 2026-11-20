@@ -1,2 +1,4 @@
 ADD_TEST_SUITE(test_simple_suite)
 ADD_TEST_SUITE(test_utils_convert_suite)
+ADD_TEST_SUITE(test_utils_linear_solve_suite)
+ADD_TEST_SUITE(test_utils_banded_lu_suite)

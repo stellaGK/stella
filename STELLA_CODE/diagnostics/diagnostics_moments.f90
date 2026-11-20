@@ -65,7 +65,7 @@ contains
    !============================================================================
    !================= CALCULATE AND WRITE MOMENTS TO NETCDF FILE ===============
    !============================================================================
-   subroutine write_moments_to_netcdf_file(nout, timer)
+   subroutine write_moments_to_netcdf_file(nout)
 
       ! Data
       use arrays_distribution_function, only: gnew
@@ -84,7 +84,7 @@ contains
       use write_diagnostics_to_netcdf, only: write_moments_nc
 
       ! Routines
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use mp, only: proc0
 
       ! Input file
@@ -93,8 +93,7 @@ contains
 
       implicit none
 
-      ! The pointer in the netcdf file and a timer
-      real, dimension(:), intent(in out) :: timer
+      ! The pointer in the netcdf file
       integer, intent(in) :: nout
 
       ! Variables needed to write and calculate diagnostics 
@@ -107,7 +106,7 @@ contains
       if ((.not. write_moments) .and. (.not. write_radial_moments)) return  
 
       ! Start timer
-      if (proc0) call time_message(.false., timer(:), 'Write moments')
+      call region_start('diagnostics_moments')
 
       ! Allocate the arrays for the moments
       allocate (dens_vs_kykxzts(naky, nakx, nztot, ntubes, nspec))
@@ -148,7 +147,7 @@ contains
       if (allocated(temp_kxs)) deallocate (temp_kxs)
 
        ! End timer
-       if (proc0) call time_message(.false., timer(:), 'Write moments')
+       call region_end('diagnostics_moments')
  
    end subroutine write_moments_to_netcdf_file
    

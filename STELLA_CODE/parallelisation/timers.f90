@@ -1,104 +1,67 @@
 !###############################################################################
 !                                    TIMERS                                    
 !###############################################################################
-! This module stores the timers for the routines.
+! This module gives Fortran access to the named timers of the C library <region_timer>
+! (STELLA_CODE/region_timer). Regions are created on their first <region_start> call.
 !###############################################################################
 module timers
 
+   use iso_c_binding, only: c_char, c_null_char, c_double
+
    implicit none
    
-   public :: time_total
-   public :: time_init
-   public :: time_gke
-   public :: time_mirror
-   public :: time_sources
-   public :: time_multibox
-   public :: time_collisions
-   public :: time_parallel_nl
-   public :: time_field_solve
-   public :: time_all_diagnostics
-   public :: time_implicit_advance
-   public :: time_parallel_streaming
-   public :: time_individual_diagnostics
-   public :: time_response_matrix
-   public :: time_lu_decomposition
+   ! Named timers from the C library <region_timer> (STELLA_CODE/region_timer)
+   public :: region_start
+   public :: region_end
+   public :: region_total_time
    
    private
-   
+
    !----------------------------------------------------------------------------
+   !                  Interface to the C library <region_timer>                  
+   !----------------------------------------------------------------------------
+   ! Usage:
+   !    call region_start('fields')
+   !    ...
+   !    call region_end('fields')
+   !    t = region_total_time('fields')   ! accumulated time in seconds
+   ! The strings are converted to null-terminated C strings in the wrappers below.
+   
+   interface
+      subroutine c_region_start(name) bind(C, name="region_start")
+         import :: c_char
+         character(kind=c_char), dimension(*), intent(in) :: name
+      end subroutine c_region_start
+      
+      subroutine c_region_end(name) bind(C, name="region_end")
+         import :: c_char
+         character(kind=c_char), dimension(*), intent(in) :: name
+      end subroutine c_region_end
+      
+      function c_region_total_time(name) bind(C, name="region_total_time") result(total_time)
+         import :: c_char, c_double
+         character(kind=c_char), dimension(*), intent(in) :: name
+         real(c_double) :: total_time
+      end function c_region_total_time
+   end interface
 
-   ! Time the entire stella code
-   real, dimension(2) :: time_total = 0.
-   
-   ! Time the initialisation of stella
-   real, dimension(2) :: time_init = 0.
-   
-   ! Time the response matrix
-   real, dimension(2) :: time_response_matrix = 0.
-   real, dimension(2) :: time_lu_decomposition = 0.
-   
-   ! Time the gyrokinetic equation
-   !    - time_gke(:,1) = Gyrokinetic equation + field equations
-   !    - time_gke(:,2) = unused
-   !    - time_gke(:,3) = unused
-   !    - time_gke(:,4) = Magnetic drift (omega_d) wdrifty
-   !    - time_gke(:,5) = Magnetic drift (omega_d) wdriftx
-   !    - time_gke(:,6) = Drive term (omega_*)
-   !    - time_gke(:,7) = ExB nonlinear term
-   !    - time_gke(:,8) = Explicit terms
-   !    - time_gke(:,9) = Implicit terms
-   !    - time_gke(:,10) = Radial variation
-   real, dimension(2, 10) :: time_gke = 0.
-   
-   ! The the mirror term
-   !    - time_mirror(:,1) = Mirror term
-   !    - time_mirror(:,2) = Redistribute
-   real, dimension(2, 2) :: time_mirror = 0.
-   
-   ! The the parallel nonlinearity
-   !    - time_parallel_nl(:,1) = Parallel nonlinearity
-   !    - time_parallel_nl(:,2) = Redistribute
-   real, dimension(2, 2) :: time_parallel_nl = 0.
-   
-   ! The the collisions
-   !    - time_collisions(:,1) = Collisions
-   !    - time_collisions(:,2) = Redistribute
-   real, dimension(2, 2) :: time_collisions = 0.
-   
-   ! Time the implicit advance
-   !    - time_implicit_advance(:,1) = Implicit time advance
-   !    - time_implicit_advance(:,2) = Bidiagonal solve
-   !    - time_implicit_advance(:,3) = Back substitution
-   real, dimension(2, 3) :: time_implicit_advance = 0.
-   real, dimension(2, 3) :: time_parallel_streaming = 0.
+contains
 
-   ! Time the field equations routines
-   !    - time_field_solve(:,1) = Evolve the fields
-   !    - time_field_solve(:,2) = Redistribute
-   !    - time_field_solve(:,3) = int_dv_g
-   !    - time_field_solve(:,4) = calculate_phi
-   !    - time_field_solve(:,5) = calculate_phi_adia_elec
-   real, dimension(2, 5) :: time_field_solve = 0.
-   
-   ! Time the diagnostics
-   !    - time_all_diagnostics(:) = all diagnostics
-   !    - time_individual_diagnostics(:,1) = omega
-   !    - time_individual_diagnostics(:,2) = potential
-   !    - time_individual_diagnostics(:,3) = omega
-   !    - time_individual_diagnostics(:,4) = fluxes
-   !    - time_individual_diagnostics(:,5) = moments
-   !    - time_individual_diagnostics(:,6) = distribution
-   real, dimension(2) :: time_all_diagnostics = 0.
-   real, dimension(2, 6) :: time_individual_diagnostics = 0.
-   
-   ! Time sources
-   !    - time_sources(:,1) = sources
-   !    - time_sources(:,2) = redistribute
-   real, dimension(2, 2) :: time_sources = 0.
-   
-   ! Time multi box communications
-   !    - time_multibox(:,1) = mb_comm
-   !    - time_multibox(:,2) = mb_krook
-   real, dimension(2, 2) :: time_multibox = 0.
+   subroutine region_start(name)
+      character(*), intent(in) :: name
+      call c_region_start(trim(name)//c_null_char)
+   end subroutine region_start
+
+   subroutine region_end(name)
+      character(*), intent(in) :: name
+      call c_region_end(trim(name)//c_null_char)
+   end subroutine region_end
+
+   ! Total time (in seconds) spent in a region, 0 if the region was never entered
+   function region_total_time(name) result(total_time)
+      character(*), intent(in) :: name
+      real :: total_time
+      total_time = real(c_region_total_time(trim(name)//c_null_char))
+   end function region_total_time
 
 end module timers

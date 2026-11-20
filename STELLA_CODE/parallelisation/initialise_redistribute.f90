@@ -88,8 +88,8 @@ contains
 
       use mp, only: nproc
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
-      use parallelisation_layouts, only: kxkyzidx2vmuidx
-      use parallelisation_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: proc_id
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
@@ -101,8 +101,11 @@ contains
       integer, dimension(0:nproc - 1) :: nn_to, nn_from
       integer, dimension(3) :: from_low, from_high
       integer, dimension(5) :: to_high, to_low
-      integer :: ikxkyz, ivmu, ip
-      integer :: iv, imu, iky, ikx, iz, it
+      integer :: ikxkyz, ip, n, j
+      integer :: iv, imu, is, iky, ikx, iz, it
+      integer, dimension(:), allocatable :: nlocal
+      integer, dimension(:, :), allocatable :: ivmu_local, nn_per_proc
+      integer, dimension(:, :, :), allocatable :: proc_of_vmu
 
       !----------------------------------------------------------------------
 
@@ -110,16 +113,20 @@ contains
       if (initialized_kxkyz_to_vmu_redistribute) return
       initialized_kxkyz_to_vmu_redistribute = .true.
 
-      ! Count number of elements to be redistributed to/from each processor
+      ! For each species, find the processor of every (iv, imu, is) point on the
+      ! vmu-layout, and the (iv, imu, is) points which are local to this processor
+      call get_vmu_points_per_species(kxkyz_lo%nspec, proc_of_vmu, nn_per_proc, nlocal, ivmu_local)
+
+      ! Count number of elements to be redistributed to/from each processor.
+      ! The <nn_from> points are the (iv, imu) points of the local ikxkyz-points,
+      ! and the <nn_to> points are the local (iv, imu) points of all ikxkyz-points.
       nn_to = 0; nn_from = 0
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         nn_from = nn_from + nn_per_proc(:, is_idx(kxkyz_lo, ikxkyz))
+      end do
       do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
-         do imu = 1, nmu
-            do iv = 1, nvpa
-               call kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
-               if (idx_local(kxkyz_lo, ikxkyz)) nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
-               if (idx_local(vmu_lo, ivmu)) nn_to(proc_id(kxkyz_lo, ikxkyz)) = nn_to(proc_id(kxkyz_lo, ikxkyz)) + 1
-            end do
-         end do
+         ip = proc_id(kxkyz_lo, ikxkyz)
+         nn_to(ip) = nn_to(ip) + nlocal(is_idx(kxkyz_lo, ikxkyz))
       end do
       
       ! Debug message
@@ -150,43 +157,50 @@ contains
          end if
       end do
 
-      ! Get local indices of elements distributed to/from other processors
-      nn_to = 1
-      nn_from = 1
+      ! Get local indices of elements distributed to/from other processors.
+      ! Both lists are ordered as a loop over (ikxkyz, imu, iv) with iv the fastest
+      ! index, so that the order of the points agrees between the sending and receiving processor.
+      nn_to = 0
+      nn_from = 0
 
-      ! Loop over all (imu, ivpa, ikxkyz) indices
-      do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
+      ! The ikxkyz-points local to this processor are the <nn_from> points,
+      ! for which we set the (vpa, mu, ikxkyz) indices
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         is = is_idx(kxkyz_lo, ikxkyz)
          do imu = 1, nmu
             do iv = 1, nvpa
-            
-               ! Obtain corresponding (ky, kx, z, tube, ivmu) indices
-               call kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
-               
-               ! If the ikxkyz-point is local to this processor then it is one of
-               ! the <nn_from> points, and we will set its (vpa, mu, ikxkyz) indices
-               if (idx_local(kxkyz_lo, ikxkyz)) then
-                  ip = proc_id(vmu_lo, ivmu)
-                  from_list(ip)%first(nn_from(ip)) = iv
-                  from_list(ip)%second(nn_from(ip)) = imu
-                  from_list(ip)%third(nn_from(ip)) = ikxkyz
-                  nn_from(ip) = nn_from(ip) + 1
-               end if
-               
-               ! If the ivmu-point is local to this processor then it is one of
-               ! the <nn_to> points, and we will set its (ky, kx, z, tube, ivmu) indices
-               if (idx_local(vmu_lo, ivmu)) then
-                  ip = proc_id(kxkyz_lo, ikxkyz)
-                  to_list(ip)%first(nn_to(ip)) = iky
-                  to_list(ip)%second(nn_to(ip)) = ikx
-                  to_list(ip)%third(nn_to(ip)) = iz
-                  to_list(ip)%fourth(nn_to(ip)) = it
-                  to_list(ip)%fifth(nn_to(ip)) = ivmu
-                  nn_to(ip) = nn_to(ip) + 1
-               end if
-               
+               ip = proc_of_vmu(iv, imu, is)
+               n = nn_from(ip) + 1
+               nn_from(ip) = n
+               from_list(ip)%first(n) = iv
+               from_list(ip)%second(n) = imu
+               from_list(ip)%third(n) = ikxkyz
             end do
          end do
       end do
+
+      ! The ivmu-points local to this processor are the <nn_to> points,
+      ! for which we set the (ky, kx, z, tube, ivmu) indices
+      do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
+         is = is_idx(kxkyz_lo, ikxkyz)
+         if (nlocal(is) == 0) cycle
+         ip = proc_id(kxkyz_lo, ikxkyz)
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         ikx = ikx_idx(kxkyz_lo, ikxkyz)
+         iz = iz_idx(kxkyz_lo, ikxkyz)
+         it = it_idx(kxkyz_lo, ikxkyz)
+         n = nn_to(ip)
+         do j = 1, nlocal(is)
+            to_list(ip)%first(n + j) = iky
+            to_list(ip)%second(n + j) = ikx
+            to_list(ip)%third(n + j) = iz
+            to_list(ip)%fourth(n + j) = it
+            to_list(ip)%fifth(n + j) = ivmu_local(j, is)
+         end do
+         nn_to(ip) = n + nlocal(is)
+      end do
+      
+      deallocate (proc_of_vmu, nn_per_proc, nlocal, ivmu_local)
 
       ! Redistribute the distribution function from gvmu(nvpa, nmu, kxkyz-layout) 
       ! Here, we set the lower and upper limits of the dimensions
@@ -227,8 +241,8 @@ contains
 
       use mp, only: nproc
       use parallelisation_layouts, only: kxyz_lo, vmu_lo
-      use parallelisation_layouts, only: kxyzidx2vmuidx
-      use parallelisation_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: iy_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: proc_id
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
@@ -240,9 +254,12 @@ contains
       integer, dimension(0:nproc - 1) :: nn_to, nn_from
       integer, dimension(3) :: from_low, from_high
       integer, dimension(5) :: to_high, to_low
-      integer :: ikxyz, ivmu
-      integer :: iv, imu, iy, ikx, iz, it
-      integer :: ip, n
+      integer :: ikxyz
+      integer :: iv, imu, is, iy, ikx, iz, it
+      integer :: ip, n, j
+      integer, dimension(:), allocatable :: nlocal
+      integer, dimension(:, :), allocatable :: ivmu_local, nn_per_proc
+      integer, dimension(:, :, :), allocatable :: proc_of_vmu
 
       !----------------------------------------------------------------------
 
@@ -250,19 +267,19 @@ contains
       if (initialized_kxyz_to_vmu_redistribute) return
       initialized_kxyz_to_vmu_redistribute = .true.
 
+      ! For each species, find the processor of every (iv, imu, is) point on the
+      ! vmu-layout, and the (iv, imu, is) points which are local to this processor
+      call get_vmu_points_per_species(kxyz_lo%nspec, proc_of_vmu, nn_per_proc, nlocal, ivmu_local)
+
       ! Count number of elements to be redistributed to/from each processor
       nn_to = 0
       nn_from = 0
+      do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+         nn_from = nn_from + nn_per_proc(:, is_idx(kxyz_lo, ikxyz))
+      end do
       do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
-         do imu = 1, nmu
-            do iv = 1, nvpa
-               call kxyzidx2vmuidx(iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, it, ivmu)
-               if (idx_local(kxyz_lo, ikxyz)) &
-                  nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
-               if (idx_local(vmu_lo, ivmu)) &
-                  nn_to(proc_id(kxyz_lo, ikxyz)) = nn_to(proc_id(kxyz_lo, ikxyz)) + 1
-            end do
-         end do
+         ip = proc_id(kxyz_lo, ikxyz)
+         nn_to(ip) = nn_to(ip) + nlocal(is_idx(kxyz_lo, ikxyz))
       end do
 
       do ip = 0, nproc - 1
@@ -280,48 +297,53 @@ contains
          end if
       end do
 
-      ! Get local indices of elements distributed to/from other processors
+      ! Get local indices of elements distributed to/from other processors.
+      ! Both lists are ordered as a loop over (ikxyz, imu, iv) with iv the fastest
+      ! index, so that the order of the points agrees between the sending and receiving processor.
       nn_to = 0
       nn_from = 0
 
-      ! Loop over all vmu indices, find corresponding y indices
-      do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
+      ! if ikxyz index local, set:
+      ! ip = corresponding vmu processor
+      ! from_list%first-third arrays = iv,imu,ikxyz  (ie vmu indices)
+      ! later will send from_list to proc ip
+      do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+         is = is_idx(kxyz_lo, ikxyz)
          do imu = 1, nmu
             do iv = 1, nvpa
-            
-               ! Obtain corresponding y indices
-               call kxyzidx2vmuidx(iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, it, ivmu)
-               
-               ! if vmu index local, set:
-               ! ip = corresponding y processor
-               ! from_list%first-third arrays = iv,imu,ikxyz  (ie vmu indices)
-               ! later will send from_list to proc ip
-               if (idx_local(kxyz_lo, ikxyz)) then
-                  ip = proc_id(vmu_lo, ivmu)
-                  n = nn_from(ip) + 1
-                  nn_from(ip) = n
-                  from_list(ip)%first(n) = iv
-                  from_list(ip)%second(n) = imu
-                  from_list(ip)%third(n) = ikxyz
-               end if
-               
-               ! if y index local, set ip to corresponding vmu processor
-               ! set to_list%first,second arrays = iy,iy  (ie y indices)
-               ! will receive to_list from ip
-               if (idx_local(vmu_lo, ivmu)) then
-                  ip = proc_id(kxyz_lo, ikxyz)
-                  n = nn_to(ip) + 1
-                  nn_to(ip) = n
-                  to_list(ip)%first(n) = iy
-                  to_list(ip)%second(n) = ikx
-                  to_list(ip)%third(n) = iz
-                  to_list(ip)%fourth(n) = it
-                  to_list(ip)%fifth(n) = ivmu
-               end if
-               
+               ip = proc_of_vmu(iv, imu, is)
+               n = nn_from(ip) + 1
+               nn_from(ip) = n
+               from_list(ip)%first(n) = iv
+               from_list(ip)%second(n) = imu
+               from_list(ip)%third(n) = ikxyz
             end do
          end do
       end do
+
+      ! if vmu index local, set ip to corresponding y processor
+      ! set to_list%first-fifth arrays = iy,ikx,iz,it,ivmu  (ie y indices)
+      ! will receive to_list from ip
+      do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
+         is = is_idx(kxyz_lo, ikxyz)
+         if (nlocal(is) == 0) cycle
+         ip = proc_id(kxyz_lo, ikxyz)
+         iy = iy_idx(kxyz_lo, ikxyz)
+         ikx = ikx_idx(kxyz_lo, ikxyz)
+         iz = iz_idx(kxyz_lo, ikxyz)
+         it = it_idx(kxyz_lo, ikxyz)
+         n = nn_to(ip)
+         do j = 1, nlocal(is)
+            to_list(ip)%first(n + j) = iy
+            to_list(ip)%second(n + j) = ikx
+            to_list(ip)%third(n + j) = iz
+            to_list(ip)%fourth(n + j) = it
+            to_list(ip)%fifth(n + j) = ivmu_local(j, is)
+         end do
+         nn_to(ip) = n + nlocal(is)
+      end do
+
+      deallocate (proc_of_vmu, nn_per_proc, nlocal, ivmu_local)
 
       from_low(1) = 1
       from_low(2) = 1
@@ -357,8 +379,8 @@ contains
 
       use mp, only: nproc
       use parallelisation_layouts, only: xyz_lo, vmu_lo
-      use parallelisation_layouts, only: xyzidx2vmuidx
-      use parallelisation_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: iy_idx, ix_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: proc_id
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
@@ -370,9 +392,12 @@ contains
       integer, dimension(0:nproc - 1) :: nn_to, nn_from
       integer, dimension(3) :: from_low, from_high
       integer, dimension(5) :: to_high, to_low
-      integer :: ixyz, ivmu
-      integer :: iv, imu, iy, ix, iz, it
-      integer :: ip, n
+      integer :: ixyz
+      integer :: iv, imu, is, iy, ix, iz, it
+      integer :: ip, n, j
+      integer, dimension(:), allocatable :: nlocal
+      integer, dimension(:, :), allocatable :: ivmu_local, nn_per_proc
+      integer, dimension(:, :, :), allocatable :: proc_of_vmu
 
       !----------------------------------------------------------------------
 
@@ -380,19 +405,19 @@ contains
       if (initialized_xyz_to_vmu_redistribute) return
       initialized_xyz_to_vmu_redistribute = .true.
 
+      ! For each species, find the processor of every (iv, imu, is) point on the
+      ! vmu-layout, and the (iv, imu, is) points which are local to this processor
+      call get_vmu_points_per_species(xyz_lo%nspec, proc_of_vmu, nn_per_proc, nlocal, ivmu_local)
+
       ! Count number of elements to be redistributed to/from each processor
       nn_to = 0
       nn_from = 0
+      do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
+         nn_from = nn_from + nn_per_proc(:, is_idx(xyz_lo, ixyz))
+      end do
       do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
-         do imu = 1, nmu
-            do iv = 1, nvpa
-               call xyzidx2vmuidx(iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, it, ivmu)
-               if (idx_local(xyz_lo, ixyz)) &
-                  nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
-               if (idx_local(vmu_lo, ivmu)) &
-                  nn_to(proc_id(xyz_lo, ixyz)) = nn_to(proc_id(xyz_lo, ixyz)) + 1
-            end do
-         end do
+         ip = proc_id(xyz_lo, ixyz)
+         nn_to(ip) = nn_to(ip) + nlocal(is_idx(xyz_lo, ixyz))
       end do
 
       do ip = 0, nproc - 1
@@ -410,48 +435,53 @@ contains
          end if
       end do
 
-      ! Get local indices of elements distributed to/from other processors
+      ! Get local indices of elements distributed to/from other processors.
+      ! Both lists are ordered as a loop over (ixyz, imu, iv) with iv the fastest
+      ! index, so that the order of the points agrees between the sending and receiving processor.
       nn_to = 0
       nn_from = 0
 
-      ! Loop over all vmu indices, find corresponding y indices
-      do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
+      ! if ixyz index local, set:
+      ! ip = corresponding vmu processor
+      ! from_list%first-third arrays = iv,imu,ixyz  (ie vmu indices)
+      ! later will send from_list to proc ip
+      do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
+         is = is_idx(xyz_lo, ixyz)
          do imu = 1, nmu
             do iv = 1, nvpa
-            
-               ! Obtain corresponding y indices
-               call xyzidx2vmuidx(iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, it, ivmu)
-               
-               ! if vmu index local, set:
-               ! ip = corresponding y processor
-               ! from_list%first-third arrays = iv,imu,ixyz  (ie vmu indices)
-               ! later will send from_list to proc ip
-               if (idx_local(xyz_lo, ixyz)) then
-                  ip = proc_id(vmu_lo, ivmu)
-                  n = nn_from(ip) + 1
-                  nn_from(ip) = n
-                  from_list(ip)%first(n) = iv
-                  from_list(ip)%second(n) = imu
-                  from_list(ip)%third(n) = ixyz
-               end if
-               
-               ! if y index local, set ip to corresponding vmu processor
-               ! set to_list%first,second arrays = iy,iy  (ie y indices)
-               ! will receive to_list from ip
-               if (idx_local(vmu_lo, ivmu)) then
-                  ip = proc_id(xyz_lo, ixyz)
-                  n = nn_to(ip) + 1
-                  nn_to(ip) = n
-                  to_list(ip)%first(n) = iy
-                  to_list(ip)%second(n) = ix
-                  to_list(ip)%third(n) = iz
-                  to_list(ip)%fourth(n) = it
-                  to_list(ip)%fifth(n) = ivmu
-               end if
-               
+               ip = proc_of_vmu(iv, imu, is)
+               n = nn_from(ip) + 1
+               nn_from(ip) = n
+               from_list(ip)%first(n) = iv
+               from_list(ip)%second(n) = imu
+               from_list(ip)%third(n) = ixyz
             end do
          end do
       end do
+
+      ! if vmu index local, set ip to corresponding y processor
+      ! set to_list%first-fifth arrays = iy,ix,iz,it,ivmu  (ie y indices)
+      ! will receive to_list from ip
+      do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
+         is = is_idx(xyz_lo, ixyz)
+         if (nlocal(is) == 0) cycle
+         ip = proc_id(xyz_lo, ixyz)
+         iy = iy_idx(xyz_lo, ixyz)
+         ix = ix_idx(xyz_lo, ixyz)
+         iz = iz_idx(xyz_lo, ixyz)
+         it = it_idx(xyz_lo, ixyz)
+         n = nn_to(ip)
+         do j = 1, nlocal(is)
+            to_list(ip)%first(n + j) = iy
+            to_list(ip)%second(n + j) = ix
+            to_list(ip)%third(n + j) = iz
+            to_list(ip)%fourth(n + j) = it
+            to_list(ip)%fifth(n + j) = ivmu_local(j, is)
+         end do
+         nn_to(ip) = n + nlocal(is)
+      end do
+
+      deallocate (proc_of_vmu, nn_per_proc, nlocal, ivmu_local)
 
       from_low(1) = 1
       from_low(2) = 1
@@ -503,7 +533,7 @@ contains
       integer, dimension(5) :: to_high, to_low
       integer :: ikymus, ivmu
       integer :: iv, iky, ikx, iz, it
-      integer :: ip, n
+      integer :: ip, n, nkxzt
 
       !----------------------------------------------------------------------
 
@@ -511,22 +541,20 @@ contains
       if (initialized_kymus_to_vmus_redistribute) return
       initialized_kymus_to_vmus_redistribute = .true.
 
+      ! The (ikx, iz, it) points do not change the processor of the point, so each
+      ! (ikymus, iv) point corresponds to <nkxzt> points that need to be redistributed
+      nkxzt = nakx * (2 * nzgrid + 1) * ntubes
+
       ! Count number of elements to be redistributed to/from each processor
       nn_to = 0
       nn_from = 0
       do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
          do iv = 1, nvpa
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  do ikx = 1, nakx
-                     call kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
-                     if (idx_local(kymus_lo, ikymus)) &
-                          nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
-                     if (idx_local(vmu_lo, ivmu)) &
-                          nn_to(proc_id(kymus_lo, ikymus)) = nn_to(proc_id(kymus_lo, ikymus)) + 1
-                  end do
-               end do
-            end do
+            call kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
+            if (idx_local(kymus_lo, ikymus)) &
+                 nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + nkxzt
+            if (idx_local(vmu_lo, ivmu)) &
+                 nn_to(proc_id(kymus_lo, ikymus)) = nn_to(proc_id(kymus_lo, ikymus)) + nkxzt
          end do
       end do
             
@@ -552,43 +580,52 @@ contains
       nn_from = 0
 
       ! Loop over all indices in the kymus layout and find the corresponding indices for iky and ivmu
+      ! Only the (ikymus, iv) points with ikymus or ivmu local to this processor need the inner loops
       do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
          do iv = 1, nvpa
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  do ikx = 1, nakx
-                  
-                     ! Obtain corresponding ky indices
-                     call kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
-                     
-                     ! if kymus index local, set:
-                     ! ip = corresponding y processor
-                     ! from_list%first-third arrays = ikx,iz,it,iv,ikymus
-                     ! later will send from_list to proc ip
-                     if (idx_local(kymus_lo, ikymus)) then
-                        ip = proc_id(vmu_lo, ivmu)
-                        n = nn_from(ip) + 1
-                        nn_from(ip) = n
+         
+            ! Obtain corresponding ky indices
+            call kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
+            
+            ! if kymus index local, set:
+            ! ip = corresponding y processor
+            ! from_list%first-third arrays = ikx,iz,it,iv,ikymus
+            ! later will send from_list to proc ip
+            if (idx_local(kymus_lo, ikymus)) then
+               ip = proc_id(vmu_lo, ivmu)
+               n = nn_from(ip)
+               do it = 1, ntubes
+                  do iz = -nzgrid, nzgrid
+                     do ikx = 1, nakx
+                        n = n + 1
                         from_list(ip)%first(n) = ikx
                         from_list(ip)%second(n) = iz
                         from_list(ip)%third(n) = it
                         from_list(ip)%fourth(n) = iv
                         from_list(ip)%fifth(n) = ikymus
-                     end if
-                     if (idx_local(vmu_lo, ivmu)) then
-                        ip = proc_id(kymus_lo, ikymus)
-                        n = nn_to(ip) + 1
-                        nn_to(ip) = n
+                     end do
+                  end do
+               end do
+               nn_from(ip) = n
+            end if
+            if (idx_local(vmu_lo, ivmu)) then
+               ip = proc_id(kymus_lo, ikymus)
+               n = nn_to(ip)
+               do it = 1, ntubes
+                  do iz = -nzgrid, nzgrid
+                     do ikx = 1, nakx
+                        n = n + 1
                         to_list(ip)%first(n) = iky
                         to_list(ip)%second(n) = ikx
                         to_list(ip)%third(n) = iz
                         to_list(ip)%fourth(n) = it
                         to_list(ip)%fifth(n) = ivmu
-                     end if
-                     
+                     end do
                   end do
                end do
-            end do
+               nn_to(ip) = n
+            end if
+            
          end do
       end do
 
@@ -624,6 +661,64 @@ contains
    end subroutine init_kymus_to_vmus_redistribute
 
    
+!###############################################################################
+!################################# UTILITIES ###################################
+!###############################################################################
+
+   !****************************************************************************
+   !                    Points on the vmu-layout per species                    
+   !****************************************************************************
+   ! The (iv, imu) dimensions are local on the kxkyz, kxyz and xyz layouts, while
+   ! the species index is shared with the vmu-layout. Therefore, the mapping from
+   ! (iv, imu, is) to the vmu-layout only needs to be computed once per species,
+   ! instead of for every point of the full (kx, ky, z, tube, s, mu, vpa) grid.
+   ! 
+   ! <proc_of_vmu(iv, imu, is)> is the processor of the point (iv, imu, is)
+   ! <nn_per_proc(ip, is)> is the number of (iv, imu) points of species <is> on processor <ip>
+   ! <ivmu_local(1:nlocal(is), is)> are the ivmu-points of species <is> on this processor,
+   ! ordered as a loop over (imu, iv) with iv the fastest index.
+   !****************************************************************************
+   subroutine get_vmu_points_per_species(nspec, proc_of_vmu, nn_per_proc, nlocal, ivmu_local)
+
+      use mp, only: nproc
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: idx, idx_local, proc_id
+      use grids_velocity, only: nvpa, nmu
+
+      implicit none
+
+      integer, intent(in) :: nspec
+      integer, dimension(:, :, :), allocatable, intent(out) :: proc_of_vmu
+      integer, dimension(:, :), allocatable, intent(out) :: nn_per_proc, ivmu_local
+      integer, dimension(:), allocatable, intent(out) :: nlocal
+      integer :: iv, imu, is, ivmu, ip
+
+      !----------------------------------------------------------------------
+
+      allocate (proc_of_vmu(nvpa, nmu, nspec))
+      allocate (nn_per_proc(0:nproc - 1, nspec))
+      allocate (ivmu_local(nvpa * nmu, nspec))
+      allocate (nlocal(nspec))
+
+      nn_per_proc = 0
+      nlocal = 0
+      do is = 1, nspec
+         do imu = 1, nmu
+            do iv = 1, nvpa
+               ivmu = idx(vmu_lo, iv, imu, is)
+               ip = proc_id(vmu_lo, ivmu)
+               proc_of_vmu(iv, imu, is) = ip
+               nn_per_proc(ip, is) = nn_per_proc(ip, is) + 1
+               if (idx_local(vmu_lo, ivmu)) then
+                  nlocal(is) = nlocal(is) + 1
+                  ivmu_local(nlocal(is), is) = ivmu
+               end if
+            end do
+         end do
+      end do
+
+   end subroutine get_vmu_points_per_species
+
 !###############################################################################
 !############################ FINISH REDISTRIBUTE ##############################
 !###############################################################################

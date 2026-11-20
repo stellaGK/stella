@@ -30,9 +30,3 @@ else
 		CFLAGS += -pg
 	endif
 endif
-
-ifdef USE_OPENMP
-	F90FLAGS += -fopenmp
-	CFLAGS += -fopenmp
-endif
-

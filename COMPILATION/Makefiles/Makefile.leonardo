@@ -56,9 +56,7 @@ ifdef USE_NETCDF
   NETCDF_LIB= -L$(NETCDF_LIB_DIR) -lnetcdff
 endif
 
-ifdef USE_LAPACK
-  LAPACK_LIB = -Wl,--copy-dt-needed-entries -mkl -L$(NETLIB_SCALAPACK_LIB) -lscalapack #-L$(LAPACK_HOME)/lib 
-endif
+LAPACK_LIB = -Wl,--copy-dt-needed-entries -mkl -L$(NETLIB_SCALAPACK_LIB) -lscalapack #-L$(LAPACK_HOME)/lib 
 
 ifdef USE_SFINCS
       SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs

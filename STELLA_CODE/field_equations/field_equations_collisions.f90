@@ -77,10 +77,13 @@ contains
       fld = 0.
       
       if (fphi > epsilon(0.0)) then
-      
-         ! Allocate temporary arrays
+
+         !$omp parallel default(none) &
+         !$omp firstprivate(kxkyz_lo, ia, nvpa, nmu) &
+         !$omp private(ikxkyz, iz, it, ikx, iky, is, wgt, g0) &
+         !$omp shared(g, fld, spec)
          allocate (g0(nvpa, nmu))
-         
+         !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -92,6 +95,9 @@ contains
             g0 = g0 * wgt
             call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
          end do
+         !$omp end do
+         deallocate (g0)
+         !$omp end parallel
          call sum_allreduce(fld)
 
          fld = fld / denominator_fields_h
@@ -110,9 +116,6 @@ contains
             end if
          end if
 
-         ! Deallocate temporary arrays
-         deallocate (g0)
-         
       end if
 
    end subroutine get_fields_by_spec
@@ -170,10 +173,13 @@ contains
       fld = 0.
       
       if (fphi > epsilon(0.0)) then
-      
-         ! Allocate temporary arrays
+
+         !$omp parallel default(none) &
+         !$omp firstprivate(kxkyz_lo, ia, isa, nvpa, nmu) &
+         !$omp private(ikxkyz, iz, it, ikx, iky, is, imu, wgt, arg, g0) &
+         !$omp shared(g, fld, spec, vperp2, kperp2, bmag)
          allocate (g0(nvpa, nmu))
-         
+         !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -189,7 +195,10 @@ contains
             g0 = g0 * wgt
             call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
          end do
-         
+         !$omp end do
+         deallocate (g0)
+         !$omp end parallel
+
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(fld)
 
@@ -210,8 +219,6 @@ contains
             end if
          end if
 
-         ! Deallocate temporary arrays
-         deallocate (g0)
       end if
 
    end subroutine get_fields_by_spec_idx

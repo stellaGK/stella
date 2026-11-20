@@ -66,7 +66,6 @@
 !   vms_layout = 'vms'
 !   mat_gen = .false.
 !   mat_read = .false.
-!   lu_option = 'default'
 !   fields_kxkyz = .false.
 !/
 ! 
@@ -108,13 +107,6 @@ module parallelisation_layouts
    public :: mat_gen
    public :: mat_read
    
-   ! Construct the response matrix on 1 processor (none),
-   ! on all processors of 1 node (local) or across all nodes (global)
-   public :: lu_option_switch
-   public :: lu_option_local
-   public :: lu_option_none
-   public :: lu_option_global
-   
    ! Print extra info with respect to the parallelisation
    public :: verbose
    
@@ -147,7 +139,7 @@ module parallelisation_layouts
    public :: kymusidx2vmuidx
 
    ! Find the index of (kx,ky,z,s,mu,vpa) of <ikxkyzs>, <ivpamus>, ...
-   public :: ikx_idx, iky_idx, iz_idx, is_idx, imu_idx, iv_idx
+   public :: ikx_idx, iky_idx, iz_idx, is_idx, imu_idx, iv_idx, ix_idx
    public :: idx_local, iy_idx, it_idx, idx
    
    ! The "proc_id" routine returns the id of the processor, with proc_id --> [0, ..., nproc-1]
@@ -268,13 +260,6 @@ module parallelisation_layouts
    ! Print extra info to command prompt
    ! This variable is not broadcasted so it can only be true on proc0
    logical :: verbose = .false.
-   
-   ! Construct the response matrix on 1 processor (none),
-   ! on all processors of 1 node (local) or across all nodes (global)
-   integer :: lu_option_switch
-   integer, parameter :: lu_option_none = 1
-   integer, parameter :: lu_option_local = 2
-   integer, parameter :: lu_option_global = 3
 
 contains
 
@@ -322,7 +307,7 @@ contains
       implicit none
 
       call read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-          mat_gen, mat_read, lu_option_switch, fields_kxkyz, verbose)
+          mat_gen, mat_read, fields_kxkyz, verbose)
 
    end subroutine read_parameters
 
@@ -340,7 +325,6 @@ contains
       call broadcast(kymus_layout)
       call broadcast(mat_gen)
       call broadcast(mat_read)
-      call broadcast(lu_option_switch)
       call broadcast(fields_kxkyz)
 
    end subroutine broadcast_parameters
@@ -421,7 +405,7 @@ contains
       !=========================================================================
       subroutine print_info_to_command_prompt
 
-         use mp, only: nproc
+         use mp, only: nproc, nthreads
          use iso_fortran_env, only: int64
          use debug_flags, only: print_extra_info_to_terminal
 
@@ -436,11 +420,22 @@ contains
             write (*, '(A)') '############################################################'
             write (*, '(A)') '                       PARALLELISATION                      '
             write (*, '(A)') '############################################################'
+
+            ! Processors
             if (nproc == 1) then
-               write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processor.'
+               write (*, '(A,I0,A)', advance='no') ' Running on ', nproc, ' processor'
             else
-               write (*, *) ''; write (*, '(A,I0,A)') ' Running on ', nproc, ' processors.'
+               write (*, '(A,I0,A)', advance='no') ' Running on ', nproc, ' processors'
             end if
+
+            if(nthreads > 0) then
+               ! Threads
+               if (nthreads == 1) then
+                  write (*, '(A,I0,A)') ' with ', nthreads, ' thread.'
+               else
+                  write (*, '(A,I0,A)') ' with ', nthreads, ' threads.'
+               end if
+            endif
          end if
          
          ! Also print the grids and the number of points for 

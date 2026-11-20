@@ -105,39 +105,42 @@ contains
       ! Local variables
       integer :: ikxkyz, iz, it, iky, ikx, is, ia
       complex, dimension(:, :), allocatable :: field, gyro_averaged_field
-      
-      !-------------------------------------------------------------------------
 
-      ! Allocate local arrays
-      allocate (field(nvpa, nmu))
-      allocate (gyro_averaged_field(nvpa, nmu))
+      !-------------------------------------------------------------------------
 
       ! Assume we only have one field line
       ia = 1
-      
+
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
+      !$omp parallel default(none) &
+      !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facapar, ia) &
+      !$omp   private(ikxkyz, iz, it, iky, ikx, is, field, gyro_averaged_field) &
+      !$omp   shared(g, apar, spec, vpa, maxwell_vpa, maxwell_mu)
+      allocate (field(nvpa, nmu))
+      allocate (gyro_averaged_field(nvpa, nmu))
+      !$omp do
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         
-         ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
+
+         ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
          ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
          field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 &
-               * spread(vpa, 2, nmu)* spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+               * spread(vpa, 2, nmu) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
          ! Gyroaverage
          call gyro_average(field, ikxkyz, gyro_averaged_field)
-         
-         ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
+
+         ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
          g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field
-         
+
       end do
-      
-      ! Deallocate local arrays
+      !$omp end do
       deallocate (field, gyro_averaged_field)
-      
+      !$omp end parallel
+
    end subroutine gbar_to_g_kxkyz
 
    !****************************************************************************
@@ -215,13 +218,18 @@ contains
 
       ! Local variables
       integer :: ivmu
-      
+
       !-------------------------------------------------------------------------
-   
+
       ! Convert <gbar> to <g> for each ivpamus point
+      !$omp parallel do default(none) &
+      !$omp   firstprivate(vmu_lo) &
+      !$omp   private(ivmu) &
+      !$omp   shared(g, apar, facapar)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call gbar_to_g_vmu_single(ivmu, g(:, :, :, :, ivmu), apar, facapar)
       end do
+      !$omp end parallel do
 
    end subroutine gbar_to_g_vmu
 
@@ -349,66 +357,80 @@ contains
       integer :: ikxkyz, iz, it, iky, ikx, is, ia
       complex, dimension(:, :), allocatable :: field, gyro_averaged_field
       real :: facbpar
-      
+
       !-------------------------------------------------------------------------
-      
-      allocate (field(nvpa, nmu))
-      allocate (gyro_averaged_field(nvpa, nmu))
 
       ! Assume we only have one field line
       ia = 1
-      
+
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
+      !$omp parallel default(none) &
+      !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facphi, ia) &
+      !$omp   private(ikxkyz, iz, it, iky, ikx, is, field, gyro_averaged_field) &
+      !$omp   shared(g, phi, spec, maxwell_vpa, maxwell_mu)
+      allocate (field(nvpa, nmu))
+      allocate (gyro_averaged_field(nvpa, nmu))
+      !$omp do
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         
+
          ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
          ! First calculate [(Z_s/T_s)*<phi>] * F_s
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
          ! Gyroaverage
          call gyro_average(field, ikxkyz, gyro_averaged_field)
-         
+
          ! Calculate <h> = <g> + (Z_s/T_s)*J_0*phi*F_s
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
-         
+
       end do
-      
-      
+      !$omp end do
+      deallocate (field, gyro_averaged_field)
+      !$omp end parallel
+
+
       ! Add electromagnetic terms: 4*mu*J_1*<bpar>/b_s
       if (include_bpar) then
-      
+         
          ! This factor determines whether we add or substract the electromagnetic term
          facbpar = facphi
          
          ! Iterate over the (it,iz) points
+         !$omp parallel default(none) &
+         !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facphi, ia) &
+         !$omp   private(ikxkyz, iz, it, iky, ikx, is, field, gyro_averaged_field) &
+         !$omp   shared(g, bpar, spec, maxwell_vpa, maxwell_mu, mu)
+         allocate (field(nvpa, nmu))
+         allocate (gyro_averaged_field(nvpa, nmu))
+         !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iky = iky_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-            
+
             ! Calculate <gyro_averaged_field> = 4*mu*<bpar>*Fs*J_1/b_s
             ! First calculate [4*mu*<bpar>] * F_s
-            field = 4.0 * facbpar * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) & 
+            field = 4.0 * facphi * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) &
                   * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
             ! Gyroaverage by multiplying with J_1/b_s
             call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
-            
+
             ! Calculate <h> = <g> + Z_s/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
             g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
-            
+
          end do
-         
+         !$omp end do
+         deallocate (field, gyro_averaged_field)
+         !$omp end parallel
+
       end if
-      
-      ! Deallocate local arrays
-      deallocate (field, gyro_averaged_field)
 
    end subroutine g_to_h_kxkyz
    
@@ -419,6 +441,7 @@ contains
 
       use grids_z, only: nzgrid
       use parallelisation_layouts, only: vmu_lo
+      use parameters_physics, only: radial_variation
 
       implicit none
 
@@ -430,13 +453,34 @@ contains
 
       ! Local variables
       integer :: ivmu
-      
+
       !-------------------------------------------------------------------------
 
-      ! Convert <g> to <h> for each ivpamus point
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         call g_to_h_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, bpar, facphi, phi_corr)
-      end do
+      ! multiply_by_rho (called inside g_to_h_vmu_single when radial_variation and
+      ! phi_corr are both present) writes to module-level g0x and is not thread-safe.
+      if (radial_variation .and. present(phi_corr)) then
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call g_to_h_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, bpar, facphi, phi_corr)
+         end do
+      else if (present(phi_corr)) then
+         !$omp parallel do default(none) &
+         !$omp   firstprivate(vmu_lo) &
+         !$omp   private(ivmu) &
+         !$omp   shared(g, phi, bpar, facphi, phi_corr)
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call g_to_h_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, bpar, facphi, phi_corr)
+         end do
+         !$omp end parallel do
+      else
+         !$omp parallel do default(none) &
+         !$omp   firstprivate(vmu_lo) &
+         !$omp   private(ivmu) &
+         !$omp   shared(g, phi, bpar, facphi)
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call g_to_h_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, bpar, facphi)
+         end do
+         !$omp end parallel do
+      end if
 
    end subroutine g_to_h_vmu
 
@@ -615,24 +659,27 @@ contains
       ! Local variables
       integer :: ikxkyz, iz, it, iky, ikx, is, ia
       complex, dimension(:, :), allocatable :: field, gyro_averaged_field
-      
-      !-------------------------------------------------------------------------
 
-      ! Allocate arrays
-      allocate (field(nvpa, nmu))
-      allocate (gyro_averaged_field(nvpa, nmu))
+      !-------------------------------------------------------------------------
 
       ! Assume we only have one field line
       ia = 1
 
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
+      !$omp parallel default(none) &
+      !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facphi, ia) &
+      !$omp   private(ikxkyz, iz, it, iky, ikx, is, field, gyro_averaged_field) &
+      !$omp   shared(g, phi, spec, maxwell_vpa, maxwell_mu, maxwell_fac)
+      allocate (field(nvpa, nmu))
+      allocate (gyro_averaged_field(nvpa, nmu))
+      !$omp do
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         
+
          ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
          ! First calculate [(Z_s/T_s)*<phi>] * F_s
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
@@ -640,14 +687,14 @@ contains
                * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
          ! Gyroaverage
          call gyro_average(field, ikxkyz, gyro_averaged_field)
-         
+
          ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
-         
-      end do
 
-      ! Deallocate local arrays
+      end do
+      !$omp end do
       deallocate (field, gyro_averaged_field)
+      !$omp end parallel
 
    end subroutine g_to_f_kxkyz
    

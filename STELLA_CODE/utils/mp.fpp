@@ -12,17 +12,14 @@
 ! Modified by Michael Barnes in 2017, 2018 and 2019.
 ! Modified by Dennis St-Onge in 2020 and 2021.
 ! Modified by Hanne Thienpondt in 2025: Added NUMA-aware split of processors.
+! The shared-memory communicators were removed in 2026, together with the MPI
+! shared-memory windows that used them.
 ! 
 ! Communicators
 !----------------
 !  comm_all      - every processor
-!  comm_shared   - every processor on a node (shared memory)
 !  comm_group    - every processor on a given job
-!  comm_sgroup   - every processor on a node on a given job (shared memory)
-! 
-!  comm_node     - communicator that links procs of same rank across comm_shared
 !  comm_cross    - communicator that links procs of same rank across comm_group
-!  comm_scross   - communicator that links procs of same rank across comm_sgroup
 ! 
 ! Note: mp_mpi_r8.f90 is a version of mp_mpi.f90 to use when compiling
 ! with -r8 (where the default real type is taken to be 8 bytes).  Just
@@ -46,19 +43,15 @@ module mp
    public :: max_reduce, max_allreduce
    public :: min_reduce, min_allreduce
    public :: comm_split, comm_free
-   public :: nproc, iproc, proc0, job, min_proc
-   public :: nshared_proc
+   public :: nproc, nthreads, iproc, proc0, job
    public :: send, ssend, receive
-   public :: numnodes, inode
    public :: barrier
    public :: waitany
-   public :: split_n_tasks
    public :: mp_abort
-   public :: mpireal, mpicmplx, real_size, nbytes_real
-   public :: sgproc0
+   public :: mpireal, mpicmplx
 ! MAB> needed by Trinity
-   public :: scope, allprocs, sharedprocs, subprocs, crossdomprocs, sharedsubprocs, scrossdomprocs
-   public :: comm_group, comm_sgroup
+   public :: scope, allprocs, subprocs, crossdomprocs
+   public :: comm_group
    public :: all_to_group, group_to_all
    public :: trin_flag
 ! <MAB
@@ -66,9 +59,6 @@ module mp
    public :: mp_comm, curr_focus
    public :: mp_info
    public :: mp_gather
-#ifdef ISO_C_BINDING
-   public :: create_shared_memory_window
-#endif
 
 #ifdef MPIINC
 ! CMR: defined MPIINC for machines where need to include mpif.h
@@ -76,47 +66,35 @@ module mp
 #endif
 
    !comm_all      - every processor
-   !comm_shared   - every processor on a node (shared memory)
    !comm_group    - every processor on a given job
-   !comm_sgroup   - every processor on a node on a given job (shared memory)
-
-   !comm_node     - communicator that links procs of same rank across comm_shared
    !comm_cross    - communicator that links procs of same rank across comm_group
-   !comm_scross   - communicator that links procs of same rank across comm_sgroup
 
    integer, pointer :: nproc
-   integer, target :: ntot_proc, nshared_proc, ngroup_proc, ndomain_proc
-   integer, target :: nsgroup_proc, nscross_proc
-
-   integer :: numnodes, inode
+   integer, target :: ntot_proc, ngroup_proc, ndomain_proc
 
    integer, pointer :: iproc
-   integer, target :: aproc, sproc, gproc, cproc, sgproc, scproc
+   integer, target :: aproc, gproc, cproc
 
    logical, pointer :: proc0
-   logical, target :: aproc0, sproc0, gproc0, sgproc0
+   logical, target :: aproc0, gproc0
 
    integer :: mpi_comm_world_private
    integer, pointer :: mp_comm
-   integer, target :: comm_all, comm_shared, comm_node, comm_group, comm_cross
-   integer, target :: comm_sgroup, comm_scross
+   integer, target :: comm_all, comm_group, comm_cross
 
    integer :: curr_focus
 
+   ! Number of OpenMP threads available at runtime
+   integer :: nthreads
+
    integer, parameter :: mp_info = MPI_INFO_NULL
 
-   integer :: job = 0, min_proc
+   integer :: job = 0
    integer(kind(MPI_REAL)) :: mpireal, mpicmplx
-   integer(kind=MPI_ADDRESS_KIND) :: real_size
 
    integer, parameter ::      allprocs = 0, &
-                         sharedprocs = 1, &
                          subprocs = 2, &
-                         crossdomprocs = 3, &
-                         sharedsubprocs = 4, &
-                         scrossdomprocs = 5
-
-   integer :: nbytes_real
+                         crossdomprocs = 3
 ! needed for Trinity -- MAB
    integer, dimension(:), allocatable :: grp0
    logical :: trin_flag = .false.
@@ -315,7 +293,9 @@ contains
       ! Import numerical precision info and error output unit
       use constants, only: pi, kind_rs, kind_rd
       use file_utils, only: error_unit
-      
+#ifdef USE_OPENMP
+      use omp_lib
+#endif 
       implicit none
       
       ! Optional input communicator (allows embedding in a larger MPI program)
@@ -324,15 +304,25 @@ contains
       ! Local variables
       !integer :: info_numa
       integer :: ierror
+      integer :: provided_mpi_thread_level
       logical :: init
       
       !-------------------------------------------------------------------------
       ! Ensure MPI is initialized
       !-------------------------------------------------------------------------
-
       ! Check whether MPI has already been initialized, if not, initialise MPI
       call mpi_initialized(init, ierror)
+
+#ifdef USE_OPENMP
+      if (.not. init) call mpi_init_thread(MPI_THREAD_FUNNELED, provided_mpi_thread_level, ierror)
+      if(provided_mpi_thread_level < MPI_THREAD_FUNNELED) then
+         call mp_abort("ERROR: MPI Implementation does not support MPI_THREAD_FUNNELED. " // &
+              "Compile without OpenMP or switch MPI implementation")
+      end if
+#else
       if (.not. init) call mpi_init(ierror)
+#endif
+
       
       ! Duplicate MPI_COMM_WORLD to avoid accidental modification elsewhere
       call mpi_comm_dup(mpi_comm_world, mpi_comm_world_private, ierror)
@@ -359,58 +349,6 @@ contains
       aproc0 = (aproc == 0)
       
       !-------------------------------------------------------------------------
-      ! Create a shared-memory communicator
-      !  - MPI-4: split by NUMA domain (resource-guided)
-      !  - MPI-3: split by node (mpi_comm_type_shared)
-      !-------------------------------------------------------------------------
-
-
-      ! Split communicator by shared-memory NUMA (Non-Uniform Memory Access) domains (MPI-4 feature)
-      ! In short, all processes on the same physical socket / node end up in the same comm_shared.
-      ! While the global (or parent) communicator <comm_all> contains all processors,
-      ! each <comm_shared> communicator contains the processors which can access the same memory.
-      ! This typically groups processor per socket / node, since those can access the same "shared memory"
-      ! Recall that <aproc> is the rank on the global communicator <comm_all>
-      ! The first option splits by NUMA domains, the second by nodes.
-      ! For both it is VERY important that each domain has the same number of CPUs.
-#ifdef SPLIT_BY_NUMA
-      call mpi_comm_split_type(comm_all, ompi_comm_type_numa, aproc, mp_info, comm_shared, ierror)
-#else
-      call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
-#endif
-
-      ! Number of processes <nshared_proc> on the shared-memory communicator <comm_shared>
-      ! This typically corresponds to the number of processors on a single node
-      call mpi_comm_size(comm_shared, nshared_proc, ierror)
-      
-      ! Rank <sproc> of this process within the shared-memory communicator (i.e. within a node)
-      call mpi_comm_rank(comm_shared, sproc, ierror)
-      
-      ! Set <sproc0> to True if this is rank 0 in the shared-memory communicator ("master" rank)
-      sproc0 = (sproc == 0)
-      
-      !-------------------------------------------------------------------------
-      ! Node-level communicator (one rank per node, grouped across nodes)
-      !-------------------------------------------------------------------------
-   
-      ! Create a communicator that groups processes with the same <sproc> rank
-      ! i.e. ranks with the same intra-node index across all nodes
-      ! This assumes each shared-memory domain has the same number of CPUs
-      call mpi_comm_split(comm_all, sproc, aproc, comm_node, ierror)
-      
-      ! Number of processes <numnodes> on the intra-node communicator <comm_node>
-      ! Number of nodes (i.e. size of this communicator)
-      call mpi_comm_size(comm_node, numnodes, ierror)
-      
-      ! Rank <inode> of this process in the node-level communicator
-      call mpi_comm_rank(comm_node, inode, ierror)
-
-      ! Cross-node communicator (one process per node)
-      comm_scross = comm_node
-      nscross_proc = numnodes
-      scproc = inode
-
-      !-------------------------------------------------------------------------
       ! Initialize default "group" communicators
       !-------------------------------------------------------------------------
    
@@ -420,31 +358,8 @@ contains
       gproc = aproc
       gproc0 = aproc0
 
-      ! Shared subgroup communicator (shared memory within a group)
-      comm_sgroup = comm_shared
-      nsgroup_proc = nshared_proc
-      sgproc = sproc
-      sgproc0 = sproc0
-      
-      !-------------------------------------------------------------------------
-      ! Set communicator "scope" and synchronize node IDs
-      !-------------------------------------------------------------------------
-
-      ! Temporarily switch scope to shared-memory communicator
-      call scope(sharedprocs)
-      
-      ! Broadcast node index so all shared-memory ranks know their node ID
-      call broadcast(inode)
-      
-      ! Restore scope to global communicator
+      ! Set the communicator scope to the global communicator
       call scope(allprocs)
-
-      !-------------------------------------------------------------------------
-      ! Determine minimum number of shared processes across all nodes
-      !-------------------------------------------------------------------------
-   
-      min_proc = nshared_proc
-      call min_allreduce(min_proc)
 
       !-------------------------------------------------------------------------
       ! Set MPI datatypes and sizes according to real precision
@@ -454,20 +369,28 @@ contains
       if ((kind(pi) == kind_rs) .and. (kind_rs /= kind_rd)) then
          mpireal = MPI_REAL
          mpicmplx = MPI_COMPLEX
-         real_size = 4_MPI_ADDRESS_KIND
-         nbytes_real = 4
          
       ! Double precision build (real*8)
       else if (kind(pi) == kind_rd) then
          mpireal = MPI_DOUBLE_PRECISION
          mpicmplx = MPI_DOUBLE_COMPLEX
-         real_size = 8_MPI_ADDRESS_KIND
-         nbytes_real = 8
          
       ! Precision mismatch: unsupported configuration
       else
          write (error_unit(), *) 'ERROR: precision mismatch in mpi'
       end if
+
+#ifdef USE_OPENMP
+      !-------------------------------------------------------------------------
+      ! Query how many threads the OpenMP runtime provides
+      !-------------------------------------------------------------------------
+
+      !$omp parallel default(none) shared(nthreads)
+         nthreads = omp_get_num_threads()
+      !$omp end parallel
+#else 
+      nthreads = 0
+#endif
 
    end subroutine init_mp
 
@@ -490,14 +413,6 @@ contains
          iproc => aproc
          proc0 => aproc0
       
-      ! Shared-memory communicator: processes on the same node
-      else if (focus == sharedprocs) then
-         curr_focus = sharedprocs
-         mp_comm => comm_shared
-         nproc => nshared_proc
-         iproc => sproc
-         proc0 => sproc0
-         
       ! Subgroup communicator (e.g. domain decomposition groups)
       else if (focus == subprocs) then
          curr_focus = subprocs
@@ -514,23 +429,6 @@ contains
          nproc => ndomain_proc
          iproc => cproc
          proc0 => null() 
-         
-      ! Shared-memory subgroup communicator
-      else if (focus == sharedsubprocs) then
-         curr_focus = sharedsubprocs
-         mp_comm => comm_sgroup
-         nproc => nsgroup_proc
-         iproc => sgproc
-         proc0 => sgproc0
-         
-      ! Shared cross-domain communicator
-      ! Note that there is no meaningful "rank 0" in this communicator... be careful
-      else if (focus == scrossdomprocs) then
-         curr_focus = scrossdomprocs
-         mp_comm => comm_scross
-         nproc => nscross_proc
-         iproc => scproc
-         proc0 => null()
       end if
 
    end subroutine scope
@@ -637,16 +535,6 @@ contains
          call barrier
       end do
 
-!the next communicator is between all cores on a given node for a given job(i.e. shared memory)
-      call mpi_comm_split_type(comm_group, mpi_comm_type_shared, aproc, mp_info, comm_sgroup, ierr)
-      call mpi_comm_size(comm_sgroup, nsgroup_proc, ierr)
-      call mpi_comm_rank(comm_sgroup, sgproc, ierr)
-      sgproc0 = sgproc == 0
-
-      call mpi_comm_split(comm_group, sgproc, gproc, comm_scross, ierr)
-      call mpi_comm_size(comm_scross, nscross_proc, ierr)
-      call mpi_comm_rank(comm_scross, scproc, ierr)
-
 !let all processors have the group0 array
       call broadcast(group0)
 
@@ -656,90 +544,9 @@ contains
       call scope(subprocs)
 ! <TT
 
-!get the minimum number of procs on a node for a given job
-      min_proc = nsgroup_proc
-      call min_allreduce(min_proc)
-
    end subroutine init_job_topology
 
 
-!###############################################################################
-!                             SHARED MEMORY WINDOW                              
-!###############################################################################
-! Creates a shared memory window of a specific size.
-! Returns the MPI window, as well as the pointer to the specific
-! address in memory to be used with c_f_pointer
-!###############################################################################
-#ifdef ISO_C_BINDING
-   subroutine create_shared_memory_window(win_size, window, cur_pos)
-
-      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use mpi
-
-      implicit none
-
-      integer(kind=MPI_ADDRESS_KIND), intent(inout) :: win_size
-      integer, intent(out) :: window
-      integer(c_intptr_t), optional, intent(out) :: cur_pos
-      integer :: disp_unit = 1
-      integer :: prior_focus, ierr
-      integer(kind=MPI_ADDRESS_KIND) :: memory_model
-      logical :: flag
-      type(c_ptr) :: cptr
-
-      prior_focus = curr_focus
-      call scope(sharedsubprocs)
-      call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, cptr, window, ierr)
-
-      ! Make sure all the procs have the right memory address
-      if (.not. sgproc0) then
-         call mpi_win_shared_query(window, 0, win_size, disp_unit, cptr, ierr)
-      end if
-      call mpi_win_fence(0, window, ierr)
-
-      call mpi_win_get_attr(window, MPI_WIN_MODEL, memory_model, flag, ierr)
-
-      if (flag) then
-         if (memory_model /= MPI_WIN_UNIFIED) then
-            call mp_abort('MPI_WIN_MODEL is not MPI_WIN_UNIFIED. Compile withou HAS_ISO_C_BINDING')
-         end if
-      else
-         call mp_abort('MPI_WIN_MODEL not found. Compile withou HAS_ISO_C_BINDING')
-      end if
-
-      !the following is a hack that allows us to perform pointer arithmetic in Fortran
-      if (present(cur_pos)) cur_pos = transfer(cptr, cur_pos)
-
-      call scope(prior_focus)
-
-   end subroutine create_shared_memory_window
-#endif
-
-!###############################################################################
-!                         SPLIT TASKS OVER COMMUNICATOR                         
-!###############################################################################
-! Split <n> tasks over the current communicator. Returns the low and high
-! indices for a given processor. Assumes indices start at 1.
-! This is used for the LU decomposition and radial variation.
-!###############################################################################
-   subroutine split_n_tasks(n, lo, hi)
-
-      implicit none
-
-      integer, intent(in) :: n
-      integer, intent(out) :: lo, hi
-
-      integer :: n_div, n_mod
-
-      n_div = n / nproc
-      n_mod = mod(n, nproc)
-
-      lo = iproc * n_div + 1 + min(iproc, n_mod)
-      hi = lo + n_div - 1
-      if (iproc < n_mod) hi = hi + 1
-
-   end subroutine split_n_tasks
-   
 !###############################################################################
 !                                  FINISH MPI                                   
 !###############################################################################

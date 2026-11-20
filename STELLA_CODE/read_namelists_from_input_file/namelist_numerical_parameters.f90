@@ -160,7 +160,7 @@ contains
          write (unit, '(A, I0)') '  nstep = ', nstep
          write (unit, '(A, F0.4)') '  tend = ', tend
          write (unit, '(A, L1)') '  autostop = ', autostop
-         write (unit, '(A, ES0.4)') '  avail_cpu_time = ', avail_cpu_time
+         write (unit, '(A, ES12.4)') '  avail_cpu_time = ', avail_cpu_time
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
@@ -252,13 +252,13 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&time_step'
-         write (unit, '(A, ES0.4)') '  delt = ', delt
+         write (unit, '(A, ES12.4)') '  delt = ', delt
          write (unit, '(A, A, A)') '  delt_option = "', trim(delt_option), '"'
-         write (unit, '(A, ES0.4)') '  delt_max = ', delt_max
-         write (unit, '(A, ES0.4)') '  delt_min = ', delt_min
-         write (unit, '(A, ES0.4)') '  cfl_cushion_upper = ', cfl_cushion_upper
-         write (unit, '(A, ES0.4)') '  cfl_cushion_middle = ', cfl_cushion_middle
-         write (unit, '(A, ES0.4)') '  cfl_cushion_lower = ', cfl_cushion_lower
+         write (unit, '(A, ES12.4)') '  delt_max = ', delt_max
+         write (unit, '(A, ES12.4)') '  delt_min = ', delt_min
+         write (unit, '(A, ES12.4)') '  cfl_cushion_upper = ', cfl_cushion_upper
+         write (unit, '(A, ES12.4)') '  cfl_cushion_middle = ', cfl_cushion_middle
+         write (unit, '(A, ES12.4)') '  cfl_cushion_lower = ', cfl_cushion_lower
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

@@ -15,17 +15,6 @@ USE_FFT = fftw3
 USE_NETCDF = on
 USE_HDF5 =
 
-# It is more efficient to create shared memory domains across a NUMA
-# (Non-Uniform Memory Access) domain than across an entire node. 
-# Each Pitagora node has 256 cores, located on 2 sockets, therefore we
-# encounter performance uses for the response matrix's shared memory
-# domain when using more than 128 cpus, as they cross NUMA domains.
-# Note that when this is turned on, you need to make sure to specify e.g.,
-# #SBATCH --ntasks-per-socket=40, so that each socket has the same amount
-# of CPUs, if shared-memory domains have different amount of CPUs, the 
-# parallelisation can not be done correctly, and stella will abort.
-SPLIT_BY_NUMA = on
-
 # Set the system compiler
 # In the loaded modules we use "--gcc--", so we use gnu-gfortran
 COMPILER = gnu-gfortran

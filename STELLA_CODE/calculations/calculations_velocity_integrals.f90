@@ -372,7 +372,7 @@ contains
       
       ! Initialize sum
       total = 0.
-      
+
       ! Number of field lines
       if (present(ia_in)) then
          ia = ia_in
@@ -380,14 +380,20 @@ contains
          ia = 1
       end if
 
-      ! Iterate over the i[vpa, mu, s] points
+      ! Iterate over the i[vpa, mu, s] points; species/velocity sum needs reduction
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, ia, nzgrid, ntubes) &
+      !$omp private(ivmu, iv, imu, is, it, iz) &
+      !$omp reduction(+:total) &
+      !$omp shared(g, weights, wgts_mu, wgts_vpa)
+      !$omp do
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      
+
          ! Obtain the [ivpa, imu, is] indices from [ivmus]
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         
+
          ! Integrate over mu, vpa, species
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -395,8 +401,10 @@ contains
                   wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, iz, it, ivmu) * weights(is)
             end do
          end do
-         
+
       end do
+      !$omp end do
+      !$omp end parallel
 
       ! Each processor has a few [ivmu] points, so sum all calculations
       call sum_allreduce(total)

@@ -17,9 +17,7 @@ ifdef USE_NETCDF
 	NETCDF_LIB = -L/usr/locallib -lnetcdf -lnetcdff
 endif
 
-ifdef USE_LAPACK
-	LAPACK_LIB = -L/usr/lib -llapack
-endif
+LAPACK_LIB = -L/usr/lib -llapack
 
 #MPI_INC= -I/usr/include
 #MPI_LIB= -L/usr/lib64

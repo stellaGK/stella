@@ -1,0 +1,81 @@
+#===================================================================
+#                              PLASMA                              #
+#===================================================================
+
+# USE_PLASMA (see Makefile.compilerflags, on by default) links stella against
+# the PLASMA linear algebra library (https://github.com/icl-utk-edu/plasma),
+# which is used for the LU operations of stella. Use USE_PLASMA= to build
+# without it. PLASMA is searched for in this order:
+#  1. PLASMA_LIB, the link flags of PLASMA, if it is set;
+#  2. the PLASMA installation in $PLASMA_DIR, if it is set, e.g.,
+#        >> make PLASMA_DIR=/path/to/plasma/install
+#  3. an installed PLASMA found by pkg-config (plasma.pc, which PLASMA installs),
+#     e.g., through PKG_CONFIG_PATH=/path/to/plasma/install/lib/pkgconfig;
+#  4. otherwise the git submodule EXTERNALS/plasma is compiled with cmake and
+#     installed in COMPILATION/build_make/plasma/install. PLASMA requires the
+#     CBLAS and LAPACKE libraries, extra cmake flags for PLASMA can be passed
+#     through PLASMA_CMAKE_FLAGS, e.g., PLASMA_CMAKE_FLAGS="-DLAPACKE_ROOT=/path".
+
+PLASMA_SRC_DIR := $(EXTERNALS_DIR)/plasma
+PLASMA_BUILD_DIR := $(BUILD_DIR)/plasma
+PLASMA_CMAKE_FLAGS ?=
+
+# The extension of shared libraries
+ifeq ($(shell uname -s),Darwin)
+  PLASMA_SHLIB_EXT := dylib
+else
+  PLASMA_SHLIB_EXT := so
+endif
+
+ifdef USE_PLASMA
+  ifeq ($(strip $(PLASMA_LIB)),)
+    ifdef PLASMA_DIR
+      PLASMA_LIB = -L$(PLASMA_DIR)/lib -Wl,-rpath,$(PLASMA_DIR)/lib -lplasma -lplasma_core_blas
+    else ifeq ($(shell pkg-config --exists plasma 2>/dev/null && echo yes),yes)
+      PLASMA_PKG_LIBDIR := $(shell pkg-config --variable=libdir plasma)
+      PLASMA_LIB = $(shell pkg-config --libs plasma) -Wl,-rpath,$(PLASMA_PKG_LIBDIR)
+    else
+      PLASMA_DIR := $(PLASMA_BUILD_DIR)/install
+      PLASMA_FROM_SUBMODULE := on
+      PLASMA_LIB = -L$(PLASMA_DIR)/lib -Wl,-rpath,$(PLASMA_DIR)/lib -lplasma -lplasma_core_blas
+    endif
+  endif
+  LIBS += $(PLASMA_LIB)
+endif
+
+# If the PLASMA source code is needed, but doesn't exist, download the submodules
+$(PLASMA_SRC_DIR)/CMakeLists.txt:
+	@echo "  "; echo "Downloading submodules:"
+	git submodule update --init --recursive
+	@echo "  "
+
+# Configure and compile PLASMA with cmake, and copy the libraries and headers to
+# $(PLASMA_BUILD_DIR)/install. Only the libraries are compiled, since PLASMA's
+# tester (plasmatest) needs LAPACKE routines missing from older LAPACK versions,
+# e.g. LAPACKE_zlangb in LAPACK 3.10 (Ubuntu 22.04). We can't use cmake --install
+# because it also installs the tester. The libraries find each other through a
+# relative rpath ($ORIGIN), so they can be moved together, e.g., in CI artifacts.
+$(PLASMA_BUILD_DIR)/install/lib/libplasma.$(PLASMA_SHLIB_EXT): | $(PLASMA_SRC_DIR)/CMakeLists.txt
+	@mkdir -p $(PLASMA_BUILD_DIR)
+	@echo "   (plasma) configure PLASMA with cmake"
+	@cmake -S $(PLASMA_SRC_DIR) -B $(PLASMA_BUILD_DIR)/build -DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_BUILD_RPATH_USE_ORIGIN=ON $(PLASMA_CMAKE_FLAGS) > $(PLASMA_BUILD_DIR)/cmake_configure.log 2>&1 \
+		|| (cat $(PLASMA_BUILD_DIR)/cmake_configure.log; exit 1)
+	@echo "   (plasma) compile PLASMA, see $(PLASMA_BUILD_DIR)/cmake_build.log"
+	@cmake --build $(PLASMA_BUILD_DIR)/build -j --target plasma plasma_core_blas > $(PLASMA_BUILD_DIR)/cmake_build.log 2>&1 \
+		|| (tail -n 50 $(PLASMA_BUILD_DIR)/cmake_build.log; exit 1)
+	@mkdir -p $(PLASMA_BUILD_DIR)/install/lib $(PLASMA_BUILD_DIR)/install/include
+	@cp $(PLASMA_SRC_DIR)/include/plasma*.h $(PLASMA_BUILD_DIR)/install/include/
+	@cp -P $(PLASMA_BUILD_DIR)/build/libplasma*.$(PLASMA_SHLIB_EXT)* $(PLASMA_BUILD_DIR)/install/lib/
+
+# Extra commands so we can compile PLASMA separately through
+# >> make plasma_clean; make plasma USE_PLASMA=on
+plasma:
+ifdef PLASMA_FROM_SUBMODULE
+	@echo " "; echo "Compile PLASMA library:"
+	@$(MAKE) --no-print-directory -s $(PLASMA_BUILD_DIR)/install/lib/libplasma.$(PLASMA_SHLIB_EXT)
+	@echo "   ==> Finished compiling PLASMA"
+endif
+plasma_clean:
+	@-rm -rf $(PLASMA_BUILD_DIR)
+.PHONY: plasma plasma_clean

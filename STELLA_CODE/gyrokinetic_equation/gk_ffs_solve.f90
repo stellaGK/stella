@@ -313,7 +313,9 @@ module gk_ffs_solve
       integer :: it, iz, ikx
 
       !-------------------------------------------------------------------------
-
+      !$omp parallel default(none) &
+      !$omp shared(gin,dgdy,aky,nzgrid,nakx,ntubes)
+      !$omp do collapse(3)
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
@@ -321,6 +323,7 @@ module gk_ffs_solve
             end do
          end do
       end do
+      !$omp end parallel
 
    end subroutine get_dgdy
 

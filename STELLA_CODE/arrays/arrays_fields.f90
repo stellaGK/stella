@@ -23,7 +23,6 @@ module arrays_fields
    public :: phi, phi_old
    public :: apar, apar_old
    public :: bpar, bpar_old
-   public :: phi_shared
    public :: phi_corr_QN, apar_corr_QN
    public :: phi_proj, phi_proj_stage
    public :: phi_corr_GA, apar_corr_GA
@@ -38,10 +37,6 @@ module arrays_fields
    complex, dimension(:, :, :, :), allocatable :: phi, phi_old
    complex, dimension(:, :, :, :), allocatable :: apar, apar_old
    complex, dimension(:, :, :, :), allocatable :: bpar, bpar_old
-
-   ! DSO - the following is a band-aid for radially global simulations until we more fully incorporate shared memory
-   ! (naky, nakx, -nzgrid:nzgrid, ntubes)
-   complex, dimension(:, :, :, :), pointer :: phi_shared
 
    ! Radial corrections to phi and apar from quasineutrality/whatever controls apar
    ! (naky, nakx, -nzgrid:nzgrid, ntubes)

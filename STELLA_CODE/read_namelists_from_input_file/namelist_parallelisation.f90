@@ -9,8 +9,11 @@
 !     vms_layout = 'vms'
 !     mat_gen = .false.
 !     mat_read = .false.
-!     lu_option = 'default'
 !     fields_kxkyz = .false.
+! 
+! The option <lu_option> ('default', 'local' or 'global') is no longer used:
+! the response matrix is always LU decomposed with <lu_decomposition> (PLASMA
+! or LAPACK). It is still read, so that older input files keep working.
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
@@ -28,16 +31,8 @@ module namelist_parallelisation
 
    ! Make reading routines accesible to other modules
    public :: read_namelist_parallelisation
-   
-   ! Parameters need to be public
-   public :: lu_option_local, lu_option_none, lu_option_global
 
    private
-
-   ! Create parameters for lu_option
-   integer, parameter :: lu_option_none = 1
-   integer, parameter :: lu_option_local = 2
-   integer, parameter :: lu_option_global = 3
       
    ! These variables are used in every single subroutine, so make them global
    integer :: in_file
@@ -49,7 +44,7 @@ contains
    !                              PARALLELISATION                              !
    !****************************************************************************
    subroutine read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-      mat_gen, mat_read, lu_option_switch, fields_kxkyz, verbose)
+      mat_gen, mat_read, fields_kxkyz, verbose)
 
       use mp, only: proc0
 
@@ -60,9 +55,8 @@ contains
       character(len=3), intent (out) :: vms_layout
       character(len=5), intent (out) :: kymus_layout
       logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read, verbose
-      integer, intent (out)  :: lu_option_switch
 
-      ! Local variable to set <lu_option_switch>
+      ! No longer used, only read for older input files
       character(30) :: lu_option
       
       !-------------------------------------------------------------------------
@@ -95,16 +89,8 @@ contains
       subroutine read_input_file_parallelisation
 
          use file_utils, only: input_unit_exist
-         use file_units, only: unit_error_file
-         use text_options, only: text_option, get_option_value
 
          implicit none
-         
-         ! Link text options for <lu_option> to an integer value
-         type(text_option), dimension(3), parameter :: luopts = &
-               (/text_option('default', lu_option_none), &
-               text_option('local', lu_option_local), &
-               text_option('global', lu_option_global)/)
 
          ! Variables in the <parallelisation> namelist
          namelist /parallelisation/ xyzs_layout, vms_layout, kymus_layout, &
@@ -116,9 +102,11 @@ contains
          in_file = input_unit_exist('parallelisation', dexist)
          if (dexist) read (unit=in_file, nml=parallelisation)
 
-         ! Read the text option in <lu_option> and store it in <lu_option_switch>
-         call get_option_value(lu_option, luopts, lu_option_switch, &
-             unit_error_file, 'lu_option in parameters_numerical')
+         ! The local and global LU decompositions have been removed
+         if (trim(lu_option) /= 'default') then
+            write (*, '(A)') 'WARNING: lu_option = "'//trim(lu_option)//'" is no longer supported and is ignored.'
+            write (*, '(A)') '         The response matrix is LU decomposed with PLASMA or LAPACK.'
+         end if
 
       end subroutine read_input_file_parallelisation
 
@@ -159,7 +147,6 @@ contains
          !-------------------------------------------------------------------------
 
          write (unit, '(A)') '&parallelisation'
-         write (unit, '(A, A, A)') '  lu_option = "', trim(lu_option), '"'
          write (unit, '(A, A, A)') '  xyzs_layout = "', trim(xyzs_layout), '"'
          write (unit, '(A, A, A)') '  vms_layout = "', trim(vms_layout), '"'
          write (unit, '(A, A, A)') '  kymus_layout = "', trim(kymus_layout), '"'

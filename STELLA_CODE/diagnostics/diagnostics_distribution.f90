@@ -109,12 +109,12 @@ contains
    !============================================================================
    !============== CALCULATE AND WRITE DISTRIBUTION TO NETCDF FILE =============
    !============================================================================
-   subroutine write_distribution_to_netcdf_file(nout, timer)
+   subroutine write_distribution_to_netcdf_file(nout)
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s]
       use redistribute, only: scatter
       use initialise_redistribute, only: kxkyz2vmu
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       use mp, only: proc0
 
       ! Distribution function
@@ -175,8 +175,7 @@ contains
 
       implicit none
 
-      ! The pointer in the netcdf file and a timer
-      real, dimension(:), intent(in out) :: timer
+      ! The pointer in the netcdf file
       integer, intent(in) :: nout
 
       ! We will write g(vpa,mu,s), g(tube,z,vpa,s), g(tube,z,mu,s)
@@ -193,7 +192,7 @@ contains
             .and. (.not. write_g2_vs_kxkyzs) .and. (.not. write_g2_vs_zvpamus)) return
 
       ! Start timer
-      if (proc0) call time_message(.false., timer(:), 'Write distribution')
+      call region_start('diagnostics_distribution')
       if (debug) write (*, *) 'diagnostics::diagnostics_distribution::write_distribution_to_netcdf_file'
 
       ! Allocate arrays
@@ -297,7 +296,7 @@ contains
       if (write_g2_vs_zvpamus) deallocate (g2_vs_zvpamus)
 
       ! End timer
-      if (proc0) call time_message(.false., timer(:), 'Write distribution')
+      call region_end('diagnostics_distribution')
 
    end subroutine write_distribution_to_netcdf_file
 

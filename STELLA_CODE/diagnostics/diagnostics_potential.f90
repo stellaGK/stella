@@ -84,11 +84,11 @@ contains
    !============================================================================
    !=============== CALCULATE AND WRITE POTENTIAL TO NETCDF FILE ===============
    !============================================================================
-   subroutine write_potential_to_netcdf_file(istep, nout, timer, write_to_netcdf_file)
+   subroutine write_potential_to_netcdf_file(istep, nout, write_to_netcdf_file)
 
       ! Parallelisation
       use mp, only: proc0
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
       
       ! Fields
       use arrays_fields, only: phi
@@ -135,7 +135,6 @@ contains
       integer, intent(in) :: istep  ! The current time step
       integer, intent(in) :: nout   ! The pointer in the netcdf file
       logical, intent(in) :: write_to_netcdf_file
-      real, dimension(:), intent(in out) :: timer
 
       ! Local variable
       complex, dimension(:, :, :, :), allocatable :: phi_vs_kykxzt, apar_vs_kykxzt, bpar_vs_kykxzt
@@ -145,7 +144,7 @@ contains
       !---------------------------------------------------------------------- 
 
       ! Start timer
-      if (proc0) call time_message(.false., timer(:), 'Write phi')
+      call region_start('diagnostics_potential')
 
       ! Allocate arrays 
       allocate (phi_vs_kykxzt(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -279,7 +278,7 @@ contains
       if (include_bpar) deallocate (bpar_vs_kykxzt)
 
       ! End timer
-      if (proc0) call time_message(.false., timer(:), 'Write phi')
+      call region_end('diagnostics_potential')
 
    end subroutine write_potential_to_netcdf_file
 
@@ -300,7 +299,7 @@ contains
       real, intent(in) :: phi2, apar2, bpar2
 
       write (stdout_unit, '(i10,es14.4e3,es14.4e3,es14.4e3,es14.4e3)') istep, code_time, phi2, apar2, bpar2
-      call flush (stdout_unit)
+      flush (stdout_unit)
 
    end subroutine write_potential_to_ascii_file
 

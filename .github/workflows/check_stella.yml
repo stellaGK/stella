@@ -1,7 +1,8 @@
-# Run these tests automatically on Github on every push and pull request.
+# Run these tests automatically on Github on every push and pull request,
+# or by hand from the Actions tab (workflow_dispatch).
 # Use the macOS operating system, which has 4 cores.
 name: Check stella
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 # We always run in a bash shell
 defaults:
@@ -54,6 +55,9 @@ jobs:
             echo "NETCDF_LIB_DIR=/opt/homebrew/lib -L${NETCDF_PREFIX}/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = ${NETCDF_PREFIX}/include/"
             echo "NETCDF_INC_DIR=${NETCDF_PREFIX}/include/" >> $GITHUB_ENV
+            # Build without PLASMA on macOS (an empty USE_PLASMA switches it off in Make)
+            echo "USE_PLASMA=" >> $GITHUB_ENV
+            echo "CMAKE_PLASMA_FLAGS=-DSTELLA_ENABLE_PLASMA=OFF" >> $GITHUB_ENV
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             echo "Set STELLA_SYSTEM = gnu_ubuntu"
             echo "STELLA_SYSTEM=gnu_ubuntu" >> $GITHUB_ENV
@@ -70,7 +74,7 @@ jobs:
             sudo apt update
             sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
             sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev 
-            if [ ${{ matrix.os }} == 'ubuntu-24.04' ]; then sudo apt install -y libblas-dev liblapack-dev; fi
+            sudo apt install -y libblas-dev liblapack-dev liblapacke-dev
           fi
 
       # Check-out repository under $GITHUB_WORKSPACE
@@ -110,13 +114,13 @@ jobs:
           echo " "; echo "Download submodules:" 
           git submodule update --init --recursive
           
-          # Build stella with Make or CMake
+          # Build stella with Make or CMake (both use PLASMA by default, except on macOS)
           echo " "; echo "Build stella with ${{ matrix.compiler }}:" 
           if [ ${{ matrix.compiler }} == 'Make' ]; then 
              make -j 4
           fi
           if [ ${{ matrix.compiler }} == 'CMake' ]; then 
-             cmake . -B COMPILATION/build_cmake
+             cmake . -B COMPILATION/build_cmake $CMAKE_PLASMA_FLAGS
              cmake --build COMPILATION/build_cmake -j 4
           fi
           
@@ -233,6 +237,18 @@ jobs:
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          sudo apt install -y libblas-dev liblapack-dev liblapacke-dev
+
+      # The PLASMA library only changes when its submodule changes
+      - name: Get the PLASMA submodule commit
+        id: plasma-commit
+        run: echo "sha=$(git rev-parse HEAD:EXTERNALS/plasma)" >> $GITHUB_OUTPUT
+        
+      - name: Cache PLASMA
+        uses: actions/cache@v4
+        with:
+          path: COMPILATION/build_make/plasma/install
+          key: plasma-ubuntu-22.04-${{ steps.plasma-commit.outputs.sha }}
 
       # Build stella executable
       - name: Build stella
@@ -246,11 +262,14 @@ jobs:
           #cmake --build COMPILATION/build_cmake -j 4
 
       # Upload stella
+      # The PLASMA libraries are found through the rpath of the stella executable
       - name: Upload stella  
         uses: actions/upload-artifact@v4
         with:
           name: stella-executable
-          path: stella
+          path: |
+            stella
+            COMPILATION/build_make/plasma/install/lib/*.so*
           retention-days: 1
 
 #-----------------------------------------------------------------------
@@ -293,6 +312,7 @@ jobs:
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          sudo apt install -y libblas-dev liblapack-dev liblapacke-dev
           pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
           sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
 
@@ -342,6 +362,7 @@ jobs:
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          sudo apt install -y libblas-dev liblapack-dev liblapacke-dev
           pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
           sed -i 's/nproc = 16/nproc = 1/g' AUTOMATIC_TESTS/config.ini 
 
@@ -414,7 +435,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin 
-          sudo apt install -y python3 python3-pip openmpi-bin libopenmpi-dev libblas-dev liblapack-dev 
+          sudo apt install -y python3 python3-pip openmpi-bin libopenmpi-dev libblas-dev liblapack-dev liblapacke-dev
            
       # Build stella executable
       - name: Build stella in debug mode

@@ -9,6 +9,7 @@
 #		- utils/*
 #		- git_version
 #		- neasyf
+#		- plasma (only with USE_PLASMA)
 #		- pFunit
 #  
 # Note that the automated Fortran tests use the external module 
@@ -101,6 +102,9 @@ include $(COMPILATION_DIR)/Makefile.externals.neasyf
 
 # Git version (git submodule)
 include $(COMPILATION_DIR)/Makefile.externals.git_version
+
+# PLASMA (git submodule, only used with USE_PLASMA)
+include $(COMPILATION_DIR)/Makefile.externals.plasma
 
 #===================================================================
 #                  DOWNLOAD GIT SUBMODULES MANUALLY                #

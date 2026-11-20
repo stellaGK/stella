@@ -177,7 +177,6 @@ contains
    subroutine advance_wstar_explicit_flux_tube(phi, gout)
 
       ! Parallelisation
-      use mp, only: proc0
       
       ! Data arrays
       use arrays, only: wstar
@@ -193,8 +192,7 @@ contains
       use calculations_kxky_derivatives, only: get_dchidy
       
       ! Time this routine
-      use timers, only: time_gke
-      use job_manage, only: time_message
+      use timers, only: region_start, region_end
 
       implicit none
 
@@ -215,7 +213,7 @@ contains
       !-------------------------------------------------------------------------
 
       ! Start timing the time advance due to the driving gradients
-      if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
+      call region_start('drive_wstar')
 
       ! Allocate temporary array for <g0> = i ky J_0 ϕ_k
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -232,15 +230,15 @@ contains
       deallocate (g0)
 
       ! Stop timing the time advance due to the driving gradients
-      if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
+      call region_end('drive_wstar')
 
    end subroutine advance_wstar_explicit_flux_tube
    
    !---------------------------- Full flux surface -----------------------------
    subroutine advance_wstar_explicit_ffs(gout)
 
-      use mp, only: proc0, mp_abort
-      use job_manage, only: time_message
+      use mp, only: mp_abort
+      use timers, only: region_start, region_end
       use parallelisation_layouts, only: vmu_lo
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
@@ -251,7 +249,6 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use calculations_add_explicit_terms, only: add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
-      use timers, only: time_gke
 
       implicit none
 
@@ -263,37 +260,45 @@ contains
       !-------------------------------------------------------------------------
 
       ! Start timing the time advance due to the driving gradients
-      if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
+      call region_start('drive_wstar')
       
       ! Assume only a single flux surface simulated
       it = 1
 
-      ! Allocate temporary arrays
+      ! Allocate temporary arrays (g0_swap is thread-private, allocated inside parallel region)
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      allocate (g0_swap(naky_all, ikx_max))
 
       ! Calculate d<phi>/dy in k-space, i.e., calculate i*ky*J_0*chi, and save it as <g0>
       ! Here phi_gyro is <phi> in k-space that has been pre-calculated and stored
       call get_dgdy(phi_gyro, g0)
-      
+
       ! Transform d<phi>/dy from ky-space to y-space
+      !$omp parallel default(none) &
+      !$omp firstprivate(vmu_lo, nzgrid, it, naky_all, ikx_max) &
+      !$omp private(ivmu, iz, g0_swap) &
+      !$omp shared(g0, g0y)
+      allocate (g0_swap(naky_all, ikx_max))
+      !$omp do collapse(2)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do iz = -nzgrid, nzgrid
             call swap_kxky(g0(:, :, iz, it, ivmu), g0_swap)
             call transform_ky2y(g0_swap, g0y(:, :, iz, it, ivmu))
          end do
       end do
-      
+      !$omp end do
+      deallocate (g0_swap)
+      !$omp end parallel
+
       ! multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
       call add_explicit_term_ffs(g0y, wstar, gout)
-      
+
       ! Deallocate
-      deallocate (g0y, g0_swap)
+      deallocate (g0y)
       deallocate (g0)
 
       ! Stop timing the time advance due to the driving gradients
-      if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
+      call region_end('drive_wstar')
 
    end subroutine advance_wstar_explicit_ffs
 

@@ -29,12 +29,10 @@ ifdef USE_NETCDF
                      -L$(HDF5_HOME)/lib -lhdf5_hl -lhdf5
 endif
 
-ifdef USE_LAPACK
-    ifeq ($(LAPACK_LIB),)
-        LAPACK_LIB = \
-            -L$(MKL_HOME)/lib/intel64 -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core \
-            -L$(GCC_HOME)/lib64 -lgomp \
-            -lm -ldl -lm -ldl
-    endif
-    CPPFLAGS += -DLAPACK
+ifeq ($(LAPACK_LIB),)
+    LAPACK_LIB = \
+        -L$(MKL_HOME)/lib/intel64 -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core \
+        -L$(GCC_HOME)/lib64 -lgomp \
+        -lm -ldl -lm -ldl
 endif
+CPPFLAGS += -DLAPACK

@@ -1,0 +1,151 @@
+! Tests of utils/banded_lu, the LU factorisation and solve of the complex band systems of
+! stella (gam0 for full flux surface simulations, Fokker-Planck collisions).
+!
+! stella's code paths are tested, not the libraries themselves: the band storage
+! (band_ldab, band_row) and, when stella is compiled with PLASMA, that the factors of
+! plasma_zgbtrf are converted to those of LAPACK's zgbtrf, so that zgbtrs solves them, also
+! inside OpenMP parallel regions. Every band system is factorised in two ways:
+!  - outside an OpenMP parallel region, i.e. with plasma_zgbtrf;
+!  - inside an OpenMP parallel region, i.e. with LAPACK's zgbtrf.
+! Both solutions must solve A x = b, and agree with each other. Without PLASMA, both use LAPACK.
+! Note that with OMP_NUM_THREADS=1 the parallel region is inactive, so both use PLASMA.
+module test_utils_banded_lu
+  use funit
+  use banded_lu
+  use plasma_interface, only: stella_linear_algebra_init, stella_linear_algebra_finish
+  implicit none
+
+contains
+
+  @before
+  subroutine set_up
+    call stella_linear_algebra_init
+  end subroutine set_up
+
+  @after
+  subroutine tear_down
+    call stella_linear_algebra_finish
+  end subroutine tear_down
+
+  ! A band matrix with kl sub- and ku super-diagonals, which needs pivoting (small diagonal), in
+  ! band storage, and nrhs right-hand sides
+  subroutine band_system(n, kl, ku, a, ab, b)
+    integer, intent(in) :: n, kl, ku
+    complex, dimension(n, n), intent(out) :: a
+    complex, dimension(:, :), intent(out) :: ab
+    complex, dimension(:, :), intent(out) :: b
+    integer :: i, j, k
+
+    a = 0.0
+    do j = 1, n
+      do i = max(1, j - ku), min(n, j + kl)
+        a(i, j) = cmplx(sin(real(3 * i + 7 * j)), cos(real(5 * i - 2 * j)))
+      end do
+      a(j, j) = 1.0e-3 * a(j, j)
+    end do
+    ab = 0.0
+    do j = 1, n
+      do i = max(1, j - ku), min(n, j + kl)
+        ab(band_row(i, j, kl, ku), j) = a(i, j)
+      end do
+    end do
+    do k = 1, size(b, 2)
+      b(:, k) = [(cmplx(real(i + k), sin(real(i * k))), i=1, n)]
+    end do
+  end subroutine band_system
+
+  ! Factorise the band system, and solve for every right-hand side inside an OpenMP parallel do
+  ! (zgbtrs). If factorise_in_omp, the factorisation is called from inside a parallel region
+  subroutine factorise_and_solve(n, kl, ku, ab, b, factorise_in_omp, x, info)
+    integer, intent(in) :: n, kl, ku
+    complex, dimension(:, :), intent(in) :: ab, b
+    logical, intent(in) :: factorise_in_omp
+    complex, dimension(:, :), intent(out) :: x
+    integer, intent(out) :: info
+    complex, dimension(size(ab, 1), size(ab, 2)) :: lu
+    integer, dimension(n) :: ipiv
+    integer :: k
+
+    lu = ab
+    if (factorise_in_omp) then
+      !$omp parallel
+      !$omp single
+      call band_lu_factorise(n, kl, ku, lu, ipiv, info)
+      !$omp end single
+      !$omp end parallel
+    else
+      call band_lu_factorise(n, kl, ku, lu, ipiv, info)
+    end if
+
+    x = b
+    !$omp parallel do
+    do k = 1, size(b, 2)
+      call band_lu_solve(n, kl, ku, lu, ipiv, x(:, k))
+    end do
+    !$omp end parallel do
+  end subroutine factorise_and_solve
+
+  ! Solve the band system in both ways (see the top of this file). Returns the largest
+  ! relative residual |A x - b| / |b|, and the largest relative difference between the solutions
+  subroutine band_round_trip(n, kl, ku, residual, difference)
+    integer, intent(in) :: n, kl, ku
+    real, intent(out) :: residual, difference
+    integer, parameter :: nrhs = 8
+    complex, dimension(n, n) :: a
+    complex, dimension(:, :), allocatable :: ab
+    complex, dimension(n, nrhs) :: b, x_plasma, x_omp
+    integer :: info_plasma, info_omp
+
+    allocate (ab(band_ldab(kl, ku), n))
+    call band_system(n, kl, ku, a, ab, b)
+
+    call factorise_and_solve(n, kl, ku, ab, b, .false., x_plasma, info_plasma)
+    call factorise_and_solve(n, kl, ku, ab, b, .true., x_omp, info_omp)
+
+    @assertEqual(0, info_plasma)
+    @assertEqual(0, info_omp)
+    residual = max(maxval(abs(matmul(a, x_plasma) - b)), maxval(abs(matmul(a, x_omp) - b))) / maxval(abs(b))
+    difference = maxval(abs(x_omp - x_plasma)) / maxval(abs(x_plasma))
+  end subroutine band_round_trip
+
+  ! The band storage has the rows that zgbtrf needs (and with PLASMA the rows of its tiles),
+  ! with the diagonal in row kl + ku + 1
+  @test
+  subroutine test_band_storage
+    @assertTrue(band_ldab(3, 4) >= 2 * 3 + 4 + 1)
+    @assertEqual(3 + 4 + 1, band_row(5, 5, 3, 4))
+    @assertEqual(3 + 4 + 1 - 4, band_row(1, 5, 3, 4))
+    @assertEqual(3 + 4 + 1 + 3, band_row(8, 5, 3, 4))
+  end subroutine test_band_storage
+
+  ! A small band, inside one PLASMA tile (like the gam0 system with few ky)
+  @test
+  subroutine test_band_small
+    real :: residual, difference
+    call band_round_trip(7, 3, 3, residual, difference)
+    @assertLessThan(residual, 1.0e-10)
+    @assertLessThan(difference, 1.0e-10)
+  end subroutine test_band_small
+
+  ! A band of a few diagonals over many tiles (like the Fokker-Planck system)
+  @test
+  subroutine test_band_narrow
+    real :: residual, difference
+    call band_round_trip(100, 5, 5, residual, difference)
+    @assertLessThan(residual, 1.0e-10)
+    @assertLessThan(difference, 1.0e-10)
+  end subroutine test_band_narrow
+
+  ! Bands wider than a PLASMA tile, with kl /= ku
+  @test
+  subroutine test_band_wide
+    real :: residual, difference
+    call band_round_trip(120, 20, 17, residual, difference)
+    @assertLessThan(residual, 1.0e-10)
+    @assertLessThan(difference, 1.0e-10)
+    call band_round_trip(90, 3, 40, residual, difference)
+    @assertLessThan(residual, 1.0e-10)
+    @assertLessThan(difference, 1.0e-10)
+  end subroutine test_band_wide
+
+end module test_utils_banded_lu
