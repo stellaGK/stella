@@ -265,7 +265,7 @@ contains
          else
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  g0k = dphidz(:, :, iz, it) * par_nl_fac(iz, is) + vpa(iv) * mu(imu) * par_nl_curv(iz, is) &
+                  g0k = dphidz(:, :, iz, it) * par_nl_fac(iz, is) &
                            + zi * vpa(iv) * phi_gyro(:, :, iz, it) * (spread(akx, 1, naky) * par_nl_driftx(iz) &
                                                                   + spread(aky, 2, nakx) * par_nl_drifty(iz))
                   ! Use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
@@ -274,6 +274,9 @@ contains
                   call transform_ky2y(g0k_swap, g0kxy)
                   ! Transform in x
                   call transform_kx2x(g0kxy, g0xy(:, :, iz, it, ivmu))
+                  ! The curvature term vpa*mu*par_nl_curv does not depend on (x,y), so add it in real space,
+                  ! as for radial variation above: added to every Fourier coefficient, it became a spike at x = y = 0
+                  g0xy(:, :, iz, it, ivmu) = g0xy(:, :, iz, it, ivmu) + vpa(iv) * mu(imu) * par_nl_curv(iz, is)
                end do
             end do
          end if
