@@ -79,7 +79,7 @@ module collisions_fokkerplanck
    real, dimension(:), allocatable :: modmwnorm
    real :: i1fac, i2fac
 
-   ! Only initialise once
+   ! Set once the time-step-independent setup has been done; reset by finish_collisions_fp
    logical :: initialised_fokker_planck = .false.
 
 contains
@@ -175,61 +175,72 @@ contains
 
       !-------------------------------------------------------------------------
 
-      if (initialised_fokker_planck) return
-      initialised_fokker_planck = .true.
+      ! This routine is called again from reset_dt() whenever code_dt changes, and the implicit
+      ! matrices built in init_fp_diffmatrix() and init_fp_conserve() carry code_dt, so they
+      ! are rebuilt on every call.
+      ! Everything else is independent of the time step and is set up only on the first call.
+      ! In particular, the knobs below rescale spec%vnew in place and must not be applied twice.
+      if (.not. initialised_fokker_planck) then
 
-      ! disable inter-species collisions if interspec==false
-      if (.not. interspec) then
+         ! disable inter-species collisions if interspec==false
+         if (.not. interspec) then
+            do is = 1, nspec
+               do is2 = 1, nspec
+                  if (is /= is2) then
+                     spec(is)%vnew(is2) = 0.
+                  end if
+               end do
+            end do
+         end if
+
+         ! disable intra-species collisions if intraspec==false
+         if (.not. intraspec) then
+            do is = 1, nspec
+               do is2 = 1, nspec
+                  if (is == is2) then
+                     spec(is)%vnew(is2) = 0.
+                  end if
+               end do
+            end do
+         end if
+
+         ! control inter-species collisions
          do is = 1, nspec
             do is2 = 1, nspec
-               if (is /= is2) then
-                  spec(is)%vnew(is2) = 0.
+               if ((spec(is)%type == ion_species) .and. (spec(is2)%type == ion_species)) then
+                  spec(is)%vnew(is2) = spec(is)%vnew(is2) * iiknob
+               else if ((spec(is)%type == ion_species) .and. (spec(is2)%type == electron_species)) then
+                  spec(is)%vnew(is2) = spec(is)%vnew(is2) * ieknob
+               else if ((spec(is)%type == electron_species) .and. (spec(is2)%type == electron_species)) then
+                  spec(is)%vnew(is2) = spec(is)%vnew(is2) * eeknob
+               else if ((spec(is)%type == electron_species) .and. (spec(is2)%type == ion_species)) then
+                  spec(is)%vnew(is2) = spec(is)%vnew(is2) * eiknob
+               else
+                  spec(is)%vnew(is2) = spec(is)%vnew(is2)
                end if
+               ! AVB: to do - add impurity collision control
             end do
          end do
+
+         ! initialise speed dependent collision frequencies
+         call init_nusDpa
+
+         if (collisions_implicit) then
+            write (*, *) 'Coll. algorithm: implicit'
+            fully_explicit = .false.
+
+            call init_legendre
+            call init_vgrid
+            call init_bessel_fn
+         end if
+
       end if
-
-      ! disable intra-species collisions if intraspec==false
-      if (.not. intraspec) then
-         do is = 1, nspec
-            do is2 = 1, nspec
-               if (is == is2) then
-                  spec(is)%vnew(is2) = 0.
-               end if
-            end do
-         end do
-      end if
-
-      ! control inter-species collisions
-      do is = 1, nspec
-         do is2 = 1, nspec
-            if ((spec(is)%type == ion_species) .and. (spec(is2)%type == ion_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * iiknob
-            else if ((spec(is)%type == ion_species) .and. (spec(is2)%type == electron_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * ieknob
-            else if ((spec(is)%type == electron_species) .and. (spec(is2)%type == electron_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * eeknob
-            else if ((spec(is)%type == electron_species) .and. (spec(is2)%type == ion_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * eiknob
-            else
-               spec(is)%vnew(is2) = spec(is)%vnew(is2)
-            end if
-            ! AVB: to do - add impurity collision control
-         end do
-      end do
-
-      ! initialise speed dependent collision frequencies
-      call init_nusDpa
 
       if (collisions_implicit) then
-         write (*, *) 'Coll. algorithm: implicit'
-         fully_explicit = .false.
-
-         call init_legendre
-         call init_vgrid
-         call init_bessel_fn
          call init_fp_diffmatrix
-         call init_deltaj_vmu
+         ! deltaj only uses the test-particle operator blockmatrix/code_dt, which does not
+         ! depend on the time step, so it is computed once (after the first init_fp_diffmatrix)
+         if (.not. initialised_fokker_planck) call init_deltaj_vmu
          call init_fp_conserve
       else
          vnew_max = 0.0
@@ -239,6 +250,8 @@ contains
          cfl_dt_vpadiff = 2.0 * dvpa**2 / vnew_max
          cfl_dt_mudiff = minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2))
       end if
+
+      initialised_fokker_planck = .true.
 
    end subroutine init_collisions_fp
 
@@ -2205,10 +2218,14 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          else
             nresponse = 1
          end if
-         allocate (fp_response(nresponse, nresponse, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); fp_response = 0.
+         allocate (fp_response(nresponse, nresponse, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          allocate (diff_idx(nresponse, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          allocate (response_vpamu(nvpa, nmu, nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       end if
+
+      ! Zero on every call, since this routine is called again from reset_dt(), the identity
+      ! is added to the diagonal below and the response matrix is LU-factorised in place
+      fp_response = 0.
 
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dum3(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -2216,7 +2233,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       allocate (sumdelta(nvpa, nmu)); sumdelta = 0.
       allocate (gvmutr(nvpa, nmu))
       allocate (ghrs(nmu * nvpa)); ghrs = 0.
-      allocate (deltajint(jmax + 1, nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      if (.not. allocated(deltajint)) allocate (deltajint(jmax + 1, nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
       ia = 1
 
