@@ -3,9 +3,15 @@
 !###############################################################################
 ! The LU decomposition, back substitution and inverse of dense matrices are
 ! computed by LAPACK (?getrf, ?getrs and ?getri). When stella is compiled with
-! PLASMA (see plasma_interface), PLASMA's plasma_?getrf, plasma_?getrs and
-! plasma_?getri are used instead, except inside OpenMP parallel regions, where
-! PLASMA can't be called (see <plasma_usable>).
+! PLASMA (see plasma_interface), PLASMA's plasma_?getrf and plasma_?getri are
+! used for the decomposition and the inverse instead, except inside OpenMP
+! parallel regions, where PLASMA can't be called (see <plasma_usable>).
+!
+! The back substitution always uses LAPACK. stella solves for one or two
+! right-hand sides at a time, which takes O(n^2) operations, and plasma_?getrs
+! copies the matrix to its tile layout and opens an OpenMP parallel region in
+! every call, which costs more than the solve itself: with one thread per MPI
+! process, the implicit time step was five times slower with PLASMA.
 !
 ! The factors are stored as by LAPACK: L (unit diagonal) below and U on and
 ! above the diagonal, and idx(j) is the row that was swapped with row j at
@@ -290,11 +296,6 @@ contains
    !****************************************************************************
    subroutine getrs_real(lu, idx, n, nrhs, b, ldb)
 
-#ifdef PLASMA
-      use, intrinsic :: iso_c_binding, only: c_int
-      use plasma_interface, only: plasma_usable, plasma_dgetrs, PlasmaNoTrans
-#endif
-
       implicit none
 
       real, dimension(:, :), intent(in) :: lu
@@ -303,21 +304,8 @@ contains
       real, dimension(ldb, nrhs), intent(in out) :: b
 
       integer :: info
-#ifdef PLASMA
-      real, dimension(:, :), allocatable :: a
-#endif
 
       !-------------------------------------------------------------------------
-
-#ifdef PLASMA
-      if (plasma_usable()) then
-         ! plasma_dgetrs does not change the factors, but has no const arguments
-         a = lu
-         info = plasma_dgetrs(PlasmaNoTrans, int(n, c_int), int(nrhs, c_int), a, int(size(lu, 1), c_int), &
-                              int(idx(1:n), c_int), b, int(ldb, c_int))
-         return
-      end if
-#endif
 
       if (kind(lu) == kind(1.0d0)) then
          call dgetrs('N', n, nrhs, lu, size(lu, 1), idx, b, ldb, info)
@@ -329,11 +317,6 @@ contains
 
    subroutine getrs_complex(lu, idx, n, nrhs, b, ldb)
 
-#ifdef PLASMA
-      use, intrinsic :: iso_c_binding, only: c_int
-      use plasma_interface, only: plasma_usable, plasma_zgetrs, PlasmaNoTrans
-#endif
-
       implicit none
 
       complex, dimension(:, :), intent(in) :: lu
@@ -342,21 +325,8 @@ contains
       complex, dimension(ldb, nrhs), intent(in out) :: b
 
       integer :: info
-#ifdef PLASMA
-      complex, dimension(:, :), allocatable :: a
-#endif
 
       !-------------------------------------------------------------------------
-
-#ifdef PLASMA
-      if (plasma_usable()) then
-         ! plasma_zgetrs does not change the factors, but has no const arguments
-         a = lu
-         info = plasma_zgetrs(PlasmaNoTrans, int(n, c_int), int(nrhs, c_int), a, int(size(lu, 1), c_int), &
-                              int(idx(1:n), c_int), b, int(ldb, c_int))
-         return
-      end if
-#endif
 
       if (kind(lu) == kind((1.0d0, 0.0d0))) then
          call zgetrs('N', n, nrhs, lu, size(lu, 1), idx, b, ldb, info)
