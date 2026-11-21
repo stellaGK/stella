@@ -170,6 +170,7 @@ module write_diagnostics_to_netcdf
    public :: write_f2nozonal_vs_zmus_nc
    public :: write_f2nozonal_vs_zvpamus_nc
    public :: write_kspectra_nc
+   public :: write_zonal_kspectrum_nc
    public :: write_omega_nc
    public :: write_moments_nc
    public :: write_radial_fluxes_nc
@@ -745,6 +746,20 @@ contains
 #endif
    end subroutine write_kspectra_nc
 
+   !------------------------------ phi2zonal(kx,t) -----------------------------
+   subroutine write_zonal_kspectrum_nc(nout, phi2zonal_vs_kx, keyname, longname)
+      implicit none
+      integer, intent(in) :: nout
+      real, dimension(:), intent(in) :: phi2zonal_vs_kx
+      character(len=*), intent(in) :: keyname, longname
+#ifdef NETCDF
+      call neasyf_write(ncid, keyname, phi2zonal_vs_kx, &
+         dim_names=[character(len=2)::"kx", "t "], start=[1, nout], &
+         units=" ", &
+         long_name=longname)
+#endif
+   end subroutine write_zonal_kspectrum_nc
+
    !-------------------------- phi(ri,ky,kx,z,tube,t) --------------------------
    subroutine write_phi_nc(nout, phi)
       use grids_z, only: nzgrid
@@ -1034,7 +1049,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "g2nozonal_vs_vpamus", g2nozonal_vs_vpamus, &
          dim_names=[character(len=7)::"vpa", "mu", "species", "t"], start=[1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over real space")
+         long_name="Guiding center distribution function averaged over real space, without the ky = 0 modes")
 #endif
    end subroutine write_g2nozonal_vs_vpamus_nc
 
@@ -1046,7 +1061,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "g2nozonal_vs_zvpas", g2nozonal_vs_zvpas, &
          dim_names=[character(len=7)::"tube", "zed", "vpa", "species", "t"], start=[1, 1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over (kx, ky, mu)")
+         long_name="Guiding center distribution function averaged over (kx, ky, mu), without the ky = 0 modes")
 #endif
    end subroutine write_g2nozonal_vs_zvpas_nc
 
@@ -1058,7 +1073,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "g2nozonal_vs_zmus", g2nozonal_vs_zmus, &
          dim_names=[character(len=7)::"tube", "zed", "mu", "species", "t"], start=[1, 1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over (kx, ky, vpa)")
+         long_name="Guiding center distribution function averaged over (kx, ky, vpa), without the ky = 0 modes")
 #endif
    end subroutine write_g2nozonal_vs_zmus_nc 
 
@@ -1139,7 +1154,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "h2nozonal_vs_vpamus", h2nozonal_vs_vpamus, &
          dim_names=[character(len=7)::"vpa", "mu", "species", "t"], start=[1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over real space")
+         long_name="Guiding center distribution function averaged over real space, without the ky = 0 modes")
 #endif
    end subroutine write_h2nozonal_vs_vpamus_nc
 
@@ -1151,7 +1166,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "h2nozonal_vs_zvpas", h2nozonal_vs_zvpas, &
          dim_names=[character(len=7)::"tube", "zed", "vpa", "species", "t"], start=[1, 1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over (kx, ky, mu)")
+         long_name="Guiding center distribution function averaged over (kx, ky, mu), without the ky = 0 modes")
 #endif
    end subroutine write_h2nozonal_vs_zvpas_nc
 
@@ -1163,7 +1178,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "h2nozonal_vs_zmus", h2nozonal_vs_zmus, &
          dim_names=[character(len=7)::"tube", "zed", "mu", "species", "t"], start=[1, 1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over (kx, ky, vpa)")
+         long_name="Guiding center distribution function averaged over (kx, ky, vpa), without the ky = 0 modes")
 #endif
    end subroutine write_h2nozonal_vs_zmus_nc 
 
@@ -1244,7 +1259,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "f2nozonal_vs_vpamus", f2nozonal_vs_vpamus, &
          dim_names=[character(len=7)::"vpa", "mu", "species", "t"], start=[1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over real space")
+         long_name="Guiding center distribution function averaged over real space, without the ky = 0 modes")
 #endif
    end subroutine write_f2nozonal_vs_vpamus_nc
 
@@ -1256,7 +1271,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "f2nozonal_vs_zvpas", f2nozonal_vs_zvpas, &
          dim_names=[character(len=7)::"tube", "zed", "vpa", "species", "t"], start=[1, 1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over (kx, ky, mu)")
+         long_name="Guiding center distribution function averaged over (kx, ky, mu), without the ky = 0 modes")
 #endif
    end subroutine write_f2nozonal_vs_zvpas_nc
 
@@ -1268,7 +1283,7 @@ contains
 #ifdef NETCDF
       call neasyf_write(ncid, "f2nozonal_vs_zmus", f2nozonal_vs_zmus, &
          dim_names=[character(len=7)::"tube", "zed", "mu", "species", "t"], start=[1, 1, 1, 1, nout], &
-         long_name="Guiding center distribution function averaged over (kx, ky, vpa)")
+         long_name="Guiding center distribution function averaged over (kx, ky, vpa), without the ky = 0 modes")
 #endif
    end subroutine write_f2nozonal_vs_zmus_nc 
 
