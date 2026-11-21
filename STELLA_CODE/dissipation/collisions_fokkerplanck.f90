@@ -111,6 +111,9 @@ module collisions_fokkerplanck
 
    real, dimension(:, :, :, :, :, :, :, :), allocatable :: deltaj, deltaj_tp
    complex, dimension(:, :, :, :), allocatable :: deltajint
+
+   ! The z points on which calc_deltaj_vmu, calc_psi_vmu and vLj_vmu compute, see init_deltaj_vmu
+   integer :: iz_deltaj_lo = -huge(1), iz_deltaj_hi = huge(1)
    real, dimension(:, :, :, :, :), allocatable :: psijnorm
    real, dimension(:, :, :, :, :), allocatable :: legendre_vpamu
    real, dimension(:, :, :, :, :, :), allocatable :: jm
@@ -1768,10 +1771,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use grids_time, only: code_dt
       use grids_kxky, only: naky
+      use mp, only: nproc, iproc, sum_allreduce
 
       implicit none
 
       real, dimension(0:lmax, 0:jmax, nvpa, nmu, 1, -nzgrid:nzgrid) :: vlaguerre_vmu
+      real, dimension(:, :, :), allocatable :: deltaj_share
+      integer :: nz_total
       integer :: ll, iv, jj, ia, imu, iz, is, isa, isb, ix, ikx, iky, ikxkyz, ikxkyzt
       real, dimension(-nzgrid:nzgrid) :: deltajint, deltajint_tp
       real, dimension(nvpa*nmu, -nzgrid:nzgrid) :: vpaF0vec, v2F0vec
@@ -1812,12 +1818,34 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ident = 0
       forall (iv=1:nvpa * nmu) ident(iv, iv) = 1.
 
+      ! Delta_j is local in z, and its calculation (with the recursion of calc_deltaj_vmu and the incomplete gamma
+      ! functions of calc_delta0) is expensive, so every processor computes it on its own share of the z points,
+      ! with the (vpa, mu, z) loop of calc_delta0 shared among the threads, and the sum over the processors gives
+      ! Delta_j on every z point
+      nz_total = 2 * nzgrid + 1
+      iz_deltaj_lo = -nzgrid + (iproc * nz_total) / nproc
+      iz_deltaj_hi = -nzgrid + ((iproc + 1) * nz_total) / nproc - 1
+      allocate (deltaj_share(nvpa, nmu, -nzgrid:nzgrid))
+      do isa = 1, nspec
+         do isb = 1, nspec
+            do ll = 0, lmax
+               do jj = 0, jmax
+                  call calc_deltaj_vmu(jj, jj, ll, isa, isb, deltaj_share)
+                  call sum_allreduce(deltaj_share)
+                  deltaj(ll, jj, isa, isb, :, :, ia, :) = deltaj_share
+               end do
+            end do
+         end do
+      end do
+      deallocate (deltaj_share)
+      iz_deltaj_lo = -huge(1)
+      iz_deltaj_hi = huge(1)
+
       do isa = 1, nspec
          do isb = 1, nspec
             do ll = 0, lmax
                do jj = 0, jmax
 
-                  call calc_deltaj_vmu(jj, jj, ll, isa, isb, deltaj(ll, jj, isa, isb, :, :, ia, :))
                   call vLj_vmu(jj, ll, vlaguerre_vmu(ll, jj, :, :, ia, :))
 
                   if (spitzer_problem) then
@@ -2956,6 +2984,12 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       fld = 0.
 
       if (isb == 0) then
+         ! Every point writes only its own fld(iky, ikx, iz, it, is), so the points are shared among the threads
+         !$omp parallel do default(none) &
+         !$omp   firstprivate(kxkyz_lo, isa, isb, ll, mm, jj, clm, ia, nvpa, nmu) &
+         !$omp   private(ikxkyz, ikxkyzt, iky, ikx, iz, it, is, iv, g0, ghrs) &
+         !$omp   shared(g, fld, mw, jm, legendre_vpamu, deltaj, deltaj_tp, spec, blockmatrix, code_dt, vpa, velvpamu, &
+         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -3024,33 +3058,19 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
 
             ! to zero l=1,j=1 term:
-            if (no_j1l1) then
-               if ((ll == 1) .and. (jj == 1)) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
-            if (no_j1l2) then
-               if ((ll == 2) .and. (jj == 1)) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
-            if (no_j0l2) then
-               if ((ll == 2) .and. (jj == 0)) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
-
-            if (spitzer_problem) then
-               if (.not. ((isa == 2) .and. (is == 2))) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
 
          end do
+         !$omp end parallel do
 
       else ! isb /= 0:
          ! apply the operator \psi_ab^jlm[] to every species index of g; only used in the calculation of the response matrix
          ! where the species index, is, of g contains the response \delta h_a / \delta \psi^{a,is}
+         ! Every point writes only its own fld(iky, ikx, iz, it, is), so the points are shared among the threads
+         !$omp parallel do default(none) &
+         !$omp   firstprivate(kxkyz_lo, isa, isb, ll, mm, jj, clm, ia, nvpa, nmu) &
+         !$omp   private(ikxkyz, ikxkyzt, iky, ikx, iz, it, is, iv, g0, ghrs) &
+         !$omp   shared(g, fld, mw, jm, legendre_vpamu, deltaj, deltaj_tp, spec, blockmatrix, code_dt, vpa, velvpamu, &
+         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -3119,29 +3139,23 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
 
             ! to zero l=1,j=1 term:
-            if (no_j1l1) then
-               if ((ll == 1) .and. (jj == 1)) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
-            if (no_j1l2) then
-               if ((ll == 2) .and. (jj == 1)) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
-            if (no_j0l2) then
-               if ((ll == 2) .and. (jj == 0)) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
-
-            if (spitzer_problem) then
-               if (.not. ((isa == 2) .and. (isb == 2))) then
-                  fld(:, :, :, :, is) = 0.
-               end if
-            end if
 
          end do
+         !$omp end parallel do
+      end if
+
+      ! Leave out some of the moments (and, for the Spitzer problem, all but the electron-electron ones); this
+      ! zeroes the whole species slices of fld, as before point by point in the loops above
+      if ((no_j1l1 .and. ll == 1 .and. jj == 1) .or. (no_j1l2 .and. ll == 2 .and. jj == 1) &
+          .or. (no_j0l2 .and. ll == 2 .and. jj == 0)) fld = 0.
+      if (spitzer_problem) then
+         if (isb == 0) then
+            do is = 1, nspec
+               if (.not. ((isa == 2) .and. (is == 2))) fld(:, :, :, :, is) = 0.
+            end do
+         else
+            if (.not. ((isa == 2) .and. (isb == 2))) fld = 0.
+         end if
       end if
 
       ! normalise psijs
@@ -3390,14 +3404,21 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       ia = 1
       if (jj == 0) then
+         ! Only on the z points <iz_deltaj_lo> to <iz_deltaj_hi> (see init_deltaj_vmu), zero elsewhere
+         deltj = 0.
+         !$omp parallel do default(none) collapse(3) &
+         !$omp   firstprivate(nvpa, nmu, nn, ll, isa, isb, ia) &
+         !$omp   private(iv, imu, iz, v) &
+         !$omp   shared(nzgrid, iz_deltaj_lo, iz_deltaj_hi, vpa, mu, bmag, deltj)
          do iv = 1, nvpa
             do imu = 1, nmu
-               do iz = -nzgrid, nzgrid
+               do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
                   v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
                   call calc_delta0(v, nn, ll, isa, isb, deltj(iv, imu, iz))
                end do
             end do
          end do
+         !$omp end parallel do
       else
          ! get Delta_[j-1]^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)](xa)
          call calc_deltaj_vmu(jj - 1, nn, ll, isa, isb, deltajm1_n)
@@ -3429,9 +3450,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !-------------------------------------------------------------------------
 
       ia = 1
+      vLj = 0.
       do iv = 1, nvpa
          do imu = 1, nmu
-            do iz = -nzgrid, nzgrid
+            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
                v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
                vLj(iv, imu, iz) = v**ll * associated_laguerre(jj, ll + 1./2., v**2)
             end do
@@ -3474,7 +3496,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
             ! multiply by x_b^l L_n(x_b^2) and integrate
             call vLj_vmu(nn, ll, vLn)
-            do iz = -nzgrid, nzgrid
+            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
                call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
             end do
 
@@ -3486,12 +3508,12 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
                !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
                call vLj_vmu(jj, ll, vLj)
-               do iz = -nzgrid, nzgrid
+               do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
                   call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
                end do
             else
                call vLj_vmu(jj, ll, vLj)
-               do iz = -nzgrid, nzgrid
+               do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
                   call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
                end do
             end if
@@ -3502,7 +3524,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
          ! multiply by x_b^l L_n(x_b^2) and integrate
          call vLj_vmu(nn, ll, vLn)
-         do iz = -nzgrid, nzgrid
+         do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
             call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
          end do
 
@@ -3514,19 +3536,23 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
             !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
             call vLj_vmu(jj, ll, vLj)
-            do iz = -nzgrid, nzgrid
+            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
                call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
             end do
          else
             call vLj_vmu(jj, ll, vLj)
-            do iz = -nzgrid, nzgrid
+            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
                call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
             end do
          end if
 
       end if
 
-      psij = num / den
+      ! Only on the z points <iz_deltaj_lo> to <iz_deltaj_hi> (see init_deltaj_vmu), zero elsewhere
+      psij = 0.
+      do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+         psij(iz) = num(iz) / den(iz)
+      end do
 
    end subroutine calc_psi_vmu
    
