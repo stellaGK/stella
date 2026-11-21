@@ -245,53 +245,53 @@ MOD_FLAGS_STELLA := -I $(MOD) -I $(UTILS_MOD) -I $(MINILIBSTELL_MOD) $(MODULE_FL
 # Build object files '*.o' from '*.f90' files using the Fortran f90 compiler
 $(OBJ)/%.o: $(STELLA_DIR)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(FPP)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 	
 $(OBJ)/%.o: $(CALCULATIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(DIAGNOSTICS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(COLLISIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(STELLA_UTILS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(GRIDS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(ARRAYS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(GYROKINETIC_EQUATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(FIELD_EQUATIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(NEOCLASSICAL)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(PARALLELISATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(INPUT_PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	@$(FC) $(F90FLAGS) $(F90STDFLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 
 #===================================================================
 #              Preprocess *.fpp files to *.f90 files               #

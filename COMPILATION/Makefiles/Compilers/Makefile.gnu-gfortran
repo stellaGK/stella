@@ -3,6 +3,11 @@
 FC = gfortran
 CC = gcc
 F90FLAGS += -ffree-line-length-none -fno-backslash
+
+# Enforce the Fortran 2008 standard for stella's own code (see Makefile.stella), as the CMake build
+# does (COMPILATION/CMakeLists.txt). The external libraries, e.g. mini_libstell, which calls the GNU
+# extension flush, are compiled without it.
+F90STDFLAGS = -std=f2008
 CPPFLAGS += -DFCOMPILER=_GFORTRAN_
 
 cmd=$(shell basename $(shell which $(FC)))
