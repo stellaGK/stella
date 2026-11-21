@@ -8,7 +8,7 @@ module parameters_diagnostics
    public :: read_parameters_diagnostics 
 
    ! Variables used to write diagnostics
-   public :: nwrite, nsave, navg, nc_mult
+   public :: nwrite, nsave, navg, nc_mult, dt_write
    public :: save_for_restart, write_all
    
    ! Write time traces
@@ -56,6 +56,7 @@ module parameters_diagnostics
 
    ! Variables used to write diagnostics
    integer :: nwrite, nsave, navg, nc_mult
+   real :: dt_write
    logical :: save_for_restart, write_all
 
    ! Flags to toggle groups 
@@ -159,7 +160,7 @@ contains
          if (debug) write (*, *) 'read_diagnostics_parameters::read_input_file'
 
 
-         call read_namelist_diagnostics (nwrite, navg, nsave, nc_mult, &
+         call read_namelist_diagnostics (nwrite, dt_write, navg, nsave, nc_mult, &
                         save_for_restart, write_all, write_all_time_traces, &
                         write_all_spectra_kxkyz, write_all_spectra_kxky, &
                         write_all_velocity_space, write_all_potential, &
@@ -229,6 +230,7 @@ contains
        
          ! Writing options 
          call broadcast(nwrite)
+         call broadcast(dt_write)
          call broadcast(navg)
          call broadcast(nsave)
          call broadcast(nc_mult)

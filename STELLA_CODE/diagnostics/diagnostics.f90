@@ -7,7 +7,11 @@
 !---------------------------------- Input file ---------------------------------
 ! 
 ! The diagnostics are writen to text files after every <nwrite> time steps. Moreover, 
-! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps. At
+! they are written to the NetCDF file at every <nwrite>*<nc_mult> time steps. If <dt_write> > 0,
+! they are instead written to the text files at the first time step after every multiple of
+! <dt_write> (in units of a/vth), and to the NetCDF file after every multiple of <dt_write>*<nc_mult>,
+! so that the size of the output files is set by <tend> and does not grow when the time step
+! decreases (the NetCDF file then contains about tend/(dt_write*nc_mult) time slices). At
 ! every <nsave> time steps, the distribution function is saved to a NetCDF file, 
 ! which allows the user to restart a simulation in the future, if <save_for_restart>
 ! if toggled to True. The frequency and growth rates are calculated for linear 
@@ -15,6 +19,7 @@
 ! 
 !&diagnostics
 !   nwrite = 50.0
+!   dt_write = -1.0
 !   navg = 50.0
 !   nsave = -1.0
 !   nc_mult = 1.0
@@ -132,6 +137,9 @@ module diagnostics
    ! Current maximum index of the time dimension in the netCDF file
    integer :: nout = 1
 
+   ! If <dt_write> > 0, the index n of the last multiple n*<dt_write> of the time at which the diagnostics were written
+   integer :: last_multiple_of_dt_write = 0
+
    ! Only initialise once
    logical :: initialised_diagnostics = .false.
 
@@ -160,7 +168,8 @@ contains
 
       ! Flags
       use parameters_physics, only: radial_variation
-      use parameters_diagnostics, only: nc_mult, nwrite
+      use parameters_diagnostics, only: nc_mult, nwrite, dt_write
+      use grids_time, only: code_time
 
       ! Write data
       use diagnostics_omega, only: write_omega_to_netcdf_file, calculate_omega
@@ -178,15 +187,26 @@ contains
 
       ! Writing variables
       logical :: write_to_ascii_files, write_to_netcdf_file
+      integer :: multiple_of_dt_write
 
       !-------------------------------------------------------------------------
       
       ! Start the timer
       call time_message(.false., time_all_diagnostics, ' diagnostics')
 
-      ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps
-      write_to_ascii_files = (mod(istep, nwrite) == 0)
-      write_to_netcdf_file = (mod(istep, nwrite * nc_mult) == 0)
+      ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps, or, if <dt_write> > 0,
+      ! at the first time step after every multiple of <dt_write> (to the ascii files) and of
+      ! <dt_write>*<nc_mult> (to the netcdf file). The time only increases, so every multiple n*<dt_write>
+      ! is written exactly once, whatever the time step, by comparing n with the last multiple written.
+      if (dt_write > 0.) then
+         multiple_of_dt_write = latest_multiple_of_dt_write(code_time)
+         write_to_ascii_files = (istep == 0) .or. (multiple_of_dt_write > last_multiple_of_dt_write)
+         write_to_netcdf_file = (istep == 0) .or. (multiple_of_dt_write / nc_mult > last_multiple_of_dt_write / nc_mult)
+         last_multiple_of_dt_write = max(multiple_of_dt_write, last_multiple_of_dt_write)
+      else
+         write_to_ascii_files = (mod(istep, nwrite) == 0)
+         write_to_netcdf_file = (mod(istep, nwrite * nc_mult) == 0)
+      end if
       
       !**********************************************************************
       !                 RUNNING AVERAGES AT EVERY TIME STEP                 !
@@ -240,6 +260,17 @@ contains
 
    end subroutine diagnose_distribution_function_and_fields
 
+   !============================================================================
+   ! The index n of the latest multiple n*<dt_write> which <time> has reached, up to 1e-4*<dt_write> to allow
+   ! for round-off errors in <code_time> (e.g. ten time steps of 0.01 give 0.09999999999999999). The tolerance
+   ! does not depend on the time step, so a restarted simulation continues with the same output times.
+   !============================================================================
+   integer function latest_multiple_of_dt_write(time)
+      use parameters_diagnostics, only: dt_write
+      real, intent(in) :: time
+      latest_multiple_of_dt_write = floor(time / dt_write + 1.e-4)
+   end function latest_multiple_of_dt_write
+
 
 !###############################################################################
 !############################ INITALIZE & FINALIZE #############################
@@ -273,6 +304,8 @@ contains
       use initialise_arrays, only: init_arrays_vperp_kperp
       use arrays_gyro_averages, only: init_arrays_bessel_functions
       use parameters_diagnostics, only: read_parameters_diagnostics
+      use parameters_diagnostics, only: dt_write, nc_mult
+      use parameters_numerical, only: tend
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes
       use diagnostics_potential, only: init_diagnostics_potential
@@ -324,6 +357,19 @@ contains
       call init_distribution_function(restart, istep0)
       call init_arrays_vperp_kperp
       call init_arrays_bessel_functions
+
+      ! Start counting the multiples of <dt_write> from the initial time (t = 0, or the time of a restart)
+      if (dt_write > 0.) last_multiple_of_dt_write = latest_multiple_of_dt_write(tstart)
+
+      ! Tell the user how many time slices the output files will contain when they are written every <dt_write>
+      if (proc0 .and. dt_write > 0.) then
+         if (tend > 0.) then
+            write (*, '(A, ES10.3, A, I0, A)') ' The diagnostics are written every dt_write = ', dt_write, &
+               ' a/vth, so the NetCDF file gets about ', nint((tend - tstart) / (dt_write * nc_mult)), ' more time slices.'
+         else
+            write (*, '(A, ES10.3, A)') ' The diagnostics are written every dt_write = ', dt_write, ' a/vth.'
+         end if
+      end if
 
       ! Initialize the submodules
       call init_diagnostics_omega(restart)

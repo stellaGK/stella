@@ -6,6 +6,7 @@
 ! 
 !   diagnostics
 !     nwrite = 50
+!     dt_write = -1.0
 !     navg = 50
 !     nsave = -1
 !     nc_mult = 1
@@ -96,7 +97,7 @@ contains
    !****************************************************************************
    !                                DIAGNOSTICS                                !
    !****************************************************************************
-   subroutine read_namelist_diagnostics (nwrite, navg, nsave, nc_mult, &
+   subroutine read_namelist_diagnostics (nwrite, dt_write, navg, nsave, nc_mult, &
       save_for_restart, write_all, write_all_time_traces, write_all_spectra_kxkyz, &
       write_all_spectra_kxky, write_all_velocity_space, write_all_potential, &
       write_all_omega, write_all_distribution, write_all_fluxes, write_all_moments)
@@ -107,6 +108,7 @@ contains
 
       ! Variables that are read from the input file
       integer, intent (out) :: nwrite, navg, nsave, nc_mult
+      real, intent (out) :: dt_write
       logical, intent (out) :: save_for_restart, write_all
       logical, intent (out) :: write_all_time_traces
       logical, intent (out) :: write_all_spectra_kxkyz
@@ -137,6 +139,12 @@ contains
          ! write diagnostics to the netcdf file every <nwrite>*<nc_mult> time steps
          nwrite = 50.0
          nc_mult = 1.0
+
+         ! If <dt_write> > 0, write diagnostics to the text files whenever the time passes a multiple of
+         ! <dt_write> (in units of a/vth), and to the netcdf file whenever it passes a multiple of
+         ! <dt_write>*<nc_mult>, instead of every <nwrite> time steps, so that the number of time slices
+         ! in the output files does not grow when the time step decreases
+         dt_write = -1.0
          
          ! Average in time are calculated over <navg> time steps
          navg = 50.0
@@ -168,7 +176,7 @@ contains
          implicit none
 
          ! Variables in the <diagnostics> namelist
-         namelist /diagnostics/ nwrite, navg, nsave, nc_mult, save_for_restart, &
+         namelist /diagnostics/ nwrite, dt_write, navg, nsave, nc_mult, save_for_restart, &
             write_all, write_all_time_traces, write_all_spectra_kxkyz, &
             write_all_spectra_kxky, write_all_velocity_space, write_all_potential, write_all_omega, &
             write_all_distribution, write_all_fluxes, write_all_moments
@@ -215,9 +223,9 @@ contains
 
          write (unit, '(A)') '&diagnostics'
          write (unit, '(A, I0)') '  nwrite = ', nwrite
+         write (unit, '(A, ES0.4)') '  dt_write = ', dt_write
          write (unit, '(A, I0)') '  navg = ', navg
          write (unit, '(A, I0)') '  nsave = ', nsave
-         write (unit, '(A, I0)') '  nwrite = ', nwrite
          write (unit, '(A, I0)') '  nc_mult = ', nc_mult
          write (unit, '(A, L1)') '  save_for_restart = ', save_for_restart
          write (unit, '(A, L1)') '  write_all = ', write_all
