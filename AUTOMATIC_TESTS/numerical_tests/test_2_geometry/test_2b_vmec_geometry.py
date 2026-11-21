@@ -1,7 +1,11 @@
 ################################################################################
 #                            Check the VMEC geometry                           #
 ################################################################################
-# Test all the geometry arrays when using a VMEC equilibrium. 
+# Test all the geometry arrays when using a VMEC equilibrium.
+# The expected output files were made in July 2024 with the old definitions of the geometry
+# arrays (and the old sign of psi), which the compare_* functions convert to the current ones.
+# Only their geometry is meant to match: the rest of EXPECTED_OUTPUT.vmec_geometry.out.nc
+# (e.g. beta = vnew_ref = 0.01, phi2, omega) comes from the input and code of that time.
 ################################################################################
 
 # Python modules
