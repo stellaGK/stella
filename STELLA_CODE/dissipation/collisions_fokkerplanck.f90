@@ -2259,7 +2259,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       complex, dimension(:, :), allocatable :: sumdelta
       complex, dimension(:, :), allocatable :: gvmutr
       complex, dimension(:), allocatable :: ghrs
-      complex, dimension(:, :, :, :, :), allocatable :: response_vpamu
       ! Temporary kxkyzt-shaped buffer for the implicit solves; species axis is
       ! local on kxkyzt_lo so we add an explicit nspec dimension.
       complex, dimension(:, :, :, :), allocatable :: gvmu_kxkyzt
@@ -2274,7 +2273,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          end if
          allocate (fp_response(nresponse, nresponse, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); fp_response = 0.
          allocate (diff_idx(nresponse, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-         allocate (response_vpamu(nvpa, nmu, nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       end if
 
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
