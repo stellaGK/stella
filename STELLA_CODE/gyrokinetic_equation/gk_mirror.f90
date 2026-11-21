@@ -769,12 +769,18 @@ contains
          if (mirror_semi_lagrange) then
             call vpa_interpolation(gvmu, g0v)
          else
-            allocate (rhs(nvpa))
-
             ! If fields are not updated, then update apar before converting from g to gbar
             ! in get_mirror_rhs_g_contribution below
             if (include_apar .and. .not. fields_updated) call advance_apar(gvmu, dist, apar)
 
+            ! The (kx,ky,z,mu) points are independent: every thread solves the tridiagonal
+            ! systems in vpa of its own points, with its own right-hand side <rhs>
+            !$omp parallel default(none) &
+            !$omp firstprivate(kxkyz_lo, nmu, nvpa) &
+            !$omp private(ikxkyz, iky, ikx, iz, it, imu, apar_ikxkyz, rhs) &
+            !$omp shared(gvmu, g0v, apar, include_apar)
+            allocate (rhs(nvpa))
+            !$omp do
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iky = iky_idx(kxkyz_lo, ikxkyz)
                ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -795,6 +801,9 @@ contains
                   g0v(:, imu, ikxkyz) = rhs
                end do
             end do
+            !$omp end do
+            deallocate (rhs)
+            !$omp end parallel
 
             ! if not advancing apar, g0v now contains the updated pdf, g.
             ! if advanceing apar, g0v contains the 'inhomogeneous' pdf, g_{inh}
@@ -807,6 +816,12 @@ contains
                ! the response matrix is diagonal, so it is just a scalar divide
                apar = apar / response_apar_denom
 
+               !$omp parallel default(none) &
+               !$omp firstprivate(kxkyz_lo, nmu, nvpa) &
+               !$omp private(ikxkyz, iky, ikx, iz, it, imu, rhs) &
+               !$omp shared(g0v, apar)
+               allocate (rhs(nvpa))
+               !$omp do
                do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                   iky = iky_idx(kxkyz_lo, ikxkyz)
                   ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -824,9 +839,10 @@ contains
                      g0v(:, imu, ikxkyz) = g0v(:, imu, ikxkyz) + rhs
                   end do
                end do
+               !$omp end do
+               deallocate (rhs)
+               !$omp end parallel
             end if
-
-            deallocate (rhs)
          end if
 
          ! then take the results and remap again so ky,kx,z local.
@@ -877,6 +893,10 @@ contains
          call region_end('mirror_redistribute')
 
          allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
+         !$omp parallel do default(none) &
+         !$omp firstprivate(kxyz_lo, nmu, tupwnd) &
+         !$omp private(ikxyz, iz, is, iy, imu) &
+         !$omp shared(g0v, dgdvpa, dvpa, mirror_sign, vpa_upwind, mirror)
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             iz = iz_idx(kxyz_lo, ikxyz)
             is = is_idx(kxyz_lo, ikxyz)
@@ -889,6 +909,7 @@ contains
                call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
             end do
          end do
+         !$omp end parallel do
          g0v = dgdvpa
          deallocate (dgdvpa)
 

@@ -98,6 +98,12 @@ module redistribute
       character(len=3) :: redistname = ""
    end type redist_type
 
+   ! The copy loops of a redistribution (packing and unpacking the messages, and the local copy) are
+   ! shared among the OpenMP threads when they copy at least <nn_threaded> elements; shorter loops are
+   ! not worth starting a team of threads. Every element of the target is written once, so the loops
+   ! are free of races, and the MPI calls stay outside the parallel regions (MPI_THREAD_FUNNELED)
+   integer, parameter :: nn_threaded = 4096
+
    type :: index_list_type
       integer, dimension(:), pointer :: first => null()
       integer, dimension(:), pointer :: second => null()
@@ -414,10 +420,12 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), r%to(iproc)%l(i)) &
             = from_here(r%from(iproc)%k(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -431,37 +439,45 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -503,6 +519,7 @@ contains
 !         where it is kx (or x) index, ik is ky (or y) index,
 !         ixxf is (y,ig,isgn,"les") and iyxf is (x,ig,isgn,"les")
 !
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
 !
 ! redistribute from local processor to local processor
@@ -518,6 +535,7 @@ contains
             = from_here(r%from(iproc)%k(i), &
                         r%from(iproc)%l(i))
       end do
+      !$omp end parallel do
 
    end subroutine c_redist_22_old_copy
 
@@ -546,39 +564,47 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -620,6 +646,7 @@ contains
 !         where it is kx (or x) index, ik is ky (or y) index,
 !         ixxf is (y,ig,isgn,"les") and iyxf is (x,ig,isgn,"les")
 !
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
 !
 ! redistribute from local processor to local processor
@@ -635,6 +662,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
    end subroutine c_redist_22_inv_old_copy
 
@@ -663,39 +691,47 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -740,6 +776,7 @@ contains
 !         g(ig, isgn, iglo) to xxf(it,ixxf) data type
 !         where it is kx (or x) index, ixxf is (y,ig,isgn,"les")
 !         and iglo is ("xyles")
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
 !
 ! redistribute from local processor to local processor
@@ -756,6 +793,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
    end subroutine c_redist_32_old_copy
 
@@ -785,41 +823,49 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -865,6 +911,7 @@ contains
 !         where it is kx (or x) index, ixxf is (y,ig,isgn,"les")
 !         and iglo is ("xyles")
 
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
 !
 ! redistribute from local processor to local processor
@@ -881,6 +928,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
    end subroutine c_redist_32_inv_old_copy
 
@@ -911,41 +959,49 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -970,6 +1026,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
@@ -978,6 +1035,7 @@ contains
                         r%from(iproc)%m(i), &
                         r%from(iproc)%n(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -991,43 +1049,51 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -1051,6 +1117,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -1059,6 +1126,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1072,16 +1140,19 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -1089,11 +1160,13 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -1101,14 +1174,17 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -1132,6 +1208,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -1139,6 +1216,7 @@ contains
             = from_here(r%from(iproc)%k(i), &
                         r%from(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1152,41 +1230,49 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
                           r%to(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
                           r%to(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -1211,6 +1297,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -1220,6 +1307,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1233,17 +1321,20 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1251,11 +1342,13 @@ contains
                           r%to(ipfrom)%n(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1263,15 +1356,18 @@ contains
                           r%to(ipfrom)%n(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -1296,6 +1392,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -1305,6 +1402,7 @@ contains
                         r%to(iproc)%m(i), &
                         r%to(iproc)%n(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1318,45 +1416,53 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
                                                 r%to(ipto)%m(i), &
                                                 r%to(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
                                                 r%to(ipto)%m(i), &
                                                 r%to(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -1382,6 +1488,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -1391,6 +1498,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1404,17 +1512,20 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1422,11 +1533,13 @@ contains
                           r%to(ipfrom)%n(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1434,15 +1547,18 @@ contains
                           r%to(ipfrom)%n(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -1467,6 +1583,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -1476,6 +1593,7 @@ contains
                         r%to(iproc)%m(i), &
                         r%to(iproc)%n(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1489,45 +1607,53 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i), &
                                              r%to(ipto)%m(i), &
                                              r%to(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i), &
                                              r%to(ipto)%m(i), &
                                              r%to(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -1554,6 +1680,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -1564,6 +1691,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1577,17 +1705,20 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1596,11 +1727,13 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1609,15 +1742,18 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -1643,6 +1779,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -1653,6 +1790,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1666,17 +1804,20 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1685,11 +1826,13 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1698,15 +1841,18 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -1732,6 +1878,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -1742,6 +1889,7 @@ contains
                         r%to(iproc)%n(i), &
                         r%to(iproc)%o(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1755,6 +1903,7 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
@@ -1762,33 +1911,39 @@ contains
                                                 r%to(ipto)%n(i), &
                                                 r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
@@ -1796,6 +1951,7 @@ contains
                                                 r%to(ipto)%n(i), &
                                                 r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -1822,6 +1978,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -1832,6 +1989,7 @@ contains
                         r%to(iproc)%n(i), &
                         r%to(iproc)%o(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1845,6 +2003,7 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i), &
@@ -1852,33 +2011,39 @@ contains
                                              r%to(ipto)%n(i), &
                                              r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i), &
@@ -1886,6 +2051,7 @@ contains
                                              r%to(ipto)%n(i), &
                                              r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -1913,6 +2079,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -1924,6 +2091,7 @@ contains
                         r%from(iproc)%m(i), &
                         r%from(iproc)%n(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -1937,18 +2105,21 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1957,11 +2128,13 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -1970,16 +2143,19 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2006,6 +2182,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -2017,6 +2194,7 @@ contains
                         r%to(iproc)%n(i), &
                         r%to(iproc)%o(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2030,6 +2208,7 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
@@ -2037,12 +2216,14 @@ contains
                                                 r%to(ipto)%n(i), &
                                                 r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -2050,11 +2231,13 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -2062,10 +2245,12 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
@@ -2073,6 +2258,7 @@ contains
                                                 r%to(ipto)%n(i), &
                                                 r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -2101,6 +2287,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -2113,6 +2300,7 @@ contains
                         r%from(iproc)%n(i), &
                         r%from(iproc)%o(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2126,6 +2314,7 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
@@ -2133,12 +2322,14 @@ contains
                                                 r%from(ipto)%n(i), &
                                                 r%from(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -2147,11 +2338,13 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
@@ -2160,10 +2353,12 @@ contains
                           r%to(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
@@ -2171,6 +2366,7 @@ contains
                                                 r%from(ipto)%n(i), &
                                                 r%from(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2198,6 +2394,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -2210,6 +2407,7 @@ contains
                         r%to(iproc)%n(i), &
                         r%to(iproc)%o(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2223,6 +2421,7 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
@@ -2230,12 +2429,14 @@ contains
                                                 r%to(ipto)%n(i), &
                                                 r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -2244,11 +2445,13 @@ contains
                           r%from(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -2257,10 +2460,12 @@ contains
                           r%from(ipfrom)%o(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
@@ -2268,6 +2473,7 @@ contains
                                                 r%to(ipto)%n(i), &
                                                 r%to(ipto)%o(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -2288,10 +2494,12 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), r%to(iproc)%l(i)) &
             = from_here(r%from(iproc)%k(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2305,37 +2513,45 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2357,12 +2573,14 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
             = from_here(r%from(iproc)%k(i), &
                         r%from(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2376,39 +2594,47 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2430,12 +2656,14 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i)) &
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2449,39 +2677,47 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -2505,6 +2741,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
@@ -2512,6 +2749,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2525,41 +2763,49 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2582,6 +2828,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -2589,6 +2836,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2602,41 +2850,49 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -2661,6 +2917,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
@@ -2669,6 +2926,7 @@ contains
                         r%from(iproc)%m(i), &
                         r%from(iproc)%n(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2682,43 +2940,51 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i), &
                                              r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%real_buff(i) = from_here(r%from(ipto)%k(i), &
                                              r%from(ipto)%l(i), &
                                              r%from(ipto)%m(i), &
                                              r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2742,6 +3008,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -2750,6 +3017,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2763,16 +3031,19 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -2780,11 +3051,13 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%real_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -2792,14 +3065,17 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%real_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%real_buff(i) = from_here(r%to(ipto)%k(i), &
                                              r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%real_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -2820,10 +3096,12 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), r%to(iproc)%l(i)) &
             = from_here(r%from(iproc)%k(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2837,37 +3115,45 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2889,12 +3175,14 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
             = from_here(r%from(iproc)%k(i), &
                         r%from(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2908,39 +3196,47 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -2962,12 +3258,14 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i)) &
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -2981,39 +3279,47 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%integer_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%integer_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -3037,6 +3343,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
@@ -3044,6 +3351,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3057,41 +3365,49 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -3114,6 +3430,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -3121,6 +3438,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3134,41 +3452,49 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%integer_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%integer_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -3193,6 +3519,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
@@ -3201,6 +3528,7 @@ contains
                         r%from(iproc)%m(i), &
                         r%from(iproc)%n(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3214,43 +3542,51 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%integer_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -3274,6 +3610,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -3282,6 +3619,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3295,16 +3633,19 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%integer_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -3312,11 +3653,13 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%integer_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -3324,14 +3667,17 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%integer_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%integer_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%integer_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -3352,10 +3698,12 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), r%to(iproc)%l(i)) &
             = from_here(r%from(iproc)%k(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3369,37 +3717,45 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -3421,12 +3777,14 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
             = from_here(r%from(iproc)%k(i), &
                         r%from(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3440,39 +3798,47 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -3494,12 +3860,14 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i)) &
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3513,39 +3881,47 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%logical_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%logical_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -3569,6 +3945,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
@@ -3576,6 +3953,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3589,41 +3967,49 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -3646,6 +4032,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -3653,6 +4040,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3666,41 +4054,49 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%logical_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%logical_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -3725,6 +4121,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i)) &
@@ -3733,6 +4130,7 @@ contains
                         r%from(iproc)%m(i), &
                         r%from(iproc)%n(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3746,43 +4144,51 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%logical_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i), &
                                                 r%from(ipto)%n(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -3806,6 +4212,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -3814,6 +4221,7 @@ contains
             = from_here(r%to(iproc)%k(i), &
                         r%to(iproc)%l(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3827,16 +4235,19 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%logical_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -3844,11 +4255,13 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%logical_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
@@ -3856,14 +4269,17 @@ contains
                           r%from(ipfrom)%n(i)) &
                      = r%logical_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%logical_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i))
                end do
+               !$omp end parallel do
                call send(r%logical_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
@@ -3889,6 +4305,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%from(iproc)%nn >= nn_threaded)
       do i = 1, r%from(iproc)%nn
          to_here(r%to(iproc)%k(i), &
                  r%to(iproc)%l(i), &
@@ -3897,6 +4314,7 @@ contains
                         r%from(iproc)%l(i), &
                         r%from(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3910,43 +4328,51 @@ contains
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
                           r%to(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%to(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%to(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%to(ipfrom)%nn >= nn_threaded)
                do i = 1, r%to(ipfrom)%nn
                   to_here(r%to(ipfrom)%k(i), &
                           r%to(ipfrom)%l(i), &
                           r%to(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%from(ipto)%nn > 0) then
+               !$omp parallel do if (r%from(ipto)%nn >= nn_threaded)
                do i = 1, r%from(ipto)%nn
                   r%complex_buff(i) = from_here(r%from(ipto)%k(i), &
                                                 r%from(ipto)%l(i), &
                                                 r%from(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%from(ipto)%nn), ipto, idp)
             end if
          end if
@@ -3970,6 +4396,7 @@ contains
       integer :: i, idp, ipto, ipfrom, iadp
 
       ! redistribute from local processor to local processor
+      !$omp parallel do if (r%to(iproc)%nn >= nn_threaded)
       do i = 1, r%to(iproc)%nn
          to_here(r%from(iproc)%k(i), &
                  r%from(iproc)%l(i), &
@@ -3978,6 +4405,7 @@ contains
                         r%to(iproc)%l(i), &
                         r%to(iproc)%m(i))
       end do
+      !$omp end parallel do
 
       ! redistribute to idpth next processor from idpth preceding processor
       ! or redistribute from idpth preceding processor to idpth next processor
@@ -3991,43 +4419,51 @@ contains
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
                                                 r%to(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
          else
             ! receive from idpth preceding processor
             if (r%from(ipfrom)%nn > 0) then
                call receive(r%complex_buff(1:r%from(ipfrom)%nn), ipfrom, idp)
+               !$omp parallel do if (r%from(ipfrom)%nn >= nn_threaded)
                do i = 1, r%from(ipfrom)%nn
                   to_here(r%from(ipfrom)%k(i), &
                           r%from(ipfrom)%l(i), &
                           r%from(ipfrom)%m(i)) &
                      = r%complex_buff(i)
                end do
+               !$omp end parallel do
             end if
 
             ! send to idpth next processor
             if (r%to(ipto)%nn > 0) then
+               !$omp parallel do if (r%to(ipto)%nn >= nn_threaded)
                do i = 1, r%to(ipto)%nn
                   r%complex_buff(i) = from_here(r%to(ipto)%k(i), &
                                                 r%to(ipto)%l(i), &
                                                 r%to(ipto)%m(i))
                end do
+               !$omp end parallel do
                call send(r%complex_buff(1:r%to(ipto)%nn), ipto, idp)
             end if
 
