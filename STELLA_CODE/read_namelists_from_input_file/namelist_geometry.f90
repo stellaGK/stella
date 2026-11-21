@@ -738,10 +738,10 @@ contains
          implicit none
 
          write (unit, '(A)') '&geometry_slab'
-         write (unit, '(A, ES0.4)') '  shat = ', shat
-         write (unit, '(A, ES0.4)') '  qinp = ', qinp
-         write (unit, '(A, ES0.4)') '  rmaj = ', rmaj
-         write (unit, '(A, ES0.4)') '  betaprim = ', betaprim
+         write (unit, '(A, ES12.4)') '  shat = ', shat
+         write (unit, '(A, ES12.4)') '  qinp = ', qinp
+         write (unit, '(A, ES12.4)') '  rmaj = ', rmaj
+         write (unit, '(A, ES12.4)') '  betaprim = ', betaprim
          write (unit, '(A, L1)') '  curvy_slab = ', curvy_slab
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
