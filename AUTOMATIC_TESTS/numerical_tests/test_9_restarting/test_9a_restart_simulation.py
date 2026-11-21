@@ -13,11 +13,13 @@
 #         delt_option = 'check_restart'          (read the time step from the restart file)
 #       &initialise_distribution_temp      ->  &initialise_distribution
 #         initialise_distribution_option = 'many'  (read g from the restart files)
+# For the runs which are not restarted, these two namelists are removed, since stella
+# stops on namelists that it does not read.
 ################################################################################
 
 # Python modules
 import pytest
-import os, sys
+import os, sys, re
 import pathlib
 import numpy as np
 import xarray as xr
@@ -47,6 +49,8 @@ def write_input_file(folder, input_filename, nstep, restart):
         assert '&time_step_temp' in text and '&initialise_distribution_temp' in text
         text = text.replace('&time_step_temp', '&time_step')
         text = text.replace('&initialise_distribution_temp', '&initialise_distribution')
+    else:
+        text = re.sub(r'&(time_step|initialise_distribution)_temp\n.*?\n/\n', '', text, flags=re.S)
     folder.mkdir(parents=True, exist_ok=True)
     open(folder / input_filename, 'w').write(text)
     return input_filename

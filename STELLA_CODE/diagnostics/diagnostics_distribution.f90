@@ -40,6 +40,10 @@
 ! 
 ! 
 !---------------------------------- Diagnostics --------------------------------
+!
+! The <nozonal> quantities leave out all ky = 0 modes, i.e. both the zonal part (the field-line
+! average of the ky = 0 modes) and the part of the ky = 0 modes that varies along z.
+! The zonal part of the potential is written separately, as phi2zonal_vs_kx (diagnostics_potential).
 ! 
 ! If <write_g2_vs_vpamus> = .true. the following quantities are calculated:
 !   - |g|^2(t, mu, vpa, s)           -->  g2_vs_vpamus in the NetCDF file

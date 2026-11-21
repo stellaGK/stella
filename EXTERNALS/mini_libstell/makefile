@@ -20,7 +20,9 @@ F90FLAGS ?= empty
 
 # Load up the compiler flags from the main stella makefile. 
 # We need to include the NETCDF paths for mini_libstell.
-EXTRA_COMPILE_FLAGS = $(F90FLAGS) $(NETCDF_INC)
+# Every file needs NETCDF: the *.f90 files test it with the Intel directive "!DEC$ IF DEFINED (NETCDF)",
+# which gfortran ignores, so without it the Intel compilers skip most of ezcdf_inqvar.f90
+EXTRA_COMPILE_FLAGS = $(F90FLAGS) $(NETCDF_INC) -DNETCDF
 EXTRA_LINK_FLAGS = $(NETCDF_LIB)
 
 #===================================================================
@@ -87,7 +89,7 @@ $(OBJ)/%.o: $(SRC)/%.f | $(OBJ)
 
 $(OBJ)/%.o: $(SRC)/%.F | $(OBJ)
 	@echo "       (mini_libstell) *.F to *.o:    $(notdir $<)"
-	@$(FC) $(EXTRA_COMPILE_FLAGS) $(MOD_FLAGS_MINI) -DNETCDF -o $@ -c $<
+	@$(FC) $(EXTRA_COMPILE_FLAGS) $(MOD_FLAGS_MINI) -o $@ -c $<
 
 # The "ezcdf_GenGet.f90" script has a rank mistmatch warning which we will supress.
 # Warning: Type mismatch between actual argument at (1) and actual argument at (2) (REAL(4)/COMPLEX(4)).

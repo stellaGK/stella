@@ -53,6 +53,32 @@ def test_whether_potential_diagnostics_are_correct(nonlinear_run):
     return
 
 #-------------------------------------------------------------------------------
+def test_whether_zonal_potential_diagnostic_is_correct(nonlinear_run):
+    '''Check that phi2zonal_vs_kx is the square of the field-line average of phi(ky=0), computed
+    from phi_vs_t with the weights dl_over_b = delzed * jacob / sum(delzed * jacob) of stella,
+    and that it is the zonal part of phi2_vs_kxky(ky=0) = |<phi>_z|^2 + <|phi - <phi>_z|^2>_z.'''
+    stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
+    with xr.open_dataset(local_netcdf_file) as data:
+        assert float(data['ky'][0]) == 0.0, 'The first ky mode should be ky = 0.'
+        zed = data['zed'].values
+        phi = data['phi_vs_t'].values[..., 0] + 1j * data['phi_vs_t'].values[..., 1]     # (t, tube, zed, kx, ky)
+        phi2_vs_kxky = data['phi2_vs_kxky'].values                                         # (t, kx, ky)
+        phi2zonal_vs_kx = data['phi2zonal_vs_kx'].values                                   # (t, kx)
+        weights = np.append(zed[1:] - zed[:-1], 0.0) * data['jacob'].values[:, 0]
+    weights = weights / np.sum(weights)
+
+    # The weights must reproduce the field-line average of |phi|^2 at ky = 0 written by stella
+    phi2_ky0 = np.mean(np.sum(weights[None, None, :, None] * np.abs(phi[..., 0])**2, axis=2), axis=1)
+    assert np.allclose(phi2_ky0, phi2_vs_kxky[:, :, 0], rtol=1e-10, atol=0), 'The field-line weights do not match.'
+
+    # |<phi(ky=0)>_z|^2 averaged over the flux tubes
+    zonal = np.mean(np.abs(np.sum(weights[None, None, :, None] * phi[..., 0], axis=2))**2, axis=1)
+    assert np.allclose(phi2zonal_vs_kx, zonal, rtol=1e-10, atol=1e-14 * np.max(zonal)), 'phi2zonal_vs_kx is not |<phi>_z|^2.'
+    assert np.all(phi2zonal_vs_kx <= phi2_vs_kxky[:, :, 0] * (1 + 1e-12)), 'The zonal part is larger than phi2_vs_kxky(ky=0).'
+    print(f'\n  -->  phi2zonal_vs_kx is the zonal part of phi2_vs_kxky at ky = 0.')
+    return
+
+#-------------------------------------------------------------------------------
 def test_whether_final_fields_diagnostics_are_correct(nonlinear_run, error=False):
     stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
     
@@ -164,14 +190,16 @@ def test_whether_omega_diagnostics_are_correct(tmp_path, stella_version, error=F
      
     # Check whether the txt files match (Skip the header line)
     # Compare the columns (time, ky, kx, Re[om], Im[om], Re[omavg], Im[omavg])
-    # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes
+    # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes:
+    # Re[om] of the ky = 0 modes is zero up to round-off (about 1e-12), which changes with the number
+    # of processes and the platform (e.g. 4 processes on macOS in the CI), hence atol = 1e-10
     local_file = stella_local_run_directory / f'{input_file_stem}.omega' 
     expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.omega'  
     local_omega_data = np.loadtxt(local_file, dtype='float').reshape(-1, 7) 
     expected_omega_data = np.loadtxt(expected_file, dtype='float').reshape(-1, 7)  
     assert_same_shape(local_omega_data, expected_omega_data, 'omega')
     for i in range(len(local_omega_data[0,:])):
-        if not np.allclose(local_omega_data[:,i], expected_omega_data[:,i], rtol = 0.0, atol = 1e-12, equal_nan=True):
+        if not np.allclose(local_omega_data[:,i], expected_omega_data[:,i], rtol = 1e-8, atol = 1e-10, equal_nan=True):
             print(f'\nERROR: The omega arrays do not match in the txt files.'); error = True
             print(f'Compare the omega arrays in the local and expected txt files:')
             for j in range(len(local_omega_data[:,i])):

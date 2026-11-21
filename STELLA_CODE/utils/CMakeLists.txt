@@ -61,10 +61,6 @@ target_include_directories(stella_utils PUBLIC
 # Toggle the options defined in stella/CMakeLists.txt
 ############################################################
 
-if (STELLA_ENABLE_F200X AND STELLA_ENABLE_LOCAL_SPFUNC)
-  message(FATAL_ERROR "STELLA_ENABLE_F200X is incompatible with STELLA_ENABLE_LOCAL_SPFUNC")
-endif()
-
 target_link_libraries(stella_utils PUBLIC ${_fftw_lib})
 target_compile_definitions(stella_utils PUBLIC FFT=_FFTW3_)
 

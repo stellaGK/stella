@@ -15,8 +15,11 @@ which allows the user to restart a simulation in the future, if <save_for_restar
 if toggled to True. The frequency and growth rates are calculated for linear 
 simulations at every time step, and are also averaged over <navg> time steps.
 
+If <dt_write> > 0, the diagnostics are instead written to the text files at the first time step after every multiple of <dt_write> (in units of a/vth), and to the NetCDF file after every multiple of <dt_write>*<nc_mult>, so that the size of the output files is set by <tend> and does not grow when the time step decreases (the NetCDF file then contains about tend/(dt_write*nc_mult) time slices).
+
 &diagnostics
     nwrite = 50.0
+    dt_write = -1.0
     navg = 50.0
     nsave = -1.0
     nc_mult = 1.0
@@ -100,6 +103,11 @@ True, then the following quantities are calculated:
   - |phi|^2(t, kx, ky)   -->  phi2_vs_kxky in the NetCDF file
   - |apar|^2(t, kx, ky)  -->  apar2_vs_kxky in the NetCDF file
   - |bpar|^2(t, kx, ky)  -->  bpar2_vs_kxky in the NetCDF file
+
+together with the zonal part of |phi|^2 at ky = 0, i.e. the square of the field-line average of phi:
+  - |<phi(ky=0)>_z|^2(t, kx)  -->  phi2zonal_vs_kx in the NetCDF file
+
+Since <|phi|^2>_z = |<phi>_z|^2 + <|phi - <phi>_z|^2>_z, the part of phi2_vs_kxky at ky = 0 that varies along z (i.e. without the zonal flow) is phi2_vs_kxky(ky=0) - phi2zonal_vs_kx.
   
 If <write_phi_vs_kxkyz>, <write_apar_vs_kxkyz> and <write_bpar_vs_kxkyz> are
 True, then the following complex quantities are calculated:
@@ -113,6 +121,8 @@ The following distribution functions are evolved within stella:
   - The perturbed distribution function (f)
   - The perturbed gyroaveraged distribution function (g)
   - The non-adiabatic part of the perturbed distribution function (h)
+
+The <nozonal> quantities leave out all ky = 0 modes, i.e. both the zonal part (the field-line average of the ky = 0 modes) and the part of the ky = 0 modes that varies along z. The zonal part of the potential is written separately, as phi2zonal_vs_kx.
 
 If <write_g2_vs_vpamus> = .true. the following quantities are calculated:
   - |g|^2(t, mu, vpa, s)           -->  g2_vs_vpamus in the NetCDF file
