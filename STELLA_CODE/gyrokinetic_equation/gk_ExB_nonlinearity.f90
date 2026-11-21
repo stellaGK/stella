@@ -127,13 +127,12 @@ contains
       allocate (prefac_z(naky, nx))
       allocate (tmp(size(gout, 1), size(gout, 2)))
 
-      ! Here naky_all = 2*naky-1
-      if (yfirst) then
-         allocate (g0k_swap(naky_all, ikx_max))
-         allocate (g0kxy(ny, ikx_max))
-      else
-         allocate (g0xky(naky, nx))
-      end if
+      ! Work arrays of <forward_transform>, here naky_all = 2*naky-1. Both sets are allocated, so that
+      ! they can always be passed to <forward_transform>, which gets the private copies of the threads
+      ! as arguments (through host association it would see the shared originals)
+      allocate (g0k_swap(naky_all, ikx_max))
+      allocate (g0kxy(ny, ikx_max))
+      allocate (g0xky(naky, nx))
 
       ! Compute phase factor needed when running with equilibrium flow shear
       prefac = 1.0
@@ -187,7 +186,7 @@ contains
                call get_dgdy(g(:, :, iz, it, ivmu), g0k)
                
                ! Take the FFT to get dg/dy in (y,x) space
-               call forward_transform(g0k, g0xy, prefac_z)
+               call forward_transform(g0k, g0xy, prefac_z, g0k_swap, g0kxy, g0xky)
                
                ! Compute i*kx*<chi>
                if (full_flux_surface) then
@@ -215,7 +214,7 @@ contains
                end if
                
                ! Take the FFT to get d<chi>/dx in (y,x) space
-               call forward_transform(g0k, g1xy, prefac_z)
+               call forward_transform(g0k, g1xy, prefac_z, g0k_swap, g0kxy, g0xky)
                
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
@@ -232,7 +231,7 @@ contains
                   call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
                   g0a = fphi * (g0a + phi_corr_GA(:, :, iz, it, ivmu))
                   call get_dgdx(g0a, g0k)
-                  call forward_transform(g0k, g1xy, prefac_z)
+                  call forward_transform(g0k, g1xy, prefac_z, g0k_swap, g0kxy, g0xky)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket + g0xy * g1xy
                   ! Estimate the CFL dt due to the above contribution
@@ -255,7 +254,7 @@ contains
                end if
                
                ! Take the FFT to get dg/dx in (y,x) space
-               call forward_transform(g0k, g0xy, prefac_z)
+               call forward_transform(g0k, g0xy, prefac_z, g0k_swap, g0kxy, g0xky)
                
                ! Compute d<chi>/dy in k-space
                if (full_flux_surface) then
@@ -265,7 +264,7 @@ contains
                end if
                
                ! Take the FFT to get d<chi>/dy in (y,x) space
-               call forward_transform(g0k, g1xy, prefac_z)
+               call forward_transform(g0k, g1xy, prefac_z, g0k_swap, g0kxy, g0xky)
                
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
@@ -282,7 +281,7 @@ contains
                   call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
                   g0a = fphi * (g0a + phi_corr_GA(:, :, iz, it, ivmu))
                   call get_dgdy(g0a, g0k)
-                  call forward_transform(g0k, g1xy, prefac_z)
+                  call forward_transform(g0k, g1xy, prefac_z, g0k_swap, g0kxy, g0xky)
                   g1xy = g1xy * exb_nonlin_fac
                   bracket = bracket - g0xy * g1xy
                   ! Estimate the CFL dt due to the above contribution
@@ -369,7 +368,7 @@ contains
    contains
 
       !-------------------------------------------------------------------------
-      subroutine forward_transform(gk, gx, phase)
+      subroutine forward_transform(gk, gx, phase, gk_swap, gkxy, gxky)
 
          use calculations_transforms, only: transform_ky2y, transform_kx2x
          use calculations_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
@@ -379,15 +378,14 @@ contains
          ! Arguments
          complex, dimension(:, :), intent(in) :: gk
          real, dimension(:, :), intent(out) :: gx
-         ! Phase factor in (ky, x) space of this thread (<prefac_z> is private in the OpenMP loop,
-         ! so it is passed explicitly instead of through host association)
+         ! Phase factor in (ky, x) space and work arrays of this thread: they are private in the
+         ! OpenMP loop, so they are passed explicitly instead of through host association, and the
+         ! transforms of different threads can run at the same time (the work arrays of the FFTs in
+         ! calculations_transforms are threadprivate)
          complex, dimension(:, :), intent(in) :: phase
+         complex, dimension(:, :), intent(out) :: gk_swap, gkxy, gxky
 
          !----------------------------------------------------------------------
-         !$omp critical (forward_transform_crit)
-         ! There is some shared state namely the g0k_swap, g0xky and g0kxy arrays.
-         ! The approach is as always: make if work first, before trying to do premature optimzizations. 
-         ! Even though the crtical might impede performance, we should measure first, before getting rid of it
          
          ! Fourier transform g(kx,ky) to g(kx,y) and then to g(x,y)
          if (yfirst) then
@@ -403,17 +401,16 @@ contains
                ! on stella (kx,ky) grid, then conjugate and flip sign of (kx,ky)
                ! NB: J0(kx,ky) = J0(-kx,-ky)
                ! TODO DSO: coordinate change for shearing
-               call swap_kxky(gk, g0k_swap)
-               call transform_ky2y(g0k_swap, g0kxy)
-               call transform_kx2x(g0kxy, gx)
+               call swap_kxky(gk, gk_swap)
+               call transform_ky2y(gk_swap, gkxy)
+               call transform_kx2x(gkxy, gx)
                
          ! Fourier transform g(kx,ky) to g(x,ky) and then to g(x,y)
          else
-               call transform_kx2x_xfirst(gk, g0xky)
-               g0xky = g0xky * phase
-               call transform_ky2y_xfirst(g0xky, gx)
+               call transform_kx2x_xfirst(gk, gxky)
+               gxky = gxky * phase
+               call transform_ky2y_xfirst(gxky, gx)
          end if
-         !$omp end critical (forward_transform_crit)
       end subroutine forward_transform
 
    end subroutine advance_ExB_nonlinearity
