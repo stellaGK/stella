@@ -42,7 +42,7 @@ contains
       use grids_z, only: nztot, nzgrid
       
       ! Only initialise once
-      use arrays, only: initialised_parallel_streaming
+      use arrays, only: initialised_parallel_nonlinearity
 
       ! Geometry
       use geometry, only: geo_surf, drhodpsi, q_as_x
@@ -90,7 +90,7 @@ contains
 
          if (.not. allocated(d_par_nl_drifty_dr)) allocate (d_par_nl_drifty_dr(-nzgrid:nzgrid))
          d_par_nl_drifty_dr = 0.25 * rhostar * dcvdriftdrho(1, :)
-         if (.not. allocated(d_par_nl_drifty_dr)) allocate (d_par_nl_driftx_dr(-nzgrid:nzgrid))
+         if (.not. allocated(d_par_nl_driftx_dr)) allocate (d_par_nl_driftx_dr(-nzgrid:nzgrid))
          if (q_as_x) then
                d_par_nl_driftx_dr = 0.25 * rhostar * dcvdrift0drho(1, :)
          else
@@ -98,7 +98,7 @@ contains
          end if
       end if
 
-      initialised_parallel_streaming = .true.
+      initialised_parallel_nonlinearity = .true.
 
    end subroutine init_parallel_nonlinearity
 
@@ -264,7 +264,7 @@ contains
          else
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  g0k = dphidz(:, :, iz, it) * par_nl_fac(iz, is) + vpa(iv) * mu(imu) * par_nl_curv(iz, is) &
+                  g0k = dphidz(:, :, iz, it) * par_nl_fac(iz, is) &
                            + zi * vpa(iv) * phi_gyro(:, :, iz, it) * (spread(akx, 1, naky) * par_nl_driftx(iz) &
                                                                   + spread(aky, 2, nakx) * par_nl_drifty(iz))
                   ! Use reality to swap from ky >= 0, all kx to kx >= 0 , all ky
@@ -273,6 +273,9 @@ contains
                   call transform_ky2y(g0k_swap, g0kxy)
                   ! Transform in x
                   call transform_kx2x(g0kxy, g0xy(:, :, iz, it, ivmu))
+                  ! The curvature term vpa*mu*par_nl_curv does not depend on (x,y), so add it in real space,
+                  ! as for radial variation above: added to every Fourier coefficient, it became a spike at x = y = 0
+                  g0xy(:, :, iz, it, ivmu) = g0xy(:, :, iz, it, ivmu) + vpa(iv) * mu(imu) * par_nl_curv(iz, is)
                end do
             end do
          end if
@@ -448,7 +451,7 @@ contains
    !****************************************************************************
    subroutine finish_parallel_nonlinearity
 
-      use arrays, only: initialised_parallel_streaming
+      use arrays, only: initialised_parallel_nonlinearity
 
       implicit none
 
@@ -456,8 +459,12 @@ contains
       if (allocated(par_nl_curv)) deallocate (par_nl_curv)
       if (allocated(par_nl_driftx)) deallocate (par_nl_driftx)
       if (allocated(par_nl_drifty)) deallocate (par_nl_drifty)
+      if (allocated(d_par_nl_fac_dr)) deallocate (d_par_nl_fac_dr)
+      if (allocated(d_par_nl_curv_dr)) deallocate (d_par_nl_curv_dr)
+      if (allocated(d_par_nl_driftx_dr)) deallocate (d_par_nl_driftx_dr)
+      if (allocated(d_par_nl_drifty_dr)) deallocate (d_par_nl_drifty_dr)
 
-      initialised_parallel_streaming = .false.
+      initialised_parallel_nonlinearity = .false.
 
    end subroutine finish_parallel_nonlinearity
 

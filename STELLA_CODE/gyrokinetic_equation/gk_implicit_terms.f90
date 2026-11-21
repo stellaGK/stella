@@ -1380,7 +1380,8 @@ contains
 
       integer, intent(in out) :: iz
       integer, intent(in) :: iv, is, sgn, iz1, iz2
-      complex, dimension(:), intent(in) :: wdrift_ext
+      ! Only allocated (and used) when the magnetic drifts are treated implicitly
+      complex, dimension(:), allocatable, intent(in) :: wdrift_ext
       complex, dimension(:), intent(in out) :: pdf
       ! z index of every point of the chain (non-twisting flux tube); otherwise z is stepped through
       integer, dimension(:), allocatable, intent(in) :: iz_ext

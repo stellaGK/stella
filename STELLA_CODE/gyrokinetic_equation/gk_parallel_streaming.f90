@@ -190,9 +190,9 @@ contains
          !----------------------------------------------------------------------
          if(full_flux_surface) then 
             do ia = 1, nalpha
-               stream_full_sign(ia,:) = int(sign(1.0, stream_store_full(ia, 0, iv, 1)))
+               stream_full_sign(ia, iv) = int(sign(1.0, stream_store_full(ia, 0, iv, 1)))
                if (driftkinetic_implicit) then         
-                   stream_correction_sign(ia,:) =  int(sign(1.0, stream_correction(ia, 0, iv, 1)))
+                   stream_correction_sign(ia, iv) = int(sign(1.0, stream_correction(ia, 0, iv, 1)))
                end if
             end do 
          end if
@@ -388,7 +388,7 @@ contains
             end do
 
             g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                 * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
+                 * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes)
 
             ! Multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_full_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))

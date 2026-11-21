@@ -288,6 +288,9 @@ contains
       
       !----------------------------------------------------------------------
    
+      ! Stop if the input file uses the namelists of stella v0.5-v0.8, which are no longer read
+      call check_for_old_input_file_format
+
       ! Read the physics and numerical parameters from the input file
       ! These namelists contain many variables used by other modules, so read it first
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
@@ -323,6 +326,55 @@ contains
       call read_parameters_parallelisation_layouts
       
    end subroutine read_parameters_from_input_file
+
+   !****************************************************************************
+   !                    Check for input files of stella v0.5-v0.8
+   !****************************************************************************
+   ! The namelists of the input file were renamed in stella v1.0, and stella does not read the old
+   ! namelists. An input file of stella v0.5-v0.8 therefore ran with the default value of every
+   ! variable, without any warning. Stop instead, and point to the input file converter.
+   !****************************************************************************
+   subroutine check_for_old_input_file_format
+
+      use mp, only: proc0, broadcast, mp_abort
+      use file_utils, only: input_unit_exist
+
+      implicit none
+
+      ! Namelists of stella v0.5-v0.8 which do not exist in stella v1.0
+      character(len=*), dimension(23), parameter :: old_namelists = [character(len=25) :: &
+         'collisions_fp', 'dissipation', 'geo_knobs', 'hyper', 'init_g_knobs', 'knobs', &
+         'kt_grids_box_parameters', 'kt_grids_knobs', 'kt_grids_range_parameters', 'layouts_knobs', &
+         'millergeo_parameters', 'parameters', 'parameters_kxky_grids_box', 'parameters_numerical', &
+         'parameters_physics', 'physics_flags', 'species_knobs', &
+         'stella_diagnostics_knobs', 'time_advance_knobs', 'vmec_parameters', 'vpamu_grids_parameters', &
+         'zgrid_parameters', 'zpinchgeo_parameters']
+
+      integer :: i, in_file, found
+      logical :: exist
+
+      !----------------------------------------------------------------------
+
+      found = 0
+      if (proc0) then
+         do i = 1, size(old_namelists)
+            in_file = input_unit_exist(trim(old_namelists(i)), exist)
+            if (exist) then
+               found = i
+               exit
+            end if
+         end do
+      end if
+      call broadcast(found)
+
+      if (found > 0) then
+         call mp_abort('The input file contains the namelist &'//trim(old_namelists(found))//' of stella v0.5-v0.8, '// &
+            'which stella v1.0 and later no longer read, so the simulation would run with default values. '// &
+            'Convert the input file by running python3 $STELLA/AUTOMATIC_TESTS/convert_input_files/convert_inputFile.py '// &
+            'in its folder, which writes <name>_updated.in in the format of the current version.')
+      end if
+
+   end subroutine check_for_old_input_file_format
    
    !****************************************************************************
    !                   Initialise grids and magnetic geometry                   

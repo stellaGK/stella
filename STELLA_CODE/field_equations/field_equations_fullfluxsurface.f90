@@ -80,7 +80,7 @@ contains
 
       ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
       logical, optional, intent(in) :: implicit_solve
 
       ! Local variables

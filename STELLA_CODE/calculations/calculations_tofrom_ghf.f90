@@ -93,7 +93,7 @@ contains
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vpa
       
       implicit none
 
@@ -115,7 +115,7 @@ contains
       !$omp parallel default(none) &
       !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facapar, ia) &
       !$omp   private(ikxkyz, iz, it, iky, ikx, is, field, gyro_averaged_field) &
-      !$omp   shared(g, apar, spec, vpa, maxwell_vpa, maxwell_mu)
+      !$omp   shared(g, apar, spec, vpa, maxwell_vpa, maxwell_mu, maxwell_fac)
       allocate (field(nvpa, nmu))
       allocate (gyro_averaged_field(nvpa, nmu))
       !$omp do
@@ -129,7 +129,7 @@ contains
          ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
          ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
          field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 &
-               * spread(vpa, 2, nmu) * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+               * spread(vpa, 2, nmu)* spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
          ! Gyroaverage
          call gyro_average(field, ikxkyz, gyro_averaged_field)
 
@@ -158,7 +158,7 @@ contains
       ! Grids
       use grids_species, only: spec
       use grids_velocity, only: nvpa
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vpa
       
       implicit none
 
@@ -188,7 +188,7 @@ contains
       ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
       ! First calculate [2*apar*(Z_s/T_s)*vpa] * F_s
       field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa &
-            * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
+            * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       ! Gyroaverage
       call gyro_average(field, imu, ikxkyz, gyro_averaged_field)
       
@@ -344,7 +344,7 @@ contains
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu, mu
-      use grids_velocity, only: maxwell_vpa, maxwell_mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
       implicit none
 
@@ -367,7 +367,7 @@ contains
       !$omp parallel default(none) &
       !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facphi, ia) &
       !$omp   private(ikxkyz, iz, it, iky, ikx, is, field, gyro_averaged_field) &
-      !$omp   shared(g, phi, spec, maxwell_vpa, maxwell_mu)
+      !$omp   shared(g, phi, spec, maxwell_vpa, maxwell_mu, maxwell_fac)
       allocate (field(nvpa, nmu))
       allocate (gyro_averaged_field(nvpa, nmu))
       !$omp do
@@ -381,7 +381,7 @@ contains
          ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
          ! First calculate [(Z_s/T_s)*<phi>] * F_s
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
-             * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+             * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
          ! Gyroaverage
          call gyro_average(field, ikxkyz, gyro_averaged_field)
 
@@ -402,9 +402,9 @@ contains
          
          ! Iterate over the (it,iz) points
          !$omp parallel default(none) &
-         !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facphi, ia) &
+         !$omp   firstprivate(kxkyz_lo, nvpa, nmu, facbpar, ia) &
          !$omp   private(ikxkyz, iz, it, iky, ikx, is, field, gyro_averaged_field) &
-         !$omp   shared(g, bpar, spec, maxwell_vpa, maxwell_mu, mu)
+         !$omp   shared(g, bpar, spec, maxwell_vpa, maxwell_mu, maxwell_fac, mu)
          allocate (field(nvpa, nmu))
          allocate (gyro_averaged_field(nvpa, nmu))
          !$omp do
@@ -417,8 +417,8 @@ contains
 
             ! Calculate <gyro_averaged_field> = 4*mu*<bpar>*Fs*J_1/b_s
             ! First calculate [4*mu*<bpar>] * F_s
-            field = 4.0 * facphi * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) &
-                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+            field = 4.0 * facbpar * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it) & 
+                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             ! Gyroaverage by multiplying with J_1/b_s
             call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
 

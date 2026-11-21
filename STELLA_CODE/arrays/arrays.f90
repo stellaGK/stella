@@ -15,7 +15,7 @@ module arrays
    ! Keep track of which routines have been initialised
    public :: initialised_wdrift
    public :: initialised_wstar
-   public :: initialised_parallel_streaming
+   public :: initialised_parallel_nonlinearity
    public :: initialised_implicit_drifts
    public :: initialised_radial_variation
    
@@ -85,7 +85,7 @@ module arrays
    ! Keep track of which routines have been initialised
    logical :: initialised_wdrift = .false.
    logical :: initialised_wstar = .false.
-   logical :: initialised_parallel_streaming = .false.
+   logical :: initialised_parallel_nonlinearity = .false.
    logical :: initialised_radial_variation = .false.
    logical :: initialised_implicit_drifts = .false.
    

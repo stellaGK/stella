@@ -186,6 +186,7 @@ contains
       integer :: l, ierr
 
       list = .false.
+      l = 0
       ! get argument from command line and put in arun_name
       if (cl_iargc() /= 0) then
          call cl_getarg(1, arun_name, l, ierr)
@@ -194,14 +195,20 @@ contains
          end if
       end if
 
-      if (l > 5 .and. arun_name(l - 4:l) == ".list") then
-         list = .true.
-         runtype_option_switch = runtype_list
+      ! Fortran does not short-circuit .and., so check the length before taking the substring,
+      ! otherwise e.g. arun_name(0:5) is evaluated for a short input file name such as 'fp.in'
+      if (l > 5) then
+         if (arun_name(l - 4:l) == ".list") then
+            list = .true.
+            runtype_option_switch = runtype_list
+         end if
       end if
 
-      if (l > 6 .and. arun_name(l - 5:l) == ".multi") then
-         list = .true.
-         runtype_option_switch = runtype_multibox
+      if (l > 6) then
+         if (arun_name(l - 5:l) == ".multi") then
+            list = .true.
+            runtype_option_switch = runtype_multibox
+         end if
       end if
 
    end subroutine run_type
@@ -215,8 +222,8 @@ contains
       integer :: l
 
       l = len_trim(arun_name)
-      if (l > 3 .and. arun_name(l - 2:l) == ".in") then
-         arun_name = arun_name(1:l - 3)
+      if (l > 3) then
+         if (arun_name(l - 2:l) == ".in") arun_name = arun_name(1:l - 3)
       end if
       run_name => arun_name
 

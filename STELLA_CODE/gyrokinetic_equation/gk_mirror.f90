@@ -990,7 +990,7 @@ contains
 
       use grids_species, only: spec
       use grids_velocity, only: nvpa
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vpa
       use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
       use calculations_gyro_averages, only: gyro_average
 
@@ -1017,7 +1017,7 @@ contains
       pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
       call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
 
-      vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
+      vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
       rhs = vpa_scratch
 
