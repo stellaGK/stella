@@ -185,8 +185,10 @@ contains
       
       ! We needs to be able to divide the CPUs over the shared-memory domains
       if (mod(nproc,num_shared_memory_domain) /= 0 ) then
-         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' CPUs.' 
-         call mp_abort('The number of CPUs needs to be divisible by the number of shared memory domains. Aborting')
+         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' processes.'
+         call mp_abort('Every shared-memory domain (node) needs the same number of processes, but the processes cannot be '// &
+            'divided evenly over the domains. Give every node the same number of processes, e.g. with the Slurm option '// &
+            '--ntasks-per-node, instead of only --ntasks.')
       end if
       
       ! Ideal number of CPUs per shared-memory domain
@@ -194,8 +196,9 @@ contains
       
       ! Check that each domain has the correct number of CPUs
       if (nshared_proc /= cpus_per_domain) then
-         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' CPUs.' 
-         call mp_abort('Each shared memory domain should have the same number of CPUs. Aborting.')
+         if (sgproc0) write (*,'(A, I0, A, I0, A)') 'There are ', num_shared_memory_domain, ' shared-memory domains. This domain has ', nshared_proc, ' processes.'
+         call mp_abort('Every shared-memory domain (node) needs the same number of processes. Give every node the same '// &
+            'number of processes, e.g. with the Slurm option --ntasks-per-node, instead of only --ntasks.')
       end if
 
    end subroutine check_shared_memory_window
