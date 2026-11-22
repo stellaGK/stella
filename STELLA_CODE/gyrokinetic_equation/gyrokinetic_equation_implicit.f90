@@ -59,6 +59,7 @@ contains
       use dissipation_and_collisions, only: include_collisions
       use dissipation_and_collisions, only: collisions_implicit
       use dissipation_and_collisions, only: advance_collisions_implicit
+      use parameters_physics, only: include_apar
       
       ! Advance implicit terms of the gyrokinetic equation
       use dissipation_hyper, only: advance_hyper_dissipation
@@ -74,7 +75,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       ! Local variables
-      logical :: apply_collisions, apply_mirror
+      logical :: apply_collisions, apply_mirror, collisions_with_induction
 
       !-------------------------------------------------------------------------
 
@@ -99,6 +100,10 @@ contains
       ! and the collision update is lost on every other time step.
       apply_collisions = collisions_implicit .and. include_collisions
       apply_mirror = mirror_implicit .and. include_mirror
+      ! With A_par, the collisions change the parallel current, so they change A_par, and the inductive
+      ! electric field -dA_par/dt acts back on the distribution (see add_collisional_induction). This needs
+      ! <g> itself after the collisions, so there is no hand-over of <gvmu> to the mirror term.
+      collisions_with_induction = apply_collisions .and. include_apar
 
       if (mod(istep, 2) == 1 .or. .not. flip_flop) then
 
@@ -115,12 +120,16 @@ contains
          ! Collisions followed by the mirror term: hand over <gvmu> (see above)
          if (apply_collisions) then
             call advance_fields(g, phi, apar, bpar, dist='g')
-            call advance_collisions_implicit(apply_mirror, phi, apar, bpar, g)
+            if (collisions_with_induction) then
+               call add_collisional_induction(g, phi, apar, bpar)
+            else
+               call advance_collisions_implicit(apply_mirror, phi, apar, bpar, g)
+            end if
             fields_updated = .false.
          end if
 
          if (apply_mirror) then
-            call advance_mirror_implicit(apply_collisions, g, apar)
+            call advance_mirror_implicit(apply_collisions .and. .not. collisions_with_induction, g, apar)
             fields_updated = .false.
          end if
 
@@ -165,7 +174,11 @@ contains
 
          if (apply_collisions) then
             call advance_fields(g, phi, apar, bpar, dist='g')
-            call advance_collisions_implicit(.false., phi, apar, bpar, g)
+            if (collisions_with_induction) then
+               call add_collisional_induction(g, phi, apar, bpar)
+            else
+               call advance_collisions_implicit(.false., phi, apar, bpar, g)
+            end if
             fields_updated = .false.
          end if
 
@@ -185,5 +198,56 @@ contains
       call region_end('implicit_gke')
 
    end subroutine advance_distribution_function_using_implicit_gyrokinetic_terms
+
+   !****************************************************************************
+   !               IMPLICIT COLLISIONS WITH THE INDUCTIVE ELECTRIC FIELD
+   !****************************************************************************
+   ! With A_par, the time derivative in the gyrokinetic equation acts on
+   !     gbar = g + 2 (Z_s/T_s) J_0 vpa A_par F_s,
+   ! so the collisions advance gbar: gbar^{n+1} = gbar^{n} + Delta t C[h], and A_par^{n+1} follows from
+   ! Ampere's law written for gbar. This is what the explicit time advance does. The implicit collision
+   ! operators advance g with A_par fixed instead; A_par was then recomputed from g, so the change of A_par
+   ! caused by the collisional change of the parallel current had no inductive electric field. For the
+   ! electrons this lets the collisions damp the current with nu_ei, instead of resistively, with
+   ! nu_ei (k_perp d_e)^2 / (1 + (k_perp d_e)^2), where d_e is the electron skin depth.
+   ! Here the change of g in the implicit collision step is added to gbar (with the A_par of the start of
+   ! the step, so C[h] is evaluated with A_par lagged), and A_par^{n+1} is obtained from gbar.
+   !****************************************************************************
+   subroutine add_collisional_induction(g, phi, apar, bpar)
+
+      use parallelisation_layouts, only: vmu_lo
+      use grids_z, only: nzgrid
+      use field_equations, only: advance_fields
+      use field_equations, only: fields_updated
+      use calculations_tofrom_ghf, only: gbar_to_g
+      use dissipation_and_collisions, only: advance_collisions_implicit
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+
+      complex, dimension(:, :, :, :), allocatable :: apar_old
+
+      !-------------------------------------------------------------------------
+
+      ! A_par of the start of the collision step, consistent with the incoming g
+      allocate (apar_old, source=apar)
+
+      ! g^{n+1} = g^{n} + Delta t C[h^{n+1}] with A_par fixed
+      call advance_collisions_implicit(.false., phi, apar, bpar, g)
+
+      ! gbar^{n+1} = gbar^{n} + (g^{n+1} - g^{n}) = g^{n+1} + 2 (Z_s/T_s) J_0 vpa A_par^{n} F_s
+      call gbar_to_g(g, apar_old, -1.0)
+
+      ! A_par^{n+1} (and phi, B_par) from gbar^{n+1}, then back to g^{n+1}
+      fields_updated = .false.
+      call advance_fields(g, phi, apar, bpar, dist='gbar')
+      call gbar_to_g(g, apar, 1.0)
+      fields_updated = .false.
+
+      deallocate (apar_old)
+
+   end subroutine add_collisional_induction
 
 end module gyrokinetic_equation_implicit

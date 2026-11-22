@@ -1,0 +1,94 @@
+! Linear electromagnetic simulation (A_par and B_par, beta = 0.05) of a single mode with kinetic
+! electrons and implicit Dougherty collisions without momentum conservation (so that the electron
+! current is damped by the collisions). Used by test_8e to compare implicit and explicit collisions.
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = -0.1
+  kappa = 1.3
+  kapprim = 0.2
+  tri = 0.1
+  triprim = 0.1
+  betaprim = 0.0
+/
+&gyrokinetic_terms
+  include_nonlinear = .false.
+  include_electromagnetic = .true.
+/
+&electromagnetic
+  include_apar = .true.
+  include_bpar = .true.
+  beta = 0.05
+/
+&dissipation_and_collisions_options
+  include_collisions = .true.
+  vnew_ref = 0.01
+  collision_model = 'dougherty'
+  collisions_implicit = .true.
+/
+&collisions_dougherty
+  momentum_conservation = .false.
+/
+&species_options
+  nspec = 2
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+&kxky_grid_option
+  grid_option = 'range'
+/
+&kxky_grid_range
+  naky = 1
+  nakx = 1
+  aky_min = 0.5
+  aky_max = 0.5
+/
+&z_grid
+  nzed = 24
+  nperiod = 2
+/
+&velocity_grids
+  nmu = 4
+  nvgrid = 8
+/
+&diagnostics
+  nwrite = 50
+  write_all = .true.
+/
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.01
+/
+&time_trace_options
+  nstep = 500
+/
+&time_step
+  delt = 0.01
+/
+&numerical_upwinding_for_derivatives
+  zed_upwind = 0.0
+/
