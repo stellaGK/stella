@@ -130,6 +130,10 @@ contains
       ! Initialise <delt>m the time advance module, and the response matrix
       if (debug) write (*, *) "stella::init_stella::init_time_step_and_gyrokinetic_equation"
       call init_time_step_and_gyrokinetic_equation(restarted, istatus)
+
+      ! Keep the explicit time advance if a term is only advanced explicitly
+      if (debug) write (*, *) "stella::init_stella::check_whether_explicit_step_is_needed"
+      call check_whether_explicit_step_is_needed
      
       ! The distribution function g(kx,ky,z,mu,vpa,species) has been initialised
       ! in initialise_distribution(). Use the quasineutrality condition to initialise
@@ -747,6 +751,40 @@ contains
 !###############################################################################
 !################################# CALCULATIONS ################################
 !###############################################################################
+
+   !****************************************************************************
+   !                   Check whether the explicit step is needed
+   !****************************************************************************
+   ! With <fully_implicit> = .true. the explicit time advance is skipped. It is set in
+   ! check_numerical_inputs() from the mirror, parallel streaming, drifts, drive and
+   ! nonlinear terms, but the explicit step also advances the explicit collisions, the
+   ! hyper-dissipation, the flow shear, the radial variation and the Krook sources, which
+   ! are read later. Before November 2026 these terms were silently dropped from linear
+   ! runs with implicit drifts, e.g. explicit collisions with drifts_implicit = .true.
+   !****************************************************************************
+   subroutine check_whether_explicit_step_is_needed
+
+      use mp, only: proc0
+      use parameters_numerical, only: fully_implicit
+      use parameters_physics, only: radial_variation
+      use parameters_multibox, only: include_multibox_krook
+      use dissipation_and_collisions, only: include_collisions, collisions_implicit, hyper_dissipation
+      use gk_flow_shear, only: g_exb
+      use gk_sources, only: source_option_switch, source_option_krook
+
+      implicit none
+
+      !-------------------------------------------------------------------------
+
+      if (.not. fully_implicit) return
+      if ((include_collisions .and. .not. collisions_implicit) .or. hyper_dissipation .or. &
+          (g_exb**2) > epsilon(0.0) .or. radial_variation .or. include_multibox_krook .or. &
+          source_option_switch == source_option_krook) then
+         fully_implicit = .false.
+         if (proc0) write (*, *) 'Some terms are only advanced explicitly: keeping the explicit time advance (fully_implicit = F).'
+      end if
+
+   end subroutine check_whether_explicit_step_is_needed
 
    !****************************************************************************
    !                     Are Fourier Transformations needed                     
