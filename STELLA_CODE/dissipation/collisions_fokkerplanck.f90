@@ -19,6 +19,21 @@
 ! TODO - Abort stella if electrons aren't the second species
 !        since the collision routines assume this!
 !
+! OPEN QUESTION - The vpa integration weights are not the same in the whole implicit step (Nov 2026)
+!        The vpa integrals use the weights that set_vpa_weights set last: the conservative weights
+!        (dvpa/sqrt(pi)) or the weights of the velocity grid (Simpson's rule by default). The collision
+!        step of dissipation_and_collisions sets the conservative weights before it calls
+!        advance_collisions_fp_implicit, and the Fokker-Planck routines switch them several times. As a
+!        result, with the field-particle part, the inhomogeneous potential phi_inh of the response-matrix
+!        solve and the first density correction use the conservative weights, while the response matrix
+!        (fp_response, built in the initialisation) and the rest of the step use the weights of the grid.
+!        Using one set of weights in the whole step (the conservative weights if density_conservation,
+!        otherwise those of the grid, as in the initialisation) changes phi^2 by about 1e-7 to 1e-9 in the
+!        tests with the field-particle part, and by about 5e-4 in the implicit test without it. It has
+!        not been shown which version is more accurate, so the code is unchanged for now. A test that
+!        settles it: compare the growth rate and the conservation of density, momentum and energy of
+!        both versions against a converged reference (e.g. GS2) at increasing nvpa.
+!
 !###############################################################################
 ! PARALLELISATION NOTES (kxkyzt_lo refactor)
 !
