@@ -119,6 +119,9 @@ module collisions_fokkerplanck
    integer :: nz_local, iz_share_lo, iz_share_hi
    integer, dimension(:), allocatable :: izl, iz_of_izl
    logical, dimension(:), allocatable :: local_z
+   ! The test-particle operator -code_dt C^{ab} applied to vpa F0a (1) and v^2 F0a (2), at the point (naky, 1, iz, 1)
+   ! of every z point of this processor that it owns on kxkyzt_lo (exact_conservation, see apply_testpart_matrix)
+   real, dimension(:, :, :, :, :), allocatable :: tp_f0moments
    real, dimension(:, :, :, :, :), allocatable :: psijnorm
    real, dimension(:, :, :, :, :), allocatable :: legendre_vpamu
    real, dimension(:, :, :, :, :, :), allocatable :: jm
@@ -449,15 +452,18 @@ contains
       ! The blocks keep the index ikxkyzt of the point, so the calculation below is the same for every chunk.
       npoints_chunk = max(1, int(128.e6 / (3. * 16. * nvpa * nmu**2 * nspec**2)))
       cdiffmat_band = 0.
-      ! exact_conservation also needs the full test-particle matrices, to apply them to the moments of F0 in init_deltaj_vmu
-      if ((exact_conservation_tp) .or. (density_conservation_tp) .or. (exact_conservation)) then
+      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
          if (.not. allocated(blockmatrix)) &
             allocate (blockmatrix(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
-         blockmatrix = 0.
-      end if
-      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
          if (.not. allocated(blockmatrix_sum)) &
             allocate (blockmatrix_sum(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec))
+         blockmatrix = 0.
+      end if
+      ! exact_conservation only needs the test-particle operator applied to vpa F0 and v^2 F0 (see apply_testpart_matrix),
+      ! which are taken from the blocks of every chunk below, without building blockmatrix
+      if (exact_conservation) then
+         if (.not. allocated(tp_f0moments)) allocate (tp_f0moments(nvpa * nmu, 2, nz_local, nspec, nspec))
+         tp_f0moments = 0.
       end if
 
       do ikxkyzt_first = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc, npoints_chunk
@@ -1377,7 +1383,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end if
 
       ! construct full block matrix
-      if ((exact_conservation_tp) .or. (density_conservation_tp) .or. (exact_conservation)) then
+      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
          ! this is memory intensive, operating with blockmatrix is slow
          ! currently used for exact conservation scheme on non-uniform grids
          ! AVB: to do - replace this with band matrix operations
@@ -1505,6 +1511,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       end do  ! ikxkyzt
       !$omp end parallel do
+
+      if (exact_conservation) call get_tp_f0moments(ikxkyzt_first, ikxkyzt_last)
 
       deallocate (aa_blcs, bb_blcs, cc_blcs)
       end do  ! chunks of ikxkyzt
@@ -1920,17 +1928,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         !write (tmpunit,*)
                         !call close_output_file (tmpunit)
 
-                        ! calculate delta_{j=0,l=1}^{ab} using the differential test particle operator C^{ab} acting on m_a v_\parallel F0a
-                        do iv = 1, nvpa
-                           do imu = 1, nmu
-                              do iz = -nzgrid, nzgrid
-                                 vpaF0vec(nmu * (iv - 1) + imu, iz) = vpa(iv) * mw(iv, imu, iz, isa)
-                              end do
-                           end do
-                        end do
-
-                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
-                        call apply_testpart_matrix(vpaF0vec, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
+                        ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v_\parallel F0a, on every z point
+                        call apply_testpart_matrix(vpaF0vec, 1, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -1965,17 +1964,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         !   call close_output_file (tmpunit)
                         !end if
 
-                        ! calculate delta_{j=0,l=1}^{ab} using the differential test particle operator C^{ab} acting on m_a v_\parallel F0a
-                        do iv = 1, nvpa
-                           do imu = 1, nmu
-                              do iz = -nzgrid, nzgrid
-                                 vpaF0vec(nmu * (iv - 1) + imu, iz) = vpa(iv) * mw(iv, imu, iz, isa)
-                              end do
-                           end do
-                        end do
-
-                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
-                        call apply_testpart_matrix(vpaF0vec, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
+                        ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v_\parallel F0a, on every z point
+                        call apply_testpart_matrix(vpaF0vec, 1, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -2014,17 +2004,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         !write (tmpunit,*)
                         !call close_output_file (tmpunit)
 
-                        ! calculate delta_{j=1,l=0}^{ab} using the differential test particle operator C^{ab} acting on m_a v^2 F0a
-                        do iv = 1, nvpa
-                           do imu = 1, nmu
-                              do iz = -nzgrid, nzgrid
-                                 v2F0vec(nmu * (iv - 1) + imu, iz) = (vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu)) * mw(iv, imu, iz, isa)
-                              end do
-                           end do
-                        end do
-
-                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
-                        call apply_testpart_matrix(v2F0vec, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
+                        ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v^2 F0a, on every z point
+                        call apply_testpart_matrix(v2F0vec, 2, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -2055,17 +2036,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         !    call close_output_file (tmpunit)
                         !end if
 
-                        ! calculate delta_{j=1,l=0}^{ab} using the differential test particle operator C^{ab} acting on m_a v_\parallel^2 F0a
-                        do iv = 1, nvpa
-                           do imu = 1, nmu
-                              do iz = -nzgrid, nzgrid
-                                 v2F0vec(nmu * (iv - 1) + imu, iz) = (vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu)) * mw(iv, imu, iz, isa)
-                              end do
-                           end do
-                        end do
-
-                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
-                        call apply_testpart_matrix(v2F0vec, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
+                        ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v^2 F0a, on every z point
+                        call apply_testpart_matrix(v2F0vec, 2, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -2225,11 +2197,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !$omp end parallel do
       call sum_allreduce(psijnorm)
 
-      ! exact_conservation only needs the test-particle matrices above, and they are large
-      if (.not. ((exact_conservation_tp) .or. (density_conservation_tp))) then
-         if (allocated(blockmatrix)) deallocate (blockmatrix)
-      end if
-
       psijnorm = psijnorm / (4 * pi) ! account for theta and phi integrals included in integrate_vmu
 
       ! to check self-adjointness
@@ -2367,13 +2334,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    !****************************************************************************
    !        The test-particle operator applied to a moment of F0 on every z
    !****************************************************************************
-   ! vec(:, iz) = blockmatrix / code_dt / vnew * factor * vec(:, iz), i.e. C^{isa, isb}
-   ! applied to factor * vec, on every z point, for the exact conservation terms of
-   ! init_deltaj_vmu, which do not depend on (ky, kx). The matrix of one point per z,
-   ! (iky = naky, ikx = 1, tube 1), is used; it is on one processor (kxkyzt_lo), which
-   ! applies it, and the sum over the processors gives the result on every processor.
+   ! vec(:, iz) = factor * C^{isa, isb}[F0 moment] = factor * tp_f0moments / code_dt / vnew
+   ! on every z point, with moment 1 for vpa F0a and 2 for v^2 F0a, for the exact
+   ! conservation terms of init_deltaj_vmu, which do not depend on (ky, kx). The operator
+   ! of one point per z point, (iky = naky, ikx = 1, tube 1), is used (get_tp_f0moments);
+   ! it is on one processor (kxkyzt_lo), and the sum over the processors gives the result
+   ! on every processor.
    !****************************************************************************
-   subroutine apply_testpart_matrix(vec, isa, isb, factor)
+   subroutine apply_testpart_matrix(vec, moment, isa, isb, factor)
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid
@@ -2384,8 +2352,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       implicit none
 
-      real, dimension(:, -nzgrid:), intent(in out) :: vec
-      integer, intent(in) :: isa, isb
+      real, dimension(:, -nzgrid:), intent(out) :: vec
+      integer, intent(in) :: moment, isa, isb
       real, intent(in) :: factor
 
       integer :: iz, ikxkyzt
@@ -2395,7 +2363,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       do iz = -nzgrid, nzgrid
          ikxkyzt = idx(kxkyzt_lo, naky, 1, iz, 1)
          if (ikxkyzt >= kxkyzt_lo%llim_proc .and. ikxkyzt <= kxkyzt_lo%ulim_proc) then
-            vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, isa, isb) / code_dt / spec(isa)%vnew(isb), factor * vec(:, iz))
+            vec(:, iz) = factor * tp_f0moments(:, moment, izl(iz), isa, isb) / code_dt / spec(isa)%vnew(isb)
          else
             vec(:, iz) = 0.
          end if
@@ -2403,6 +2371,63 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       call sum_allreduce(vec)
 
    end subroutine apply_testpart_matrix
+
+   !****************************************************************************
+   !         The test-particle operator applied to vpa F0 and v^2 F0
+   !****************************************************************************
+   ! At the point (iky = naky, ikx = 1, tube 1) of every z point among the points
+   ! ikxkyzt_first to ikxkyzt_last of kxkyzt_lo, apply the block-tridiagonal matrix
+   ! -code_dt C^{ab} of the chunk of blocks aa_blcs, bb_blcs and cc_blcs (see
+   ! init_fp_diffmatrix) to vpa F0a and v^2 F0a, and store the real part in tp_f0moments.
+   ! The block row iv has the blocks aa_blcs(iv) (column iv - 1), bb_blcs(iv) (column iv)
+   ! and cc_blcs(iv) (column iv + 1), as blockmatrix in init_fp_diffmatrix.
+   !****************************************************************************
+   subroutine get_tp_f0moments(ikxkyzt_first, ikxkyzt_last)
+
+      use grids_species, only: nspec
+      use grids_velocity, only: vpa, nvpa, mu, nmu
+      use grids_kxky, only: naky
+      use geometry, only: bmag
+      use parallelisation_layouts, only: kxkyzt_lo, iz_idx, idx
+
+      implicit none
+
+      integer, intent(in) :: ikxkyzt_first, ikxkyzt_last
+
+      integer :: ikxkyzt, iz, is, isb, iv, imu, im, ia
+      real, dimension(nvpa, nmu, 2) :: x
+      complex :: prod
+
+      !-------------------------------------------------------------------------
+
+      ia = 1
+      do ikxkyzt = ikxkyzt_first, ikxkyzt_last
+         iz = iz_idx(kxkyzt_lo, ikxkyzt)
+         if (ikxkyzt /= idx(kxkyzt_lo, naky, 1, iz, 1)) cycle
+         do is = 1, nspec
+            do iv = 1, nvpa
+               do imu = 1, nmu
+                  x(iv, imu, 1) = vpa(iv) * mw(iv, imu, iz, is)
+                  x(iv, imu, 2) = (vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu)) * mw(iv, imu, iz, is)
+               end do
+            end do
+            do isb = 1, nspec
+               do im = 1, 2
+                  do iv = 1, nvpa
+                     do imu = 1, nmu
+                        prod = 0.
+                        if (iv > 1) prod = prod + sum(aa_blcs(iv, imu, :, ikxkyzt, is, isb) * x(iv - 1, :, im))
+                        prod = prod + sum(bb_blcs(iv, imu, :, ikxkyzt, is, isb) * x(iv, :, im))
+                        if (iv < nvpa) prod = prod + sum(cc_blcs(iv, imu, :, ikxkyzt, is, isb) * x(iv + 1, :, im))
+                        tp_f0moments(nmu * (iv - 1) + imu, im, izl(iz), is, isb) = real(prod)
+                     end do
+                  end do
+               end do
+            end do
+         end do
+      end do
+
+   end subroutine get_tp_f0moments
 
    !****************************************************************************
    !                                      Title
@@ -2867,6 +2892,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       if (allocated(cdiffmat_band)) deallocate (cdiffmat_band)
       if (allocated(blockmatrix)) deallocate (blockmatrix)
       if (allocated(blockmatrix_sum)) deallocate (blockmatrix_sum)
+      if (allocated(tp_f0moments)) deallocate (tp_f0moments)
 
    end subroutine finish_fp_diffmatrix
 
