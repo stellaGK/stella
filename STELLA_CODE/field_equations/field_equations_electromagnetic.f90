@@ -122,26 +122,25 @@ contains
       ! Parallelisation
       use mp, only: mp_abort
       use timers, only: region_start, region_end
-      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx
-      
-      ! Arrays
-      use arrays_distribution_function, only: phi_gyro
+      use parallelisation_layouts, only: vmu_lo, iv_idx
       
       ! Parameters
       use parameters_physics, only: beta
       use parameters_physics, only: fphi
       use parameters_physics, only: radial_variation
+      use parameters_physics, only: full_flux_surface
       use parameters_physics, only: include_apar, include_bpar
       
       ! Grids
       use grids_species, only: spec
-      use grids_velocity, only: vpa, mu
-      use grids_z, only: nzgrid
+      use grids_velocity, only: vpa
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: naky, nakx
       
       ! Calculations
       use calculations_velocity_integrals, only: integrate_species
       use calculations_gyro_averages, only: gyro_average
-      use calculations_gyro_averages, only: gyro_average_j1
+      use calculations_gyro_averages, only: integrate_species_gyro_average
       
       ! Routines from other quasineutrality modules
       use field_equations_radialvariation, only: add_radial_correction_int_species
@@ -154,7 +153,8 @@ contains
       character(*), intent(in) :: dist
 
       ! Local variables
-      integer :: imu, iv, ivmu 
+      integer :: iv, ivmu 
+      complex, dimension(:, :, :, :, :), allocatable :: g_gyro
       
       !-------------------------------------------------------------------------
       
@@ -165,33 +165,27 @@ contains
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::include_bpar'
          call region_start('int_dv_g')
          
-         ! Gyroaverage the distribution function g at each phase space location
-         call gyro_average(g, phi_gyro)
-         
-         ! <g> requires modification if radial profile variation is included
-         if (radial_variation) call add_radial_correction_int_species(phi_gyro)
-         
          ! Integrate <g> over velocity space and sum over species
          ! store result in phi, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_phi'
-         call integrate_species(phi_gyro, spec%z * spec%dens_psi0, phi)
+         if (radial_variation .or. full_flux_surface) then
+            ! Gyroaverage the distribution function g at each phase space location
+            allocate (g_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            call gyro_average(g, g_gyro)
+            ! <g> requires modification if radial profile variation is included
+            if (radial_variation) call add_radial_correction_int_species(g_gyro)
+            call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
+            deallocate (g_gyro)
+         else
+            ! The gyro-average J_0 * g is folded into the velocity integral, so that it is not stored
+            call integrate_species_gyro_average(g, spec%z * spec%dens_psi0, phi, 0)
+         end if
          
-         ! Gyroaverage the distribution function g at each phase space location
-         call gyro_average_j1(g, phi_gyro)
-         
-         ! Multiply by mu factor from vperp2
-         !$omp parallel do default(none) firstprivate(vmu_lo) private(ivmu, imu) shared(phi_gyro, mu)
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            imu = imu_idx(vmu_lo, ivmu)
-            phi_gyro(:, :, :, :, ivmu) = phi_gyro(:, :, :, :, ivmu) * mu(imu)
-         end do
-         !$omp end parallel do
-         
+         ! Integrate mu * J_1(x)/x * g over velocity space and sum over species (the mu factor is from vperp2);
          ! <g> requires modification if radial profile variation is included; not supported for bpar MRH
-         ! Integrate <g> over velocity space and sum over species
          ! store result in bpar, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_bpar'
-         call integrate_species(phi_gyro, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
+         call integrate_species_gyro_average(g, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar, 1, 'mu')
          
          ! End timer
          call region_end('int_dv_g')
@@ -211,23 +205,27 @@ contains
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::include_apar'
          call region_start('int_dv_g')
          
-         ! If fphi > 0, then phi_gyro = <g> already calculated above
-         call gyro_average(g, phi_gyro)
-         
          ! For parallel Amperes Law, need to calculate parallel current rather than density,
          ! so multiply <g> by vpa before integrating. 
-         ! Because we are parallelising over (vpa, mu) we need to first get the vpa index, then multiply with vpa
-         !$omp parallel do default(none) firstprivate(vmu_lo) private(ivmu, iv) shared(phi_gyro, vpa)
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            iv = iv_idx(vmu_lo, ivmu)
-            phi_gyro(:, :, :, :, ivmu) = phi_gyro(:, :, :, :, ivmu) * vpa(iv)
-         end do
-         !$omp end parallel do
-         
          ! Integrate vpa*<g> over velocity space and sum over species
          ! store result in apar, which will be further modified below to account for apar pre-factor
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_apar'
-         call integrate_species(phi_gyro, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
+         if (full_flux_surface) then
+            allocate (g_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            call gyro_average(g, g_gyro)
+            ! Because we are parallelising over (vpa, mu) we need to first get the vpa index, then multiply with vpa
+            !$omp parallel do default(none) firstprivate(vmu_lo) private(ivmu, iv) shared(g_gyro, vpa)
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               g_gyro(:, :, :, :, ivmu) = g_gyro(:, :, :, :, ivmu) * vpa(iv)
+            end do
+            !$omp end parallel do
+            call integrate_species(g_gyro, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
+            deallocate (g_gyro)
+         else
+            ! The gyro-average J_0 * g is folded into the velocity integral, so that it is not stored
+            call integrate_species_gyro_average(g, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar, 0, 'vpa')
+         end if
          
          ! End timer
          call region_end('int_dv_g')

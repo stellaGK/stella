@@ -502,7 +502,7 @@ contains
       use grids_extended_zgrid, only: periodic, phase_shift
       use grids_velocity, only: vpa, mu
       use grids_velocity, only: wgts_mu, wgts_vpa, wgts_mu_bare
-      use arrays_gyro_averages, only: aj0x, aj1x, j0_B_const
+      use arrays_gyro_averages, only: aj0x, aj1x, j0_B_const, aj_index
 
       implicit none
 
@@ -599,7 +599,7 @@ contains
             do izext = 1, nresponse_per_field
                iz = iz_from_izext(izext)
                ikx = ikx_from_izext(izext)
-               g0 = aj0x(iky, ikx, iz, ivmu) * pdf(izext)
+               g0 = aj0x(iky, ikx, iz, aj_index(ivmu)) * pdf(izext)
                moments(izext, 1) = moments(izext, 1) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g0 * wgts_fields(is, 1)
             end do
          else
@@ -616,7 +616,7 @@ contains
             do izext = 1, nresponse_per_field
                iz = iz_from_izext(izext)
                ikx = ikx_from_izext(izext)
-               g0 = aj0x(iky, ikx, iz, ivmu) * pdf(izext)
+               g0 = aj0x(iky, ikx, iz, aj_index(ivmu)) * pdf(izext)
                g0 = g0 * vpa(iv)
                moments(izext, islot_apar) = moments(izext, islot_apar) &
                   + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g0 * wgts_fields(is, 2)
@@ -628,7 +628,7 @@ contains
             do izext = 1, nresponse_per_field
                iz = iz_from_izext(izext)
                ikx = ikx_from_izext(izext)
-               g0 = aj1x(iky, ikx, iz, ivmu) * pdf(izext)
+               g0 = aj1x(iky, ikx, iz, aj_index(ivmu)) * pdf(izext)
                g0 = g0 * mu(imu)
                moments(izext, islot_bpar) = moments(izext, islot_bpar) &
                   + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g0 * wgts_fields(is, 3)

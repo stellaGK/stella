@@ -322,7 +322,7 @@ contains
 
       use parallelisation_layouts, only: vmu_lo
       use parallelisation_layouts, only: imu_idx, is_idx
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
       use geometry, only: dBdrho, bmag
       use arrays, only: kperp2, dkperp2dr
       use grids_z, only: nzgrid, ntubes
@@ -365,7 +365,7 @@ contains
                g0k = 0.0
                do iky = 1, min(ky_solve_radial, naky)
                   g0k(iky, :) = g_in(iky, :, iz, it, ivmu) &
-                    * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
+                    * (-0.5 * aj1x(iky, :, iz, aj_index(ivmu)) / aj0x(iky, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                        * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                        * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                        + dBdrho(iz) / bmag(ia, iz))
@@ -395,7 +395,7 @@ contains
       use mp, only: proc0, mp_abort, sum_allreduce
       use parallelisation_layouts, only: vmu_lo
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
       use parameters_physics, only: fphi
       use parameters_multibox, only: ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
@@ -452,7 +452,7 @@ contains
                   imu = imu_idx(vmu_lo, ivmu)
 
                   g0k = g(:, :, iz, it, ivmu) &
-                        * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) &
+                        * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) &
                            * (spec(is)%smz)**2 &
                            * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &

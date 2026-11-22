@@ -1553,7 +1553,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays, only: kperp2, dkperp2dr
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
 
       implicit none
 
@@ -1592,7 +1592,7 @@ contains
                g0k = 0.0
                if (radial_variation) then
                   g0k(:, :) = gyro_g(:, :, ivmu) &
-                              * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                              * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                  * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                  * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                                  + dBdrho(iz) / bmag(ia, iz))
@@ -1621,7 +1621,7 @@ contains
                g0k = 0.0
                if (radial_variation) then
                   g0k = gyro_g(:, :, ivmu) * (dBdrho(iz) / bmag(ia, iz) + 0.5 * dkperp2dr(:, :, ia, iz)) &
-                        + h(:, :, iz, it, ivmu) * (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
+                        + h(:, :, iz, it, ivmu) * (0.5 * aj0x(:, :, iz, aj_index(ivmu)) - aj1x(:, :, iz, aj_index(ivmu))) &
                         * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) * vperp2(ia, iz, imu) &
                         * sqrt(kperp2(:, :, ia, iz)) * spec(is)%smz_psi0 / bmag(ia, iz)
 
@@ -1647,8 +1647,8 @@ contains
                prefac = 2.0 / (spec(is)%dens * spec(is)%temp) * code_dt * spec(is)%vnew(is) &
                         * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is) * maxwell_fac(is)
 
-               g0k = aj0x(:, :, iz, ivmu) * vpa(iv) * field1(:, :, iz, it) &
-                     + aj1x(:, :, iz, ivmu) * vperp2(ia, iz, imu) * field2(:, :, iz, it) &
+               g0k = aj0x(:, :, iz, aj_index(ivmu)) * vpa(iv) * field1(:, :, iz, it) &
+                     + aj1x(:, :, iz, aj_index(ivmu)) * vperp2(ia, iz, imu) * field2(:, :, iz, it) &
                      * spec(is)%smz_psi0 * sqrt(kperp2(:, :, ia, iz)) / bmag(ia, iz)
 
                gke_rhs(:, :, iz, it, ivmu) = gke_rhs(:, :, iz, it, ivmu) + prefac * g0k
@@ -1656,11 +1656,11 @@ contains
                if (radial_variation) then
                   energy = (vpa(iv)**2 + vperp2(ia, iz, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
 
-                  g1k = field1(:, :, iz, it) * vpa(iv) * (-0.5 * aj1x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                  g1k = field1(:, :, iz, it) * vpa(iv) * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                                           * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                                           * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))) &
                         + field2(:, :, iz, it) * spec(is)%smz_psi0 * vperp2(ia, iz, imu) / bmag(ia, iz) * sqrt(kperp2(:, :, ia, iz)) &
-                        * (0.5 * aj1x(:, :, iz, ivmu) * dkperp2dr(:, :, ia, iz) + (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
+                        * (0.5 * aj1x(:, :, iz, aj_index(ivmu)) * dkperp2dr(:, :, ia, iz) + (0.5 * aj0x(:, :, iz, aj_index(ivmu)) - aj1x(:, :, iz, aj_index(ivmu))) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
                   g1k = g1k + g0k * (spec(is)%tprim * (energy - 2.5) + 2 * mu(imu) * dBdrho(iz))
 
@@ -1697,7 +1697,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays, only: kperp2, dkperp2dr
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
 
       implicit none
 
@@ -1735,11 +1735,11 @@ contains
                g0k = 0.0
                if (radial_variation) then
                   g0k(:, :) = gyro_g(:, :, ivmu) &
-                              * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                              * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                  * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                  * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                                  + dBdrho(iz) / bmag(ia, iz)) &
-                              + h(:, :, iz, it, ivmu) * aj0x(:, :, iz, ivmu) * (vperp2(ia, iz, imu) * dBdrho(iz) / bmag(ia, iz) &
+                              + h(:, :, iz, it, ivmu) * aj0x(:, :, iz, aj_index(ivmu)) * (vperp2(ia, iz, imu) * dBdrho(iz) / bmag(ia, iz) &
                                                                                 + 1.5 * spec(is)%tprim)
                   call multiply_by_rho(g0k)
                end if
@@ -1763,7 +1763,7 @@ contains
                prefac = 4.0 / (3.0 * spec(is)%dens * spec(is)%temp**2) * code_dt * spec(is)%vnew(is) &
                         * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is) * maxwell_fac(is)
 
-               g0k = aj0x(:, :, iz, ivmu) * field(:, :, iz, it) &
+               g0k = aj0x(:, :, iz, aj_index(ivmu)) * field(:, :, iz, it) &
                      * (vpa(iv)**2 + vperp2(ia, iz, imu) - 1.5 * spec(is)%temp / spec(is)%temp_psi0)
 
                gke_rhs(:, :, iz, it, ivmu) = gke_rhs(:, :, iz, it, ivmu) + prefac * g0k
@@ -1771,10 +1771,10 @@ contains
                if (radial_variation) then
                   energy = (vpa(iv)**2 + vperp2(ia, iz, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
 
-                  g1k = field(:, :, iz, it) * (energy - 1.5) * (-0.5 * aj1x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                  g1k = field(:, :, iz, it) * (energy - 1.5) * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                                                 * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                                                 * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))) &
-                        + field(:, :, iz, it) * aj0x(:, :, iz, ivmu) * (vperp2(ia, iz, imu) * dBdrho(iz) / bmag(ia, iz) + 1.5 * spec(is)%tprim)
+                        + field(:, :, iz, it) * aj0x(:, :, iz, aj_index(ivmu)) * (vperp2(ia, iz, imu) * dBdrho(iz) / bmag(ia, iz) + 1.5 * spec(is)%tprim)
 
                   g1k = g1k + g0k * (spec(is)%tprim * (energy - 3.5) + 2 * mu(imu) * dBdrho(iz))
 

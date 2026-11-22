@@ -148,20 +148,19 @@ contains
       use timers, only: region_start, region_end
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx
       
-      ! Arrays
-      use arrays_distribution_function, only: phi_gyro
-      
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: radial_variation
+      use parameters_physics, only: radial_variation, full_flux_surface
       use parameters_physics, only: fphi
       
       ! Grids
-      use grids_z, only: nzgrid
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: naky, nakx
       use grids_species, only: spec
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: integrate_species_gyro_average
       use calculations_velocity_integrals, only: integrate_species
       
       ! Routines from other field modules
@@ -179,6 +178,7 @@ contains
       
       ! Local variables
       logical :: skip_fsa_local
+      complex, dimension(:, :, :, :, :), allocatable :: g_gyro
       
       !-------------------------------------------------------------------------
       
@@ -201,18 +201,23 @@ contains
          ! Start timer
          call region_start('int_dv_g')
          
-         ! First gyro-average the distribution function g at each phase space location
-         ! and store this as phi_gyro = <g>_R = J_0 g in k-space
-         call gyro_average(g, phi_gyro)
-         
-         ! If we are allowing for radial variation then we must modify <g>.
-         ! This is done in the field_equations_radialvariation module, but 
-         ! is not needed for standard stella (as these are false by default).
-         if (radial_variation) call add_radial_correction_int_species(phi_gyro)
-         
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ] = integrate_species( J_0 * g )
          if (debug) write (*, *) 'field_equations_fluxtube::vmulo::integrate_species_phi'
-         call integrate_species(phi_gyro, spec%z * spec%dens_psi0, phi)
+         if (radial_variation .or. full_flux_surface) then
+            ! First gyro-average the distribution function g at each phase space location
+            ! and store this as g_gyro = <g>_R = J_0 g in k-space
+            allocate (g_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            call gyro_average(g, g_gyro)
+            ! If we are allowing for radial variation then we must modify <g>.
+            ! This is done in the field_equations_radialvariation module, but 
+            ! is not needed for standard stella (as these are false by default).
+            if (radial_variation) call add_radial_correction_int_species(g_gyro)
+            call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
+            deallocate (g_gyro)
+         else
+            ! The gyro-average J_0 * g is folded into the velocity integral, so that it is not stored
+            call integrate_species_gyro_average(g, spec%z * spec%dens_psi0, phi, 0)
+         end if
 
          ! Stop timer
          call region_end('int_dv_g')
