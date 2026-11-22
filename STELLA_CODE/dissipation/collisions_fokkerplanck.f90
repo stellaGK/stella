@@ -300,7 +300,6 @@ contains
       density_correction_solve = has_electron_species(spec) .and. (.not. density_conservation)
 
       if (collisions_implicit) then
-         write (*, *) 'Coll. algorithm: implicit'
          fully_explicit = .false.
 
          call init_local_z
@@ -1372,21 +1371,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end do
       !$omp end parallel do
 
-      if (testpart .eqv. .false.) then
+      ! Without the test-particle part (testpart = .false., to test the field-particle part alone) all blocks
+      ! are zero: the identity of 1 - C^{ab} is added once below, after the blocks of all species are summed.
+      ! (Before Nov 2026 the diagonal blocks were set to 1 for every species pair, which gave (nspec + 1) times
+      ! the identity.) The classical (FLR) diffusion below is part of the test-particle part and left out too.
+      if (.not. testpart) then
          aa_blcs = 0.
          cc_blcs = 0.
          bb_blcs = 0.
-         do is = 1, nspec
-            do isb = 1, nspec
-               do imu = 1, nmu
-                  do iv = 1, nvpa
-                     do ikxkyzt = ikxkyzt_first, ikxkyzt_last
-                        bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = 1. ! AVB: in beta
-                     end do
-                  end do
-               end do
-            end do
-         end do
       end if
 
       ! construct full block matrix
@@ -1528,7 +1520,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !$omp parallel do default(none) &
       !$omp   firstprivate(kxkyzt_lo, nmu, nvpa, nspec, ia) &
       !$omp   private(ikxkyzt, iky, ikx, iz, is, iv, imu, ivv) &
-      !$omp   shared(cdiffmat_band, kperp2, code_dt, cfac)
+      !$omp   shared(cdiffmat_band, kperp2, code_dt, cfac, testpart)
       do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
          iky = iky_idx(kxkyzt_lo, ikxkyzt)
          ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
@@ -1537,7 +1529,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             do iv = 1, nvpa
                do imu = 1, nmu
                   ivv = nmu * (iv - 1) + imu
-                  cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) = cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) &
+                  if (testpart) cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) = cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) &
                      + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
                end do
             end do
@@ -1730,14 +1722,15 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      jm(imu, 0, iky, ikx, izs, is) = j0(arg)**aj0exp
                   end do
                   do mm = 1, lmax
+                     ! the same argument as J_0, with bess_fac (0 for a drift-kinetic species)
                      if (mm == 1) then
                         do imu = 1, nmu
-                           arg = spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                           arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
                            jm(imu, mm, iky, ikx, izs, is) = bessel_jn(mm, arg)**aj1exp * aj1fac
                         end do
                      else
                         do imu = 1, nmu
-                           arg = spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                           arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
                            jm(imu, mm, iky, ikx, izs, is) = bessel_jn(mm, arg)
                         end do
                      end if
@@ -2385,7 +2378,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       do iz = -nzgrid, nzgrid
          ikxkyzt = idx(kxkyzt_lo, naky, 1, iz, 1)
-         if (ikxkyzt >= kxkyzt_lo%llim_proc .and. ikxkyzt <= kxkyzt_lo%ulim_proc) then
+         ! without a-b collisions (vnew = 0) the operator and the term are zero
+         if (ikxkyzt >= kxkyzt_lo%llim_proc .and. ikxkyzt <= kxkyzt_lo%ulim_proc .and. spec(isa)%vnew(isb) /= 0.) then
             vec(:, iz) = factor * tp_f0moments(:, moment, izl(iz), isa, isb) / code_dt / spec(isa)%vnew(isb)
          else
             vec(:, iz) = 0.
@@ -4920,7 +4914,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          nusum = nusum + eiediff * nupa(iv, imu, iz, is, isb) * bmag(ia, iz) * mu(imu) &
                  + eidefl * deflknob * nuD(iv, imu, iz, is, isb) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
       end do
-      gyro_diffusion_coefficient = 0.5 * (spec(is)%smz / bmag(ia, iz))**2 * nusum
+      ! (k_perp rho)^2 / k_perp^2 of species is, with bess_fac as in the argument of the Bessel functions
+      gyro_diffusion_coefficient = 0.5 * (spec(is)%bess_fac * spec(is)%smz / bmag(ia, iz))**2 * nusum
 
    end function gyro_diffusion_coefficient
 
@@ -4970,7 +4965,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          ! the diagonal finite-Larmor-radius term of cdiffmat_band (see init_fp_diffmatrix)
          do iv = 1, nvpa
             do imu = 1, nmu
-               flr_diag(iv, imu) = 1. + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
+               flr_diag(iv, imu) = 1.
+               if (testpart) flr_diag(iv, imu) = flr_diag(iv, imu) + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
             end do
          end do
       end if

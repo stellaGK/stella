@@ -67,6 +67,8 @@ contains
       use collisions_fokkerplanck, only: read_parameters_fp
       use dissipation_hyper, only: read_parameters_hyper
       use parameters_numerical, only: fully_explicit
+      use parameters_physics, only: radial_variation
+      use mp, only: mp_abort
 
       implicit none
       
@@ -88,6 +90,19 @@ contains
       call broadcast(ecoll_zeff)
       call broadcast(vnew_ref)
       call broadcast(zeff)
+
+      ! An unknown collision model would otherwise run without collisions
+      if (include_collisions .and. .not. (collision_model == "dougherty" .or. collision_model == "fokker-planck")) then
+         call mp_abort('Unknown collision_model "'//trim(collision_model)//'" in &dissipation_and_collisions_options: '// &
+            'use "dougherty" or "fokker-planck". Aborting.')
+      end if
+
+      ! The radial variation of the background (radial_variation) is only implemented in the explicit Dougherty
+      ! operator; the implicit Dougherty and both Fokker-Planck algorithms would silently ignore it
+      if (include_collisions .and. radial_variation .and. (collision_model == "fokker-planck" .or. collisions_implicit)) then
+         call mp_abort('Collisions with radial_variation are only implemented for the explicit Dougherty operator '// &
+            '(collision_model = "dougherty", collisions_implicit = .false.). Aborting.')
+      end if
 
       ! Read input parameters for the dougherty or fokker-planck collision model
       if (include_collisions) then
