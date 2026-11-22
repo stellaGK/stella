@@ -247,6 +247,13 @@ contains
             //'field-particle part are not MPI parallel for several species: run on one processor. Aborting.')
       end if
 
+      ! The exact conservation terms assume that the test-particle operator has no mixed (nux) derivative terms, whose
+      ! discretisation does not conserve; with them, exact_conservation conserves the energy worse than without it
+      if (fieldpart .and. exact_conservation .and. nuxfac /= 0.) then
+         call mp_abort('The option exact_conservation of the Fokker-Planck field-particle part only works without ' &
+            //'the mixed derivative terms of the test-particle part: set nuxfac = 0. Aborting.')
+      end if
+
       ! disable inter-species collisions if interspec==false
       if (.not. interspec) then
          do is = 1, nspec
@@ -2080,6 +2087,22 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, izs), iz, deltajint(iz))
                         deltaj(ll, jj, isa, isb, :, :, ia, izs) = deltaj(ll, jj, isa, isb, :, :, ia, izs) &
                                                 - modmw(:, :, iz, isa) / modmwnorm(iz) * deltajint(iz)
+                     end do
+                  end if
+
+                  ! Likewise, with exact conservation the l = 1 terms with j >= 1 must not change the parallel momentum, which
+                  ! only the l = 1, j = 0 term restores. Analytically their Laguerre polynomials make them orthogonal to the
+                  ! momentum, but not on the velocity grid: with 8 equally spaced mu points the l = 1, j = 1 term restored 4% more
+                  ! momentum than the test-particle part removed (Nov 2026). Remove the momentum moment of Delta_j on the grid
+                  ! with v F0, which times P_1 is vpa F0, with no density and (odd in vpa) no energy.
+                  if ((exact_conservation .or. exact_conservation_tp) .and. (ll == 1) .and. (jj >= 1)) then
+                     do izs = 1, nz_local
+                        iz = iz_of_izl(izs)
+                        call integrate_vmu(spread(vpa, 2, nmu) * legendre_vpamu(1, 0, :, :, izs) * deltaj(ll, jj, isa, isb, :, :, ia, izs), &
+                                           iz, deltajint(iz))
+                        call integrate_vmu(spread(vpa, 2, nmu)**2 * mw(:, :, iz, isa), iz, deltajint_tp(iz))
+                        deltaj(ll, jj, isa, isb, :, :, ia, izs) = deltaj(ll, jj, isa, isb, :, :, ia, izs) &
+                                                - velvpamu(:, :, iz) * mw(:, :, iz, isa) * deltajint(iz) / deltajint_tp(iz)
                      end do
                   end if
 
