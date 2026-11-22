@@ -112,8 +112,13 @@ module collisions_fokkerplanck
    real, dimension(:, :, :, :, :, :, :, :), allocatable :: deltaj, deltaj_tp
    complex, dimension(:, :, :, :), allocatable :: deltajint
 
-   ! The z points on which calc_deltaj_vmu, calc_psi_vmu and vLj_vmu compute, see init_deltaj_vmu
-   integer :: iz_deltaj_lo = -huge(1), iz_deltaj_hi = huge(1)
+   ! The z points at which this processor stores deltaj, deltaj_tp, legendre_vpamu, jm and jm0, see init_local_z:
+   ! izl(iz) = 1, ..., nz_local is the slot of iz in these arrays (0 if it is not stored here), iz_of_izl(izl) the z
+   ! index of a slot, local_z(iz) whether iz is stored here (also the z points on which calc_deltaj_vmu, calc_psi_vmu
+   ! and vLj_vmu compute), and iz_share_lo to iz_share_hi the share of the z points on which this processor computes psijnorm
+   integer :: nz_local, iz_share_lo, iz_share_hi
+   integer, dimension(:), allocatable :: izl, iz_of_izl
+   logical, dimension(:), allocatable :: local_z
    real, dimension(:, :, :, :, :), allocatable :: psijnorm
    real, dimension(:, :, :, :, :), allocatable :: legendre_vpamu
    real, dimension(:, :, :, :, :, :), allocatable :: jm
@@ -288,6 +293,7 @@ contains
          write (*, *) 'Coll. algorithm: implicit'
          fully_explicit = .false.
 
+         call init_local_z
          call init_legendre
          call init_vgrid
          call init_bessel_fn
@@ -1558,6 +1564,58 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
 
    !****************************************************************************
+   !                  The z points of the coefficients on this processor
+   !****************************************************************************
+   ! The coefficients of the field-particle operator (deltaj, deltaj_tp), the Legendre
+   ! functions (legendre_vpamu) and the Bessel functions (jm, jm0) are only used at the
+   ! z points of the kxkyz_lo and kxkyzt_lo points of this processor, so every processor
+   ! stores them only there, which needs no communication. These z points are numbered
+   ! izl(iz) = 1, ..., nz_local (0 if iz is not stored here), with iz = iz_of_izl(izl).
+   ! They also include the share iz_share_lo to iz_share_hi of the z points on which this
+   ! processor computes psijnorm, which is needed on every z point (see init_deltaj_vmu).
+   !****************************************************************************
+   subroutine init_local_z
+
+      use mp, only: nproc, iproc
+      use grids_z, only: nzgrid
+      use parallelisation_layouts, only: kxkyz_lo, kxkyzt_lo, iz_idx
+
+      implicit none
+
+      integer :: i, iz, nz_total
+
+      !-------------------------------------------------------------------------
+
+      ! The map does not change when the time step changes (reset_dt_collisions_fp)
+      if (allocated(izl)) return
+
+      allocate (local_z(-nzgrid:nzgrid))
+      local_z = .false.
+      do i = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         local_z(iz_idx(kxkyz_lo, i)) = .true.
+      end do
+      do i = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
+         local_z(iz_idx(kxkyzt_lo, i)) = .true.
+      end do
+      nz_total = 2 * nzgrid + 1
+      iz_share_lo = -nzgrid + (iproc * nz_total) / nproc
+      iz_share_hi = -nzgrid + ((iproc + 1) * nz_total) / nproc - 1
+      local_z(iz_share_lo:iz_share_hi) = .true.
+
+      allocate (izl(-nzgrid:nzgrid), iz_of_izl(max(1, count(local_z))))
+      izl = 0
+      nz_local = 0
+      do iz = -nzgrid, nzgrid
+         if (local_z(iz)) then
+            nz_local = nz_local + 1
+            izl(iz) = nz_local
+            iz_of_izl(nz_local) = iz
+         end if
+      end do
+
+   end subroutine init_local_z
+
+   !****************************************************************************
    !                                      Title
    !****************************************************************************
    subroutine init_legendre
@@ -1570,12 +1628,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       implicit none
 
-      integer :: iv, imu, iz, ia, mm, ll
+      integer :: iv, imu, iz, izs, ia, mm, ll
       double precision :: xi
 
       !-------------------------------------------------------------------------
 
-      allocate (legendre_vpamu(0:lmax, -lmax:lmax, nvpa, nmu, -nzgrid:nzgrid))
+      ! Only on the z points of this processor, see init_local_z
+      allocate (legendre_vpamu(0:lmax, -lmax:lmax, nvpa, nmu, nz_local))
 
       ! note lmin = 0, lmax = nsph-1
       ! mmin = -lmax, mmax = lmax
@@ -1585,16 +1644,17 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ia = 1
 
       !$omp parallel do default(none) &
-      !$omp   firstprivate(nvpa, nmu, nzgrid, lmax, ia) &
-      !$omp   private(iv, imu, iz, ll, mm, xi) &
-      !$omp   shared(legendre_vpamu, vpa, mu, bmag)
+      !$omp   firstprivate(nvpa, nmu, nz_local, lmax, ia) &
+      !$omp   private(iv, imu, iz, izs, ll, mm, xi) &
+      !$omp   shared(legendre_vpamu, vpa, mu, bmag, iz_of_izl)
       do iv = 1, nvpa
          do imu = 1, nmu
-            do iz = -nzgrid, nzgrid
+            do izs = 1, nz_local
+               iz = iz_of_izl(izs)
                do ll = 0, lmax
                   do mm = -lmax, lmax
                      xi = dble(vpa(iv) / sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu)))
-                     legendre_vpamu(ll, mm, iv, imu, iz) = associated_legendre(ll, mm, xi)
+                     legendre_vpamu(ll, mm, iv, imu, izs) = associated_legendre(ll, mm, xi)
                   end do
                end do
             end do
@@ -1611,7 +1671,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use grids_z, only: nzgrid
       use grids_velocity, only: nmu, vperp2
       use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use arrays_gyro_averages, only: aj0v
+      use spfunc, only: j0
       use grids_species, only: spec, nspec
       use geometry, only: bmag
       use grids_kxky, only: naky, nakx
@@ -1621,13 +1681,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       implicit none
 
-      integer :: ikxkyz, iky, ikx, iz, is, ia, mm, imu
+      integer :: iky, ikx, iz, izs, is, ia, mm, imu
       real :: arg, aj1fac, aj1exp, aj0exp
 
       !-------------------------------------------------------------------------
 
-      allocate (jm(nmu, 0:lmax, naky, nakx, -nzgrid:nzgrid, nspec))
-      allocate (jm0(nmu, naky, nakx, -nzgrid:nzgrid, nspec))
+      ! Only on the z points of this processor, see init_local_z
+      allocate (jm(nmu, 0:lmax, naky, nakx, nz_local, nspec))
+      allocate (jm0(nmu, naky, nakx, nz_local, nspec))
 
       jm = 0
       jm0 = 0
@@ -1637,38 +1698,36 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       aj0exp = 1.0
       aj1exp = 1.0
 
-      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-         iky = iky_idx(kxkyz_lo, ikxkyz)
-         ikx = ikx_idx(kxkyz_lo, ikxkyz)
-         iz = iz_idx(kxkyz_lo, ikxkyz)
-         is = is_idx(kxkyz_lo, ikxkyz)
-         jm0(:, iky, ikx, iz, is) = aj0v(:, ikxkyz)**aj0exp
-         do mm = 0, lmax
-            if (mm == 0) then
-               jm(:, 0, iky, ikx, iz, is) = aj0v(:, ikxkyz)**aj0exp
-            else if (mm == 1) then
-               !jm(:,1,iky,ikx,iz,is) = aj1fac*aj1v(:,ikxkyz)*spec(is)%smz_psi0*sqrt(vperp2(ia,iz,:)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
-               !mu*spec(is)%smz*sqrt(2*bmag(ia,iz)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
-               do imu = 1, nmu
-                  arg = spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                  jm(imu, mm, iky, ikx, iz, is) = bessel_jn(mm, arg)**aj1exp * aj1fac
+      ! The Bessel functions are used at the kxkyz_lo and kxkyzt_lo points of every species (fp_response,
+      ! get_psi_response, get_psi and the conservation terms), so every processor computes them on all
+      ! (ky, kx, species) of its z points, J0 with the same argument as aj0v in arrays_gyro_averages
+      do izs = 1, nz_local
+         iz = iz_of_izl(izs)
+         do is = 1, nspec
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  do imu = 1, nmu
+                     arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                     jm0(imu, iky, ikx, izs, is) = j0(arg)**aj0exp
+                     jm(imu, 0, iky, ikx, izs, is) = j0(arg)**aj0exp
+                  end do
+                  do mm = 1, lmax
+                     if (mm == 1) then
+                        do imu = 1, nmu
+                           arg = spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                           jm(imu, mm, iky, ikx, izs, is) = bessel_jn(mm, arg)**aj1exp * aj1fac
+                        end do
+                     else
+                        do imu = 1, nmu
+                           arg = spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                           jm(imu, mm, iky, ikx, izs, is) = bessel_jn(mm, arg)
+                        end do
+                     end if
+                  end do
                end do
-            else
-               do imu = 1, nmu
-                  arg = spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                  !mu(imu)*spec(is)%smz*sqrt(2*bmag(ia,iz)*kperp2(iky,ikx,ia,iz))/bmag(ia,iz)
-                  jm(imu, mm, iky, ikx, iz, is) = bessel_jn(mm, arg)
-               end do
-            end if
+            end do
          end do
       end do
-
-      ! The Bessel functions are computed on kxkyz_lo, but used at the kxkyzt_lo points of every species
-      ! (fp_response, get_psi_response, get_psi and the conservation terms), so sum them over the processors
-      do is = 1, nspec
-         call sum_allreduce(jm(:, :, :, :, :, is))
-      end do
-      call sum_allreduce(jm0)
 
       ! The m /= 0 terms of the field-particle part (J1 for l = 1: the perpendicular momentum) restore what the
       ! classical (gyro-)diffusion of the test-particle part removes, so scale them by the same <cfac>. With cfac = 0
@@ -1771,14 +1830,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use grids_time, only: code_dt
       use grids_kxky, only: naky
-      use mp, only: nproc, iproc, sum_allreduce
+      use mp, only: sum_allreduce
 
       implicit none
 
       real, dimension(0:lmax, 0:jmax, nvpa, nmu, 1, -nzgrid:nzgrid) :: vlaguerre_vmu
       real, dimension(:, :, :), allocatable :: deltaj_share
-      integer :: nz_total
-      integer :: ll, iv, jj, ia, imu, iz, is, isa, isb, ix, ikx, iky, ikxkyz, ikxkyzt
+      integer :: ll, iv, jj, ia, imu, iz, izs, is, isa, isb, ix, ikx, iky, ikxkyz, ikxkyzt
       real, dimension(-nzgrid:nzgrid) :: deltajint, deltajint_tp
       real, dimension(nvpa*nmu, -nzgrid:nzgrid) :: vpaF0vec, v2F0vec
       real, dimension(nvpa*nmu, nvpa*nmu) :: ident
@@ -1789,8 +1847,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       ia = 1
 
-      allocate (deltaj(0:lmax, 0:jmax, nspec, nspec, nvpa, nmu, ia, -nzgrid:nzgrid))
-      allocate (deltaj_tp(0:lmax, 0:jmax, nspec, nspec, nvpa, nmu, ia, -nzgrid:nzgrid))
+      ! Only on the z points of this processor, see init_local_z
+      allocate (deltaj(0:lmax, 0:jmax, nspec, nspec, nvpa, nmu, ia, nz_local))
+      allocate (deltaj_tp(0:lmax, 0:jmax, nspec, nspec, nvpa, nmu, ia, nz_local))
       allocate (psijnorm(0:lmax, 0:jmax, nspec, nspec, -nzgrid:nzgrid))
 
       allocate (mwnorm(-nzgrid:nzgrid))
@@ -1819,27 +1878,22 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       forall (iv=1:nvpa * nmu) ident(iv, iv) = 1.
 
       ! Delta_j is local in z, and its calculation (with the recursion of calc_deltaj_vmu and the incomplete gamma
-      ! functions of calc_delta0) is expensive, so every processor computes it on its own share of the z points,
-      ! with the (vpa, mu, z) loop of calc_delta0 shared among the threads, and the sum over the processors gives
-      ! Delta_j on every z point
-      nz_total = 2 * nzgrid + 1
-      iz_deltaj_lo = -nzgrid + (iproc * nz_total) / nproc
-      iz_deltaj_hi = -nzgrid + ((iproc + 1) * nz_total) / nproc - 1
+      ! functions of calc_delta0) is expensive, so every processor computes it only on its own z points (local_z, see
+      ! init_local_z), with the (vpa, mu, z) loop of calc_delta0 shared among the threads
       allocate (deltaj_share(nvpa, nmu, -nzgrid:nzgrid))
       do isa = 1, nspec
          do isb = 1, nspec
             do ll = 0, lmax
                do jj = 0, jmax
                   call calc_deltaj_vmu(jj, jj, ll, isa, isb, deltaj_share)
-                  call sum_allreduce(deltaj_share)
-                  deltaj(ll, jj, isa, isb, :, :, ia, :) = deltaj_share
+                  do izs = 1, nz_local
+                     deltaj(ll, jj, isa, isb, :, :, ia, izs) = deltaj_share(:, :, iz_of_izl(izs))
+                  end do
                end do
             end do
          end do
       end do
       deallocate (deltaj_share)
-      iz_deltaj_lo = -huge(1)
-      iz_deltaj_hi = huge(1)
 
       do isa = 1, nspec
          do isb = 1, nspec
@@ -1880,11 +1934,15 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
        vpaF0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), (spec(isa)%mass / spec(isb)%mass)**2 * vpaF0vec(:, iz))
                         end do
 
-                        do ix = 1, nvpa
-                           deltaj_tp(ll, jj, isa, isb, ix, :, ia, :) = vpaF0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, :)
+                        do izs = 1, nz_local
+                           do ix = 1, nvpa
+                              deltaj_tp(ll, jj, isa, isb, ix, :, ia, izs) = vpaF0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, iz_of_izl(izs))
+                           end do
                         end do
 
-       deltaj_tp(ll, jj, isa, isb, :, :, ia, :) = deltaj_tp(ll, jj, isa, isb, :, :, ia, :) * velvpamu / spread(spread(vpa, 2, nmu), 3, 2 * nzgrid + 1)
+                        do izs = 1, nz_local
+                           deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) = deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) * velvpamu(:, :, iz_of_izl(izs)) / spread(vpa, 2, nmu)
+                        end do
 
                         !call open_output_file (tmpunit,'.deltaj_l1modified')
                         !do iv = 1, nvpa
@@ -1927,11 +1985,15 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
        vpaF0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), (spec(isa)%mass / spec(isb)%mass)**2 * vpaF0vec(:, iz))
                         end do
 
-                        do ix = 1, nvpa
-                           deltaj_tp(ll, jj, isa, isb, ix, :, ia, :) = vpaF0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, :)
+                        do izs = 1, nz_local
+                           do ix = 1, nvpa
+                              deltaj_tp(ll, jj, isa, isb, ix, :, ia, izs) = vpaF0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, iz_of_izl(izs))
+                           end do
                         end do
 
-       deltaj_tp(ll, jj, isa, isb, :, :, ia, :) = deltaj_tp(ll, jj, isa, isb, :, :, ia, :) * velvpamu / spread(spread(vpa, 2, nmu), 3, 2 * nzgrid + 1)
+                        do izs = 1, nz_local
+                           deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) = deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) * velvpamu(:, :, iz_of_izl(izs)) / spread(vpa, 2, nmu)
+                        end do
 
                         !if ((isa==1).and.(isb==2)) then
                         !call open_output_file (tmpunit,'.deltaj_l1modified_ie')
@@ -1977,8 +2039,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       v2F0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), -(spec(isa)%mass / spec(isb)%mass)**1.5 * v2F0vec(:, iz))
                         end do
 
-                        do ix = 1, nvpa
-                           deltaj_tp(ll, jj, isa, isb, ix, :, ia, :) = v2F0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, :)
+                        do izs = 1, nz_local
+                           do ix = 1, nvpa
+                              deltaj_tp(ll, jj, isa, isb, ix, :, ia, izs) = v2F0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, iz_of_izl(izs))
+                           end do
                         end do
 
                         !call open_output_file (tmpunit,'.deltaj_j1modified')
@@ -2022,8 +2086,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       v2F0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), -(spec(isa)%mass / spec(isb)%mass)**1.5 * v2F0vec(:, iz))
                         end do
 
-                        do ix = 1, nvpa
-                           deltaj_tp(ll, jj, isa, isb, ix, :, ia, :) = v2F0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, :)
+                        do izs = 1, nz_local
+                           do ix = 1, nvpa
+                              deltaj_tp(ll, jj, isa, isb, ix, :, ia, izs) = v2F0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, iz_of_izl(izs))
+                           end do
                         end do
 
                         !if ((isa==1).and.(isb==2)) then
@@ -2056,11 +2122,12 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                   ! exchange created electron density and the growth rate ran away at large collisionality. Remove the
                   ! density moment on the grid with modmw, which has no energy moment, so the energy exchange is unchanged.
                   if ((ll == 0) .and. (jj >= 1)) then
-                     do iz = -nzgrid, nzgrid
-                        call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, iz), iz, deltajint(iz))
+                     do izs = 1, nz_local
+                        iz = iz_of_izl(izs)
+                        call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, izs), iz, deltajint(iz))
+                        deltaj(ll, jj, isa, isb, :, :, ia, izs) = deltaj(ll, jj, isa, isb, :, :, ia, izs) &
+                                                - modmw(:, :, iz, isa) / modmwnorm(iz) * deltajint(iz)
                      end do
-                     deltaj(ll, jj, isa, isb, :, :, ia, :) = deltaj(ll, jj, isa, isb, :, :, ia, :) &
-                                             - modmw(:, :, :, isa) / spread(spread(modmwnorm, 1, nvpa), 2, nmu) * spread(spread(deltajint, 1, nvpa), 2, nmu)
                   end if
 
                   ! to ensure number conservation to machine precision, \Delta_{j=1} -> \Delta_{j=1} - F0/\int F0 dv * \int \Delta_{j=1} dv
@@ -2069,12 +2136,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
                   if ((density_conservation_field) .and. (ll == 0) .and. (jj == 1)) then
 
-                     do iz = -nzgrid, nzgrid
-                        call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, iz), iz, deltajint(iz))
-                     end do
-
-                     do iz = -nzgrid, nzgrid
-                        call integrate_vmu(deltaj_tp(ll, jj, isa, isb, :, :, ia, iz), iz, deltajint_tp(iz))
+                     do izs = 1, nz_local
+                        iz = iz_of_izl(izs)
+                        call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, izs), iz, deltajint(iz))
+                        call integrate_vmu(deltaj_tp(ll, jj, isa, isb, :, :, ia, izs), iz, deltajint_tp(iz))
                      end do
 
                      ! check accuracy of deltaj:
@@ -2085,11 +2150,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      !write (tmpunit,*)
                      !call close_output_file (tmpunit)
 
-                     deltaj(ll, jj, isa, isb, :, :, ia, :) = deltaj(ll, jj, isa, isb, :, :, ia, :) &
-                                             - mw(:, :, :, isa) / spread(spread(mwnorm, 1, nvpa), 2, nmu) * spread(spread(deltajint, 1, nvpa), 2, nmu)
-
-                     deltaj_tp(ll, jj, isa, isb, :, :, ia, :) = deltaj_tp(ll, jj, isa, isb, :, :, ia, :) &
-                                          - mw(:, :, :, isa) / spread(spread(mwnorm, 1, nvpa), 2, nmu) * spread(spread(deltajint_tp, 1, nvpa), 2, nmu)
+                     do izs = 1, nz_local
+                        iz = iz_of_izl(izs)
+                        deltaj(ll, jj, isa, isb, :, :, ia, izs) = deltaj(ll, jj, isa, isb, :, :, ia, izs) &
+                                                - mw(:, :, iz, isa) / mwnorm(iz) * deltajint(iz)
+                        deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) = deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) &
+                                             - mw(:, :, iz, isa) / mwnorm(iz) * deltajint_tp(iz)
+                     end do
 
                      !all open_output_file (tmpunit,'.deltaj_check_mod')
                      !do iv = 1, nvpa
@@ -2110,16 +2177,19 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          end do
       end do
 
-      ! get normalisations for psijls
+      ! get normalisations for psijls; psijnorm is needed on every z point (get_psi), so every processor computes it
+      ! on its share of the z points (iz_share_lo to iz_share_hi, see init_local_z) and the sum over the processors
+      ! gives it everywhere
+      psijnorm = 0.
       !$omp parallel do default(none) collapse(4) &
-      !$omp   firstprivate(nspec, lmax, jmax, nzgrid, ia) &
+      !$omp   firstprivate(nspec, lmax, jmax, ia, iz_share_lo, iz_share_hi) &
       !$omp   private(isa, isb, ll, iz, jj) &
-      !$omp   shared(psijnorm, legendre_vpamu, vlaguerre_vmu, deltaj, velvpamu, spec, &
+      !$omp   shared(psijnorm, legendre_vpamu, vlaguerre_vmu, deltaj, velvpamu, spec, izl, &
       !$omp          exact_conservation, exact_conservation_tp)
       do isa = 1, nspec
          do isb = 1, nspec
             do ll = 0, lmax
-               do iz = -nzgrid, nzgrid
+               do iz = iz_share_lo, iz_share_hi
                   do jj = 0, jmax
                      if ((ll == 0) .and. (jj == 0)) then
                         psijnorm(ll, jj, isa, isb, iz) = 1 ! never used
@@ -2131,36 +2201,36 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
                         if ((exact_conservation) .and. (ll == 1) .and. (jj == 0)) then
                            ! momentum conservation term for uniform mu grid
-            call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
+            call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if ((exact_conservation) .and. (ll == 0) .and. (jj == 1)) then
                            ! energy conservation term for uniform mu grid
-                call integrate_vmu(legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
+                call integrate_vmu(legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if ((exact_conservation_tp) .and. (ll == 0) .and. (jj == 1)) then
                            ! energy conservation term for non-uniform mu grid
-                call integrate_vmu(legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
+                call integrate_vmu(legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if ((exact_conservation_tp) .and. (ll == 1) .and. (jj == 0)) then
                            ! momentum conservation term for non-uniform mu grid
-            call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, iz)**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) &
+            call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                         else if (.not. ((exact_conservation) .or. (exact_conservation_tp)) .and. (ll == 0) .and. (jj == 1)) then
                            ! non-exact conservation of energy
                            if (spec(isa)%mass / spec(isb)%mass < 1.) then
                               ! use self-adjointness to avoid resolution problems
-                             call integrate_vmu((-velvpamu(:, :, iz)**2) * deltaj(ll, jj, isb, isa, :, :, ia, iz), iz, psijnorm(ll, jj, isa, isb, iz))
+                             call integrate_vmu((-velvpamu(:, :, iz)**2) * deltaj(ll, jj, isb, isa, :, :, ia, izl(iz)), iz, psijnorm(ll, jj, isa, isb, iz))
                            else
-                      call integrate_vmu((-velvpamu(:, :, iz)**2) * deltaj(ll, jj, isa, isb, :, :, ia, iz) * (spec(isa)%mass / spec(isb)%mass)**(-3) &
+                      call integrate_vmu((-velvpamu(:, :, iz)**2) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) * (spec(isa)%mass / spec(isb)%mass)**(-3) &
                                                  * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                            end if
                         else
                            ! non-exact conservation of momentum, and higher-order terms
                            if (spec(isa)%mass / spec(isb)%mass < 1.) then
                               ! use self-adjointness to avoid resolution problems
-                  call integrate_vmu(vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isb, isa, :, :, ia, iz), iz, psijnorm(ll, jj, isa, isb, iz))
+                  call integrate_vmu(vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isb, isa, :, :, ia, izl(iz)), iz, psijnorm(ll, jj, isa, isb, iz))
                            else
-           call integrate_vmu(vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, iz) * (spec(isa)%mass / spec(isb)%mass)**(-3) &
+           call integrate_vmu(vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) * (spec(isa)%mass / spec(isb)%mass)**(-3) &
                                                  * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
                            end if
                         end if
@@ -2172,6 +2242,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          end do
       end do
       !$omp end parallel do
+      call sum_allreduce(psijnorm)
 
       psijnorm = psijnorm / (4 * pi) ! account for theta and phi integrals included in integrate_vmu
 
@@ -2386,7 +2457,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
          iz = iz_idx(kxkyzt_lo, ikxkyzt)
          do is = 1, nspec
-   ghrs = reshape(transpose(spread(ztmax(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(jm0(:,iky,ikx,iz,is),1,nvpa)), shape=(/ nmu*nvpa /))
+   ghrs = reshape(transpose(spread(ztmax(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(jm0(:,iky,ikx,izl(iz),is),1,nvpa)), shape=(/ nmu*nvpa /))
             call solve_test_particle_operator(ghrs, ikxkyzt, is)
             gvmu_kxkyzt(:, :, ikxkyzt, is) = transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
          end do
@@ -2528,7 +2599,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                do is = 1, nspec
                   do iv = 1, nvpa
                      do imu = 1, nmu
-                        ghrs(nmu * (iv - 1) + imu) = ztmax(iv, is) * maxwell_mu(1, iz, imu, is) * jm0(imu, iky, ikx, iz, is)
+                        ghrs(nmu * (iv - 1) + imu) = ztmax(iv, is) * maxwell_mu(1, iz, imu, is) * jm0(imu, iky, ikx, izl(iz), is)
                      end do
                   end do
                   call solve_test_particle_operator(ghrs, ikxkyzt, is)
@@ -2731,6 +2802,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       call finish_fp_diffmatrix
       call finish_fp_response
       call finish_deltaj
+      if (allocated(legendre_vpamu)) deallocate (legendre_vpamu)
+      if (allocated(jm)) deallocate (jm)
+      if (allocated(jm0)) deallocate (jm0)
+      if (allocated(izl)) deallocate (izl, iz_of_izl, local_z)
 
       initialised_fokker_planck = .false.
 
@@ -2860,14 +2935,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             do iv = 1, nvpa
                do imu = 1, nmu
                   if (mm == 0) then
-                     ghrs(nmu * (iv - 1) + imu) = code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, iz) &
-                                   * jm(imu, mm, iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
+                     ghrs(nmu * (iv - 1) + imu) = code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, izl(iz)) &
+                                   * jm(imu, mm, iky, ikx, izl(iz), isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, izl(iz))
                   else if (mm > 0) then
-                     ghrs(nmu * (iv - 1) + imu) = code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, iz) &
-                                   * jm(imu, mm, iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
+                     ghrs(nmu * (iv - 1) + imu) = code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, izl(iz)) &
+                                   * jm(imu, mm, iky, ikx, izl(iz), isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, izl(iz))
                   else if (mm < 0) then
-                     ghrs(nmu * (iv - 1) + imu) = (-1)**mm * code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, iz) &
-                              * jm(imu, abs(mm), iky, ikx, iz, isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, iz)
+                     ghrs(nmu * (iv - 1) + imu) = (-1)**mm * code_dt * spec(isa)%vnew(is) * clm * legendre_vpamu(ll, mm, iv, imu, izl(iz)) &
+                              * jm(imu, abs(mm), iky, ikx, izl(iz), isa) * (spec(isa)%mass / spec(is)%mass)**(-1.5) * deltaj(ll, jj, isa, is, iv, imu, ia, izl(iz))
                   end if
                end do
             end do
@@ -2989,7 +3064,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          !$omp   firstprivate(kxkyz_lo, isa, isb, ll, mm, jj, clm, ia, nvpa, nmu) &
          !$omp   private(ikxkyz, ikxkyzt, iky, ikx, iz, it, is, iv, g0, ghrs) &
          !$omp   shared(g, fld, mw, jm, legendre_vpamu, deltaj, deltaj_tp, spec, blockmatrix, code_dt, vpa, velvpamu, &
-         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp)
+         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp, izl)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -2999,11 +3074,11 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             if (mm == 0) then
 
                if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
-           g0 = clm*g(:,:,ikxkyz)/mw(:,:,iz,is)*spread(jm(:,-mm,iky,ikx,iz,is),1,nvpa)*legendre_vpamu(ll,-mm,:,:,iz)*deltaj_tp(ll,jj,is,isa,:,:,ia,iz)
+           g0 = clm*g(:,:,ikxkyz)/mw(:,:,iz,is)*spread(jm(:,-mm,iky,ikx,izl(iz),is),1,nvpa)*legendre_vpamu(ll,-mm,:,:,izl(iz))*deltaj_tp(ll,jj,is,isa,:,:,ia,izl(iz))
 
                else if ((exact_conservation_tp) .and. ((ll == 1) .and. (jj == 0))) then
                   do iv = 1, nvpa
-                     ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(is)%mass / spec(isa)%mass)**2 * jm(:, -mm, iky, ikx, iz, is) * g(iv, :, ikxkyz)
+                     ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(is)%mass / spec(isa)%mass)**2 * jm(:, -mm, iky, ikx, izl(iz), is) * g(iv, :, ikxkyz)
                   end do
                   ! blockmatrix is on kxkyzt_lo with explicit (target_is, source_isb).
                   ! NOTE: this branch assumes this rank owns the (iky,ikx,iz,it) point
@@ -3021,7 +3096,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
                else if ((exact_conservation_tp) .and. ((ll == 0) .and. (jj == 1))) then
                   do iv = 1, nvpa
-                     ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(is)%mass / spec(isa)%mass)**1.5 * jm(:, -mm, iky, ikx, iz, is) * g(iv, :, ikxkyz)
+                     ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(is)%mass / spec(isa)%mass)**1.5 * jm(:, -mm, iky, ikx, izl(iz), is) * g(iv, :, ikxkyz)
                   end do
                   ikxkyzt = idx(kxkyzt_lo, iky, ikx, iz, it)
                   ghrs = matmul(-blockmatrix(:, :, ikxkyzt, is, isa) / code_dt / spec(is)%vnew(isa), ghrs)
@@ -3033,25 +3108,25 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                   end if
 
                else
-              g0 = clm*g(:,:,ikxkyz)/mw(:,:,iz,is)*spread(jm(:,-mm,iky,ikx,iz,is),1,nvpa)*legendre_vpamu(ll,-mm,:,:,iz)*deltaj(ll,jj,is,isa,:,:,ia,iz)
+              g0 = clm*g(:,:,ikxkyz)/mw(:,:,iz,is)*spread(jm(:,-mm,iky,ikx,izl(iz),is),1,nvpa)*legendre_vpamu(ll,-mm,:,:,izl(iz))*deltaj(ll,jj,is,isa,:,:,ia,izl(iz))
 
                end if
             else if (mm < 0) then
                if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
-                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, iz, is), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj_tp(ll, jj, is, isa, :, :, ia, iz)
+                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, izl(iz), is), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, is, isa, :, :, ia, izl(iz))
                else
-                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, iz, is), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj(ll, jj, is, isa, :, :, ia, iz)
+                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, izl(iz), is), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj(ll, jj, is, isa, :, :, ia, izl(iz))
                end if
 
             else if (mm > 0) then
                if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
-                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, iz, is), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj_tp(ll, jj, is, isa, :, :, ia, iz)
+                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), is), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, is, isa, :, :, ia, izl(iz))
                else
-                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, iz, is), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj(ll, jj, is, isa, :, :, ia, iz)
+                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), is), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj(ll, jj, is, isa, :, :, ia, izl(iz))
                end if
             end if
 
@@ -3070,7 +3145,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          !$omp   firstprivate(kxkyz_lo, isa, isb, ll, mm, jj, clm, ia, nvpa, nmu) &
          !$omp   private(ikxkyz, ikxkyzt, iky, ikx, iz, it, is, iv, g0, ghrs) &
          !$omp   shared(g, fld, mw, jm, legendre_vpamu, deltaj, deltaj_tp, spec, blockmatrix, code_dt, vpa, velvpamu, &
-         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp)
+         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp, izl)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -3079,13 +3154,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             it = it_idx(kxkyz_lo, ikxkyz)
             if (mm == 0) then
                if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
-                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, iz, isb), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj_tp(ll, jj, isb, isa, :, :, ia, iz)
+                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), isb), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, isb, isa, :, :, ia, izl(iz))
 
                else if ((exact_conservation_tp) .and. ((ll == 1) .and. (jj == 0))) then
                   do iv = 1, nvpa
                      ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(isb)%mass / spec(isa)%mass)**2 &
-                                                         * jm(:, mm, iky, ikx, iz, isb) * g(iv, :, ikxkyz)
+                                                         * jm(:, mm, iky, ikx, izl(iz), isb) * g(iv, :, ikxkyz)
                   end do
                   ! Under kxkyzt_lo, all species are local at any (iky,ikx,iz,it):
                   ! the previous "search for ikxkyz_isb at (iky,ikx,iz,it,isb)" nested
@@ -3103,7 +3178,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                else if ((exact_conservation_tp) .and. ((ll == 0) .and. (jj == 1))) then
                   do iv = 1, nvpa
                      ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(isb)%mass / spec(isa)%mass)**1.5 &
-                                                         * jm(:, mm, iky, ikx, iz, isb) * g(iv, :, ikxkyz)
+                                                         * jm(:, mm, iky, ikx, izl(iz), isb) * g(iv, :, ikxkyz)
                   end do
                   ikxkyzt = idx(kxkyzt_lo, iky, ikx, iz, it)
                   ghrs = matmul(-blockmatrix(:, :, ikxkyzt, isb, isa) / code_dt / spec(isb)%vnew(isa), ghrs)
@@ -3114,25 +3189,25 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      g0 = 0.
                   end if
                else
-                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, iz, isb), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj(ll, jj, isb, isa, :, :, ia, iz)
+                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), isb), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj(ll, jj, isb, isa, :, :, ia, izl(iz))
                end if
             else if (mm < 0) then
                if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
-                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, iz, isb), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj_tp(ll, jj, isb, isa, :, :, ia, iz)
+                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, izl(iz), isb), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, isb, isa, :, :, ia, izl(iz))
                else
-                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, iz, isb), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj(ll, jj, isb, isa, :, :, ia, iz)
+                  g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, izl(iz), isb), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj(ll, jj, isb, isa, :, :, ia, izl(iz))
                end if
 
             else if (mm > 0) then
                if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
-                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, iz, isb), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj_tp(ll, jj, isb, isa, :, :, ia, iz)
+                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), isb), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, isb, isa, :, :, ia, izl(iz))
                else
-                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, iz, isb), 1, nvpa) &
-                       * legendre_vpamu(ll, -mm, :, :, iz) * deltaj(ll, jj, isb, isa, :, :, ia, iz)
+                  g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), isb), 1, nvpa) &
+                       * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj(ll, jj, isb, isa, :, :, ia, izl(iz))
                end if
             end if
 
@@ -3404,15 +3479,16 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       ia = 1
       if (jj == 0) then
-         ! Only on the z points <iz_deltaj_lo> to <iz_deltaj_hi> (see init_deltaj_vmu), zero elsewhere
+         ! Only on the z points of this processor (local_z, see init_local_z), zero elsewhere
          deltj = 0.
          !$omp parallel do default(none) collapse(3) &
          !$omp   firstprivate(nvpa, nmu, nn, ll, isa, isb, ia) &
          !$omp   private(iv, imu, iz, v) &
-         !$omp   shared(nzgrid, iz_deltaj_lo, iz_deltaj_hi, vpa, mu, bmag, deltj)
+         !$omp   shared(nzgrid, local_z, vpa, mu, bmag, deltj)
          do iv = 1, nvpa
             do imu = 1, nmu
-               do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+               do iz = -nzgrid, nzgrid
+                  if (.not. local_z(iz)) cycle
                   v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
                   call calc_delta0(v, nn, ll, isa, isb, deltj(iv, imu, iz))
                end do
@@ -3453,7 +3529,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       vLj = 0.
       do iv = 1, nvpa
          do imu = 1, nmu
-            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+            do iz = -nzgrid, nzgrid
+               if (.not. local_z(iz)) cycle
                v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
                vLj(iv, imu, iz) = v**ll * associated_laguerre(jj, ll + 1./2., v**2)
             end do
@@ -3496,7 +3573,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
             ! multiply by x_b^l L_n(x_b^2) and integrate
             call vLj_vmu(nn, ll, vLn)
-            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+            do iz = -nzgrid, nzgrid
+               if (.not. local_z(iz)) cycle
                call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
             end do
 
@@ -3508,12 +3586,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
                !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
                call vLj_vmu(jj, ll, vLj)
-               do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+               do iz = -nzgrid, nzgrid
+                  if (.not. local_z(iz)) cycle
                   call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
                end do
             else
                call vLj_vmu(jj, ll, vLj)
-               do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+               do iz = -nzgrid, nzgrid
+                  if (.not. local_z(iz)) cycle
                   call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
                end do
             end if
@@ -3524,7 +3604,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
          ! multiply by x_b^l L_n(x_b^2) and integrate
          call vLj_vmu(nn, ll, vLn)
-         do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+         do iz = -nzgrid, nzgrid
+            if (.not. local_z(iz)) cycle
             call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
          end do
 
@@ -3536,21 +3617,24 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
             !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
             call vLj_vmu(jj, ll, vLj)
-            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+            do iz = -nzgrid, nzgrid
+               if (.not. local_z(iz)) cycle
                call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
             end do
          else
             call vLj_vmu(jj, ll, vLj)
-            do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+            do iz = -nzgrid, nzgrid
+               if (.not. local_z(iz)) cycle
                call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
             end do
          end if
 
       end if
 
-      ! Only on the z points <iz_deltaj_lo> to <iz_deltaj_hi> (see init_deltaj_vmu), zero elsewhere
+      ! Only on the z points of this processor (local_z, see init_local_z), zero elsewhere
       psij = 0.
-      do iz = max(-nzgrid, iz_deltaj_lo), min(nzgrid, iz_deltaj_hi)
+      do iz = -nzgrid, nzgrid
+         if (.not. local_z(iz)) cycle
          psij(iz) = num(iz) / den(iz)
       end do
 
@@ -4641,17 +4725,17 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                   clm = sqrt(((2 * ll1 + 1) * gamma(ll1 - mm1 + 1.)) / (4 * pi * gamma(ll1 + mm1 + 1.)))
                   do isb = 1, nspec
                      if (mm1 == 0) then
-                g(:,:,ikxkyz) = g(:,:,ikxkyz) + code_dt*spec(is)%vnew(isb)*clm*legendre_vpamu(ll1,mm1,:,:,iz)*spread(jm(:,mm1,iky,ikx,iz,is),1,nvpa) &
+                g(:,:,ikxkyz) = g(:,:,ikxkyz) + code_dt*spec(is)%vnew(isb)*clm*legendre_vpamu(ll1,mm1,:,:,izl(iz))*spread(jm(:,mm1,iky,ikx,izl(iz),is),1,nvpa) &
                                       * flds(iky, ikx, iz, it, 2 + (is - 1) * ((jmax + 1) * (lmax + 1)**2 * nspec) + (idx1 - 1) * nspec + (isb - 1)) &
-                                        * (spec(is)%mass / spec(isb)%mass)**(-1.5) * deltaj(ll1, jj1, is, isb, :, :, ia, iz)
+                                        * (spec(is)%mass / spec(isb)%mass)**(-1.5) * deltaj(ll1, jj1, is, isb, :, :, ia, izl(iz))
                      else if (mm1 > 0) then
-                g(:,:,ikxkyz) = g(:,:,ikxkyz) + code_dt*spec(is)%vnew(isb)*clm*legendre_vpamu(ll1,mm1,:,:,iz)*spread(jm(:,mm1,iky,ikx,iz,is),1,nvpa) &
+                g(:,:,ikxkyz) = g(:,:,ikxkyz) + code_dt*spec(is)%vnew(isb)*clm*legendre_vpamu(ll1,mm1,:,:,izl(iz))*spread(jm(:,mm1,iky,ikx,izl(iz),is),1,nvpa) &
                                       * flds(iky, ikx, iz, it, 2 + (is - 1) * ((jmax + 1) * (lmax + 1)**2 * nspec) + (idx1 - 1) * nspec + (isb - 1)) &
-                                        * (spec(is)%mass / spec(isb)%mass)**(-1.5) * deltaj(ll1, jj1, is, isb, :, :, ia, iz)
+                                        * (spec(is)%mass / spec(isb)%mass)**(-1.5) * deltaj(ll1, jj1, is, isb, :, :, ia, izl(iz))
                      else if (mm1 < 0) then
- g(:,:,ikxkyz) = g(:,:,ikxkyz) + (-1)**mm1*code_dt*spec(is)%vnew(isb)*clm*legendre_vpamu(ll1,mm1,:,:,iz)*spread(jm(:,abs(mm1),iky,ikx,iz,is),1,nvpa) &
+ g(:,:,ikxkyz) = g(:,:,ikxkyz) + (-1)**mm1*code_dt*spec(is)%vnew(isb)*clm*legendre_vpamu(ll1,mm1,:,:,izl(iz))*spread(jm(:,abs(mm1),iky,ikx,izl(iz),is),1,nvpa) &
                                       * flds(iky, ikx, iz, it, 2 + (is - 1) * ((jmax + 1) * (lmax + 1)**2 * nspec) + (idx1 - 1) * nspec + (isb - 1)) &
-                                        * (spec(is)%mass / spec(isb)%mass)**(-1.5) * deltaj(ll1, jj1, is, isb, :, :, ia, iz)
+                                        * (spec(is)%mass / spec(isb)%mass)**(-1.5) * deltaj(ll1, jj1, is, isb, :, :, ia, izl(iz))
                      end if
                   end do
 
