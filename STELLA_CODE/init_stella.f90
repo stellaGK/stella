@@ -393,9 +393,10 @@ contains
       implicit none
 
       ! Namelists which stella reads from the input file, besides &species_parameters_<i>
-      character(len=*), dimension(49), parameter :: known_namelists = [character(len=35) :: &
+      character(len=*), dimension(50), parameter :: known_namelists = [character(len=35) :: &
          'adiabatic_electron_response', 'adiabatic_ion_response', 'collisions_dougherty', &
-         'collisions_fokker_planck', 'debug_flags', 'diagnostics', 'diagnostics_distribution', &
+         'collisions_fokker_planck', 'collisions_fokker_planck_developers', 'debug_flags', 'diagnostics', &
+         'diagnostics_distribution', &
          'diagnostics_fluxes', 'diagnostics_moments', 'diagnostics_omega', 'diagnostics_potential', &
          'diagnostics_stresses', 'dissipation_and_collisions_options', 'electromagnetic', &
          'euterpe_parameters', 'flow_shear', 'flux_annulus', 'geometry_from_txt', 'geometry_miller', &

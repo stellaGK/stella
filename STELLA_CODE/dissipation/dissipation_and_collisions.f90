@@ -109,7 +109,7 @@ contains
          if (collision_model == "dougherty") then
             call read_parameters_dougherty
          else if (collision_model == "fokker-planck") then
-            call read_parameters_fp
+            call read_parameters_fp(collisions_implicit)
          end if
       end if
 

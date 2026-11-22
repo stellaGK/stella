@@ -844,6 +844,9 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     #                                   Dissipation                                  
     #===============================================================================
     
+    # The options of the Fokker-Planck operator were renamed in Nov 2026, see rename_fokker_planck_options()
+    if downgrade: input_parameters = rename_fokker_planck_options(input_parameters, downgrade=True)
+    
     renamed_variables = { 
         #------------------- dissipation --> dissipation ------------------
         'dissipation:include_collisions:False'      : 'dissipation_and_collisions_options:include_collisions:False',
@@ -1107,11 +1110,15 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
 
         # Remove variables which are no longer read by stella, since stella aborts on unknown variables
         removed_variables = ['multibox_parameters:comm_at_init', 'numerical_algorithms:maxwellian_normalization',
-            'debug_flags:ffs_solve_debug', 'debug_flags:fs_solve_debug', 'collisions_fokker_planck:cfac2']
+            'debug_flags:ffs_solve_debug', 'debug_flags:fs_solve_debug', 'collisions_fokker_planck:cfac2',
+            'collisions_fokker_planck:nvel_local']
         for namelist_variable in removed_variables:
             namelist, variable = namelist_variable.split(':')
             if namelist in input_parameters.keys():
                 input_parameters[namelist].pop(variable, None)
+
+        # The options of the Fokker-Planck operator were renamed in Nov 2026
+        input_parameters = rename_fokker_planck_options(input_parameters)
 
     # For old stella versions, always turn off apar and radial_moments
     if downgrade:
@@ -1129,6 +1136,120 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     path_new_input_file = str(path_input_file).replace('.in', '_updated.in')
     if downgrade: path_new_input_file = str(path_input_file).replace('.in', '_downgraded.in')
     write_dictionaryToNamelist(path_new_input_file, input_parameters, downgrade) 
+    return input_parameters
+
+#--------------------------------------------------------------
+# In Nov 2026 the options of the Fokker-Planck operator were renamed, and those meant for tests of the operator moved to
+# <collisions_fokker_planck_developers>. Each old name in <collisions_fokker_planck> becomes (namelist, new name, function
+# of the old value); stella still reads the old names, but the new ones are clearer. With <downgrade>, go back.
+fokker_planck_options = {
+    'fieldpart'                  : ('collisions_fokker_planck', 'include_field_particle_part', lambda x: x),
+    'exact_conservation_tp'      : ('collisions_fokker_planck', 'exact_conservation', lambda x: x),
+    'testpart'                   : ('collisions_fokker_planck_developers', 'include_test_particle_part', lambda x: x),
+    'lmax'                       : ('collisions_fokker_planck_developers', 'field_particle_lmax', lambda x: int(x)),
+    'jmax'                       : ('collisions_fokker_planck_developers', 'field_particle_jmax', lambda x: int(x)),
+    'intraspec'                  : ('collisions_fokker_planck_developers', 'include_like_species_collisions', lambda x: x),
+    'interspec'                  : ('collisions_fokker_planck_developers', 'include_unlike_species_collisions', lambda x: x),
+    'iiknob'                     : ('collisions_fokker_planck_developers', 'scale_nu_ii', lambda x: x),
+    'ieknob'                     : ('collisions_fokker_planck_developers', 'scale_nu_ie', lambda x: x),
+    'eeknob'                     : ('collisions_fokker_planck_developers', 'scale_nu_ee', lambda x: x),
+    'eiknob'                     : ('collisions_fokker_planck_developers', 'scale_nu_ei', lambda x: x),
+    'deflknob'                   : ('collisions_fokker_planck_developers', 'include_pitch_angle_scattering', lambda x: x != 0),
+    'eideflknob'                 : ('collisions_fokker_planck_developers', 'scale_pitch_angle_scattering_ei', lambda x: x),
+    'eiediffknob'                : ('collisions_fokker_planck_developers', 'scale_energy_diffusion_ei', lambda x: x),
+    'vpa_operator'               : ('collisions_fokker_planck_developers', 'include_vpa_derivatives', lambda x: x),
+    'mu_operator'                : ('collisions_fokker_planck_developers', 'include_mu_derivatives', lambda x: x),
+    'no_j1l1'                    : ('collisions_fokker_planck_developers', 'include_j1_l1_term', lambda x: not x),
+    'no_j1l2'                    : ('collisions_fokker_planck_developers', 'include_j1_l2_term', lambda x: not x),
+    'no_j0l2'                    : ('collisions_fokker_planck_developers', 'include_j0_l2_term', lambda x: not x),
+    'eimassr_approx'             : ('collisions_fokker_planck_developers', 'mass_ratio_approximation_ei', lambda x: x),
+    'density_conservation'       : ('collisions_fokker_planck_developers', 'conservative_test_particle_density', lambda x: x),
+    'density_conservation_field' : ('collisions_fokker_planck_developers', 'exact_field_particle_density', lambda x: x),
+    'density_conservation_tp'    : ('collisions_fokker_planck_developers', 'field_particle_density_from_test_particle', lambda x: x),
+    'spitzer_problem'            : ('collisions_fokker_planck_developers', 'spitzer_problem', lambda x: x),
+    'i1fac'                      : ('collisions_fokker_planck_developers', 'spitzer_scale_epar', lambda x: x),
+    'i2fac'                      : ('collisions_fokker_planck_developers', 'spitzer_scale_grad_t', lambda x: x),
+}
+fokker_planck_options_downgrade = {
+    'include_field_particle_part'               : ('fieldpart', lambda x: x),
+    'include_test_particle_part'                : ('testpart', lambda x: x),
+    'field_particle_lmax'                       : ('lmax', lambda x: x),
+    'field_particle_jmax'                       : ('jmax', lambda x: x),
+    'include_like_species_collisions'           : ('intraspec', lambda x: x),
+    'include_unlike_species_collisions'         : ('interspec', lambda x: x),
+    'scale_nu_ii'                               : ('iiknob', lambda x: x),
+    'scale_nu_ie'                               : ('ieknob', lambda x: x),
+    'scale_nu_ee'                               : ('eeknob', lambda x: x),
+    'scale_nu_ei'                               : ('eiknob', lambda x: x),
+    'include_pitch_angle_scattering'            : ('deflknob', lambda x: 1.0 if x else 0.0),
+    'scale_pitch_angle_scattering_ei'           : ('eideflknob', lambda x: x),
+    'scale_energy_diffusion_ei'                 : ('eiediffknob', lambda x: x),
+    'include_vpa_derivatives'                   : ('vpa_operator', lambda x: x),
+    'include_mu_derivatives'                    : ('mu_operator', lambda x: x),
+    'include_j1_l1_term'                        : ('no_j1l1', lambda x: not x),
+    'include_j1_l2_term'                        : ('no_j1l2', lambda x: not x),
+    'include_j0_l2_term'                        : ('no_j0l2', lambda x: not x),
+    'mass_ratio_approximation_ei'               : ('eimassr_approx', lambda x: x),
+    'conservative_test_particle_density'        : ('density_conservation', lambda x: x),
+    'exact_field_particle_density'              : ('density_conservation_field', lambda x: x),
+    'field_particle_density_from_test_particle' : ('density_conservation_tp', lambda x: x),
+    'spitzer_problem'                           : ('spitzer_problem', lambda x: x),
+    'spitzer_scale_epar'                        : ('i1fac', lambda x: x),
+    'spitzer_scale_grad_t'                      : ('i2fac', lambda x: x),
+}
+
+def rename_fokker_planck_options(input_parameters, downgrade=False):
+
+    # Go back to the old names in <collisions_fokker_planck>: cfac and nuxfac combine a switch and a scale factor
+    if downgrade:
+        old = input_parameters.setdefault('collisions_fokker_planck', {})
+        new = dict(input_parameters.get('collisions_fokker_planck', {}))
+        new.update(input_parameters.pop('collisions_fokker_planck_developers', {}))
+        for new_name, (old_name, function) in fokker_planck_options_downgrade.items():
+            if new_name in new: old.pop(new_name, None); old[old_name] = function(new[new_name])
+        for switch, scale, old_name in [('include_flr_terms', 'scale_flr_terms', 'cfac'),
+                ('include_mixed_derivative_terms', 'scale_mixed_derivative_terms', 'nuxfac')]:
+            if switch in new or scale in new:
+                old.pop(switch, None)
+                old[old_name] = float(new.get(scale, 1.0)) if new.get(switch, True) else 0.0
+        for name in ['use_explicit_algorithm', 'exact_conservation_algorithm']: old.pop(name, None)
+        return input_parameters
+
+    if 'collisions_fokker_planck' not in input_parameters.keys(): return input_parameters
+    options = input_parameters['collisions_fokker_planck']
+    developers = input_parameters.get('collisions_fokker_planck_developers', {})
+
+    # Before Nov 2026 the field-particle part was off by default; keep it off in an input that used the default
+    collisions = input_parameters.get('dissipation_and_collisions_options', {})
+    if collisions.get('collision_model', '') == 'fokker-planck' and collisions.get('include_collisions', False):
+        if 'fieldpart' not in options and 'include_field_particle_part' not in options:
+            options['include_field_particle_part'] = False
+            print('Note: include_field_particle_part = .false. is added to keep the old default of the Fokker-Planck operator; '
+                  'the new default (.true.) conserves momentum and energy.')
+        # The explicit Fokker-Planck algorithm is now a developer option
+        if collisions.get('collisions_implicit', True) == False:
+            developers['use_explicit_algorithm'] = True
+
+    # Rename the options
+    for old_name, (namelist, new_name, function) in fokker_planck_options.items():
+        if old_name not in options.keys(): continue
+        value = function(options.pop(old_name))
+        if namelist == 'collisions_fokker_planck': options[new_name] = value
+        else: developers[new_name] = value
+
+    # cfac and nuxfac: 0 switches the terms off, other values are developer scale factors
+    for old_name, switch, scale in [('cfac', 'include_flr_terms', 'scale_flr_terms'),
+            ('nuxfac', 'include_mixed_derivative_terms', 'scale_mixed_derivative_terms')]:
+        if old_name not in options.keys(): continue
+        value = float(options.pop(old_name))
+        if value == 0: options[switch] = False
+        elif value != 1: developers[scale] = value
+
+    # advfield_coll = .false. has been removed from stella
+    if options.pop('advfield_coll', True) == False:
+        print('Warning: advfield_coll = .false. has been removed from stella; it is left out of the converted input file.')
+
+    if developers: input_parameters['collisions_fokker_planck_developers'] = developers
     return input_parameters
 
 #--------------------------------------------------------------

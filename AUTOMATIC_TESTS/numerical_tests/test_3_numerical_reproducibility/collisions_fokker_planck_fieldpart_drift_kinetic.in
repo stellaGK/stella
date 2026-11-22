@@ -10,7 +10,7 @@
 !     &dissipation_and_collisions_options: vnew_ref = 0.01
 !     &dissipation_and_collisions_options: collision_model = 'fokker-planck'
 !     &dissipation_and_collisions_options: collisions_implicit = .true.
-!     &collisions_fokker_planck: nvel_local = 64, fieldpart = .true., cfac = 0.0
+!     &collisions_fokker_planck: include_field_particle_part = .true., include_flr_terms = .false.
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -58,9 +58,8 @@
 /
 
 &collisions_fokker_planck
-  nvel_local = 64
-  fieldpart = .true.
-  cfac = 0.0
+  include_field_particle_part = .true.
+  include_flr_terms = .false.
 /
 
 !===============================================================================

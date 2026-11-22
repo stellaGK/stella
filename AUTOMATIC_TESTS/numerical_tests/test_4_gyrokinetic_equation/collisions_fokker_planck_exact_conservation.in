@@ -1,14 +1,11 @@
- 
-! Numerical reproducibility test (test 3): implicit Fokker-Planck collisions with the field-particle part,
-! without the electrostatic potential terms in the field-particle operator (advfield_coll = .false.).
-! Identical to es_nonlinear.in except for:
-!     &dissipation_and_collisions_options: include_collisions = .true.
-!     &dissipation_and_collisions_options: vnew_ref = 0.01
-!     &dissipation_and_collisions_options: collision_model = 'fokker-planck'
-!     &dissipation_and_collisions_options: collisions_implicit = .true.
-!     &collisions_fokker_planck: nvel_local = 64
-!     &collisions_fokker_planck: fieldpart = .true.
-!     &collisions_fokker_planck: advfield_coll = .false.
+! Test 4g: with exact_conservation, the Fokker-Planck collision operator must conserve the total parallel momentum and
+! the total energy of ions and electrons to machine precision. Only collisions are switched on (no streaming, mirror,
+! drifts, drive or potential), for ions and electrons with the real mass ratio at a large collision frequency
+! (vnew_ref = 0.3), one mode with k_perp ~ 0 (aky = 1e-6) and without the finite-Larmor-radius terms, starting from
+! a distribution with a parallel flow and a temperature perturbation. exact_conservation needs the operator without
+! the mixed-derivative terms (include_mixed_derivative_terms = .false.) and the conservative vpa weights. The test
+! runs this input on the equally spaced mu grid (the block-products algorithm) and on the Gauss-Laguerre mu grid
+! (the test-particle-matrix algorithm), see test_4g_collisions_exact_conservation.py.
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -24,35 +21,31 @@
   qinp = 1.4
   rmaj = 2.77778
   rgeo = 2.77778
-  shift = -0.1
-  kappa = 1.3
-  kapprim = 0.2
-  tri = 0.1
-  triprim = 0.1
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
   betaprim = 0.0
   d2qdr2 = 0.0
   d2psidr2 = 0.0
   betadbprim = 0.0
-/
+/ 
 
 !===============================================================================
 !                                    Physics                                    
 !===============================================================================
 
-&gyrokinetic_terms
-  include_parallel_streaming = .true.
-  include_mirror = .true.
-  include_xdrift = .true.
-  include_ydrift = .true.
-  include_drive = .true.
-  include_nonlinear = .true.
+&scale_gyrokinetic_terms
+  fphi = 0.0
 /
-&dissipation_and_collisions_options
-  hyper_dissipation = .true.
-  include_collisions = .true.
-  vnew_ref = 0.01
-  collision_model = 'fokker-planck'
-  collisions_implicit = .true.
+&gyrokinetic_terms
+  include_parallel_streaming = .false.
+  include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .false.
+  include_drive = .false.
+  include_nonlinear = .false.
 /
 
 !===============================================================================
@@ -86,29 +79,39 @@
 !===============================================================================
 
 &kxky_grid_option
-  grid_option = 'box'
+  grid_option = 'range'
 /
-&kxky_grid_box
-  jtwist = 5
-  nx = 6
-  ny = 9
-  y0 = 15
+&kxky_grid_range
+  naky = 1
+  nakx = 1
+  aky_min = 1.0e-6
+  aky_max = 1.0e-6
 /
 &z_grid
-  nzed = 24
+  nzed = 12
 /
 &z_boundary_condition
-  boundary_option = 'linked'
+  boundary_option = 'default'
 /
 &velocity_grids
-  nmu = 3
-  nvgrid = 4
+  nmu = 8
+  nvgrid = 12
+  vpa_max = 3.0
+  vperp_max = 3.0
+  equally_spaced_mu_grid = .true.
+  conservative_wgts_vpa = .true.
 /
-
+&dissipation_and_collisions_options
+  include_collisions = .true.
+  collision_model = 'fokker-planck'
+  collisions_implicit = .true.
+  vnew_ref = 0.3
+/
 &collisions_fokker_planck
-  nvel_local = 64
-  fieldpart = .true.
-  advfield_coll = .false.
+  include_field_particle_part = .true.
+  include_flr_terms = .false.
+  include_mixed_derivative_terms = .false.
+  exact_conservation = .true.
 /
 
 !===============================================================================
@@ -117,20 +120,33 @@
 
 &diagnostics
   nsave = 100
-  nwrite = 10
-  write_all = .true.
+  nwrite = 10 
+  write_all_potential = .true.
+/
+&diagnostics_moments
+  write_moments = .true.
 /
 
 !===============================================================================
-!                              Initialise potential                             
+!                              initialise potential                             
 !===============================================================================
 
 &initialise_distribution
-  initialise_distribution_option = 'noise'
+  initialise_distribution_option = 'kpar'
   phiinit = 0.01
 /
-&initialise_distribution_noise
-  rng_seed = 1
+&initialise_distribution_kpar
+  width0 = -1.0
+  refac = 1.0
+  imfac = 0.0
+  den0 = 0.0
+  upar0 = 1.0
+  tpar0 = 1.0
+  tperp0 = 0.5
+/
+
+&initialise_distribution_maxwellian
+  width0 = 1.0
 /
 
 !===============================================================================
@@ -140,12 +156,21 @@
 &time_trace_options
   nstep = 50
 /
+
 &time_step
   delt = 0.01
 /
+
 &numerical_algorithms
-  explicit_algorithm = 'rk3'
+  explicit_algorithm = 'rk2'
+  stream_implicit = .true.
+  mirror_implicit = .true.
+  drifts_implicit = .false.
 /
-&debug_flags
-  print_extra_info_to_terminal = .false.
+
+&debug_flags 
+  print_extra_info_to_terminal = .false. 
 /
+
+
+

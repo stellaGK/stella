@@ -81,6 +81,7 @@ module grids_velocity
    public :: int_unit, int_vpa2, int_vperp2, int_vfrth
    public :: dmu_cell, mu_cell
    public :: set_vpa_weights
+   public :: equally_spaced_mu_grid, conservative_wgts_vpa
 
    private
 

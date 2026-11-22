@@ -48,7 +48,8 @@ collision_operators = {
     'dougherty': ([], 0.02),
     'fokker-planck': ([("collision_model = 'dougherty'", "collision_model = 'fokker-planck'"),
                        ("&collisions_dougherty\n  momentum_conservation = .false.\n/",
-                        "&collisions_fokker_planck\n  interspec = .false.\n  fieldpart = .false.\n/"),
+                        "&collisions_fokker_planck\n  include_field_particle_part = .false.\n/\n"
+                        "&collisions_fokker_planck_developers\n  include_unlike_species_collisions = .false.\n/"),
                        ('nmu = 4', 'nmu = 8'), ('nvgrid = 8', 'nvgrid = 16')], 0.1),
 }
 
@@ -69,6 +70,10 @@ def write_input_file(folder, replacements, implicit):
     for old, new in replacements:
         assert old in text, f'Expected "{old}" in {input_file}.'
         text = text.replace(old, new)
+    # The explicit Fokker-Planck algorithm is a developer option
+    if not implicit and '&collisions_fokker_planck_developers\n' in text:
+        text = text.replace('&collisions_fokker_planck_developers\n',
+            '&collisions_fokker_planck_developers\n  use_explicit_algorithm = .true.\n')
     open(path_input_file, 'w').write(text)
     return path_input_file
 

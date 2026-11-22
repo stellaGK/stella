@@ -82,7 +82,8 @@ module collisions_fokkerplanck
    logical :: spitzer_problem, no_j1l1, no_j1l2, no_j0l2
    logical :: fieldpart, testpart
    logical :: interspec, intraspec
-   logical :: advfield_coll
+   ! The algorithm of exact_conservation: 'automatic' (from the mu grid), 'block_products' or 'test_particle_matrix'
+   character(len=30) :: exact_conservation_algorithm
 
    integer :: nresponse = 1
    real :: cfac
@@ -91,7 +92,6 @@ module collisions_fokkerplanck
    logical :: eimassr_approx
    integer :: jmax = 1
    integer :: lmax = 1
-   integer :: nvel_local
 
    real, dimension(:, :), allocatable :: aa_vpa, bb_vpa, cc_vpa
    complex, dimension(:, :, :), allocatable :: fp_response
@@ -120,9 +120,6 @@ module collisions_fokkerplanck
    real, dimension(:, :, :, :), allocatable :: mw, modmw
    real, dimension(:, :, :), allocatable :: velvpamu
    integer :: info
-
-   real, dimension(:), allocatable :: wgts_v
-   real, dimension(:), allocatable :: vel
 
    real, dimension(:, :, :, :, :, :, :, :), allocatable :: deltaj, deltaj_tp
    complex, dimension(:, :, :, :), allocatable :: deltajint
@@ -159,24 +156,31 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine read_parameters_fp
+   subroutine read_parameters_fp(collisions_implicit)
 
       use mp, only: broadcast
       use namelist_dissipation, only: read_namelist_collisions_fokker_planck
 
       implicit none
 
+      ! In: whether <dissipation_and_collisions_options> asks for implicit collisions. Out: .false. if the
+      ! explicit algorithm is used, which is chosen with use_explicit_algorithm in the developer namelist
+      logical, intent(in out) :: collisions_implicit
+
+      logical :: explicit_algorithm
+
       !----------------------------------------------------------------------
 
-      ! Read collisions namelist from input file
-      call read_namelist_collisions_fokker_planck (testpart, fieldpart, lmax, jmax, nvel_local, &
+      ! Read the namelists <collisions_fokker_planck> and <collisions_fokker_planck_developers>; the options are
+      ! returned under the internal names of this module, see read_namelist_collisions_fokker_planck
+      call read_namelist_collisions_fokker_planck(collisions_implicit, testpart, fieldpart, lmax, jmax, &
                interspec, intraspec, iiknob, ieknob, eeknob, eiknob, &
                eiediffknob, eideflknob, deflknob, eimassr_approx, &
-               advfield_coll, spitzer_problem, density_conservation, &
+               spitzer_problem, density_conservation, &
                density_conservation_field, density_conservation_tp, &
-               exact_conservation, exact_conservation_tp, &
+               exact_conservation, exact_conservation_algorithm, &
                vpa_operator, mu_operator, &
-               cfac, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
+               cfac, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2, explicit_algorithm)
 
       ! Broadcast the parameters to all processors
       call broadcast(fieldpart)
@@ -191,12 +195,11 @@ contains
       call broadcast(deflknob)
       call broadcast(eimassr_approx)
       call broadcast(eideflknob)
-      call broadcast(advfield_coll)
       call broadcast(density_conservation)
       call broadcast(density_conservation_field)
       call broadcast(density_conservation_tp)
       call broadcast(exact_conservation)
-      call broadcast(exact_conservation_tp)
+      call broadcast(exact_conservation_algorithm)
       call broadcast(spitzer_problem)
       call broadcast(vpa_operator)
       call broadcast(mu_operator)
@@ -204,12 +207,18 @@ contains
       call broadcast(nuxfac)
       call broadcast(jmax)
       call broadcast(lmax)
-      call broadcast(nvel_local)
       call broadcast(i1fac)
       call broadcast(i2fac)
       call broadcast(no_j1l1)
       call broadcast(no_j1l2)
       call broadcast(no_j0l2)
+      call broadcast(explicit_algorithm)
+
+      if (explicit_algorithm) collisions_implicit = .false.
+
+      ! The user's exact_conservation is turned into one of the two algorithms in init_collisions_fp, once the
+      ! mu grid is known
+      exact_conservation_tp = .false.
 
    end subroutine read_parameters_fp
 
@@ -223,12 +232,12 @@ contains
    subroutine init_collisions_fp(collisions_implicit, cfl_dt_collisions)
 
       use grids_species, only: spec, nspec, has_electron_species
-      use grids_velocity, only: dvpa, dmu, mu, nmu
+      use grids_velocity, only: dvpa, dmu, mu, nmu, equally_spaced_mu_grid, conservative_wgts_vpa
       use geometry, only: bmag
       use parallelisation_layouts
       use parameters_numerical, only: fully_explicit
       use common_types, only: spec_type
-      use mp, only: mp_abort, nproc
+      use mp, only: mp_abort, nproc, proc0
 
       implicit none
 
@@ -250,23 +259,81 @@ contains
       ! (advance_collisions_fp_explicit) applies the test-particle operator only, so stop instead of
       ! silently running without the field-particle part
       if (fieldpart .and. .not. collisions_implicit) then
-         call mp_abort('The field-particle part of the Fokker-Planck operator (fieldpart = .true.) is only ' &
-            //'implemented for implicit collisions (collisions_implicit = .true.). Aborting.')
+         call mp_abort('The field-particle part of the Fokker-Planck operator (include_field_particle_part = .true.) ' &
+            //'is only implemented in the implicit algorithm. Aborting.')
+      end if
+
+      ! The explicit algorithm only has like-species collisions (it uses vnew(is) of the species itself), so stop
+      ! instead of silently dropping the collisions between different species
+      if (.not. collisions_implicit .and. interspec .and. nspec > 1) then
+         call mp_abort('The explicit Fokker-Planck algorithm only has collisions between particles of the same ' &
+            //'species: with several species, set include_unlike_species_collisions = .false. in ' &
+            //'&collisions_fokker_planck_developers. Aborting.')
+      end if
+
+      ! exact_conservation (conserve momentum and energy to machine precision) has two algorithms, chosen from
+      ! the mu grid unless the developer option exact_conservation_algorithm says otherwise:
+      !  - on the equally spaced mu grid, 'block_products' (internally exact_conservation): the test-particle
+      !    operator applied to vpa F0 and v^2 F0 is taken from the blocks of the matrix (cheap, MPI parallel);
+      !  - on the Gauss-Laguerre mu grid, 'test_particle_matrix' (internally exact_conservation_tp): the field-
+      !    particle terms are computed with the dense test-particle matrix (expensive, and with several species
+      !    not MPI parallel).
+      ! Both need the discretisation of the test-particle part that conserves density (density_conservation), set
+      ! here: without it the energy is only conserved to about 1e-4 (equally spaced) or 1e-2 (Gauss-Laguerre). On
+      ! the Gauss-Laguerre grid that discretisation alone does not conserve the density, so the density term of
+      ! density_conservation_tp is added too. With ions and electrons (test 4g), the momentum and energy are then
+      ! conserved to about 1e-12 on both grids, the density to 1e-11 (equally spaced) and 1e-8 (Gauss-Laguerre).
+      if (exact_conservation) then
+         if (.not. fieldpart) call mp_abort('exact_conservation needs the field-particle part of the ' &
+            //'Fokker-Planck operator (include_field_particle_part = .true.). Aborting.')
+         if (.not. testpart) call mp_abort('exact_conservation needs the test-particle part of the ' &
+            //'Fokker-Planck operator (include_test_particle_part = .true.). Aborting.')
+         if (lmax /= 1 .or. jmax /= 1) call mp_abort('exact_conservation only works with ' &
+            //'field_particle_lmax = field_particle_jmax = 1. Aborting.')
+         ! The exact conservation terms assume that the test-particle operator has no mixed (nux) derivative
+         ! terms, whose discretisation does not conserve; with them, exact_conservation conserves the energy
+         ! worse than without it. Dropping them changes the operator, so it is left to the user.
+         if (nuxfac /= 0.) call mp_abort('exact_conservation only works without the mixed-derivative terms ' &
+            //'of the test-particle part: set include_mixed_derivative_terms = .false. in ' &
+            //'&collisions_fokker_planck. Aborting.')
+         ! Without the conservative vpa weights the energy is only conserved to 1e-5 to 1e-2
+         if (.not. conservative_wgts_vpa) call mp_abort('exact_conservation needs the conservative vpa ' &
+            //'integration weights: set conservative_wgts_vpa = .true. in &velocity_grids. Aborting.')
+         if (exact_conservation_algorithm == 'test_particle_matrix' .or. &
+             (exact_conservation_algorithm == 'automatic' .and. .not. equally_spaced_mu_grid)) then
+            exact_conservation = .false.
+            exact_conservation_tp = .true.
+            if (.not. equally_spaced_mu_grid) density_conservation_tp = .true.
+            if (proc0) write (*, '(A)') 'Warning: exact_conservation on the Gauss-Laguerre mu grid uses the ' &
+               //'dense test-particle matrix, (nvpa*nmu)^2 complex numbers per point and species pair, and a ' &
+               //'matrix product every time step; the equally spaced mu grid (equally_spaced_mu_grid = .true.) ' &
+               //'is much cheaper.'
+         else
+            if (.not. equally_spaced_mu_grid) call mp_abort('exact_conservation_algorithm = "block_products" ' &
+               //'needs the equally spaced mu grid (equally_spaced_mu_grid = .true.). Aborting.')
+         end if
+         density_conservation = .true.
+         if (proc0) then
+            if (exact_conservation) then
+               write (*, '(A)') 'exact_conservation: using the block-products algorithm, with density_conservation.'
+            else
+               if (density_conservation_tp) then
+                  write (*, '(A)') 'exact_conservation: using the test-particle-matrix algorithm, with ' &
+                     //'density_conservation and density_conservation_tp.'
+               else
+                  write (*, '(A)') 'exact_conservation: using the test-particle-matrix algorithm, with density_conservation.'
+               end if
+            end if
+         end if
       end if
 
       ! With several species, these options use the test-particle matrices (blockmatrix) of another
       ! species at the same (ky,kx,z) point (get_psi, get_testpart_density), which are only available
       ! when that block is on the same processor; otherwise the term is silently skipped
       if (fieldpart .and. (exact_conservation_tp .or. density_conservation_tp) .and. nspec > 1 .and. nproc > 1) then
-         call mp_abort('The options exact_conservation_tp and density_conservation_tp of the Fokker-Planck ' &
-            //'field-particle part are not MPI parallel for several species: run on one processor. Aborting.')
-      end if
-
-      ! The exact conservation terms assume that the test-particle operator has no mixed (nux) derivative terms, whose
-      ! discretisation does not conserve; with them, exact_conservation conserves the energy worse than without it
-      if (fieldpart .and. exact_conservation .and. nuxfac /= 0.) then
-         call mp_abort('The option exact_conservation of the Fokker-Planck field-particle part only works without ' &
-            //'the mixed derivative terms of the test-particle part: set nuxfac = 0. Aborting.')
+         call mp_abort('exact_conservation on the Gauss-Laguerre mu grid and field_particle_density_from_test_particle ' &
+            //'are not MPI parallel for several species: run on one processor, or use exact_conservation on the ' &
+            //'equally spaced mu grid (equally_spaced_mu_grid = .true.). Aborting.')
       end if
 
       ! disable inter-species collisions if interspec==false
@@ -319,7 +386,6 @@ contains
 
          call init_local_z
          call init_legendre
-         call init_vgrid
          call init_bessel_fn
          call init_fp_diffmatrix
          call init_deltaj_vmu
@@ -1773,76 +1839,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine init_vgrid
-
-      ! v grid used for writing various coll freqs to file for debugging
-
-      use grids_velocity, only: mu, vpa
-      use geometry, only: bmag
-
-      integer :: ia, iv
-      real :: delv, vmax, vmin
-
-      !-------------------------------------------------------------------------
-
-      allocate (wgts_v(nvel_local)); wgts_v = 0.0
-      allocate (vel(nvel_local)); vel = 0.0
-      ia = 1
-
-      ! calculation of Delta_j[x^l L_j(x^2) exp(-x^2)] requires integrals over v, set these up below:
-      ! velocity grid, equally spaced, from 0 to vmax:
-      vmax = sqrt(maxval(vpa)**2 + 2 * maxval(bmag(ia, :)) * maxval(mu)) !sqrt(vperp_max**2 + vpa_max**2)
-      !vmin = 1e-9
-      delv = vmax / nvel_local ! (vmax-vmin)/(nvel_local-1)
-      vmin = sqrt(minval(abs(vpa))**2 + 2 * minval(bmag) * minval(mu)) !delv !1e-9
-      do iv = 1, nvel_local
-         vel(iv) = vmin + (iv - 1) * delv
-      end do
-
-      ! Trapezoidal rule:
-      wgts_v = 0.5 * delv
-
-      ! Composite Simpson's at interior nodes, average of Simpson's 3/8 and Composite at boundaries:
-      ! Lower boundary, Simpson's 3/8:
-      !del = 0.375*delv
-      !wgts_v(1) = del
-      !wgts_v(2:3) = 3.*del
-      !wgts_v(4) = del
-      ! Interior points, Composite:
-
-      !nv_seg = (nvel_local-4)/2
-      !del = delv/3.
-      !do iseg = 1, nv_seg
-      !   idx = 2*(iseg-1) + 4 ! for iseg = 1, idx = 4; for iseg = nv_seg, idx = nv-2.
-      !   wgts_v(idx) = wgts_v(idx) + del
-      !   wgts_v(idx+1) = wgts_v(idx+1) + 4.*del
-      !   wgts_v(idx+2) = wgts_v(idx+2) + del
-      !end do
-
-      ! Upper boundary, Simpson's 3/8:
-      !del = 0.375*delv
-      !wgts_v(nvel_local-3) = wgts_v(nvel_local-3) + del
-      !wgts_v(nvel_local-2:nvel_local-1) = wgts_v(nvel_local-2:nvel_local-1) + 3.*del
-      !wgts_v(nvel_local) = wgts_v(nvel_local) + del
-      ! Interior points, Composite:
-      !nv_seg = (nvel_local-4)/2
-      !del = delv/3.
-      !do iseg = 1, nv_seg
-      !   idx = 2*(iseg-1)+1 ! for iseg = 1, idx = 1; for iseg = nv_seg, idx = nv-5.
-      !   wgts_v(idx) = wgts_v(idx) + del
-      !   wgts_v(idx+1) = wgts_v(idx+1) + 4.*del
-      !   wgts_v(idx+2) = wgts_v(idx+2) + del
-      !end do
-
-      ! AVB: the points idx = 4 and idx = nv-3 are counted three times
-      ! divide by 2 to account for double-counting
-      !wgts_v = 0.5*wgts_v
-
-   end subroutine init_vgrid
-
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
    subroutine init_deltaj_vmu
 
       use grids_species, only: nspec, spec
@@ -2819,15 +2815,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !      call close_output_file (tmpunit)
       !  end if
       !end do
-
-      ! If <advfield_coll> = False, the electrostatic potential terms are disabled in the field particle
-      ! operator, so decouple phi from the field particle terms in the response matrix. Otherwise the
-      ! (unused) phi component of the right-hand side would contaminate the field particle terms.
-      if (.not. advfield_coll) then
-         fp_response(1, :, :) = 0.
-         fp_response(:, 1, :) = 0.
-         fp_response(1, 1, :) = 1.
-      end if
 
       ! LU decomposition for response
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -4726,13 +4713,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! obtain phi^{n+1} and conservation terms using response matrix approach
 
       ! first get phi_inh^{n+1}
-      if (advfield_coll) then
-         call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h')
-         flds(:, :, :, :, 1) = phi
-      else
-         ! phi is decoupled from the field particle terms in the response matrix (see init_fp_conserve)
-         flds(:, :, :, :, 1) = 0.
-      end if
+      call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h')
+      flds(:, :, :, :, 1) = phi
 
       if (em_fields) then
          apar = apar_old; bpar = bpar_old
@@ -4791,17 +4773,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       flds = flds_solved
       deallocate (flds_solved)
 
-      if (advfield_coll) then
-         phi(:, :, :, :) = flds(:, :, :, :, 1)
-      end if
+      phi(:, :, :, :) = flds(:, :, :, :, 1)
 
       g = g_in
 
       ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + sum_jlm psi_jlm^{n+1}*delta_jl
       ! first two terms added via g_to_h subroutine
-      if (advfield_coll) then
-         call g_to_h(g, phi, bpar, fphi)
-      end if
+      call g_to_h(g, phi, bpar, fphi)
 
       ! add field particle contribution to RHS:
       if (fieldpart) then
@@ -4880,9 +4858,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       deallocate (g_kxkyzt)
 
       ! get g^{n+1} from h^{n+1} and phi^{n+1}
-      if (advfield_coll) then
-         call g_to_h(g, phi, bpar, -fphi)
-      end if
+      call g_to_h(g, phi, bpar, -fphi)
 
       !fields_updated = .false.
 

@@ -1,7 +1,7 @@
 ! Test 4e: the Fokker-Planck collision operator with its field-particle part must conserve the density of every
 ! species and must not drive the potential. Only collisions are switched on (no streaming, mirror, drifts or drive),
 ! for ions and electrons with the real mass ratio at a large collision frequency (vnew_ref = 0.3, nu_ee ~ 13),
-! one mode with a small k_perp (aky = 0.01) and without classical diffusion (cfac = 0), starting from noise.
+! one mode with a small k_perp (aky = 0.01) and without classical diffusion (include_flr_terms = .false.), starting from noise.
 ! Before the fix of the energy-exchange terms of the field-particle part (Nov 2026), the e-i energy exchange created
 ! electron density on the electron grid: |phi|^2 grew by a factor 6.5 by t = 0.5 and the density changed by 5e-5.
 
@@ -105,8 +105,8 @@
   vnew_ref = 0.3
 /
 &collisions_fokker_planck
-  fieldpart = .true.
-  cfac = 0.0
+  include_field_particle_part = .true.
+  include_flr_terms = .false.
 /
 
 !===============================================================================

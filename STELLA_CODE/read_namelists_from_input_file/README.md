@@ -78,6 +78,7 @@ DISSIPATION AND COLLISIONS
   dissipation_and_collisions_options
   collisions_dougherty
   collisions_fokker_planck
+  collisions_fokker_planck_developers
   hyper_dissipation
 
 TIME TRACE
