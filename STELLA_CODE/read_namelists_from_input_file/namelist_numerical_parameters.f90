@@ -29,7 +29,7 @@
 !     mirror_implicit = .true.
 !     mirror_semi_lagrange = .true.
 !     mirror_linear_interp = .false.
-!     drifts_implicit = .false.
+!     drifts_implicit = .true. (.false. if full_flux_surface = .true.)
 !     fully_implicit = .false.
 !     fully_explicit = .false.
 !     split_parallel_dynamics = .true.
@@ -273,11 +273,14 @@ contains
       stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
       mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
       fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
-      use_deltaphi_for_response_matrix, split_parallel_dynamics)
+      use_deltaphi_for_response_matrix, split_parallel_dynamics, full_flux_surface)
 
       use mp, only: proc0
 
       implicit none
+
+      ! The default of <drifts_implicit> depends on whether the simulation is a full flux surface
+      logical, intent (in) :: full_flux_surface
       
       ! Variables that are read from the input file
       integer, intent(out) :: explicit_algorithm_switch
@@ -315,7 +318,10 @@ contains
          mirror_implicit = .true.
          mirror_semi_lagrange = .true.
          mirror_linear_interp = .false.
-         drifts_implicit = .false.
+         ! The magnetic drifts and the drive are advanced implicitly with the parallel streaming: this removes their
+         ! CFL limit and gives the same nonlinear fluxes as the explicit drifts (CBC and W7-X, November 2026). In a
+         ! full flux surface the implicit drifts only use the first field line (ia = 1), so there they are explicit
+         drifts_implicit = .not. full_flux_surface
          fully_implicit = .false.
          fully_explicit = .false.
          maxwellian_inside_zed_derivative = .false.

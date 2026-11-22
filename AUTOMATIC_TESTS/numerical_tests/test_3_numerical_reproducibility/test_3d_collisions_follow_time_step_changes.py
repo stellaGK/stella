@@ -50,13 +50,15 @@ def write_linear_input_file(input_file, folder, delt):
     """ Copy <input_file> to <folder> as a linear simulation with a stronger collision frequency
     (vnew_ref = 0.1, so that the collisions clearly affect the evolution) and time step <delt>.
     Only the ions are kept (adiabatic electrons): with kinetic electrons the explicit terms are
-    numerically unstable at the CFL-limited time step of the ions, even without collisions. """
+    numerically unstable at the CFL-limited time step of the ions, even without collisions.
+    The drifts are explicit, so that their CFL condition reduces the time step. """
     path_input_file = copy_input_file(input_file, folder)
     text = open(path_input_file, 'r').read()
     for old, new in (('include_nonlinear = .true.', 'include_nonlinear = .false.'),
                      ('nspec = 2', 'nspec = 1'),
                      ('vnew_ref = 0.01', 'vnew_ref = 0.1'),
-                     ('delt = 0.01', f'delt = {delt!r}')):
+                     ('delt = 0.01', f'delt = {delt!r}'),
+                     ("explicit_algorithm = 'rk3'", "explicit_algorithm = 'rk3'\n  drifts_implicit = .false.")):
         assert old in text, f'Expected "{old}" in {input_file}.'
         text = text.replace(old, new)
     open(path_input_file, 'w').write(text)

@@ -378,7 +378,7 @@
   mirror_implicit = .true.
   mirror_semi_lagrange = .true.
   mirror_linear_interp = .false.
-  drifts_implicit = .false.
+  drifts_implicit = .true.   ! .false. if full_flux_surface = .true.
   fully_implicit = .false.
   fully_explicit = .false.
   split_parallel_dynamics = .true.

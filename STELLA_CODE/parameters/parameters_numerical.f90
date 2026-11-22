@@ -115,6 +115,7 @@ contains
       use namelist_parameters_numerical, only: read_namelist_numerical_upwinding_for_derivatives
       use namelist_parameters_numerical, only: read_namelist_flux_annulus
       use parameters_physics, only: include_apar
+      use parameters_physics, only: full_flux_surface
 
       implicit none
          
@@ -135,7 +136,7 @@ contains
          stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit, &
          mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, drifts_implicit, &
          fully_implicit, fully_explicit, maxwellian_inside_zed_derivative, &
-         use_deltaphi_for_response_matrix, split_parallel_dynamics)
+         use_deltaphi_for_response_matrix, split_parallel_dynamics, full_flux_surface)
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(include_apar, time_upwind, zed_upwind, vpa_upwind)
       if (proc0) call read_namelist_flux_annulus(nitt)
       
@@ -213,18 +214,14 @@ contains
             write (*, *) '!!!WARNING!!!'
          end if
 
+         ! The implicit drifts are part of the implicit parallel streaming. They are on by default, so
+         ! without implicit streaming they are switched off with a note rather than a warning
          if (drifts_implicit) then
             if (.not. stream_implicit) then
-               write (*, *) '!!!WARNING!!!'
-               write (*, *) 'drifts_implicit = T requires stream_implicit = T.'
-               write (*, *) 'forcing drifts_implicit = F.'
-               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'drifts_implicit = T requires stream_implicit = T: the drifts are advanced explicitly.'
                drifts_implicit = .false.
             else if (.not. include_parallel_streaming) then
-               write (*, *) '!!!WARNING!!!'
-               write (*, *) 'drifts_implicit = T requires include_parallel_streaming = T.'
-               write (*, *) 'forcing drifts_implicit = F.'
-               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'drifts_implicit = T requires include_parallel_streaming = T: the drifts are advanced explicitly.'
                drifts_implicit = .false.
             end if
          end if
@@ -251,6 +248,15 @@ contains
                write (*, *) 'Forcing mirror_semi_lagrange=F.'
                write (*, *) '!!!WARNING!!!'
                mirror_semi_lagrange = .false.
+            end if
+            if (drifts_implicit) then
+               write (*, *)
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'The option drifts_implicit=T only uses the drifts of the first field line (ia = 1),'
+               write (*, *) 'which is not consistent with full_flux_surface=T. Forcing drifts_implicit=F.'
+               write (*, *) '!!!WARNING!!!'
+               write (*, *)
+               drifts_implicit = .false.
             end if
             if (stream_implicit) then
                driftkinetic_implicit = .true.
