@@ -4358,6 +4358,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use linear_solve, only: lu_back_substitution
       use grids_time, only: code_dt
       use parameters_physics, only: fphi
+      use parameters_physics, only: include_apar, include_bpar
       use grids_species, only: nspec, spec
       use grids_z, only: nzgrid, ntubes
       use calculations_velocity_integrals, only: integrate_vmu
@@ -4398,6 +4399,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       real :: spitzer_i1, spitzer_i2, applied_Epar, b_dot_gradz_lnp0, b_dot_gradz_lnT0
 
+      complex, dimension(:, :, :, :), allocatable :: apar_old, bpar_old, phi_zero
+      logical :: em_fields
+
       !-------------------------------------------------------------------------
 
       ! store input g for use later, as g will be overwritten below
@@ -4430,6 +4434,17 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end if
 
       g_in = g
+
+      ! h = g + (Z/T) J0 phi F0 + 4 mu (J1/b) bpar F0 uses the B_par of the start of the step, in the inhomogeneous
+      ! solution as well as in the final solve. Before, the inhomogeneous solution lacked the B_par part of h, and
+      ! its field solve below overwrote B_par (and A_par) with the fields of h_inh, which lacks the Maxwellian
+      ! (phi and B_par) part of h; that B_par was then used to convert between g and h.
+      em_fields = include_apar .or. include_bpar
+      if (em_fields) then
+         allocate (apar_old, source=apar); allocate (bpar_old, source=bpar)
+         allocate (phi_zero, mold=phi); phi_zero = 0.
+         call g_to_h(g, phi_zero, bpar_old, fphi)
+      end if
 
       allocate (gvmutr(nvpa, nmu))
       allocate (ghrs(nmu * nvpa))
@@ -4465,6 +4480,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       else
          ! phi is decoupled from the field particle terms in the response matrix (see init_fp_conserve)
          flds(:, :, :, :, 1) = 0.
+      end if
+
+      if (em_fields) then
+         apar = apar_old; bpar = bpar_old
       end if
 
       ! next get the psi^{s1s2,jlm}_inh^{n+1}
@@ -4607,6 +4626,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !fields_updated = .false.
 
       deallocate (g_in)
+      if (em_fields) deallocate (apar_old, bpar_old, phi_zero)
       deallocate (field)
       deallocate (gvmutr)
       deallocate (ghrs)
