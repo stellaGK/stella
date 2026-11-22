@@ -3,9 +3,23 @@
 !###############################################################################
 ! 
 ! This module adds collisions to the gyrokinetic equation, based on the Dougherty 
-! model Fokker-Planck operator.
+! model Fokker-Planck operator: pitch-angle scattering and energy diffusion with
+! the same collision frequency, a finite-Larmor-radius (classical diffusion)
+! term, and the momentum and energy restoring terms (momentum_conservation and
+! energy_conservation). It only has collisions between particles of the same
+! species (it uses spec(is)%vnew(is)).
 ! 
-! TODO - Write docs and split up in smaller modules
+! Two algorithms:
+!   explicit (advance_collisions_dougherty_explicit): the operator is applied to
+!      h and added to the right-hand side of the gyrokinetic equation; the only
+!      collision operator that supports radial_variation;
+!   implicit (advance_collisions_dougherty_implicit, the default): the vpa part
+!      (advance_vpadiff_implicit) and the mu part (advance_mudiff_implicit) are
+!      solved one after the other as tridiagonal systems on kxkyz_lo, with the
+!      potential and the conservation terms from response matrices built in
+!      init_vpadiff_conserve and init_mudiff_conserve.
+! 
+! TODO - Split up in smaller modules; the vpa and mu routines are near copies
 ! 
 !###############################################################################
 module collisions_dougherty
@@ -890,6 +904,8 @@ contains
 
       if (allocated(vpadiff_response)) deallocate (vpadiff_response)
       if (allocated(vpadiff_idx)) deallocate (vpadiff_idx)
+      if (allocated(vpadiff_zf_response)) deallocate (vpadiff_zf_response)
+      if (allocated(vpadiff_zf_idx)) deallocate (vpadiff_zf_idx)
 
    end subroutine finish_vpadiff_response
 
@@ -900,6 +916,8 @@ contains
 
       if (allocated(mudiff_response)) deallocate (mudiff_response)
       if (allocated(mudiff_idx)) deallocate (mudiff_idx)
+      if (allocated(mudiff_zf_response)) deallocate (mudiff_zf_response)
+      if (allocated(mudiff_zf_idx)) deallocate (mudiff_zf_idx)
 
    end subroutine finish_mudiff_response
 
@@ -1288,7 +1306,7 @@ contains
          
       else
       
-         ! Dwitch from g = <f> to h = f + Z*e*phi/T * F0
+         ! Switch from g = <f> to h = f + Z*e*phi/T * F0
          tmp_vmulo = g
          call g_to_h(tmp_vmulo, phi, bpar, fphi)
 
@@ -1441,7 +1459,6 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu
-      !use grids_velocity, only: int_vpa2
       use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
 
@@ -1465,7 +1482,6 @@ contains
 
       ia = 1
 
-      !norm = 1.0/int_vpa2(ia,iz,is)
       norm = 2.0
 
       if (vpa_operator) then
@@ -1494,7 +1510,6 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu
-      !use grids_velocity, only: int_unit, int_vpa2, int_vperp2, int_vfrth
       use arrays_gyro_averages, only: aj0v
 
       implicit none
@@ -1524,7 +1539,6 @@ contains
       T_fac = spread(aj0v(:, ikxkyz), 1, nvpa) * T_fac
       call integrate_vmu(T_fac * h, iz, integral)
 
-      !norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
       norm = 2.0 / 3.0
 
       Ch = Ch + 2.0 * norm * T_fac * integral * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu)

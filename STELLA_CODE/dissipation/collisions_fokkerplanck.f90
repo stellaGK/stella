@@ -7,17 +7,59 @@
 ! 
 ! See [2024 - Von Boetticher - Linearised Fokker–Planck collision model for gyrokinetic simulations]
 ! 
-! Collisions have only been implemented for kinetic ions and electrons. It is
-! important that ions are the first species, and electrons the second species.
-! 
 ! The basic Spitzer collision frequency nu^ab is given by equation (12) in [2024 - Von Boetticher]:
 !     nu^ab = n_b * e_a^2 * e_b^2 * ln Lambda / (4 * pi * varepsilon_0^2 * m_a^2 * v_{th,a}^3)
 ! 
+! The operator C^ab[h_a, h_b] = C_test^ab[h_a] + C_field^ab[h_b] of species a colliding with species b has
+!   - the test-particle part C_test: pitch-angle scattering (nuD), energy diffusion (nupa), the mixed
+!     vpa-mu derivatives (nux = nupa - nuD) and the classical (finite-Larmor-radius) diffusion;
+!   - the field-particle part C_field: an expansion in Legendre polynomials (l <= lmax) and associated
+!     Laguerre polynomials (j <= jmax) of the field-particle operator of Hirshman and Sigmar, with the
+!     functions Delta_j^l(v) (deltaj) and the moments psi^{ab,jlm} of h_b, which restore the momentum and
+!     energy exchange; with lmax = jmax = 1 it holds the density, momentum and energy terms.
+! The options are read in namelist_dissipation.f90 (<collisions_fokker_planck> for users and
+! <collisions_fokker_planck_developers> for tests of the operator); the variables of this module have the
+! names of these options, except that the scale_* factors also hold the include_* switches (0 = off).
+!
+! Implicit algorithm (advance_collisions_fp_implicit, the default), backward Euler in time:
+!   init_collisions_fp builds, on every (ky, kx, z, tube) point of kxkyzt_lo, the block-tridiagonal matrix
+!   1 - Deltat C_test (blocks aa_blcs, bb_blcs, cc_blcs of nmu x nmu per vpa row, in band storage
+!   cdiffmat_band, LU factorised; init_fp_diffmatrix), the functions Delta_j^l (init_deltaj_vmu) and the
+!   response matrix fp_response of phi and the psi moments (init_fp_conserve). Every time step,
+!   advance_implicit_fp
+!     1. converts g to h and solves [1 - Deltat C_test] h_inh = h (solve_test_particle_operator);
+!     2. takes phi_inh and the psi_inh moments of h_inh (get_psi);
+!     3. solves the response matrix for phi^{n+1} and psi^{n+1};
+!     4. solves [1 - Deltat C_test] h = h + Ze/T J0 phi^{n+1} F0 + sum_jlm psi^{n+1} Delta_j^l and converts
+!        h back to g.
+!   Without the field-particle part, the response matrix only holds phi.
+! Explicit algorithm (advance_collisions_fp_explicit, a developer option): the test-particle part of
+!   like-species collisions only, applied to h on kxkyz_lo, for comparisons with the implicit algorithm.
+!
+! exact_conservation conserves momentum and energy to machine precision; see init_collisions_fp for its
+! two algorithms (block products on the equally spaced mu grid, the test-particle matrix on the
+! Gauss-Laguerre grid).
+!
+! The electron-ion options (scale_energy_diffusion_ei, scale_pitch_angle_scattering_ei,
+! mass_ratio_approximation_ei) and the Spitzer problem take the ions as species 1 and the electrons as
+! species 2; stella stops otherwise (init_collisions_fp).
+! 
 ! TODO - stella changed a lot since collisions have been implemented
 !        compare the collisions with an older stella version!
-! 
-! TODO - Abort stella if electrons aren't the second species
-!        since the collision routines assume this!
+!
+! POSSIBLE IMPROVEMENTS (from the commented-out code removed in Nov 2026, see the git history)
+!   - The functions Delta_j^l should satisfy the self-adjointness of the field-particle operator,
+!     int v^l L_j Delta_j^{l,ab} d^3v = (m_a/m_b)^{7/2} int v^l L_j Delta_j^{l,ba} d^3v (up to the
+!     normalisation), which was checked by hand with printed integrals in init_deltaj_vmu. This could
+!     become an automatic test of the field-particle part on the grid.
+!   - The mu derivatives at the ends of the mu grid (imu = 1 and nmu) are first order. Second-order
+!     one-sided stencils were written but commented out in the explicit operator (and in an old version
+!     of the implicit matrix); they would have to be used in both algorithms together, and checked for
+!     the density conservation of conservative_test_particle_density.
+!   - Several parts are near copies that could share code: the matrix assembly for iv = 1, nvpa and
+!     the interior, the half-point collision frequencies (written inline about 20 times, and in
+!     init_nusDpa), the mm = 0, mm > 0 and mm < 0 branches of the psi moments, and the isb = 0 and
+!     isb /= 0 branches of get_psi.
 !
 ! OPEN QUESTION - The vpa integration weights are not the same in the whole implicit step (Nov 2026)
 !        The vpa integrals use the weights that set_vpa_weights set last: the conservative weights
@@ -27,7 +69,7 @@
 !        result, with the field-particle part, the inhomogeneous potential phi_inh of the response-matrix
 !        solve and the first density correction use the conservative weights, while the response matrix
 !        (fp_response, built in the initialisation) and the rest of the step use the weights of the grid.
-!        Using one set of weights in the whole step (the conservative weights if density_conservation,
+!        Using one set of weights in the whole step (the conservative weights if conservative_test_particle_density,
 !        otherwise those of the grid, as in the initialisation) changes phi^2 by about 1e-7 to 1e-9 in the
 !        tests with the field-particle part, and by about 5e-4 in the implicit test without it. It has
 !        not been shown which version is more accurate, so the code is unchanged for now. A test that
@@ -72,28 +114,30 @@ module collisions_fokkerplanck
    public :: init_collisions_fp, finish_collisions_fp
    public :: reset_dt_collisions_fp
    public :: advance_collisions_fp_explicit, advance_collisions_fp_implicit
-   public :: fieldpart
 
    private
 
-   logical :: vpa_operator, mu_operator
-   logical :: density_conservation, density_conservation_field, density_conservation_tp
-   logical ::exact_conservation_tp, exact_conservation
+   logical :: include_vpa_derivatives, include_mu_derivatives
+   logical :: conservative_test_particle_density, exact_field_particle_density
+   logical :: field_particle_density_from_test_particle
+   ! exact_conservation is the user's switch; init_collisions_fp turns it into one of the two algorithms
+   logical :: exact_conservation, exact_conservation_block_products, exact_conservation_test_particle_matrix
    logical :: spitzer_problem, no_j1l1, no_j1l2, no_j0l2
-   logical :: fieldpart, testpart
-   logical :: interspec, intraspec
+   logical :: include_field_particle_part, include_test_particle_part
+   logical :: include_unlike_species_collisions, include_like_species_collisions
    ! The algorithm of exact_conservation: 'automatic' (from the mu grid), 'block_products' or 'test_particle_matrix'
    character(len=30) :: exact_conservation_algorithm
 
    integer :: nresponse = 1
-   real :: cfac
-   real :: nuxfac
-   real :: iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob
-   logical :: eimassr_approx
+   real :: scale_flr_terms
+   real :: scale_mixed_derivative_terms
+   real :: scale_nu_ii, scale_nu_ie, scale_nu_ee, scale_nu_ei
+   ! scale_pitch_angle_scattering is 1 or 0 (include_pitch_angle_scattering)
+   real :: scale_energy_diffusion_ei, scale_pitch_angle_scattering_ei, scale_pitch_angle_scattering
+   logical :: mass_ratio_approximation_ei
    integer :: jmax = 1
    integer :: lmax = 1
 
-   real, dimension(:, :), allocatable :: aa_vpa, bb_vpa, cc_vpa
    complex, dimension(:, :, :), allocatable :: fp_response
    integer, dimension(:, :), allocatable :: diff_idx
 
@@ -116,15 +160,14 @@ module collisions_fokkerplanck
    ! ipiv has shape
    !   (nvpa*nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec)
    integer, dimension(:, :, :), allocatable :: ipiv
-   real, dimension(:, :, :, :, :), allocatable :: nus, nuD, nupa, nux
+   real, dimension(:, :, :, :, :), allocatable :: nuD, nupa, nux
    real, dimension(:, :, :, :), allocatable :: mw, modmw
    real, dimension(:, :, :), allocatable :: velvpamu
    integer :: info
 
    real, dimension(:, :, :, :, :, :, :, :), allocatable :: deltaj, deltaj_tp
-   complex, dimension(:, :, :, :), allocatable :: deltajint
 
-   ! The z points at which this processor stores deltaj, deltaj_tp, legendre_vpamu, jm and jm0, see init_local_z:
+   ! The z points at which this processor stores deltaj, deltaj_tp, legendre_vpamu and jm, see init_local_z:
    ! izl(iz) = 1, ..., nz_local is the slot of iz in these arrays (0 if it is not stored here), iz_of_izl(izl) the z
    ! index of a slot, local_z(iz) whether iz is stored here (also the z points on which calc_deltaj_vmu, calc_psi_vmu
    ! and vLj_vmu compute), and iz_share_lo to iz_share_hi the share of the z points on which this processor computes psijnorm
@@ -137,12 +180,11 @@ module collisions_fokkerplanck
    real, dimension(:, :, :, :, :), allocatable :: psijnorm
    real, dimension(:, :, :, :, :), allocatable :: legendre_vpamu
    real, dimension(:, :, :, :, :, :), allocatable :: jm
-   real, dimension(:, :, :, :, :), allocatable :: jm0
    real, dimension(:), allocatable :: mwnorm
    real, dimension(:), allocatable :: modmwnorm
    ! With kinetic electrons, restore the density of the test-particle solve on the velocity grid (see solve_test_particle_operator)
    logical :: density_correction_solve
-   real :: i1fac, i2fac
+   real :: spitzer_scale_epar, spitzer_scale_grad_t
 
    ! Only initialise once
    logical :: initialised_fokker_planck = .false.
@@ -173,42 +215,43 @@ contains
 
       ! Read the namelists <collisions_fokker_planck> and <collisions_fokker_planck_developers>; the options are
       ! returned under the internal names of this module, see read_namelist_collisions_fokker_planck
-      call read_namelist_collisions_fokker_planck(collisions_implicit, testpart, fieldpart, lmax, jmax, &
-               interspec, intraspec, iiknob, ieknob, eeknob, eiknob, &
-               eiediffknob, eideflknob, deflknob, eimassr_approx, &
-               spitzer_problem, density_conservation, &
-               density_conservation_field, density_conservation_tp, &
-               exact_conservation, exact_conservation_algorithm, &
-               vpa_operator, mu_operator, &
-               cfac, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2, explicit_algorithm)
+      call read_namelist_collisions_fokker_planck(collisions_implicit, include_test_particle_part, &
+               include_field_particle_part, lmax, jmax, include_unlike_species_collisions, &
+               include_like_species_collisions, scale_nu_ii, scale_nu_ie, scale_nu_ee, scale_nu_ei, &
+               scale_energy_diffusion_ei, scale_pitch_angle_scattering_ei, scale_pitch_angle_scattering, &
+               mass_ratio_approximation_ei, spitzer_problem, conservative_test_particle_density, &
+               exact_field_particle_density, field_particle_density_from_test_particle, &
+               exact_conservation, exact_conservation_algorithm, include_vpa_derivatives, include_mu_derivatives, &
+               scale_flr_terms, scale_mixed_derivative_terms, spitzer_scale_epar, spitzer_scale_grad_t, &
+               no_j1l1, no_j1l2, no_j0l2, explicit_algorithm)
 
       ! Broadcast the parameters to all processors
-      call broadcast(fieldpart)
-      call broadcast(testpart)
-      call broadcast(interspec)
-      call broadcast(intraspec)
-      call broadcast(iiknob)
-      call broadcast(ieknob)
-      call broadcast(eeknob)
-      call broadcast(eiknob)
-      call broadcast(eiediffknob)
-      call broadcast(deflknob)
-      call broadcast(eimassr_approx)
-      call broadcast(eideflknob)
-      call broadcast(density_conservation)
-      call broadcast(density_conservation_field)
-      call broadcast(density_conservation_tp)
+      call broadcast(include_field_particle_part)
+      call broadcast(include_test_particle_part)
+      call broadcast(include_unlike_species_collisions)
+      call broadcast(include_like_species_collisions)
+      call broadcast(scale_nu_ii)
+      call broadcast(scale_nu_ie)
+      call broadcast(scale_nu_ee)
+      call broadcast(scale_nu_ei)
+      call broadcast(scale_energy_diffusion_ei)
+      call broadcast(scale_pitch_angle_scattering)
+      call broadcast(mass_ratio_approximation_ei)
+      call broadcast(scale_pitch_angle_scattering_ei)
+      call broadcast(conservative_test_particle_density)
+      call broadcast(exact_field_particle_density)
+      call broadcast(field_particle_density_from_test_particle)
       call broadcast(exact_conservation)
       call broadcast(exact_conservation_algorithm)
       call broadcast(spitzer_problem)
-      call broadcast(vpa_operator)
-      call broadcast(mu_operator)
-      call broadcast(cfac)
-      call broadcast(nuxfac)
+      call broadcast(include_vpa_derivatives)
+      call broadcast(include_mu_derivatives)
+      call broadcast(scale_flr_terms)
+      call broadcast(scale_mixed_derivative_terms)
       call broadcast(jmax)
       call broadcast(lmax)
-      call broadcast(i1fac)
-      call broadcast(i2fac)
+      call broadcast(spitzer_scale_epar)
+      call broadcast(spitzer_scale_grad_t)
       call broadcast(no_j1l1)
       call broadcast(no_j1l2)
       call broadcast(no_j0l2)
@@ -218,7 +261,8 @@ contains
 
       ! The user's exact_conservation is turned into one of the two algorithms in init_collisions_fp, once the
       ! mu grid is known
-      exact_conservation_tp = .false.
+      exact_conservation_block_products = .false.
+      exact_conservation_test_particle_matrix = .false.
 
    end subroutine read_parameters_fp
 
@@ -247,7 +291,6 @@ contains
       integer :: is, is2
       integer, parameter :: ion_species = 1
       integer, parameter :: electron_species = 2
-      integer, parameter :: impurity_species = 3 ! AVB: clear up difference between slowing down species ('3' in species.f90) and impurity species
       real :: vnew_max
 
       !-------------------------------------------------------------------------
@@ -258,14 +301,14 @@ contains
       ! The field-particle part is only implemented in the implicit algorithm: the explicit algorithm
       ! (advance_collisions_fp_explicit) applies the test-particle operator only, so stop instead of
       ! silently running without the field-particle part
-      if (fieldpart .and. .not. collisions_implicit) then
+      if (include_field_particle_part .and. .not. collisions_implicit) then
          call mp_abort('The field-particle part of the Fokker-Planck operator (include_field_particle_part = .true.) ' &
             //'is only implemented in the implicit algorithm. Aborting.')
       end if
 
       ! The explicit algorithm only has like-species collisions (it uses vnew(is) of the species itself), so stop
       ! instead of silently dropping the collisions between different species
-      if (.not. collisions_implicit .and. interspec .and. nspec > 1) then
+      if (.not. collisions_implicit .and. include_unlike_species_collisions .and. nspec > 1) then
          call mp_abort('The explicit Fokker-Planck algorithm only has collisions between particles of the same ' &
             //'species: with several species, set include_unlike_species_collisions = .false. in ' &
             //'&collisions_fokker_planck_developers. Aborting.')
@@ -273,37 +316,37 @@ contains
 
       ! exact_conservation (conserve momentum and energy to machine precision) has two algorithms, chosen from
       ! the mu grid unless the developer option exact_conservation_algorithm says otherwise:
-      !  - on the equally spaced mu grid, 'block_products' (internally exact_conservation): the test-particle
+      !  - on the equally spaced mu grid, 'block_products' (exact_conservation_block_products): the test-particle
       !    operator applied to vpa F0 and v^2 F0 is taken from the blocks of the matrix (cheap, MPI parallel);
-      !  - on the Gauss-Laguerre mu grid, 'test_particle_matrix' (internally exact_conservation_tp): the field-
-      !    particle terms are computed with the dense test-particle matrix (expensive, and with several species
-      !    not MPI parallel).
-      ! Both need the discretisation of the test-particle part that conserves density (density_conservation), set
-      ! here: without it the energy is only conserved to about 1e-4 (equally spaced) or 1e-2 (Gauss-Laguerre). On
-      ! the Gauss-Laguerre grid that discretisation alone does not conserve the density, so the density term of
-      ! density_conservation_tp is added too. With ions and electrons (test 4g), the momentum and energy are then
-      ! conserved to about 1e-12 on both grids, the density to 1e-11 (equally spaced) and 1e-8 (Gauss-Laguerre).
+      !  - on the Gauss-Laguerre mu grid, 'test_particle_matrix' (exact_conservation_test_particle_matrix): the
+      !    field-particle terms are computed with the dense test-particle matrix (expensive, and with several
+      !    species not MPI parallel).
+      ! Both need the discretisation of the test-particle part that conserves density
+      ! (conservative_test_particle_density), set here: without it the energy is only conserved to about 1e-4
+      ! (equally spaced) or 1e-2 (Gauss-Laguerre). On the Gauss-Laguerre grid that discretisation alone does not
+      ! conserve the density, so the density term of field_particle_density_from_test_particle is added too.
+      ! With ions and electrons (test 4g), the momentum and energy are then conserved to about 1e-12 on both
+      ! grids, the density to 1e-11 (equally spaced) and 1e-8 (Gauss-Laguerre).
       if (exact_conservation) then
-         if (.not. fieldpart) call mp_abort('exact_conservation needs the field-particle part of the ' &
-            //'Fokker-Planck operator (include_field_particle_part = .true.). Aborting.')
-         if (.not. testpart) call mp_abort('exact_conservation needs the test-particle part of the ' &
-            //'Fokker-Planck operator (include_test_particle_part = .true.). Aborting.')
+         if (.not. include_field_particle_part) call mp_abort('exact_conservation needs the field-particle ' &
+            //'part of the Fokker-Planck operator (include_field_particle_part = .true.). Aborting.')
+         if (.not. include_test_particle_part) call mp_abort('exact_conservation needs the test-particle ' &
+            //'part of the Fokker-Planck operator (include_test_particle_part = .true.). Aborting.')
          if (lmax /= 1 .or. jmax /= 1) call mp_abort('exact_conservation only works with ' &
             //'field_particle_lmax = field_particle_jmax = 1. Aborting.')
          ! The exact conservation terms assume that the test-particle operator has no mixed (nux) derivative
          ! terms, whose discretisation does not conserve; with them, exact_conservation conserves the energy
          ! worse than without it. Dropping them changes the operator, so it is left to the user.
-         if (nuxfac /= 0.) call mp_abort('exact_conservation only works without the mixed-derivative terms ' &
-            //'of the test-particle part: set include_mixed_derivative_terms = .false. in ' &
+         if (scale_mixed_derivative_terms /= 0.) call mp_abort('exact_conservation only works without the ' &
+            //'mixed-derivative terms of the test-particle part: set include_mixed_derivative_terms = .false. in ' &
             //'&collisions_fokker_planck. Aborting.')
          ! Without the conservative vpa weights the energy is only conserved to 1e-5 to 1e-2
          if (.not. conservative_wgts_vpa) call mp_abort('exact_conservation needs the conservative vpa ' &
             //'integration weights: set conservative_wgts_vpa = .true. in &velocity_grids. Aborting.')
          if (exact_conservation_algorithm == 'test_particle_matrix' .or. &
              (exact_conservation_algorithm == 'automatic' .and. .not. equally_spaced_mu_grid)) then
-            exact_conservation = .false.
-            exact_conservation_tp = .true.
-            if (.not. equally_spaced_mu_grid) density_conservation_tp = .true.
+            exact_conservation_test_particle_matrix = .true.
+            if (.not. equally_spaced_mu_grid) field_particle_density_from_test_particle = .true.
             if (proc0) write (*, '(A)') 'Warning: exact_conservation on the Gauss-Laguerre mu grid uses the ' &
                //'dense test-particle matrix, (nvpa*nmu)^2 complex numbers per point and species pair, and a ' &
                //'matrix product every time step; the equally spaced mu grid (equally_spaced_mu_grid = .true.) ' &
@@ -311,17 +354,20 @@ contains
          else
             if (.not. equally_spaced_mu_grid) call mp_abort('exact_conservation_algorithm = "block_products" ' &
                //'needs the equally spaced mu grid (equally_spaced_mu_grid = .true.). Aborting.')
+            exact_conservation_block_products = .true.
          end if
-         density_conservation = .true.
+         conservative_test_particle_density = .true.
          if (proc0) then
-            if (exact_conservation) then
-               write (*, '(A)') 'exact_conservation: using the block-products algorithm, with density_conservation.'
+            if (exact_conservation_block_products) then
+               write (*, '(A)') 'exact_conservation: using the block-products algorithm, with ' &
+                  //'conservative_test_particle_density.'
             else
-               if (density_conservation_tp) then
+               if (field_particle_density_from_test_particle) then
                   write (*, '(A)') 'exact_conservation: using the test-particle-matrix algorithm, with ' &
-                     //'density_conservation and density_conservation_tp.'
+                     //'conservative_test_particle_density and field_particle_density_from_test_particle.'
                else
-                  write (*, '(A)') 'exact_conservation: using the test-particle-matrix algorithm, with density_conservation.'
+                  write (*, '(A)') 'exact_conservation: using the test-particle-matrix algorithm, with ' &
+                     //'conservative_test_particle_density.'
                end if
             end if
          end if
@@ -330,14 +376,32 @@ contains
       ! With several species, these options use the test-particle matrices (blockmatrix) of another
       ! species at the same (ky,kx,z) point (get_psi, get_testpart_density), which are only available
       ! when that block is on the same processor; otherwise the term is silently skipped
-      if (fieldpart .and. (exact_conservation_tp .or. density_conservation_tp) .and. nspec > 1 .and. nproc > 1) then
+      if (include_field_particle_part .and. (exact_conservation_test_particle_matrix &
+          .or. field_particle_density_from_test_particle) .and. nspec > 1 .and. nproc > 1) then
          call mp_abort('exact_conservation on the Gauss-Laguerre mu grid and field_particle_density_from_test_particle ' &
             //'are not MPI parallel for several species: run on one processor, or use exact_conservation on the ' &
             //'equally spaced mu grid (equally_spaced_mu_grid = .true.). Aborting.')
       end if
 
-      ! disable inter-species collisions if interspec==false
-      if (.not. interspec) then
+      ! include_vpa_derivatives is only used by the explicit algorithm: the implicit matrix always has the vpa terms
+      if (.not. include_vpa_derivatives .and. collisions_implicit) then
+         call mp_abort('include_vpa_derivatives = .false. is only implemented in the explicit Fokker-Planck ' &
+            //'algorithm (use_explicit_algorithm = .true.). Aborting.')
+      end if
+
+      ! The electron-ion developer options and the Spitzer problem take the ions as species 1 and the electrons as
+      ! species 2 (is == 2, isb == 1 in init_nusDpa, init_fp_diffmatrix and advance_implicit_fp)
+      if ((scale_energy_diffusion_ei /= 1. .or. scale_pitch_angle_scattering_ei /= 1. .or. mass_ratio_approximation_ei &
+           .or. spitzer_problem) .and. nspec > 1) then
+         if (spec(1)%type /= ion_species .or. spec(2)%type /= electron_species) then
+            call mp_abort('The electron-ion options of the Fokker-Planck operator (scale_energy_diffusion_ei, ' &
+               //'scale_pitch_angle_scattering_ei, mass_ratio_approximation_ei) and spitzer_problem need the ions ' &
+               //'as species 1 and the electrons as species 2. Aborting.')
+         end if
+      end if
+
+      ! disable inter-species collisions if include_unlike_species_collisions==false
+      if (.not. include_unlike_species_collisions) then
          do is = 1, nspec
             do is2 = 1, nspec
                if (is /= is2) then
@@ -347,8 +411,8 @@ contains
          end do
       end if
 
-      ! disable intra-species collisions if intraspec==false
-      if (.not. intraspec) then
+      ! disable intra-species collisions if include_like_species_collisions==false
+      if (.not. include_like_species_collisions) then
          do is = 1, nspec
             do is2 = 1, nspec
                if (is == is2) then
@@ -362,15 +426,13 @@ contains
       do is = 1, nspec
          do is2 = 1, nspec
             if ((spec(is)%type == ion_species) .and. (spec(is2)%type == ion_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * iiknob
+               spec(is)%vnew(is2) = spec(is)%vnew(is2) * scale_nu_ii
             else if ((spec(is)%type == ion_species) .and. (spec(is2)%type == electron_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * ieknob
+               spec(is)%vnew(is2) = spec(is)%vnew(is2) * scale_nu_ie
             else if ((spec(is)%type == electron_species) .and. (spec(is2)%type == electron_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * eeknob
+               spec(is)%vnew(is2) = spec(is)%vnew(is2) * scale_nu_ee
             else if ((spec(is)%type == electron_species) .and. (spec(is2)%type == ion_species)) then
-               spec(is)%vnew(is2) = spec(is)%vnew(is2) * eiknob
-            else
-               spec(is)%vnew(is2) = spec(is)%vnew(is2)
+               spec(is)%vnew(is2) = spec(is)%vnew(is2) * scale_nu_ei
             end if
             ! AVB: to do - add impurity collision control
          end do
@@ -379,7 +441,7 @@ contains
       ! initialise speed dependent collision frequencies
       call init_nusDpa
 
-      density_correction_solve = has_electron_species(spec) .and. (.not. density_conservation)
+      density_correction_solve = has_electron_species(spec) .and. (.not. conservative_test_particle_density)
 
       if (collisions_implicit) then
          fully_explicit = .false.
@@ -405,7 +467,7 @@ contains
    !****************************************************************************
    subroutine init_nusDpa
 
-      ! AVB: compute the collision frequencies nuD, nus and nupa
+      ! AVB: compute the collision frequencies nuD and nupa
 
       use grids_z, only: nzgrid
       use calculations_velocity_integrals, only: integrate_vmu
@@ -425,7 +487,6 @@ contains
 
       !-------------------------------------------------------------------------
 
-      if (.not. allocated(nus)) allocate (nus(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
       if (.not. allocated(nuD)) allocate (nuD(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
       if (.not. allocated(nupa)) allocate (nupa(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
       if (.not. allocated(nux)) allocate (nux(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
@@ -445,8 +506,7 @@ contains
                   do imu = 1, nmu
                      x = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
                      Gf = (erf(x / sqrt(massr)) - x / sqrt(massr) * (2 / sqrt(pi)) * exp(-x**2 / massr)) / (2 * x**2 / massr)
-                     nuD(iv, imu, iz, is, isb) = deflknob * spec(is)%vnew(isb) * (erf(x / sqrt(massr)) - Gf) / x**3
-                     nus(iv, imu, iz, is, isb) = spec(is)%vnew(isb) * 2 * (1 + 1./massr) * Gf / x ! nus is never used; note - have assumed T_a = T_b here
+                     nuD(iv, imu, iz, is, isb) = scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(x / sqrt(massr)) - Gf) / x**3
                      nupa(iv, imu, iz, is, isb) = spec(is)%vnew(isb) * 2 * Gf / x**3
                      velvpamu(iv, imu, iz) = x
                      mw(iv, imu, iz, is) = maxwell_vpa(iv, is) * maxwell_mu(1, iz, imu, is)
@@ -456,12 +516,12 @@ contains
 
             ! electron-ion collisions
             ! approximation of Lorentz operator using mass-ratio expansion
-            if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
+            if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
                do iz = -nzgrid, nzgrid
                   do iv = 1, nvpa
                      do imu = 1, nmu
                         x = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
-                        nuD(iv, imu, iz, is, isb) = deflknob * spec(is)%vnew(isb) * 1./x**3
+                        nuD(iv, imu, iz, is, isb) = scale_pitch_angle_scattering * spec(is)%vnew(isb) * 1./x**3
                      end do
                   end do
                end do
@@ -479,12 +539,12 @@ contains
          end do
       end do
 
-      nux = nuxfac * (nupa - deflknob * nuD)
+      nux = scale_mixed_derivative_terms * (nupa - scale_pitch_angle_scattering * nuD)
 
       if (nspec > 1) then
-         ! eiediffknob controls e-i energy diffusion, note that it is also used in blockmatrix
-         nux(:, :, :, 2, 1) = nuxfac * (eiediffknob * nupa(:, :, :, 2, 1) - eideflknob * deflknob * nuD(:, :, :, 2, 1))
-         nuD(:, :, :, 2, 1) = eideflknob * nuD(:, :, :, 2, 1)
+         ! scale_energy_diffusion_ei controls e-i energy diffusion, note that it is also used in blockmatrix
+         nux(:, :, :, 2, 1) = scale_mixed_derivative_terms * (scale_energy_diffusion_ei * nupa(:, :, :, 2, 1) - scale_pitch_angle_scattering_ei * scale_pitch_angle_scattering * nuD(:, :, :, 2, 1))
+         nuD(:, :, :, 2, 1) = scale_pitch_angle_scattering_ei * nuD(:, :, :, 2, 1)
       end if
 
    end subroutine init_nusDpa
@@ -497,31 +557,28 @@ contains
       use grids_time, only: code_dt
       use grids_species, only: nspec, spec
       use grids_velocity, only: dvpa, vpa, nvpa, mu, nmu, maxwell_mu, maxwell_vpa, dmu
-      use grids_z, only: nzgrid
-      use parallelisation_layouts, only: kxkyz_lo, kxkyzt_lo
+      use parallelisation_layouts, only: kxkyzt_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use parallelisation_layouts, only: idx
       use geometry, only: bmag
       use arrays, only: kperp2
       use constants, only: pi
       use common_types, only: spec_type
-      use grids_kxky, only: naky, nakx
       use spfunc, only: erf => erf_ext
-      use file_utils, only: open_output_file, close_output_file
       use mp, only: sum_allreduce
       use banded_lu, only: band_ldab, band_row, band_lu_factorise, band_lu_factorise_threaded
 
       implicit none
 
-      integer :: ikxkyz, ikxkyzt, iky, ikx, iz, it, is, isb
-      integer :: imu, ia, iv, ivv, imm, imu2
+      integer :: ikxkyzt, iky, ikx, iz, is, isb
+      integer :: imu, ia, iv, ivv, imu2
       integer :: nc, nb, bm_colind, bm_rowind
       integer :: ikxkyzt_first, ikxkyzt_last, npoints_chunk
       logical :: factorise_threaded
-      real :: vpap, vpam, vfac, mum, mup
+      real :: vpap, vpam, mum, mup
       real :: xpv, xmv, nupapv, nupamv, nuDpv, nuDmv, mwpv, mwmv, gam_mu, gam_mum, gam_mup
       real :: mwm, mwp, nuDm, nuDp, nupam, nupap, xm, xp
-      real :: nuDfac, massr, eiediff, eidefl
+      real :: massr, eiediff, eidefl
 
       integer, parameter :: ion_species = 1
       integer, parameter :: electron_species = 2
@@ -539,7 +596,7 @@ contains
       ! The blocks keep the index ikxkyzt of the point, so the calculation below is the same for every chunk.
       npoints_chunk = max(1, int(128.e6 / (3. * 16. * nvpa * nmu**2 * nspec**2)))
       cdiffmat_band = 0.
-      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
+      if ((exact_conservation_test_particle_matrix) .or. (field_particle_density_from_test_particle)) then
          if (.not. allocated(blockmatrix)) &
             allocate (blockmatrix(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
          if (.not. allocated(blockmatrix_sum)) &
@@ -548,7 +605,7 @@ contains
       end if
       ! exact_conservation only needs the test-particle operator applied to vpa F0 and v^2 F0 (see apply_testpart_matrix),
       ! which are taken from the blocks of every chunk below, without building blockmatrix
-      if (exact_conservation) then
+      if (exact_conservation_block_products) then
          if (.not. allocated(tp_f0moments)) allocate (tp_f0moments(nvpa * nmu, 2, nz_local, nspec, nspec))
          tp_f0moments = 0.
       end if
@@ -569,14 +626,12 @@ contains
       ! mu-derivatives are contained within blocks, thus blocks have dimension nmu x nmu
 
       ia = 1
-      vfac = 1 ! zero vpa-operator, in beta
-      nuDfac = 1.
       aa_blcs = 0.
       bb_blcs = 0.
       cc_blcs = 0.
 
       !$omp parallel do default(none) &
-      !$omp   firstprivate(kxkyzt_lo, ikxkyzt_first, ikxkyzt_last, ia, vfac, nuDfac, nspec, nvpa, nmu) &
+      !$omp   firstprivate(kxkyzt_lo, ikxkyzt_first, ikxkyzt_last, ia, nspec, nvpa, nmu) &
       !$omp   private(imu, iv, ikxkyzt, iky, ikx, iz, is, isb, &
       !$omp           vpap, vpam, mum, mup, xpv, xmv, &
       !$omp           nupapv, nupamv, nuDpv, nuDmv, mwpv, mwmv, &
@@ -585,8 +640,8 @@ contains
       !$omp           massr, eiediff, eidefl) &
       !$omp   shared(aa_blcs, bb_blcs, cc_blcs, nux, mw, maxwell_mu, maxwell_vpa, &
       !$omp          vpa, mu, bmag, dmu, dvpa, spec, code_dt, &
-      !$omp          spitzer_problem, density_conservation, mu_operator,nupa, &
-      !$omp          eimassr_approx, eiediffknob, eideflknob, deflknob, nuD)
+      !$omp          spitzer_problem, conservative_test_particle_density, include_mu_derivatives,nupa, &
+      !$omp          mass_ratio_approximation_ei, scale_energy_diffusion_ei, scale_pitch_angle_scattering_ei, scale_pitch_angle_scattering, nuD)
       do imu = 1, nmu
          do iv = 1, nvpa
             do ikxkyzt = ikxkyzt_first, ikxkyzt_last
@@ -601,23 +656,14 @@ contains
                end if
 
                do isb = 1, nspec
-                  ! for Spitzer problem, disable e-i energy diffusion if eiediffknob = 0.
-                  if (spitzer_problem) then
-                     if ((is == 2) .and. (isb == 1)) then
-                        eiediff = eiediffknob
-                        eidefl = eideflknob
-                     else
-                        eiediff = 1.
-                        eidefl = 1.
-                     end if
+                  ! the factors on the e-i energy diffusion and pitch-angle scattering (e.g. scale_energy_diffusion_ei = 0
+                  ! for the Spitzer problem); electrons are species 2 and ions species 1, see init_collisions_fp
+                  if ((is == 2) .and. (isb == 1)) then
+                     eiediff = scale_energy_diffusion_ei
+                     eidefl = scale_pitch_angle_scattering_ei
                   else
-                     if ((is == 2) .and. (isb == 1)) then
-                        eiediff = eiediffknob
-                        eidefl = eideflknob
-                     else
-                        eiediff = 1.
-                        eidefl = 1.
-                     end if
+                     eiediff = 1.
+                     eidefl = 1.
                   end if
 
                   massr = spec(is)%mass / spec(isb)%mass
@@ -626,65 +672,58 @@ contains
                      vpap = 0.5 * (vpa(iv) + vpa(iv + 1))
                      mwpv = exp(-vpap**2) * maxwell_mu(1, iz, imu, is)
                      xpv = sqrt(vpap**2 + 2 * bmag(ia, iz) * mu(imu))
-                     nupapv = vfac * spec(is)%vnew(isb) * 2 * (erf(xpv / sqrt(massr)) &
+                     nupapv = spec(is)%vnew(isb) * 2 * (erf(xpv / sqrt(massr)) &
                                           - xpv / sqrt(massr) * (2 / sqrt(pi)) * exp(-(xpv / sqrt(massr))**2)) / (2 * (xpv / sqrt(massr))**2) / xpv**3
 
-                     if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                        nuDpv = vfac * spec(is)%vnew(isb) / xpv**3
+                     if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                        nuDpv = spec(is)%vnew(isb) / xpv**3
                      else
-                        nuDpv = vfac * spec(is)%vnew(isb) * (erf(xpv / sqrt(massr)) - (erf(xpv / sqrt(massr)) &
+                        nuDpv = spec(is)%vnew(isb) * (erf(xpv / sqrt(massr)) - (erf(xpv / sqrt(massr)) &
                                        - (xpv / sqrt(massr)) * (2 / sqrt(pi)) * exp(-(xpv / sqrt(massr))**2)) / (2 * (xpv / sqrt(massr))**2)) / xpv**3
                      end if
 
                      if (imu == 1) then
-                        ! one-sided difference for mu-derivative at imu=1:
-                        !cc_blcs(iv,imu,imu+1,iz,is) = cc_blcs(iv,imu,imu+1,iz,is) &
-                        !  - vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is) / (2*dvpa) / dmu(imu)
-                        !cc_blcs(iv,imu,imu,iz,is)   = cc_blcs(iv,imu,imu,iz,is) &
-                        !  - code_dt*0.5*(eiediff*nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz,is) &
-                        !                                +vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu,iz,is) / (2*dvpa) / dmu(imu)
                         ! using ghost cell at mu=0:
                         cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-       - 0.5*vfac*code_dt*vpa(iv+1)*0.5*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
+       - 0.5*code_dt*vpa(iv+1)*0.5*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
                                                                  / mw(iv + 1, imu + 1, iz, is) / (dvpa) / dmu(imu)
                         cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-       + 0.5*vfac*code_dt*vpa(iv+1)*0.5*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+       + 0.5*code_dt*vpa(iv+1)*0.5*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
                                                              / mw(iv + 1, imu, iz, is) / (dvpa) / dmu(imu)
                         bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                 - 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
+                 - 0.5*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
                                                                  / mw(iv, imu + 1, iz, is) / (dvpa) / dmu(imu)
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                 + 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
+                 + 0.5*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
                                                              / mw(iv, imu, iz, is) / (dvpa) / dmu(imu)
                         !
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-      + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv) / dvpa**2 / mw(iv, imu, iz, is)
+      + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            ! use ghost cell at mu_{0} = 0
                            mup = 0.5 * (mu(imu) + mu(imu + 1))
                            mwp = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mup)
                            xp = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mup)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) / xp**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xp**3
                            else
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
                                     - (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr)) / xp**3
                            end if
       nupap = spec(is)%vnew(isb) * 2 * (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr) / xp**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * deflknob * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * scale_pitch_angle_scattering * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
                    bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) - code_dt * (gam_mu*(-1) / dmu(imu) * dmu(imu) / 2./mu(imu) &
                          + (gam_mup*(-1) / dmu(imu) - gam_mu*(-1) / dmu(imu)) * mu(imu) / (dmu(imu) / 2.)) / mw(iv, imu, iz, is) / (dmu(imu) / 2.+mu(imu))
           bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) - code_dt * (gam_mu * 1 / dmu(imu) * dmu(imu) / 2./mu(imu) &
                    + (gam_mup * 1 / dmu(imu) - gam_mu * 1 / dmu(imu)) * mu(imu) / (dmu(imu) / 2.)) / mw(iv, imu + 1, iz, is) / (dmu(imu) / 2.+mu(imu))
                            ! mixed derivative:
-                           if (density_conservation) then
+                           if (conservative_test_particle_density) then
                               ! to ensure density conservation, change discretisation of mixed derivative term at imu=1
                               ! from explicit routine: Dmuh1 = (vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz,is)*Dvpah &
-                              !  + vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz,is)*Dvpah_p) / (2.*dmu(imu))
                               cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
                          - 0.5 * 1.0 * code_dt * (0.5 * (vpa(iv) * mu(imu) * nux(iv, imu, iz, is, isb) * mw(iv, imu, iz, is) + vpa(iv + 1) * mu(imu) &
                                      * nux(iv + 1, imu, iz, is, isb) * mw(iv + 1, imu, iz, is)) * 1 / mw(iv + 1, imu, iz, is)) / (2 * dmu(imu)) / dvpa
@@ -714,50 +753,44 @@ contains
                         end if
                      else if (imu == nmu) then
                         ! AVB: one-sided difference for mu-derivative at imu=nmu:
-                        !cc_blcs(iv,imu,imu-1,iz,is) = cc_blcs(iv,imu,imu-1,iz,is) &
-                        !  + 1.000*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
-                        !cc_blcs(iv,imu,imu,iz,is)   = cc_blcs(iv,imu,imu,iz,is) &
-                        !  - code_dt*0.5*(eiediff*nupapv*vpap**2 + 2*nuDpv*bmag(ia,iz)*mu(imu))*mwpv / dvpa**2 / mw(iv+1,imu,iz,is) &
-                        !  - 1.000*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu,iz,is) / (2*dvpa) / dmu(nmu-1)
-                        ! AVB: second-order:
-                        if (density_conservation) then
+                        if (conservative_test_particle_density) then
                            cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-       + 0.5*vfac*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
+       + 0.5*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
                                                                     / mw(iv + 1, imu - 1, iz, is) / (dvpa) / dmu(nmu - 1)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-       - 0.5*vfac*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+       - 0.5*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
                                                                 / mw(iv + 1, imu, iz, is) / (dvpa) / dmu(nmu - 1)
                            bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                 + 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
+                 + 0.5*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
                                                                     / mw(iv, imu - 1, iz, is) / (dvpa) / dmu(nmu - 1)
                            bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                 - 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
+                 - 0.5*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
                                                                 / mw(iv, imu, iz, is) / (dvpa) / dmu(nmu - 1)
                         else
                            cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                          + 1.0*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
+                          + 1.0*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-                            - 1.0*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu,iz,is) / (2*dvpa) / dmu(nmu-1)
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+                            - 1.0*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu,iz,is) / (2*dvpa) / dmu(nmu-1)
                         end if
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-      + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv) / dvpa**2 / mw(iv, imu, iz, is)
+      + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv) / dvpa**2 / mw(iv, imu, iz, is)
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            mum = 0.5 * (mu(imu) + mu(imu - 1))
                            mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
                            xm = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mum)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) / xm**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xm**3
                            else
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
                                     - (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr)) / xm**3
                            end if
       nupam = spec(is)%vnew(isb) * 2 * (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr) / xm**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * deflknob * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
-                           if (density_conservation) then
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * scale_pitch_angle_scattering * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
+                           if (conservative_test_particle_density) then
                               ! to ensure density conservation we assume that the argument of the outer derivative vanishes at nmu+1/2, ie
                               ! d/dmu[...]_{nmu} = ([...]_{nmu+1/2} - [...]_{nmu-1/2})/(dmu_{nmu-1}/2+dmu(nmu-1)/2)
                               ! where [...]_{nmu+1/2} is a ghost cell at mu = mu_{nmu} + dmu(nmu-1)/2, with [...]_{nmu+1/2} = 0.
@@ -772,15 +805,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                              - gam_mu*(-1) / dmu(imu - 1) * dmu(imu - 1) / 2./dmu(imu - 1)) / mw(iv, imu - 1, iz, is) / (dmu(imu - 1) / 2.+dmu(imu - 1))
                            end if
                            ! mixed derivative:
-                           !cc_blcs(iv,imu,imu,iz,is)   = cc_blcs(iv,imu,imu  ,iz,is)  &
-                           ! - 1.000*code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)*1/mw(iv+1,imu,iz,is)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           !cc_blcs(iv,imu,imu-1,iz,is) = cc_blcs(iv,imu,imu-1,iz,is)  &
-                           ! + 1.000*code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)*1/mw(iv+1,imu-1,iz,is)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           !bb_blcs(iv,imu,imu,ikxkyz)  = bb_blcs(iv,imu,imu  ,ikxkyz) &
-                           !+ 1.000*code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)*1/mw(iv,imu,iz,is)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           !bb_blcs(iv,imu,imu-1,ikxkyz)= bb_blcs(iv,imu,imu-1,ikxkyz) &
-                           !- 1.000*code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)*1/mw(iv,imu-1,iz,is)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           if (density_conservation) then
+                           if (conservative_test_particle_density) then
                               cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
                                         + 0.5*1.0*code_dt*(0.5*(vpa(iv)*mu(imu  )*nux(iv,imu  ,iz,is,isb)*mw(iv,imu  ,iz,is)+vpa(iv+1)*mu(imu  )*nux(iv+1,imu  ,iz,is,isb)*mw(iv+1,imu  ,iz,is))&
                                                                                       * 1 / mw(iv + 1, imu, iz, is)) / (2 * dmu(imu - 1)) / dvpa
@@ -816,24 +841,24 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         ! = -0.5*([ ]_nvpa-1 + [ ]_nvpa) / dvpa
                         ! could be cleared up, by moving non-nux part of aa_blcs down to non-nux part of bb_bcls
                         cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                                + 0.5*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is)*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                + 0.5*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is)*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                - 0.5*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is)*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                - 0.5*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is)*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-             - 0.5*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+             - 0.5*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-     + 0.5*vfac*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu-1,iz,is)*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+     + 0.5*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu-1,iz,is)*dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-     - 0.5*vfac*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu+1,iz,is)*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+     - 0.5*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu+1,iz,is)*dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                 - 0.5*vfac*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                 - 0.5*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
 
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-      + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv) / dvpa**2 / mw(iv, imu, iz, is)
+      + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            ! quantities at mu_{i+1/2} and mu_{i-1/2}:
                            mup = 0.5 * (mu(imu) + mu(imu + 1))
                            mum = 0.5 * (mu(imu) + mu(imu - 1))
@@ -841,20 +866,20 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
                            xp = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mup)
                            xm = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mum)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) / xp**3
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) / xm**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xp**3
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xm**3
                            else
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
                                     - (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr)) / xp**3
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
                                     - (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr)) / xm**3
                            end if
       nupap = spec(is)%vnew(isb) * 2 * (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr) / xp**3
       nupam = spec(is)%vnew(isb) * 2 * (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr) / xm**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * deflknob * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
-                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * deflknob * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * scale_pitch_angle_scattering * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
+                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * scale_pitch_angle_scattering * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
 
                            bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
                   - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
@@ -893,11 +918,11 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      vpam = 0.5 * (vpa(iv) + vpa(iv - 1))
                      mwmv = exp(-vpam**2) * maxwell_mu(1, iz, imu, is)
                      xmv = sqrt(vpam**2 + 2 * bmag(ia, iz) * mu(imu))
-                   nupamv = vfac*spec(is)%vnew(isb)*2*(erf(xmv/sqrt(massr))-xmv/sqrt(massr)*(2/sqrt(pi))*exp(-xmv**2/massr)) / (2*xmv**2/massr)/xmv**3
-                     if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                        nuDmv = eidefl * deflknob * vfac * spec(is)%vnew(isb) / xmv**3
+                   nupamv = spec(is)%vnew(isb)*2*(erf(xmv/sqrt(massr))-xmv/sqrt(massr)*(2/sqrt(pi))*exp(-xmv**2/massr)) / (2*xmv**2/massr)/xmv**3
+                     if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                        nuDmv = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xmv**3
                      else
-                        nuDmv = eidefl * deflknob * vfac * spec(is)%vnew(isb) * (erf(xmv / sqrt(massr)) &
+                        nuDmv = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xmv / sqrt(massr)) &
                                - (erf(xmv / sqrt(massr)) - xmv / sqrt(massr) * (2 / sqrt(pi)) * exp(-xmv**2 / massr)) / (2 * xmv**2 / massr)) / xmv**3
                      end if
                      if (imu == 1) then
@@ -906,44 +931,44 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         ! = -0.5*([ ]_nvpa-1 + [ ]_nvpa) / dvpa
                         ! could be cleared up, by moving non-nux part of aa_blcs down to non-nux part of bb_bcls
                         aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-       + 0.5*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
+       + 0.5*code_dt*vpa(iv-1)*0.5*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
                                                                  / mw(iv - 1, imu + 1, iz, is) / (dvpa) / dmu(imu)
                         aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) - code_dt * 0.5 * (eiediff * nupamv * vpam**2 &
-                                                + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-       - 0.5*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
+                                                + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+       - 0.5*code_dt*vpa(iv-1)*0.5*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
                                                              / mw(iv - 1, imu, iz, is) / (dvpa) / dmu(imu)
                         bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                 + 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
+                 + 0.5*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
                                                                  / mw(iv, imu + 1, iz, is) / (dvpa) / dmu(imu)
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                 - 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
+                 - 0.5*code_dt*vpa(iv)*0.5*(mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)+mu(imu+1)*nux(iv,imu+1,iz,is,isb)*mw(iv,imu+1,iz,is))&
                                                              / mw(iv, imu, iz, is) / (dvpa) / dmu(imu)
 
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-      + code_dt * (0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
+      + code_dt * (0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            ! use ghost cell at mu_{0} = 0
                            mup = 0.5 * (mu(imu) + mu(imu + 1))
                            mwp = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mup)
                            xp = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mup)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) / xp**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xp**3
                            else
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
                                     - (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr)) / xp**3
                            end if
       nupap = spec(is)%vnew(isb) * 2 * (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr) / xp**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * deflknob * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * scale_pitch_angle_scattering * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
 
                    bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) - code_dt * (gam_mu*(-1) / dmu(imu) * dmu(imu) / 2./mu(imu) &
                          + (gam_mup*(-1) / dmu(imu) - gam_mu*(-1) / dmu(imu)) * mu(imu) / (dmu(imu) / 2.)) / mw(iv, imu, iz, is) / (dmu(imu) / 2.+mu(imu))
           bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) - code_dt * (gam_mu * 1 / dmu(imu) * dmu(imu) / 2./mu(imu) &
                    + (gam_mup * 1 / dmu(imu) - gam_mu * 1 / dmu(imu)) * mu(imu) / (dmu(imu) / 2.)) / mw(iv, imu + 1, iz, is) / (dmu(imu) / 2.+mu(imu))
                            ! mixed derivative:
-                           if (density_conservation) then
+                           if (conservative_test_particle_density) then
                               ! to ensure density conservation, change discretisation of mixed derivative term at imu=1
                               ! from explicit routine: Dmuh1 = (vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz,is)*Dvpah + vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz,is)*Dvpah_p) / (2.*dmu(imu))
                               aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
@@ -975,57 +1000,49 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         end if
                      else if (imu == nmu) then
                         ! one-sided difference for mu-derivative at imu=nmu:
-                        !aa_blcs(iv,imu,imu-1,iz,is) = aa_blcs(iv,imu,imu-1,iz,is) - 1.000*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
-                        !aa_blcs(iv,imu,imu,iz,is)   = aa_blcs(iv,imu,imu,iz,is) - code_dt*0.5*(eiediff*nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2  / mw(iv-1,imu,iz,is) &
-                        !  + 1.000*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu,iz,is) / (2*dvpa) / dmu(nmu-1)
-                        ! 24.02.21, second order:
-                        if (density_conservation) then
-                           !aa_blcs(iv,imu,imu-1,iz,is) = aa_blcs(iv,imu,imu-1,iz,is) &
-                           !- 1.000*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))/mw(iv-1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
-                           !aa_blcs(iv,imu,imu,iz,is)   = aa_blcs(iv,imu,imu  ,iz,is) - code_dt*0.5*(eiediff*nupamv*vpam**2 + 2*nuDmv*bmag(ia,iz)*mu(imu))*mwmv / dvpa**2 / mw(iv-1,imu,iz,is) &
-                           ! + 1.000*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))/mw(iv-1,imu  ,iz,is) / (2*dvpa) / dmu(nmu-1)
+                        if (conservative_test_particle_density) then
                            ! take vpa derivative using ghost cell at nvpa+0.5
                            ! ie d/dvpa [vpa*mu*nux*F0*dhdmu] = [ ]_nvpa+0.5-[ ]_nvpa-0.5 / dvpa = -[ ]_nvpa-0.5 / dvpa
                            ! = -0.5*([ ]_nvpa-1 + [ ]_nvpa) / dvpa
                            ! note this could be cleared up, by moving the non-nux part of aa_blcs down to the non-nux part of bb_bcls
                            aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-       - 0.5*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
+       - 0.5*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
                                                                     / mw(iv - 1, imu - 1, iz, is) / (dvpa) / dmu(nmu - 1)
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-       + 0.5*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+       + 0.5*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
                                                                 / mw(iv - 1, imu, iz, is) / (dvpa) / dmu(nmu - 1)
                            bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                 - 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
+                 - 0.5*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
                                                                     / mw(iv, imu - 1, iz, is) / (dvpa) / dmu(nmu - 1)
                            bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                 + 0.5*vfac*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
+                 + 0.5*code_dt*vpa(iv)*0.5*(mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)+mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is))&
                                                                 / mw(iv, imu, iz, is) / (dvpa) / dmu(nmu - 1)
                         else
                            aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                          - 1.0*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
+                          - 1.0*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-                            + 1.0*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu,iz,is) / (2*dvpa) / dmu(nmu-1)
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+                            + 1.0*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu,iz,is) / (2*dvpa) / dmu(nmu-1)
                         end if
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-      + code_dt * (0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
+      + code_dt * (0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            mum = 0.5 * (mu(imu) + mu(imu - 1))
                            mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
                            xm = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mum)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) / xm**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xm**3
                            else
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
                                     - (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr)) / xm**3
                            end if
       nupam = spec(is)%vnew(isb) * 2 * (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr) / xm**3
-     gam_mu  = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * deflknob * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
-                           if (density_conservation) then
+     gam_mu  = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * scale_pitch_angle_scattering * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
+                           if (conservative_test_particle_density) then
                               ! to ensure density conservation we assume that the argument of the outer derivative vanishes at nmu+1/2, ie
                               ! d/dmu[...]_{nmu} = ([...]_{nmu+1/2} - [...]_{nmu-1/2})/(dmu_{nmu-1}/2+dmu(nmu-1)/2), where [...]_{nmu+1/2} is a ghost cell at mu = mu_{nmu} + dmu(nmu-1)/2, with [...]_{nmu+1/2} = 0.
          bb_blcs(iv,imu,imu,ikxkyzt,is,isb) = bb_blcs(iv,imu,imu,ikxkyzt,is,isb) - code_dt*((gam_mu/dmu(imu-1) - gam_mum/dmu(imu-1))*dmu(imu-1)/(dmu(imu-1)) &
@@ -1039,16 +1056,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                              - gam_mu*(-1) / dmu(imu - 1) * dmu(imu - 1) / 2./dmu(imu - 1)) / mw(iv, imu - 1, iz, is) / (dmu(imu - 1) / 2.+dmu(imu - 1))
                            end if
                            ! mixed derivative:
-                           ! 24.02.21, commenting out
-                           !aa_blcs(iv,imu,imu,iz,is)    = aa_blcs(iv,imu,imu  ,iz,is) &
-                           !  + 1.000*code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)*1/mw(iv-1,imu,iz,is)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           !aa_blcs(iv,imu,imu-1,iz,is)  = aa_blcs(iv,imu,imu-1,iz,is) &
-                           !  - 1.000*code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)*1/mw(iv-1,imu-1,iz,is)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           !bb_blcs(iv,imu,imu,ikxkyz)   = bb_blcs(iv,imu,imu  ,ikxkyz) &
-                           !  - 1.000*code_dt*(vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)*1/mw(iv,imu,iz,is)*(dmu(imu-1)/dmu(imu-1)-dmu(imu-1)/dmu(imu-1))) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           !bb_blcs(iv,imu,imu-1,ikxkyz) = bb_blcs(iv,imu,imu-1,ikxkyz) &
-                           !  + 1.000*code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)*1/mw(iv,imu-1,iz,is)* dmu(imu-1)/dmu(imu-1)) / (dmu(imu-1)+dmu(imu-1)) / (dvpa)
-                           if (density_conservation) then
+                           if (conservative_test_particle_density) then
                               ! 04.03. removed an extra bracket at end of lines in following block
                               aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
                                         - 0.5*1.0*code_dt*(0.5*(vpa(iv-1)*mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is))&
@@ -1085,24 +1093,24 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
                         ! note this could be cleared up, by moving the non-nux part of aa_blcs down to the non-nux part of bb_bcls
                         aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                                - 0.5*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                - 0.5*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                + 0.5*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                                + 0.5*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-             + 0.5*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+             + 0.5*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-   - 0.5*vfac*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+   - 0.5*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-   + 0.5*vfac*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+   + 0.5*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*mw(iv,imu,iz,is)/mw(iv,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (dvpa)
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                 + 0.5*vfac*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
+                 + 0.5*code_dt*vpa(iv)*mu(imu)*nux(iv,imu,iz,is,isb)*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (dvpa)
 
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-      + code_dt * (0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
+      + code_dt * (0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            ! quantities at mu_{i+1/2} and mu_{i-1/2}:
                            mup = 0.5 * (mu(imu) + mu(imu + 1))
                            mum = 0.5 * (mu(imu) + mu(imu - 1))
@@ -1110,18 +1118,18 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
                            xp = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mup)
                            xm = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mum)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) / xp**3
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) / xm**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xp**3
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xm**3
                            else
-                                     nuDp = eidefl*deflknob*spec(is)%vnew(isb)*(erf(xp/sqrt(massr))-(erf(xp/sqrt(massr))-xp/sqrt(massr)*(2/sqrt(pi))*exp(-xp**2/massr)) / (2*xp**2/massr)) / xp**3
-                                     nuDm = eidefl*deflknob*spec(is)%vnew(isb)*(erf(xm/sqrt(massr))-(erf(xm/sqrt(massr))-xm/sqrt(massr)*(2/sqrt(pi))*exp(-xm**2/massr)) / (2*xm**2/massr)) / xm**3
+                                     nuDp = eidefl*scale_pitch_angle_scattering*spec(is)%vnew(isb)*(erf(xp/sqrt(massr))-(erf(xp/sqrt(massr))-xp/sqrt(massr)*(2/sqrt(pi))*exp(-xp**2/massr)) / (2*xp**2/massr)) / xp**3
+                                     nuDm = eidefl*scale_pitch_angle_scattering*spec(is)%vnew(isb)*(erf(xm/sqrt(massr))-(erf(xm/sqrt(massr))-xm/sqrt(massr)*(2/sqrt(pi))*exp(-xm**2/massr)) / (2*xm**2/massr)) / xm**3
                            end if
       nupap = spec(is)%vnew(isb) * 2 * (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr) / xp**3
       nupam = spec(is)%vnew(isb) * 2 * (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr) / xm**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * deflknob * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
-                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * deflknob * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * scale_pitch_angle_scattering * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
+                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * scale_pitch_angle_scattering * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
                            bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
                   - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
        + (-gam_mu * (dmu(imu) / dmu(imu - 1) - dmu(imu - 1) / dmu(imu)) / (dmu(imu - 1) + dmu(imu)) - gam_mup / dmu(imu)) * dmu(imu - 1) / dmu(imu)) &
@@ -1163,76 +1171,75 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      mwpv = exp(-vpap**2) * maxwell_mu(1, iz, imu, is)
                      xpv = sqrt(vpap**2 + 2 * bmag(ia, iz) * mu(imu))
                      xmv = sqrt(vpam**2 + 2 * bmag(ia, iz) * mu(imu))
-                   nupamv = vfac*spec(is)%vnew(isb)*2*(erf(xmv/sqrt(massr))-xmv/sqrt(massr)*(2/sqrt(pi))*exp(-xmv**2/massr)) / (2*xmv**2/massr)/xmv**3
-                   nupapv = vfac*spec(is)%vnew(isb)*2*(erf(xpv/sqrt(massr))-xpv/sqrt(massr)*(2/sqrt(pi))*exp(-xpv**2/massr)) / (2*xpv**2/massr)/xpv**3
-                     if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                        nuDmv = eidefl * deflknob * vfac * spec(is)%vnew(isb) / xmv**3
-                        nuDpv = eidefl * deflknob * vfac * spec(is)%vnew(isb) / xpv**3
+                   nupamv = spec(is)%vnew(isb)*2*(erf(xmv/sqrt(massr))-xmv/sqrt(massr)*(2/sqrt(pi))*exp(-xmv**2/massr)) / (2*xmv**2/massr)/xmv**3
+                   nupapv = spec(is)%vnew(isb)*2*(erf(xpv/sqrt(massr))-xpv/sqrt(massr)*(2/sqrt(pi))*exp(-xpv**2/massr)) / (2*xpv**2/massr)/xpv**3
+                     if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                        nuDmv = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xmv**3
+                        nuDpv = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xpv**3
                      else
-                        nuDmv = eidefl * deflknob * vfac * spec(is)%vnew(isb) * (erf(xmv / sqrt(massr)) &
+                        nuDmv = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xmv / sqrt(massr)) &
                                - (erf(xmv / sqrt(massr)) - xmv / sqrt(massr) * (2 / sqrt(pi)) * exp(-xmv**2 / massr)) / (2 * xmv**2 / massr)) / xmv**3
-                        nuDpv = eidefl * deflknob * vfac * spec(is)%vnew(isb) * (erf(xpv / sqrt(massr)) &
+                        nuDpv = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xpv / sqrt(massr)) &
                                - (erf(xpv / sqrt(massr)) - xpv / sqrt(massr) * (2 / sqrt(pi)) * exp(-xpv**2 / massr)) / (2 * xpv**2 / massr)) / xpv**3
                      end if
 
                      if (imu == 1) then
                         ! one-sided difference for mu-derivative at imu=1:
-                        if (.not. density_conservation) then
+                        if (.not. conservative_test_particle_density) then
                            aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                + vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) / (2*dvpa) / dmu(imu)
+                                + code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) / (2*dvpa) / dmu(imu)
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-                                                      - vfac * code_dt * vpa(iv - 1) * mu(imu) * nux(iv - 1, imu, iz, is, isb) / (2 * dvpa) / dmu(imu)
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+                                                      - code_dt * vpa(iv - 1) * mu(imu) * nux(iv - 1, imu, iz, is, isb) / (2 * dvpa) / dmu(imu)
                            cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                - vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is) / (2*dvpa) / dmu(imu)
+                                - code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is) / (2*dvpa) / dmu(imu)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-                                                      + vfac * code_dt * vpa(iv + 1) * mu(imu) * nux(iv + 1, imu, iz, is, isb) / (2 * dvpa) / dmu(imu)
-                        else if (density_conservation) then
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+                                                      + code_dt * vpa(iv + 1) * mu(imu) * nux(iv + 1, imu, iz, is, isb) / (2 * dvpa) / dmu(imu)
+                        else if (conservative_test_particle_density) then
                            ! to ensure density conservation, assume that nux*F0 vanishes at iv=1 and iv=nvpa
                            aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-           + 0.5*vfac*code_dt*vpa(iv-1)*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
+           + 0.5*code_dt*vpa(iv-1)*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
                                                                     / mw(iv - 1, imu + 1, iz, is) / (2 * dvpa) / dmu(imu)
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-           - 0.5*vfac*code_dt*vpa(iv-1)*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+           - 0.5*code_dt*vpa(iv-1)*(mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)+mu(imu+1)*nux(iv-1,imu+1,iz,is,isb)*mw(iv-1,imu+1,iz,is))&
                                                                 / mw(iv - 1, imu, iz, is) / (2 * dvpa) / dmu(imu)
                            cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-           - 0.5*vfac*code_dt*vpa(iv+1)*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
+           - 0.5*code_dt*vpa(iv+1)*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
                                                                     / mw(iv + 1, imu + 1, iz, is) / (2 * dvpa) / dmu(imu)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-           + 0.5*vfac*code_dt*vpa(iv+1)*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+           + 0.5*code_dt*vpa(iv+1)*(mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)+mu(imu+1)*nux(iv+1,imu+1,iz,is,isb)*mw(iv+1,imu+1,iz,is))&
                                                                 / mw(iv + 1, imu, iz, is) / (2 * dvpa) / dmu(imu)
                         end if
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                                     + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv &
-                 + 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
+                                     + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv &
+                 + 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            ! use ghost cell at mu_{0} = 0, where term vanishes, so dmu(0) = mu(1).
                            mup = 0.5 * (mu(imu) + mu(imu + 1))
                            mwp = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mup)
                            xp = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mup)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) / xp**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xp**3
                            else
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
                                     - (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr)) / xp**3
                            end if
       nupap = spec(is)%vnew(isb) * 2 * (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr) / xp**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * deflknob * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * scale_pitch_angle_scattering * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
                    bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) - code_dt * (gam_mu*(-1) / dmu(imu) * dmu(imu) / 2./mu(imu) &
                          + (gam_mup*(-1) / dmu(imu) - gam_mu*(-1) / dmu(imu)) * mu(imu) / (dmu(imu) / 2.)) / mw(iv, imu, iz, is) / (dmu(imu) / 2.+mu(imu))
           bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) - code_dt * (gam_mu * 1 / dmu(imu) * dmu(imu) / 2./mu(imu) &
                    + (gam_mup * 1 / dmu(imu) - gam_mu * 1 / dmu(imu)) * mu(imu) / (dmu(imu) / 2.)) / mw(iv, imu + 1, iz, is) / (dmu(imu) / 2.+mu(imu))
                            ! mixed derivative:
-                           if (density_conservation) then
+                           if (conservative_test_particle_density) then
                               ! to ensure density conservation, we change discretisation of mixed derivative term at imu=1
                               ! from explicit routine: Dmuh1 = (vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz,is)*Dvpah &
-                              !     + vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz,is)*Dvpah_p) / (2.*dmu(imu))
                               aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
          + code_dt * (vpa(iv) * mu(imu) * nux(iv, imu, iz, is, isb) * mw(iv, imu, iz, is) * 1 / mw(iv - 1, imu, iz, is)) / (2 * dmu(imu)) / (2 * dvpa)
                               aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
@@ -1260,54 +1267,54 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      else if (imu == nmu) then
                         ! one-sided difference for mu-derivative at imu=nmu:
                         ! to be consistent with treatment of mixed mu operator; assume that nux(imu)=0.
-                        if (density_conservation) then
+                        if (conservative_test_particle_density) then
                            aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-       - 1.0*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
+       - 1.0*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
                                                                     / mw(iv - 1, imu - 1, iz, is) / (2 * dvpa) / dmu(nmu - 1)
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-       + 1.0*vfac*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+       + 1.0*code_dt*vpa(iv-1)*0.5*(mu(imu-1)*nux(iv-1,imu-1,iz,is,isb)*mw(iv-1,imu-1,iz,is)+mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is))&
                                                                 / mw(iv - 1, imu, iz, is) / (2 * dvpa) / dmu(nmu - 1)
                            cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-       + 1.0*vfac*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
+       + 1.0*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
                                                                     / mw(iv + 1, imu - 1, iz, is) / (2 * dvpa) / dmu(nmu - 1)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-       - 1.0*vfac*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+       - 1.0*code_dt*vpa(iv+1)*0.5*(mu(imu-1)*nux(iv+1,imu-1,iz,is,isb)*mw(iv+1,imu-1,iz,is)+mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is))&
                                                                 / mw(iv + 1, imu, iz, is) / (2 * dvpa) / dmu(nmu - 1)
                         else
                            aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                          - 1.0*vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
+                          - 1.0*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-                                            + 1.0 * vfac * code_dt * vpa(iv - 1) * mu(imu) * nux(iv - 1, imu, iz, is, isb) / (2 * dvpa) / dmu(nmu - 1)
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+                                            + 1.0 * code_dt * vpa(iv - 1) * mu(imu) * nux(iv - 1, imu, iz, is, isb) / (2 * dvpa) / dmu(nmu - 1)
                            cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                          + 1.0*vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
+                          + 1.0*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) / (2*dvpa) / dmu(nmu-1)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-                                            - 1.0 * vfac * code_dt * vpa(iv + 1) * mu(imu) * nux(iv + 1, imu, iz, is, isb) / (2 * dvpa) / dmu(nmu - 1)
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+                                            - 1.0 * code_dt * vpa(iv + 1) * mu(imu) * nux(iv + 1, imu, iz, is, isb) / (2 * dvpa) / dmu(nmu - 1)
                         end if
 
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                                     + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv &
-                 + 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
+                                     + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv &
+                 + 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            mum = 0.5 * (mu(imu) + mu(imu - 1))
                            mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
                            xm = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mum)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) / xm**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xm**3
                            else
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
                                     - (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr)) / xm**3
                            end if
       nupam = spec(is)%vnew(isb) * 2 * (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr) / xm**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * deflknob * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * scale_pitch_angle_scattering * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
 
-                           if (density_conservation) then
+                           if (conservative_test_particle_density) then
                               ! to ensure density conservation assume that argument of outer derivative vanishes at nmu+1/2, ie
                               ! d/dmu[...]_{nmu} = ([...]_{nmu+1/2} - [...]_{nmu-1/2})/(dmu_{nmu-1}/2+dmu(nmu-1)/2)
                               ! where [...]_{nmu+1/2} is a ghost cell at mu = mu_{nmu} + dmu(nmu-1)/2, with [...]_{nmu+1/2} = 0.
@@ -1326,7 +1333,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                              - gam_mu*(-1) / dmu(imu - 1) * dmu(imu - 1) / 2./dmu(imu - 1)) / mw(iv, imu - 1, iz, is) / (dmu(imu - 1) / 2.+dmu(imu - 1))
                            end if
                            ! no distinction here between density_conserving and default
-                           if (density_conservation) then
+                           if (conservative_test_particle_density) then
                               aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
                            - code_dt*(vpa(iv)*mu(imu-1)*nux(iv,imu-1,iz,is,isb)*mw(iv,imu-1,iz,is)*1/mw(iv-1,imu-1,iz,is)) / (2*dmu(imu-1)) / (2*dvpa)
                               aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
@@ -1352,46 +1359,46 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
                         end if
                      else ! interior mu points
-                        if (density_conservation) then
+                        if (conservative_test_particle_density) then
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-              +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+              +code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-              -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+              -code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            ! vpa operator, mixed (interior treatment):
                            aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                                    - vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    - code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                    + vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    + code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                                    + vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    + code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                    - vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    - code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                         else
                            aa_blcs(iv, imu, imu, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * deflknob * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
-              +vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+  - code_dt * 0.5 * (eiediff * nupamv * vpam**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv / dvpa**2 / mw(iv - 1, imu, iz, is) &
+              +code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            cc_blcs(iv, imu, imu, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * deflknob * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
-              -vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+  - code_dt * 0.5 * (eiediff * nupapv * vpap**2 + eidefl * scale_pitch_angle_scattering * 2 * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv / dvpa**2 / mw(iv + 1, imu, iz, is) &
+              -code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb) * (dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            ! vpa operator, mixed (interior treatment):
                            aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                                    - vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    - code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = aa_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                    + vfac*code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    + code_dt*vpa(iv-1)*mu(imu)*nux(iv-1,imu,iz,is,isb)*mw(iv-1,imu,iz,is)/mw(iv-1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu - 1, ikxkyzt, is, isb) &
-                                    + vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    + code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu-1,iz,is) * dmu(imu)/dmu(imu-1) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                            cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) = cc_blcs(iv, imu, imu + 1, ikxkyzt, is, isb) &
-                                    - vfac*code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
+                                    - code_dt*vpa(iv+1)*mu(imu)*nux(iv+1,imu,iz,is,isb)*mw(iv+1,imu,iz,is)/mw(iv+1,imu+1,iz,is) * dmu(imu-1)/dmu(imu) / (dmu(imu-1)+dmu(imu)) / (2*dvpa)
                         end if
 
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
-                                     + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + 2 * eidefl * deflknob * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv &
-                 + 0.5 * (eiediff * nupamv * vpam**2 + 2 * eidefl * deflknob * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
+                                     + code_dt * (0.5 * (eiediff * nupapv * vpap**2 + 2 * eidefl * scale_pitch_angle_scattering * nuDpv * bmag(ia, iz) * mu(imu)) * mwpv &
+                 + 0.5 * (eiediff * nupamv * vpam**2 + 2 * eidefl * scale_pitch_angle_scattering * nuDmv * bmag(ia, iz) * mu(imu)) * mwmv) / dvpa**2 / mw(iv, imu, iz, is)
 
                         ! mu operator
-                        if (mu_operator) then
+                        if (include_mu_derivatives) then
                            ! quantities at mu_{i+1/2} and mu_{i-1/2}:
                            mup = 0.5 * (mu(imu) + mu(imu + 1))
                            mum = 0.5 * (mu(imu) + mu(imu - 1))
@@ -1399,21 +1406,21 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
                            xp = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mup)
                            xm = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mum)
-                           if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) / xp**3
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) / xm**3
+                           if ((is == 2) .and. (isb == 1) .and. (mass_ratio_approximation_ei)) then
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xp**3
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) / xm**3
                            else
-                              nuDp = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
+                              nuDp = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xp / sqrt(massr)) &
                                     - (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr)) / xp**3
-                              nuDm = eidefl * deflknob * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
+                              nuDm = eidefl * scale_pitch_angle_scattering * spec(is)%vnew(isb) * (erf(xm / sqrt(massr)) &
                                     - (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr)) / xm**3
                            end if
       nupap = spec(is)%vnew(isb) * 2 * (erf(xp / sqrt(massr)) - xp / sqrt(massr) * (2 / sqrt(pi)) * exp(-xp**2 / massr)) / (2 * xp**2 / massr) / xp**3
       nupam = spec(is)%vnew(isb) * 2 * (erf(xm / sqrt(massr)) - xm / sqrt(massr) * (2 / sqrt(pi)) * exp(-xm**2 / massr)) / (2 * xm**2 / massr) / xm**3
-      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*deflknob*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
-                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * deflknob * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
-                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * deflknob * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
-                           ! mu_operator (interior treatment):
+      gam_mu = 2*(eiediff*nupa(iv,imu,iz,is,isb)*mu(imu)**2+eidefl*scale_pitch_angle_scattering*nuD(iv,imu,iz,is,isb)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)
+                           gam_mum = 2 * (eiediff * nupam * mum**2 + eidefl * scale_pitch_angle_scattering * nuDm * vpa(iv)**2 / (2 * bmag(ia, iz)) * mum) * mwm
+                           gam_mup = 2 * (eiediff * nupap * mup**2 + eidefl * scale_pitch_angle_scattering * nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp
+                           ! include_mu_derivatives (interior treatment):
                            bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = bb_blcs(iv, imu, imu, ikxkyzt, is, isb) &
                   - code_dt*((gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mum / dmu(imu-1))*dmu(imu)/dmu(imu-1) &
                                     +(-gam_mu*(dmu(imu)/dmu(imu-1) - dmu(imu-1)/dmu(imu)) / (dmu(imu-1)+dmu(imu)) - gam_mup / dmu(imu))* dmu(imu-1)/dmu(imu)) / mw(iv,imu,iz,is) * 2./(dmu(imu-1)+dmu(imu))
@@ -1452,18 +1459,18 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end do
       !$omp end parallel do
 
-      ! Without the test-particle part (testpart = .false., to test the field-particle part alone) all blocks
+      ! Without the test-particle part (include_test_particle_part = .false., to test the field-particle part alone) all blocks
       ! are zero: the identity of 1 - C^{ab} is added once below, after the blocks of all species are summed.
       ! (Before Nov 2026 the diagonal blocks were set to 1 for every species pair, which gave (nspec + 1) times
       ! the identity.) The classical (FLR) diffusion below is part of the test-particle part and left out too.
-      if (.not. testpart) then
+      if (.not. include_test_particle_part) then
          aa_blcs = 0.
          cc_blcs = 0.
          bb_blcs = 0.
       end if
 
       ! construct full block matrix
-      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
+      if ((exact_conservation_test_particle_matrix) .or. (field_particle_density_from_test_particle)) then
          ! this is memory intensive, operating with blockmatrix is slow
          ! currently used for exact conservation scheme on non-uniform grids
          ! AVB: to do - replace this with band matrix operations
@@ -1592,7 +1599,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end do  ! ikxkyzt
       !$omp end parallel do
 
-      if (exact_conservation) call get_tp_f0moments(ikxkyzt_first, ikxkyzt_last)
+      if (exact_conservation_block_products) call get_tp_f0moments(ikxkyzt_first, ikxkyzt_last)
 
       deallocate (aa_blcs, bb_blcs, cc_blcs)
       end do  ! chunks of ikxkyzt
@@ -1601,7 +1608,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !$omp parallel do default(none) &
       !$omp   firstprivate(kxkyzt_lo, nmu, nvpa, nspec, ia) &
       !$omp   private(ikxkyzt, iky, ikx, iz, is, iv, imu, ivv) &
-      !$omp   shared(cdiffmat_band, kperp2, code_dt, cfac, testpart)
+      !$omp   shared(cdiffmat_band, kperp2, code_dt, scale_flr_terms, include_test_particle_part)
       do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
          iky = iky_idx(kxkyzt_lo, ikxkyzt)
          ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
@@ -1610,8 +1617,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             do iv = 1, nvpa
                do imu = 1, nmu
                   ivv = nmu * (iv - 1) + imu
-                  if (testpart) cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) = cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) &
-                     + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
+                  if (include_test_particle_part) cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) = cdiffmat_band(band_row(ivv, ivv, nmu + 1, nmu + 1), ivv, ikxkyzt, is) &
+                     + code_dt * scale_flr_terms * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
                end do
             end do
          end do
@@ -1653,12 +1660,11 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
    end subroutine init_fp_diffmatrix
 
-
    !****************************************************************************
    !                  The z points of the coefficients on this processor
    !****************************************************************************
    ! The coefficients of the field-particle operator (deltaj, deltaj_tp), the Legendre
-   ! functions (legendre_vpamu) and the Bessel functions (jm, jm0) are only used at the
+   ! functions (legendre_vpamu) and the Bessel functions (jm) are only used at the
    ! z points of the kxkyz_lo and kxkyzt_lo points of this processor, so every processor
    ! stores them only there, which needs no communication. These z points are numbered
    ! izl(iz) = 1, ..., nz_local (0 if iz is not stored here), with iz = iz_of_izl(izl).
@@ -1712,10 +1718,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    subroutine init_legendre
 
       use grids_velocity, only: mu, nmu, vpa, nvpa
-      use grids_z, only: nzgrid
       use geometry, only: bmag
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-      use file_utils, only: open_output_file, close_output_file
 
       implicit none
 
@@ -1759,35 +1763,27 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    !                                      Title
    !****************************************************************************
    subroutine init_bessel_fn
-      use grids_z, only: nzgrid
       use grids_velocity, only: nmu, vperp2
-      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use spfunc, only: j0
       use grids_species, only: spec, nspec
       use geometry, only: bmag
       use grids_kxky, only: naky, nakx
       use arrays, only: kperp2
-      use file_utils, only: open_output_file, close_output_file
       use mp, only: sum_allreduce
 
       implicit none
 
       integer :: iky, ikx, iz, izs, is, ia, mm, imu
-      real :: arg, aj1fac, aj1exp, aj0exp
+      real :: arg
 
       !-------------------------------------------------------------------------
 
       ! Only on the z points of this processor, see init_local_z
       allocate (jm(nmu, 0:lmax, naky, nakx, nz_local, nspec))
-      allocate (jm0(nmu, naky, nakx, nz_local, nspec))
 
       jm = 0
-      jm0 = 0
       ia = 1
-
-      aj1fac = 1.0
-      aj0exp = 1.0
-      aj1exp = 1.0
 
       ! The Bessel functions are used at the kxkyz_lo and kxkyzt_lo points of every species (fp_response,
       ! get_psi_response, get_psi and the conservation terms), so every processor computes them on all
@@ -1799,22 +1795,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                do iky = 1, naky
                   do imu = 1, nmu
                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                     jm0(imu, iky, ikx, izs, is) = j0(arg)**aj0exp
-                     jm(imu, 0, iky, ikx, izs, is) = j0(arg)**aj0exp
+                     jm(imu, 0, iky, ikx, izs, is) = j0(arg)
                   end do
+                  ! J_m of m >= 1 have the same argument as J_0, with bess_fac (0 for a drift-kinetic species)
                   do mm = 1, lmax
-                     ! the same argument as J_0, with bess_fac (0 for a drift-kinetic species)
-                     if (mm == 1) then
-                        do imu = 1, nmu
-                           arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                           jm(imu, mm, iky, ikx, izs, is) = bessel_jn(mm, arg)**aj1exp * aj1fac
-                        end do
-                     else
-                        do imu = 1, nmu
-                           arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                           jm(imu, mm, iky, ikx, izs, is) = bessel_jn(mm, arg)
-                        end do
-                     end if
+                     do imu = 1, nmu
+                        arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                        jm(imu, mm, iky, ikx, izs, is) = bessel_jn(mm, arg)
+                     end do
                   end do
                end do
             end do
@@ -1822,19 +1810,18 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end do
 
       ! The m /= 0 terms of the field-particle part (J1 for l = 1: the perpendicular momentum) restore what the
-      ! classical (gyro-)diffusion of the test-particle part removes, so scale them by the same <cfac>. With cfac = 0
+      ! classical (gyro-)diffusion of the test-particle part removes, so scale them by the same <scale_flr_terms>. With scale_flr_terms = 0
       ! (no classical diffusion) they would otherwise inject perpendicular momentum, and the growth rate runs away with
       ! the collision frequency (benchmark C1, Oct 2026: gamma = 0.28 instead of 0.08 at nu_ii = 1). J0 is kept on the
       ! m = 0 terms, so that the momentum and energy at the particle position are conserved, as in GS2, GENE and CGYRO.
       ! This replaces the input <cfac2>, which removed J0 and J1 of the field-particle part together.
       if (lmax > 0) then
          do mm = 1, lmax
-            jm(:, mm, :, :, :, :) = cfac * jm(:, mm, :, :, :, :)
+            jm(:, mm, :, :, :, :) = scale_flr_terms * jm(:, mm, :, :, :, :)
          end do
       end if
 
    end subroutine init_bessel_fn
-
 
    !****************************************************************************
    !                                      Title
@@ -1843,25 +1830,19 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       use grids_species, only: nspec, spec
       use grids_z, only: nzgrid
-      use geometry, only: bmag
       use calculations_velocity_integrals, only: integrate_vmu
-      use grids_velocity, only: mu, nmu, vpa, nvpa, set_vpa_weights
-      use file_utils, only: open_output_file, close_output_file
+      use grids_velocity, only: nmu, vpa, nvpa, set_vpa_weights
       use constants, only: pi
-      use parallelisation_layouts, only: kxkyz_lo, kxkyzt_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use grids_time, only: code_dt
-      use grids_kxky, only: naky
       use mp, only: sum_allreduce
 
       implicit none
 
       real, dimension(0:lmax, 0:jmax, nvpa, nmu, 1, -nzgrid:nzgrid) :: vlaguerre_vmu
       real, dimension(:, :, :), allocatable :: deltaj_share
-      integer :: ll, iv, jj, ia, imu, iz, izs, is, isa, isb, ix, ikx, iky, ikxkyz, ikxkyzt
+      integer :: ll, iv, jj, ia, iz, izs, isa, isb, ix
       real, dimension(-nzgrid:nzgrid) :: deltajint, deltajint_tp
       real, dimension(nvpa*nmu, -nzgrid:nzgrid) :: vpaF0vec, v2F0vec
-      real, dimension(nvpa*nmu, nvpa*nmu) :: ident
 
       logical :: conservative_wgts
 
@@ -1877,10 +1858,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       allocate (mwnorm(-nzgrid:nzgrid))
       allocate (modmwnorm(-nzgrid:nzgrid))
 
-      if (density_conservation) then
+      if (conservative_test_particle_density) then
          conservative_wgts = .true.
          call set_vpa_weights(conservative_wgts)
-      else if (exact_conservation_tp) then
+      else if (exact_conservation_test_particle_matrix) then
          conservative_wgts = .false.
          call set_vpa_weights(conservative_wgts)
       else
@@ -1896,8 +1877,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       deltaj = 0
 
       ! construct an identity matrix required below
-      ident = 0
-      forall (iv=1:nvpa * nmu) ident(iv, iv) = 1.
 
       ! Delta_j is local in z, and its calculation (with the recursion of calc_deltaj_vmu and the incomplete gamma
       ! functions of calc_delta0) is expensive, so every processor computes it only on its own z points (local_z, see
@@ -1925,20 +1904,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                   call vLj_vmu(jj, ll, vlaguerre_vmu(ll, jj, :, :, ia, :))
 
                   if (spitzer_problem) then
-                     if ((exact_conservation) .and. (ll == 1) .and. (jj == 0) &
+                     if ((exact_conservation_block_products) .and. (ll == 1) .and. (jj == 0) &
                          .and. .not. ((isa == 1) .and. (isb == 1)) &
                          .and. .not. ((isa == 1) .and. (isb == 2)) &
                          ) then
 
                         ! to ensure conservation of momentum to machine precision
 
-                        !call open_output_file (tmpunit,'.deltaj_l1default')
-                        !do iv = 1, nvpa
-                        !    write (tmpunit,'(32es15.4e3)') ( deltaj(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0 ! electron-ion
-                        !end do
-                        !write (tmpunit,*)
-                        !call close_output_file (tmpunit)
-
                         ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v_\parallel F0a, on every z point
                         call apply_testpart_matrix(vpaF0vec, 1, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
 
@@ -1951,29 +1923,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         do izs = 1, nz_local
                            deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) = deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) * velvpamu(:, :, iz_of_izl(izs)) / spread(vpa, 2, nmu)
                         end do
-
-                        !call open_output_file (tmpunit,'.deltaj_l1modified')
-                        !do iv = 1, nvpa
-                        !    write (tmpunit,'(32es15.4e3)') ( deltaj_tp(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0
-                        !end do
-                        !write (tmpunit,*)
-                        !call close_output_file (tmpunit)
 
                      end if
 
                   else
-                     if ((exact_conservation) .and. (ll == 1) .and. (jj == 0)) then
+                     if ((exact_conservation_block_products) .and. (ll == 1) .and. (jj == 0)) then
 
                         if (spec(isa)%vnew(isb) == 0) cycle
-
-                        !if ((isa==1).and.(isb==2)) then
-                        !   call open_output_file (tmpunit,'.deltaj_l1default_ie')
-                        !   do iv = 1, nvpa
-                        !       write (tmpunit,'(32es15.4e3)') ( deltaj(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu )
-                        !   end do
-                        !   write (tmpunit,*)
-                        !   call close_output_file (tmpunit)
-                        !end if
 
                         ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v_\parallel F0a, on every z point
                         call apply_testpart_matrix(vpaF0vec, 1, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
@@ -1987,34 +1943,18 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         do izs = 1, nz_local
                            deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) = deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) * velvpamu(:, :, iz_of_izl(izs)) / spread(vpa, 2, nmu)
                         end do
-
-                        !if ((isa==1).and.(isb==2)) then
-                        !call open_output_file (tmpunit,'.deltaj_l1modified_ie')
-                        !   do iv = 1, nvpa
-                        !       write (tmpunit,'(32es15.4e3)') ( deltaj_tp(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0
-                        !  end do
-                        !  write (tmpunit,*)
-                        !  call close_output_file (tmpunit)
-                        !end if
 
                      end if
                   end if
 
                   if (spitzer_problem) then
-                     if ((exact_conservation) .and. (ll == 0) .and. (jj == 1) &
+                     if ((exact_conservation_block_products) .and. (ll == 0) .and. (jj == 1) &
                          .and. .not. ((isa == 1) .and. (isb == 1)) &
                          .and. .not. ((isa == 1) .and. (isb == 2)) &
                          ) then
 
                         ! energy conservation to machine precision
 
-                        !call open_output_file (tmpunit,'.deltaj_j1default')
-                        !do iv = 1, nvpa
-                        !    write (tmpunit,'(32es15.4e3)') ( deltaj(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0 ! electron-ion
-                        !end do
-                        !write (tmpunit,*)
-                        !call close_output_file (tmpunit)
-
                         ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v^2 F0a, on every z point
                         call apply_testpart_matrix(v2F0vec, 2, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
 
@@ -2023,29 +1963,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                               deltaj_tp(ll, jj, isa, isb, ix, :, ia, izs) = v2F0vec(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu, iz_of_izl(izs))
                            end do
                         end do
-
-                        !call open_output_file (tmpunit,'.deltaj_j1modified')
-                        !do iv = 1, nvpa
-                        !    write (tmpunit,'(32es15.4e3)') ( deltaj_tp(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0
-                        !end do
-                        !write (tmpunit,*)
-                        !call close_output_file (tmpunit)
 
                      end if
 
                   else
-                     if ((exact_conservation) .and. (ll == 0) .and. (jj == 1)) then
+                     if ((exact_conservation_block_products) .and. (ll == 0) .and. (jj == 1)) then
 
                         if (spec(isa)%vnew(isb) == 0) cycle
-
-                        !if ((isa==1).and.(isb==2)) then
-                        !    call open_output_file (tmpunit,'.deltaj_j1default_ie')
-                        !    do iv = 1, nvpa
-                        !        write (tmpunit,*) ( deltaj(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0 ! electron-ion
-                        !    end do
-                        !    write (tmpunit,*)
-                        !    call close_output_file (tmpunit)
-                        !end if
 
                         ! calculate delta_{j,l}^{ab} using the differential test particle operator C^{ab} acting on m_a v^2 F0a, on every z point
                         call apply_testpart_matrix(v2F0vec, 2, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
@@ -2056,19 +1980,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            end do
                         end do
 
-                        !if ((isa==1).and.(isb==2)) then
-                        !    call open_output_file (tmpunit,'.deltaj_j1modified_ie')
-                        !    do iv = 1, nvpa
-                        !        write (tmpunit,*) ( deltaj_tp(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0
-                        !    end do
-                        !    write (tmpunit,*)
-                        !    call close_output_file (tmpunit)
-                        !end if
                      end if
                   end if
-
-                  !conservative_wgts = .false.
-                  !call set_vpa_weights (conservative_wgts)
 
                   ! required integrals to ensure density conservation in field particle operator:
                   do iz = -nzgrid, nzgrid
@@ -2099,7 +2012,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                   ! momentum, but not on the velocity grid: with 8 equally spaced mu points the l = 1, j = 1 term restored 4% more
                   ! momentum than the test-particle part removed (Nov 2026). Remove the momentum moment of Delta_j on the grid
                   ! with v F0, which times P_1 is vpa F0, with no density and (odd in vpa) no energy.
-                  if ((exact_conservation .or. exact_conservation_tp) .and. (ll == 1) .and. (jj >= 1)) then
+                  if ((exact_conservation_block_products .or. exact_conservation_test_particle_matrix) .and. (ll == 1) .and. (jj >= 1)) then
                      do izs = 1, nz_local
                         iz = iz_of_izl(izs)
                         call integrate_vmu(spread(vpa, 2, nmu) * legendre_vpamu(1, 0, :, :, izs) * deltaj(ll, jj, isa, isb, :, :, ia, izs), &
@@ -2114,7 +2027,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
                   ! AVB: to do - need to generalise this to higher-order terms in the field particle operator
 
-                  if ((density_conservation_field) .and. (ll == 0) .and. (jj == 1)) then
+                  if ((exact_field_particle_density) .and. (ll == 0) .and. (jj == 1)) then
 
                      do izs = 1, nz_local
                         iz = iz_of_izl(izs)
@@ -2122,13 +2035,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         call integrate_vmu(deltaj_tp(ll, jj, isa, isb, :, :, ia, izs), iz, deltajint_tp(iz))
                      end do
 
-                     ! check accuracy of deltaj:
-                     !call open_output_file (tmpunit,'.deltaj_check')
-                     !do iv = 1, nvpa
-                     !    write (tmpunit,'(32es15.4e3)') ( deltaj(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0
-                     !end do
-                     !write (tmpunit,*)
-                     !call close_output_file (tmpunit)
+                     ! remove the density moment of deltaj and deltaj_tp
 
                      do izs = 1, nz_local
                         iz = iz_of_izl(izs)
@@ -2137,18 +2044,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) = deltaj_tp(ll, jj, isa, isb, :, :, ia, izs) &
                                              - mw(:, :, iz, isa) / mwnorm(iz) * deltajint_tp(iz)
                      end do
-
-                     !all open_output_file (tmpunit,'.deltaj_check_mod')
-                     !do iv = 1, nvpa
-                     !    write (tmpunit,'(32es15.4e3)') ( deltaj(ll, jj, isa, isb, iv, imu, ia, 0), imu=1, nmu ) ! at z = 0
-                     !end do
-                     !write (tmpunit,*)
-                     !call close_output_file (tmpunit)
-
-                     ! check density conservation to machine precision
-                     !do iz = -nzgrid, nzgrid
-                     !    call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, iz), iz, deltajint(iz))
-                     !end do
 
                   end if
 
@@ -2165,7 +2060,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !$omp   firstprivate(nspec, lmax, jmax, ia, iz_share_lo, iz_share_hi) &
       !$omp   private(isa, isb, ll, iz, jj) &
       !$omp   shared(psijnorm, legendre_vpamu, vlaguerre_vmu, deltaj, velvpamu, spec, izl, &
-      !$omp          exact_conservation, exact_conservation_tp)
+      !$omp          exact_conservation_block_products, exact_conservation_test_particle_matrix)
       do isa = 1, nspec
          do isb = 1, nspec
             do ll = 0, lmax
@@ -2179,23 +2074,23 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                         ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
                         ! = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
 
-                        if ((exact_conservation) .and. (ll == 1) .and. (jj == 0)) then
+                        if ((exact_conservation_block_products) .and. (ll == 1) .and. (jj == 0)) then
                            ! momentum conservation term for uniform mu grid
             call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
-                        else if ((exact_conservation) .and. (ll == 0) .and. (jj == 1)) then
+                        else if ((exact_conservation_block_products) .and. (ll == 0) .and. (jj == 1)) then
                            ! energy conservation term for uniform mu grid
                 call integrate_vmu(legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
-                        else if ((exact_conservation_tp) .and. (ll == 0) .and. (jj == 1)) then
+                        else if ((exact_conservation_test_particle_matrix) .and. (ll == 0) .and. (jj == 1)) then
                            ! energy conservation term for non-uniform mu grid
                 call integrate_vmu(legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
-                        else if ((exact_conservation_tp) .and. (ll == 1) .and. (jj == 0)) then
+                        else if ((exact_conservation_test_particle_matrix) .and. (ll == 1) .and. (jj == 0)) then
                            ! momentum conservation term for non-uniform mu grid
             call integrate_vmu(3 * legendre_vpamu(ll, 0, :, :, izl(iz))**2 * vlaguerre_vmu(ll, jj, :, :, ia, iz) * deltaj(ll, jj, isa, isb, :, :, ia, izl(iz)) &
                             * (spec(isa)%mass / spec(isb)%mass)**(-3) * (spec(isa)%mass / spec(isb)%mass)**(-0.5), iz, psijnorm(ll, jj, isa, isb, iz))
-                        else if (.not. ((exact_conservation) .or. (exact_conservation_tp)) .and. (ll == 0) .and. (jj == 1)) then
+                        else if (.not. ((exact_conservation_block_products) .or. (exact_conservation_test_particle_matrix)) .and. (ll == 0) .and. (jj == 1)) then
                            ! non-exact conservation of energy
                            if (spec(isa)%mass / spec(isb)%mass < 1.) then
                               ! use self-adjointness to avoid resolution problems
@@ -2226,135 +2121,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       psijnorm = psijnorm / (4 * pi) ! account for theta and phi integrals included in integrate_vmu
 
-      ! to check self-adjointness
-        !!print('Integral A =', np.trapz(vlinspace**lll * assoc_laguerre(vlinspace**2, jjj, lll+0.5) * fp0(vlinspace, ma, mb, jjj, lll) * vlinspace**2, x=vlinspace) )
-        !!print('Integral B =', np.trapz(ma**0.5/mb**0.5 * ma**3/mb**3 * vlinspace**lll * assoc_laguerre(vlinspace**2, jjj, lll+0.5) * fp0(vlinspace, mb, ma, jjj, lll) * vlinspace**2, x=vlinspace) )
-      !if (nspec > 1) then
-      !    ia  = 1
-      !    ll  = 0
-      !    jj  = 1
-      !    isa = 1
-      !    isb = 2
-      !    print*,''
-      !    call integrate_vmu( vlaguerre_vmu(ll,jj,:,:,ia,0)*deltaj(ll,jj,isa,isb,:,:,ia,0), 0, psijnorm(ll,jj,isa,isb,0) )
-      !    print*,'Integral A j1l0 =', psijnorm(ll,jj,isa,isb,0)
-      !    call integrate_vmu( vlaguerre_vmu(ll,jj,:,:,ia,0)*deltaj(ll,jj,isb,isa,:,:,ia,0) * (spec(isa)%mass/spec(isb)%mass)**3.0 * (spec(isa)%mass/spec(isb)%mass)**0.5, 0, psijnorm(ll,jj,isb,isa,0) )
-      !    print*,'Integral B j1l0 =', psijnorm(ll,jj,isb,isa,0)
-      !    call integrate_vmu( (-velvpamu(:,:,0)**2)*deltaj(ll,jj,isb,isa,:,:,ia,0) * (spec(isa)%mass/spec(isb)%mass)**3.0 * (spec(isa)%mass/spec(isb)%mass)**0.5, 0, psijnorm(ll,jj,isb,isa,0) )
-      !    print*,'Integral B j1l0b=', psijnorm(ll,jj,isb,isa,0)
-      !    print*,''
-      !    ia  = 1
-      !    ll  = 1
-      !    jj  = 0
-      !    isa = 1
-      !    isb = 2
-      !    print*,''
-      !    call integrate_vmu( vlaguerre_vmu(ll,jj,:,:,ia,0)*deltaj(ll,jj,isa,isb,:,:,ia,0), 0, psijnorm(ll,jj,isa,isb,0) )
-      !    print*,'Integral A l1j0 =', psijnorm(ll,jj,isa,isb,0)
-      !    call integrate_vmu( vlaguerre_vmu(ll,jj,:,:,ia,0)*deltaj(ll,jj,isb,isa,:,:,ia,0) * (spec(isa)%mass/spec(isb)%mass)**3.0 * (spec(isa)%mass/spec(isb)%mass)**0.5, 0, psijnorm(ll,jj,isb,isa,0) )
-      !    print*,'Integral B l1j0 =', psijnorm(ll,jj,isb,isa,0)
-      !    print*,''
-      !end if
-
-      ! to write interspec delt0 to file
-      !if (nspec > 1) then
-      !    do iv = 1, nvel_local
-      !        call calc_delta0 (vel(iv), 1, 0, 1, 2, delt0test1(iv)) ! jj=1, ll=0, ie
-      !        call calc_delta0 (vel(iv), 1, 0, 2, 1, delt0test2(iv)) ! jj=1, ll=0, ei
-      !        call calc_delta0 (vel(iv), 0, 1, 1, 2, delt0test3(iv)) ! jj=1, ll=0, ie
-      !        call calc_delta0 (vel(iv), 0, 2, 2, 2, delt0test4(iv)) ! jj=1, ll=0, ei
-      !    end do
-      !    call open_output_file (tmpunit,'.delt0test')
-      !    do iv = 1, nvel_local
-      !      write (tmpunit,'(9es15.4e3)') vel(iv), delt0test1(iv), delt0test2(iv), delt0test3(iv), delt0test4(iv)
-      !    end do
-      !    write (tmpunit,*)
-      !    call close_output_file (tmpunit)
-      !    call open_output_file (tmpunit,'.delt0l2test')
-      !    do iv = 1, nvel_local
-      !      write (tmpunit,'(9es15.4e3)') vel(iv), delt0test4(iv)
-      !    end do
-      !    write (tmpunit,*)
-      !    call close_output_file (tmpunit)
-      !end if
-
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
-
-      ! save deltajl for inspection
-      !call open_output_file (tmpunit,'.deltaj1l1_ee')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(1, 1, 2, 2, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj2l1_ee')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(1, 2, 2, 2, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj3l1_ee')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(1, 3, 2, 2, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj1l1_ei')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(1, 1, 2, 1, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj2l1_ei')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(1, 2, 2, 1, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj3l1_ei')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(1, 3, 2, 1, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj0l2_ee')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(2, 0, 2, 2, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !print*,'maxval deltaj0l2'
-      !print*,maxval(abs(deltaj(2, 0, 2, 2, :, :, 1, 0)))
-      !print*,''
-
-      !call open_output_file (tmpunit,'.deltaj1l2_ee')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(2, 1, 2, 2, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj2l2_ee')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(2, 2, 2, 2, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
-
-      !call open_output_file (tmpunit,'.deltaj0l1_ee')
-      !do iv = 1, nvpa
-      !    write (tmpunit,*) ( deltaj(1, 0, 2, 2, iv, imu, 1, 0), imu=1, nmu ) ! at z = 0
-      !end do
-      !write (tmpunit,*)
-      !call close_output_file (tmpunit)
 
    end subroutine init_deltaj_vmu
 
@@ -2475,7 +2243,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use arrays_distribution_function, only: gvmu
       use field_equations_fluxtube, only: advance_fields_fluxtube_using_field_equations
       use field_equations_collisions, only: get_fields_by_spec_idx
-      use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
 
       implicit none
@@ -2488,8 +2255,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       complex, dimension(:, :, :, :), allocatable :: dum1, dum3
       complex, dimension(:, :, :, :, :), allocatable :: field
-      complex, dimension(:, :), allocatable :: sumdelta
-      complex, dimension(:, :), allocatable :: gvmutr
       complex, dimension(:), allocatable :: ghrs
       ! Temporary kxkyzt-shaped buffer for the implicit solves; species axis is
       ! local on kxkyzt_lo so we add an explicit nspec dimension.
@@ -2498,7 +2263,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !-------------------------------------------------------------------------
 
       if (.not. allocated(fp_response)) then
-         if (fieldpart) then
+         if (include_field_particle_part) then
             nresponse = 1 + (jmax + 1) * (lmax + 1)**2 * nspec**2
          else
             nresponse = 1
@@ -2510,19 +2275,16 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dum3(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
-      allocate (sumdelta(nvpa, nmu)); sumdelta = 0.
-      allocate (gvmutr(nvpa, nmu))
       allocate (ghrs(nmu * nvpa)); ghrs = 0.
-      allocate (deltajint(jmax + 1, nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
       ia = 1
 
       ! set wgts to uniform to ensure exact conservation properties
-      if (density_conservation) then
+      if (conservative_test_particle_density) then
          conservative_wgts = .true.
          call set_vpa_weights(conservative_wgts)
       end if
-      if (exact_conservation_tp) then
+      if (exact_conservation_test_particle_matrix) then
          conservative_wgts = .false.
          call set_vpa_weights(conservative_wgts)
       end if
@@ -2536,7 +2298,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
          iz = iz_idx(kxkyzt_lo, ikxkyzt)
          do is = 1, nspec
-   ghrs = reshape(transpose(spread(ztmax(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(jm0(:,iky,ikx,izl(iz),is),1,nvpa)), shape=(/ nmu*nvpa /))
+   ghrs = reshape(transpose(spread(ztmax(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(jm(:,0,iky,ikx,izl(iz),is),1,nvpa)), shape=(/ nmu*nvpa /))
             call solve_test_particle_operator(ghrs, ikxkyzt, is)
             gvmu_kxkyzt(:, :, ikxkyzt, is) = transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
          end do
@@ -2564,7 +2326,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! to do - avoid operations with blockmatrix or blockmatrix_sum, use band storage
       ! Now distributed on kxkyzt_lo with explicit target species:
       !   blockmatrix_sum(:,:,ikxkyzt,is) = sum_{isb} blockmatrix(:,:,ikxkyzt,is,isb)
-      if (density_conservation_tp) then
+      if (field_particle_density_from_test_particle) then
          do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
             do is = 1, nspec
                blockmatrix_sum(:, :, ikxkyzt, is) = blockmatrix(:, :, ikxkyzt, is, is)
@@ -2577,7 +2339,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end if
 
       ! field particle terms
-      if (fieldpart) then
+      if (include_field_particle_part) then
          idx1 = 1 ! first row (phi equation)
          do idx2 = 1, (jmax + 1) * (lmax + 1)**2 * nspec ! column indices
 
@@ -2597,7 +2359,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             ! optionally replace this term with density conserving term
             ! that ensures conservation of density of the test particle operator to machine precision when using non-uniform mu-grid
 
-            if ((jj == 0) .and. (ll == 0) .and. (density_conservation_tp)) then
+            if ((jj == 0) .and. (ll == 0) .and. (field_particle_density_from_test_particle)) then
 
                ! get testpart_den response for kperp = 0, only need dh_isa / d testpart_den_isa
                ! since this includes all interspecies test-particle operators.
@@ -2678,7 +2440,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                do is = 1, nspec
                   do iv = 1, nvpa
                      do imu = 1, nmu
-                        ghrs(nmu * (iv - 1) + imu) = ztmax(iv, is) * maxwell_mu(1, iz, imu, is) * jm0(imu, iky, ikx, izl(iz), is)
+                        ghrs(nmu * (iv - 1) + imu) = ztmax(iv, is) * maxwell_mu(1, iz, imu, is) * jm(imu, 0, iky, ikx, izl(iz), is)
                      end do
                   end do
                   call solve_test_particle_operator(ghrs, ikxkyzt, is)
@@ -2690,7 +2452,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             call scatter(kxkyz2kxkyzt, gvmu_kxkyzt, gvmu)
             deallocate (gvmu_kxkyzt)
 
-            if ((jj == 0) .and. (ll == 0) .and. (density_conservation_tp)) then
+            if ((jj == 0) .and. (ll == 0) .and. (field_particle_density_from_test_particle)) then
 
                ! get C_testpart[isa,isa+isb+isc...][dh_a/dphi], store in field(:,:,:,:,isa)
                field = 0.
@@ -2737,7 +2499,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                mm2 = -ll2 + im2 - 1
                jj2 = ij2 - 1
 
-               if ((jj2 == 0) .and. (ll2 == 0) .and. (density_conservation_tp)) then
+               if ((jj2 == 0) .and. (ll2 == 0) .and. (field_particle_density_from_test_particle)) then
                   ! Solve runs on kxkyzt_lo for is = isb only; other species are
                   ! left at zero (matching the gvmu = 0. + cycle of the original).
                   allocate (gvmu_kxkyzt(nvpa, nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec))
@@ -2765,7 +2527,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                   call get_psi_response(ll2, mm2, jj2, isb, gvmu)
                end if
 
-               if ((jj1 == 0) .and. (ll1 == 0) .and. (density_conservation_tp)) then
+               if ((jj1 == 0) .and. (ll1 == 0) .and. (field_particle_density_from_test_particle)) then
                   ! get the fields C_testpart[isa,isa+isb+isc...][dh_a/dpsi^ab], C_testpart[isa,isa+isb+isc...][dh_a/dpsi^ac], C_testpart[isa,isa+isb+isc...][dh_a/dpsi^ad] ...
                   call get_testpart_density(isa, isb, gvmu, field)
 
@@ -2799,23 +2561,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       end if
 
-      ! save response matrix, to examine contents
-      !do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-      ! iky = iky_idx(kxkyz_lo,ikxkyz)
-      ! ikx = ikx_idx(kxkyz_lo,ikxkyz)
-      ! iz  = iz_idx(kxkyz_lo,ikxkyz)
-      ! is  = is_idx(kxkyz_lo,ikxkyz)
-      !it  = it_idx(kxkyz_lo,ikxkyz)
-      !if ((iky==naky).and.(is==1).and.(iz==0)) then
-      !     call open_output_file (tmpunit,'.fp_response')
-      !      do idx1 = 1, nresponse
-      !          write(tmpunit,*) (real(fp_response(idx1,idx2,ikxkyz)), idx2 = 1,nresponse) ! (12es15.4e3)
-      !      end do
-      !      write (tmpunit,*)
-      !      call close_output_file (tmpunit)
-      !  end if
-      !end do
-
       ! LU decomposition for response
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          call lu_decomposition(fp_response(:, :, ikxkyz), diff_idx(:, ikxkyz), dum2)
@@ -2827,7 +2572,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       deallocate (dum1, dum3, field)
 
    end subroutine init_fp_conserve
-
 
 !###############################################################################
 !############################ FINISH COLLISION MODEL ###########################
@@ -2874,7 +2618,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       call finish_deltaj
       if (allocated(legendre_vpamu)) deallocate (legendre_vpamu)
       if (allocated(jm)) deallocate (jm)
-      if (allocated(jm0)) deallocate (jm0)
       if (allocated(izl)) deallocate (izl, iz_of_izl, local_z)
 
       initialised_fokker_planck = .false.
@@ -2902,9 +2645,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       implicit none
 
-      if (allocated(aa_vpa)) deallocate (aa_vpa)
-      if (allocated(bb_vpa)) deallocate (bb_vpa)
-      if (allocated(cc_vpa)) deallocate (cc_vpa)
       if (allocated(aa_blcs)) deallocate (aa_blcs)
       if (allocated(bb_blcs)) deallocate (bb_blcs)
       if (allocated(cc_blcs)) deallocate (cc_blcs)
@@ -2924,7 +2664,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       if (allocated(fp_response)) deallocate (fp_response)
       if (allocated(diff_idx)) deallocate (diff_idx)
-      if (allocated(deltajint)) deallocate (deltajint)
 
    end subroutine finish_fp_response
    
@@ -2935,7 +2674,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       implicit none
 
-      if (allocated(nus)) deallocate (nus)
       if (allocated(nuD)) deallocate (nuD)
       if (allocated(nupa)) deallocate (nupa)
       if (allocated(nux)) deallocate (nux)
@@ -2968,7 +2706,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use initialise_redistribute, only: kxkyz2kxkyzt
       use redistribute, only: scatter
       use constants, only: pi
-      use file_utils, only: open_output_file, close_output_file
 
       implicit none
 
@@ -2976,7 +2713,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       integer, intent(in) :: ll, mm, jj, isa
       complex, dimension(:), allocatable :: ghrs
       complex, dimension(:, :, :, :), allocatable :: response_kxkyzt
-      integer :: ikxkyz, ikxkyzt, iky, ikx, iz, is, ia, iv, imu
+      integer :: ikxkyzt, iky, ikx, iz, is, ia, iv, imu
       real :: clm
 
       !-------------------------------------------------------------------------
@@ -3081,7 +2818,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, idx
       use constants, only: pi
       use grids_species, only: spec, nspec
-      use file_utils, only: open_output_file, close_output_file
       use grids_time, only: code_dt
 
       implicit none
@@ -3090,7 +2826,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
       integer, intent(in) :: isa, isb, ll, mm, jj
 
-      integer :: ikxkyz, ikxkyzt, iky, ikx, iz, it, is, ia, iv, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
+      integer :: ikxkyz, ikxkyzt, iky, ikx, iz, it, is, ia, iv
       complex, dimension(:, :), allocatable :: g0
       complex, dimension(:), allocatable :: ghrs
       real :: clm
@@ -3107,7 +2843,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! processor, which made the field-particle part depend on the number of processors and blow up
       fld = 0.
 
-      if (density_conservation) then
+      if (conservative_test_particle_density) then
          conservative_wgts = .true.
          call set_vpa_weights(conservative_wgts)
       else
@@ -3119,23 +2855,13 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       ia = 1
 
-      ! BUG-FIX (nproc-dependent answers): zero fld before the kxkyz_lo loop.
-      ! `fld` is declared intent(out), so the Fortran standard says it is
-      ! undefined on entry -- compilers do not zero it for us. The loops
-      ! below write only the rank's locally-owned (iky,ikx,iz,it,is) entries
-      ! and leave the rest at whatever garbage was already in the caller's
-      ! memory. The closing sum_allreduce(fld) then sums garbage from the
-      ! non-owning ranks at every non-local point, and the answer depends
-      ! on the rank decomposition.
-      fld = 0.
-
       if (isb == 0) then
          ! Every point writes only its own fld(iky, ikx, iz, it, is), so the points are shared among the threads
          !$omp parallel do default(none) &
          !$omp   firstprivate(kxkyz_lo, isa, isb, ll, mm, jj, clm, ia, nvpa, nmu) &
          !$omp   private(ikxkyz, ikxkyzt, iky, ikx, iz, it, is, iv, g0, ghrs) &
          !$omp   shared(g, fld, mw, jm, legendre_vpamu, deltaj, deltaj_tp, spec, blockmatrix, code_dt, vpa, velvpamu, &
-         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp, izl)
+         !$omp          kxkyzt_lo, exact_conservation_block_products, exact_conservation_test_particle_matrix, izl)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -3144,16 +2870,16 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             it = it_idx(kxkyz_lo, ikxkyz)
             if (mm == 0) then
 
-               if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
+               if ((exact_conservation_block_products) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
            g0 = clm*g(:,:,ikxkyz)/mw(:,:,iz,is)*spread(jm(:,-mm,iky,ikx,izl(iz),is),1,nvpa)*legendre_vpamu(ll,-mm,:,:,izl(iz))*deltaj_tp(ll,jj,is,isa,:,:,ia,izl(iz))
 
-               else if ((exact_conservation_tp) .and. ((ll == 1) .and. (jj == 0))) then
+               else if ((exact_conservation_test_particle_matrix) .and. ((ll == 1) .and. (jj == 0))) then
                   do iv = 1, nvpa
                      ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(is)%mass / spec(isa)%mass)**2 * jm(:, -mm, iky, ikx, izl(iz), is) * g(iv, :, ikxkyz)
                   end do
                   ! blockmatrix is on kxkyzt_lo with explicit (target_is, source_isb).
                   ! NOTE: this branch assumes this rank owns the (iky,ikx,iz,it) point
-                  ! in kxkyzt_lo. With exact_conservation_tp enabled, get_psi may need
+                  ! in kxkyzt_lo. With exact_conservation_test_particle_matrix enabled, get_psi may need
                   ! to be restructured to loop over kxkyzt_lo with a kxkyz<->kxkyzt
                   ! redistribute, similar to the zgbtrs sites elsewhere in this module.
                   ikxkyzt = idx(kxkyzt_lo, iky, ikx, iz, it)
@@ -3165,7 +2891,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      g0 = 0.
                   end if
 
-               else if ((exact_conservation_tp) .and. ((ll == 0) .and. (jj == 1))) then
+               else if ((exact_conservation_test_particle_matrix) .and. ((ll == 0) .and. (jj == 1))) then
                   do iv = 1, nvpa
                      ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(is)%mass / spec(isa)%mass)**1.5 * jm(:, -mm, iky, ikx, izl(iz), is) * g(iv, :, ikxkyz)
                   end do
@@ -3183,7 +2909,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
                end if
             else if (mm < 0) then
-               if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
+               if ((exact_conservation_block_products) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
                   g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, izl(iz), is), 1, nvpa) &
                        * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, is, isa, :, :, ia, izl(iz))
                else
@@ -3192,7 +2918,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                end if
 
             else if (mm > 0) then
-               if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
+               if ((exact_conservation_block_products) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
                   g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), is), 1, nvpa) &
                        * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, is, isa, :, :, ia, izl(iz))
                else
@@ -3216,7 +2942,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          !$omp   firstprivate(kxkyz_lo, isa, isb, ll, mm, jj, clm, ia, nvpa, nmu) &
          !$omp   private(ikxkyz, ikxkyzt, iky, ikx, iz, it, is, iv, g0, ghrs) &
          !$omp   shared(g, fld, mw, jm, legendre_vpamu, deltaj, deltaj_tp, spec, blockmatrix, code_dt, vpa, velvpamu, &
-         !$omp          kxkyzt_lo, exact_conservation, exact_conservation_tp, izl)
+         !$omp          kxkyzt_lo, exact_conservation_block_products, exact_conservation_test_particle_matrix, izl)
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -3224,11 +2950,11 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             is = is_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
             if (mm == 0) then
-               if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
+               if ((exact_conservation_block_products) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
                   g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), isb), 1, nvpa) &
                        * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, isb, isa, :, :, ia, izl(iz))
 
-               else if ((exact_conservation_tp) .and. ((ll == 1) .and. (jj == 0))) then
+               else if ((exact_conservation_test_particle_matrix) .and. ((ll == 1) .and. (jj == 0))) then
                   do iv = 1, nvpa
                      ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(isb)%mass / spec(isa)%mass)**2 &
                                                          * jm(:, mm, iky, ikx, izl(iz), isb) * g(iv, :, ikxkyz)
@@ -3246,7 +2972,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                      g0 = 0.
                   end if
 
-               else if ((exact_conservation_tp) .and. ((ll == 0) .and. (jj == 1))) then
+               else if ((exact_conservation_test_particle_matrix) .and. ((ll == 0) .and. (jj == 1))) then
                   do iv = 1, nvpa
                      ghrs(nmu * (iv - 1) + 1:nmu * iv) = clm * (spec(isb)%mass / spec(isa)%mass)**1.5 &
                                                          * jm(:, mm, iky, ikx, izl(iz), isb) * g(iv, :, ikxkyz)
@@ -3264,7 +2990,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                        * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj(ll, jj, isb, isa, :, :, ia, izl(iz))
                end if
             else if (mm < 0) then
-               if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
+               if ((exact_conservation_block_products) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
                   g0 = (-1)**mm * clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, abs(mm), iky, ikx, izl(iz), isb), 1, nvpa) &
                        * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, isb, isa, :, :, ia, izl(iz))
                else
@@ -3273,7 +2999,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                end if
 
             else if (mm > 0) then
-               if ((exact_conservation) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
+               if ((exact_conservation_block_products) .and. (((ll == 0) .and. (jj == 1)) .or. ((ll == 1) .and. (jj == 0)))) then
                   g0 = clm * g(:, :, ikxkyz) / mw(:, :, iz, is) * spread(jm(:, mm, iky, ikx, izl(iz), isb), 1, nvpa) &
                        * legendre_vpamu(ll, -mm, :, :, izl(iz)) * deltaj_tp(ll, jj, isb, isa, :, :, ia, izl(iz))
                else
@@ -3345,7 +3071,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       use parallelisation_layouts, only: kxkyz_lo, kxkyzt_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, idx
       use constants, only: pi
-      use file_utils, only: open_output_file, close_output_file
       use grids_time, only: code_dt
 
       implicit none
@@ -3354,7 +3079,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
 
-      integer :: ikxkyz, ikxkyzt, iky, ikx, iz, it, is, ia, iv, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
+      integer :: ikxkyz, ikxkyzt, iky, ikx, iz, it, is, ia, iv
       complex, dimension(:, :), allocatable :: g0
       complex, dimension(:), allocatable :: ghrs
 
@@ -3362,9 +3087,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       allocate (g0(nvpa, nmu))
       allocate (ghrs(nmu * nvpa))
-
-      !conservative_wgts = .false.
-      !call set_vpa_weights (conservative_wgts)
 
       ia = 1
 
@@ -3423,8 +3145,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       call sum_allreduce(fld)
 
    end subroutine get_testpart_density
-   
-   
 
    !****************************************************************************
    !                                      Title
@@ -3710,8 +3430,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end do
 
    end subroutine calc_psi_vmu
-   
-   
 
    !****************************************************************************
    !                                      Title
@@ -3874,9 +3592,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       allocate (coll_fp(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); coll_fp = 0.0
       allocate (mucoll_fp(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc)); mucoll_fp = 0.0
 
-      if (density_conservation) then
+      if (conservative_test_particle_density) then
          !$omp parallel default(none) &
-         !$omp firstprivate(kxkyz_lo, nmu, nvpa, ia, vpa_operator, mu_operator, cfac) &
+         !$omp firstprivate(kxkyz_lo, nmu, nvpa, ia, include_vpa_derivatives, include_mu_derivatives, scale_flr_terms) &
          !$omp private(ikxkyz, iky, ikx, iz, is, imu, iv) &
          !$omp shared(gvmu, coll_fp, mucoll_fp)
          !$omp do
@@ -3885,14 +3603,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-            if (vpa_operator) then
+            if (include_vpa_derivatives) then
                do imu = 1, nmu
                   call vpa_differential_operator_fp_conservative(gvmu(:, :, ikxkyz), coll_fp(:, :, ikxkyz), imu, iz, is, ia)
                end do
             end if
-            if (mu_operator) then
+            if (include_mu_derivatives) then
                do iv = 1, nvpa
-                  call mu_differential_operator_fp_conservative(gvmu(:, :, ikxkyz), mucoll_fp(:, :, ikxkyz), iv, iz, is, ia, iky, ikx, cfac)
+                  call mu_differential_operator_fp_conservative(gvmu(:, :, ikxkyz), mucoll_fp(:, :, ikxkyz), iv, iz, is, ia, iky, ikx, scale_flr_terms)
                end do
             end if
             gvmu(:, :, ikxkyz) = coll_fp(:, :, ikxkyz) + mucoll_fp(:, :, ikxkyz)
@@ -3901,7 +3619,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          !$omp end parallel
       else
          !$omp parallel default(none) &
-         !$omp firstprivate(kxkyz_lo, nmu, nvpa, ia, vpa_operator, mu_operator, cfac) &
+         !$omp firstprivate(kxkyz_lo, nmu, nvpa, ia, include_vpa_derivatives, include_mu_derivatives, scale_flr_terms) &
          !$omp private(ikxkyz, iky, ikx, iz, is, imu, iv) &
          !$omp shared(gvmu, coll_fp, mucoll_fp)
          !$omp do
@@ -3910,14 +3628,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-            if (vpa_operator) then
+            if (include_vpa_derivatives) then
                do imu = 1, nmu
                   call vpa_differential_operator_fp(gvmu(:, :, ikxkyz), coll_fp(:, :, ikxkyz), imu, iz, is, ia)
                end do
             end if
-            if (mu_operator) then
+            if (include_mu_derivatives) then
                do iv = 1, nvpa
-                  call mu_differential_operator_fp(gvmu(:, :, ikxkyz), mucoll_fp(:, :, ikxkyz), iv, iz, is, ia, iky, ikx, cfac)
+                  call mu_differential_operator_fp(gvmu(:, :, ikxkyz), mucoll_fp(:, :, ikxkyz), iv, iz, is, ia, iky, ikx, scale_flr_terms)
                end do
             end if
             gvmu(:, :, ikxkyz) = coll_fp(:, :, ikxkyz) + mucoll_fp(:, :, ikxkyz)
@@ -3974,19 +3692,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       dvpahp = (h(iv + 1, imu) / mw(iv + 1, imu, iz, is) - h(iv, imu) / mw(iv, imu, iz, is)) / dvpa
 
       if (imu == 1) then
-         ! second-order accurate
-         !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-         !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-         !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-         !dmuhp = a*h(iv+1,imu)/mw(iv+1,imu,iz,is)+ b*h(iv+1,imu+1)/mw(iv+1,imu+1,iz,is) + c*h(iv+1,imu+2)/mw(iv+1,imu+2,iz)
          ! first-order accurate, as in implicit routine:
          dmuhp = (h(iv + 1, imu + 1) / mw(iv + 1, imu + 1, iz, is) - h(iv + 1, imu) / mw(iv + 1, imu, iz, is)) / dmu(imu)
       else if (imu == nmu) then
-         ! second-order accurate
-         !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-         !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-         !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-         !dmuhp = a*h(iv+1,imu-2)/mw(iv+1,imu-2,iz) + b*h(iv+1,imu-1)/mw(iv+1,imu-1,iz,is) + c*h(iv+1,imu)/mw(iv+1,imu,iz,is)
          ! first-order accurate, as in implicit routine:
          dmuhp = (h(iv + 1, imu) / mw(iv + 1, imu, iz, is) - h(iv + 1, imu - 1) / mw(iv + 1, imu - 1, iz, is)) / dmu(imu - 1)
       else
@@ -4004,19 +3712,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       dvpahm = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dvpa
 
       if (imu == 1) then
-         ! second-order accurate
-         !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-         !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-         !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-         !dmuhm = a*h(iv-1,imu)/mw(iv-1,imu,iz,is) + b*h(iv-1,imu+1)/mw(iv-1,imu+1,iz,is) + c*h(iv-1,imu+2)/mw(iv-1,imu+2,iz)
          ! first-order accurate, as in implicit routine:
          dmuhm = (h(iv - 1, imu + 1) / mw(iv - 1, imu + 1, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dmu(imu)
       else if (imu == nmu) then
-         ! second-order accurate
-         !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-         !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-         !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-         !dmuhm = a*h(iv-1,imu-2)/mw(iv-1,imu-2,iz) + b*h(iv-1,imu-1)/mw(iv-1,imu-1,iz,is) + c*h(iv-1,imu)/mw(iv-1,imu,iz,is)
          ! first-order accurate, as in implicit routine:
          dmuhm = (h(iv - 1, imu) / mw(iv - 1, imu, iz, is) - h(iv - 1, imu - 1) / mw(iv - 1, imu - 1, iz, is)) / dmu(imu - 1)
       else
@@ -4042,22 +3740,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          dvpahm = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dvpa
 
          if (imu == 1) then
-            ! second-order accurate:
-            !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-            !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-            !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-            !dmuhp = a*h(iv+1,imu)/mw(iv+1,imu,iz,is) + b*h(iv+1,imu+1)/mw(iv+1,imu+1,iz,is) + c*h(iv+1,imu+2)/mw(iv+1,imu+2,iz)
-            !dmuhm = a*h(iv-1,imu)/mw(iv-1,imu,iz,is) + b*h(iv-1,imu+1)/mw(iv-1,imu+1,iz,is) + c*h(iv-1,imu+2)/mw(iv-1,imu+2,iz)
             ! or first-order accurate, as in implicit routine:
             dmuhp = (h(iv + 1, imu + 1) / mw(iv + 1, imu + 1, iz, is) - h(iv + 1, imu) / mw(iv + 1, imu, iz, is)) / dmu(imu)
             dmuhm = (h(iv - 1, imu + 1) / mw(iv - 1, imu + 1, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dmu(imu)
          else if (imu == nmu) then
-            ! second-order accurate:
-            !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-            !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-            !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-            !dmuhp = a*h(iv+1,imu-2)/mw(iv+1,imu-2,iz) + b*h(iv+1,imu-1)/mw(iv+1,imu-1,iz,is) + c*h(iv+1,imu)/mw(iv+1,imu,iz,is)
-            !dmuhm = a*h(iv-1,imu-2)/mw(iv-1,imu-2,iz) + b*h(iv-1,imu-1)/mw(iv-1,imu-1,iz,is) + c*h(iv-1,imu)/mw(iv-1,imu,iz,is)
             ! or first-order accurate, as in implicit routine:
             dmuhp = (h(iv + 1, imu) / mw(iv + 1, imu, iz, is) - h(iv + 1, imu - 1) / mw(iv + 1, imu - 1, iz, is)) / dmu(imu - 1)
             dmuhm = (h(iv - 1, imu) / mw(iv - 1, imu, iz, is) - h(iv - 1, imu - 1) / mw(iv - 1, imu - 1, iz, is)) / dmu(imu - 1)
@@ -4078,7 +3764,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine mu_differential_operator_fp(h, Dh, iv, iz, is, ia, iky, ikx, cfac)
+   subroutine mu_differential_operator_fp(h, Dh, iv, iz, is, ia, iky, ikx, scale_flr_terms)
 
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa
       use geometry, only: bmag
@@ -4091,7 +3777,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       complex, dimension(:, :), intent(in) :: h
       complex, dimension(:, :), intent(out) :: Dh
       integer, intent(in) :: iv, iz, is, ia, iky, ikx
-      real, intent(in) :: cfac
+      real, intent(in) :: scale_flr_terms
       complex ::  Dvpah, Dvpah_p, Dvpah_m, Dmuh, Dmuh_m, Dmuh_p, Dmuh1, Dmuh2
       real :: nuDp, nuDm, nupap, nupam, mup, mum, xp, xm, mwm, mwp
       integer :: imu
@@ -4120,10 +3806,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! first derivative of h, at mu_{i+1/2}, and at mu_i:
       Dmuh = (h(iv, imu + 1) / mw(iv, imu + 1, iz, is) - h(iv, imu) / mw(iv, imu, iz, is)) / dmu(imu) ! first-order accurate, as used in implicit routine
       ! for second-order accuracy:
-      !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-      !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-      !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-      !Dmuh   = a*h(iv,imu)/mw(iv,imu,iz,is) + b*h(iv,imu+1)/mw(iv,imu+1,iz,is) + c*h(iv,imu+2)/mw(iv,imu+2,iz) ! second order accurate
       Dmuh_p = (h(iv, imu + 1) / mw(iv, imu + 1, iz, is) - h(iv, imu) / mw(iv, imu, iz, is)) / dmu(imu) ! second-order accurate
       ! quantities at mu_{i+1/2}:
       mup = 0.5 * (mu(imu) + mu(imu + 1))
@@ -4137,7 +3819,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                + (2 * (nupap * mup**2 + nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp * Dmuh_p &
                - 2*(nupa(iv,imu,iz,is,is)*mu(imu)**2+nuD(iv,imu,iz,is,is)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)*Dmuh)*mu(imu)/(dmu(imu)/2.) )/(mu(imu)+dmu(imu)/2.)
       ! add differential terms and gyro-diffusive term:
-      Dh(iv, imu) = Dmuh2 + Dmuh1 - cfac * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
+      Dh(iv, imu) = Dmuh2 + Dmuh1 - scale_flr_terms * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
                 * (nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) + nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))) * h(iv, imu)
 
       imu = nmu
@@ -4162,11 +3844,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! first derivative of h, at mu_{nmu} and mu_{nmu-1/2}:
       Dmuh_m = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv, imu - 1) / mw(iv, imu - 1, iz, is)) / dmu(imu - 1)
       Dmuh = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv, imu - 1) / mw(iv, imu - 1, iz, is)) / dmu(imu - 1) ! first-order accurate
-      ! for second-order accuracy:
-      !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-      !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-      !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-      !Dmuh = a*h(iv,imu-2)/mw(iv,imu-2,iz) + b*h(iv,imu-1)/mw(iv,imu-1,iz,is) + c*h(iv,imu)/mw(iv,imu,iz,is)
       ! quantities at mu_{nmu-1/2}:
       mum = 0.5 * (mu(imu) + mu(imu - 1))
       mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
@@ -4180,7 +3857,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                + (-2 * (nupa(iv, imu, iz, is, is) * mu(imu)**2 + nuD(iv, imu, iz, is, is) * vpa(iv)**2 / (2 * bmag(ia, iz)) &
                         * mu(imu)) * mw(iv, imu, iz, is) * Dmuh) * dmu(imu - 1) / 2./dmu(imu - 1)) / (dmu(imu - 1) / 2.+dmu(imu - 1))
       ! add differential terms and gyro-diffusive term:
-      Dh(iv, imu) = Dmuh2 + Dmuh1 - cfac * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
+      Dh(iv, imu) = Dmuh2 + Dmuh1 - scale_flr_terms * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
                 * (nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) + nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))) * h(iv, imu)
 
       do imu = 2, nmu - 1
@@ -4227,7 +3904,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                  + (2 * (nupap * mup**2 + nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp * Dmuh_p - 2 * (nupa(iv, imu, iz, is, is) * mu(imu)**2 &
                        +nuD(iv,imu,iz,is,is)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)*Dmuh )*dmu(imu-1)/dmu(imu) )*2/(dmu(imu-1)+dmu(imu))
          ! add differential terms and gyro-diffusive term:
-         Dh(iv,imu) = Dmuh2 + Dmuh1 - cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz,is,is)*bmag(ia,iz)*mu(imu) &
+         Dh(iv,imu) = Dmuh2 + Dmuh1 - scale_flr_terms*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz,is,is)*bmag(ia,iz)*mu(imu) &
                                                                       + nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))) * h(iv, imu)
       end do
 
@@ -4263,19 +3940,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       dvpahp = (h(iv + 1, imu) / mw(iv + 1, imu, iz, is) - h(iv, imu) / mw(iv, imu, iz, is)) / dvpa
 
       if (imu == 1) then
-         ! second-order accurate
-         !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-         !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-         !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-         !dmuhp = a*h(iv+1,imu)/mw(iv+1,imu,iz,is)+ b*h(iv+1,imu+1)/mw(iv+1,imu+1,iz,is) + c*h(iv+1,imu+2)/mw(iv+1,imu+2,iz)
          ! first-order accurate, as in implicit routine:
          dmuhp = (h(iv + 1, imu + 1) / mw(iv + 1, imu + 1, iz, is) - h(iv + 1, imu) / mw(iv + 1, imu, iz, is)) / dmu(imu)
       else if (imu == nmu) then
-         ! second-order accurate
-         !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-         !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-         !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-         !dmuhp = a*h(iv+1,imu-2)/mw(iv+1,imu-2,iz) + b*h(iv+1,imu-1)/mw(iv+1,imu-1,iz,is) + c*h(iv+1,imu)/mw(iv+1,imu,iz,is)
          ! first-order accurate, as in implicit routine:
          dmuhp = (h(iv + 1, imu) / mw(iv + 1, imu, iz, is) - h(iv + 1, imu - 1) / mw(iv + 1, imu - 1, iz, is)) / dmu(imu - 1)
       else
@@ -4293,19 +3960,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       dvpahm = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dvpa
 
       if (imu == 1) then
-         ! second-order accurate
-         !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-         !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-         !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-         !dmuhm = a*h(iv-1,imu)/mw(iv-1,imu,iz,is) + b*h(iv-1,imu+1)/mw(iv-1,imu+1,iz,is) + c*h(iv-1,imu+2)/mw(iv-1,imu+2,iz)
          ! first-order accurate, as in implicit routine:
          dmuhm = (h(iv - 1, imu + 1) / mw(iv - 1, imu + 1, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dmu(imu)
       else if (imu == nmu) then
-         ! second-order accurate
-         !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-         !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-         !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-         !dmuhm = a*h(iv-1,imu-2)/mw(iv-1,imu-2,iz) + b*h(iv-1,imu-1)/mw(iv-1,imu-1,iz,is) + c*h(iv-1,imu)/mw(iv-1,imu,iz,is)
          ! first-order accurate, as in implicit routine:
          dmuhm = (h(iv - 1, imu) / mw(iv - 1, imu, iz, is) - h(iv - 1, imu - 1) / mw(iv - 1, imu - 1, iz, is)) / dmu(imu - 1)
       else
@@ -4331,22 +3988,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          dvpahm = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dvpa
 
          if (imu == 1) then
-            ! second-order accurate:
-            !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-            !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-            !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-            !dmuhp = a*h(iv+1,imu)/mw(iv+1,imu,iz,is) + b*h(iv+1,imu+1)/mw(iv+1,imu+1,iz,is) + c*h(iv+1,imu+2)/mw(iv+1,imu+2,iz)
-            !dmuhm = a*h(iv-1,imu)/mw(iv-1,imu,iz,is) + b*h(iv-1,imu+1)/mw(iv-1,imu+1,iz,is) + c*h(iv-1,imu+2)/mw(iv-1,imu+2,iz)
             ! or first-order accurate, as in implicit routine:
             dmuhp = (h(iv + 1, imu + 1) / mw(iv + 1, imu + 1, iz, is) - h(iv + 1, imu) / mw(iv + 1, imu, iz, is)) / dmu(imu)
             dmuhm = (h(iv - 1, imu + 1) / mw(iv - 1, imu + 1, iz, is) - h(iv - 1, imu) / mw(iv - 1, imu, iz, is)) / dmu(imu)
          else if (imu == nmu) then
-            ! second-order accurate:
-            !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-            !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-            !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-            !dmuhp = a*h(iv+1,imu-2)/mw(iv+1,imu-2,iz) + b*h(iv+1,imu-1)/mw(iv+1,imu-1,iz,is) + c*h(iv+1,imu)/mw(iv+1,imu,iz,is)
-            !dmuhm = a*h(iv-1,imu-2)/mw(iv-1,imu-2,iz) + b*h(iv-1,imu-1)/mw(iv-1,imu-1,iz,is) + c*h(iv-1,imu)/mw(iv-1,imu,iz,is)
             ! or first-order accurate, as in implicit routine:
             dmuhp = (h(iv + 1, imu) / mw(iv + 1, imu, iz, is) - h(iv + 1, imu - 1) / mw(iv + 1, imu - 1, iz, is)) / dmu(imu - 1)
             dmuhm = (h(iv - 1, imu) / mw(iv - 1, imu, iz, is) - h(iv - 1, imu - 1) / mw(iv - 1, imu - 1, iz, is)) / dmu(imu - 1)
@@ -4383,7 +4028,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine mu_differential_operator_fp_conservative(h, Dh, iv, iz, is, ia, iky, ikx, cfac)
+   subroutine mu_differential_operator_fp_conservative(h, Dh, iv, iz, is, ia, iky, ikx, scale_flr_terms)
 
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa
       use geometry, only: bmag
@@ -4396,7 +4041,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       complex, dimension(:, :), intent(in) :: h
       complex, dimension(:, :), intent(out) :: Dh
       integer, intent(in) :: iv, iz, is, ia, iky, ikx
-      real, intent(in) :: cfac
+      real, intent(in) :: scale_flr_terms
       complex ::  Dvpah, Dvpah_p, Dvpah_m, Dmuh, Dmuh_m, Dmuh_p, Dmuh1, Dmuh2
       real :: nuDp, nuDm, nupap, nupam, mup, mum, xp, xm, mwm, mwp
       integer :: imu
@@ -4421,16 +4066,10 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! use ghost cell at mu_{0} = 0, where mu*vpa*nux(vpa,mu)*F0 vanishes, dmu(0) = mu(1)
       ! to ensure conservation of density we approximate as follows:
       Dmuh1 = (vpa(iv)*mu(imu)*nux(iv,imu,iz,is,is)*mw(iv,imu,iz,is)*Dvpah + vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz,is,is)*mw(iv,imu+1,iz,is)*Dvpah_p) / (2.*dmu(imu))
-      !!Dmuh1 = ((vpa(iv)*mu(imu  )*nux(iv,imu  ,iz)*mw(iv,imu  ,iz,is)*Dvpah)*dmu(imu)/mu(imu) &
-      !!      +(vpa(iv)*mu(imu+1)*nux(iv,imu+1,iz)*mw(iv,imu+1,iz,is)*Dvpah_p - vpa(iv)*mu(imu)*nux(iv,imu,iz)*mw(iv,imu,iz,is)*Dvpah)*mu(imu)/dmu(imu)) / (mu(imu)+dmu(imu))
 
       ! first derivative of h, at mu_{i+1/2}, and at mu_i:
       Dmuh = (h(iv, imu + 1) / mw(iv, imu + 1, iz, is) - h(iv, imu) / mw(iv, imu, iz, is)) / dmu(imu) ! first-order accurate, as used in implicit routine
       ! for second-order accuracy:
-      !a = -(2.*dmu(1) + dmu(2))/(dmu(1)*(dmu(1)+dmu(2)))
-      !b = (dmu(1)+dmu(2))/(dmu(1)*dmu(2))
-      !c = -dmu(1)/(dmu(2)*(dmu(1)+dmu(2)))
-      !Dmuh   = a*h(iv,imu)/mw(iv,imu,iz,is) + b*h(iv,imu+1)/mw(iv,imu+1,iz,is) + c*h(iv,imu+2)/mw(iv,imu+2,iz) ! second order accurate
       Dmuh_p = (h(iv, imu + 1) / mw(iv, imu + 1, iz, is) - h(iv, imu) / mw(iv, imu, iz, is)) / dmu(imu) ! second-order accurate
       ! quantities at mu_{i+1/2}:
       mup = 0.5 * (mu(imu) + mu(imu + 1))
@@ -4444,7 +4083,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                + (2 * (nupap * mup**2 + nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp * Dmuh_p &
         - 2*(nupa(iv,imu,iz,is,is)*mu(imu)**2+nuD(iv,imu,iz,is,is)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)*Dmuh)*mu(imu)/(dmu(imu)/2.) )/(mu(imu)+dmu(imu)/2.)
       ! add differential terms and gyro-diffusive term:
-      Dh(iv, imu) = Dmuh2 + Dmuh1 - cfac * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
+      Dh(iv, imu) = Dmuh2 + Dmuh1 - scale_flr_terms * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
                 * (nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) + nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))) * h(iv, imu)
 
       do imu = 2, nmu - 1
@@ -4496,7 +4135,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                   + (2 * (nupap * mup**2 + nuDp * vpa(iv)**2 / (2 * bmag(ia, iz)) * mup) * mwp * Dmuh_p &
             - 2*(nupa(iv,imu,iz,is,is)*mu(imu)**2+nuD(iv,imu,iz,is,is)*vpa(iv)**2/(2*bmag(ia,iz))*mu(imu))*mw(iv,imu,iz,is)*Dmuh )*dmu(imu-1)/dmu(imu) )*2/(dmu(imu-1)+dmu(imu))
          ! add differential terms and gyro-diffusive term:
-         Dh(iv,imu) = Dmuh2 + Dmuh1 - cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz,is,is)*bmag(ia,iz)*mu(imu) &
+         Dh(iv,imu) = Dmuh2 + Dmuh1 - scale_flr_terms*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz,is,is)*bmag(ia,iz)*mu(imu) &
                                                                       + nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))) * h(iv, imu)
       end do
 
@@ -4521,11 +4160,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! first derivative of h, at mu_{nmu} and mu_{nmu-1/2}:
       Dmuh_m = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv, imu - 1) / mw(iv, imu - 1, iz, is)) / dmu(imu - 1)
       Dmuh = (h(iv, imu) / mw(iv, imu, iz, is) - h(iv, imu - 1) / mw(iv, imu - 1, iz, is)) / dmu(imu - 1) ! first-order accurate
-      ! for second-order accuracy:
-      !a = dmu(nmu-1)/(dmu(nmu-2)*(dmu(nmu-2)+dmu(nmu-1)))
-      !b = -(dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-2)*dmu(nmu-1))
-      !c = (2.*dmu(nmu-1)+dmu(nmu-2))/(dmu(nmu-1)*(dmu(nmu-1)+dmu(nmu-2)))
-      !Dmuh = a*h(iv,imu-2)/mw(iv,imu-2,iz) + b*h(iv,imu-1)/mw(iv,imu-1,iz,is) + c*h(iv,imu)/mw(iv,imu,iz,is)
       ! quantities at mu_{nmu-1/2}:
       mum = 0.5 * (mu(imu) + mu(imu - 1))
       mwm = maxwell_vpa(iv, is) * exp(-2 * bmag(ia, iz) * mum)
@@ -4540,7 +4174,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                + (-2 * (nupa(iv, imu, iz, is, is) * mu(imu)**2 + nuD(iv, imu, iz, is, is) * vpa(iv)**2 / (2 * bmag(ia, iz)) * mu(imu)) &
                   * mw(iv, imu, iz, is) * Dmuh) * dmu(imu - 1) / dmu(imu - 1)) / (dmu(imu - 1) / 2.+dmu(imu - 1) / 2.)
       ! add differential terms and gyro-diffusive term:
-      Dh(iv,imu) = Dmuh2 + Dmuh1 - cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz,is,is)*bmag(ia,iz)*mu(imu) &
+      Dh(iv,imu) = Dmuh2 + Dmuh1 - scale_flr_terms*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(nupa(iv,imu,iz,is,is)*bmag(ia,iz)*mu(imu) &
                                                                       + nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))) * h(iv, imu)
 
    end subroutine mu_differential_operator_fp_conservative
@@ -4566,11 +4200,11 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       !-------------------------------------------------------------------------
 
-      if (density_conservation) then
+      if (conservative_test_particle_density) then
          conservative_wgts = .true.
          call set_vpa_weights(conservative_wgts)
       end if
-      if (exact_conservation_tp) then
+      if (exact_conservation_test_particle_matrix) then
          conservative_wgts = .false.
          call set_vpa_weights(conservative_wgts)
       end if
@@ -4614,7 +4248,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:, :, :), allocatable :: g_in
-      complex, dimension(:, :), allocatable :: gvmutr
       complex, dimension(:), allocatable :: ghrs
       complex, dimension(:, :, :, :, :), allocatable :: field
       ! Temporary kxkyzt-shaped buffer for the implicit zgbtrs solves; the
@@ -4622,7 +4255,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! after which the result is scattered back to g (kxkyz_lo).
       complex, dimension(:, :, :, :), allocatable :: g_kxkyzt
 
-      complex, dimension(:, :), allocatable :: g0spitzer
 
       integer :: ikxkyz, ikxkyzt, iky, ikx, iz, is, iv, it, ia
       integer :: idx1, ij, il, im, jj, ll, mm, ll1, mm1, jj1, isa, isb
@@ -4637,7 +4269,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       ! store input g for use later, as g will be overwritten below
       allocate (g_in(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-      allocate (g0spitzer(nvpa, nmu))
 
       ia = 1
 
@@ -4650,8 +4281,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          b_dot_gradz_lnp0 = 0
          b_dot_gradz_lnT0 = 0.01
 
-         spitzer_i1 = (applied_Epar - b_dot_gradz_lnp0) * i1fac
-         spitzer_i2 = b_dot_gradz_lnT0 * i2fac
+         spitzer_i1 = (applied_Epar - b_dot_gradz_lnp0) * spitzer_scale_epar
+         spitzer_i2 = b_dot_gradz_lnT0 * spitzer_scale_grad_t
 
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -4677,7 +4308,6 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          call g_to_h(g, phi_zero, bpar_old, fphi)
       end if
 
-      allocate (gvmutr(nvpa, nmu))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       allocate (flds(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse))
 
@@ -4722,7 +4352,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       ! next get the psi^{s1s2,jlm}_inh^{n+1}
       ! note g contains h_s1_inh, h_s2_inh, ... ie all species
-      if (fieldpart) then
+      if (include_field_particle_part) then
          ! layout of field(,,,,:) is phi; jlm0 psi_aa, jlm0 psi_ab, jlm0 psi_ba,  jlm0 psi_bb; jlm1 psi_aa, etc, because we want species to be contiguous
          do idx1 = 1, (jmax + 1) * (lmax + 1)**2 * nspec
 
@@ -4734,7 +4364,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             mm = -ll + im - 1
             jj = ij - 1
 
-            if (density_conservation_tp .and. (jj == 0) .and. (ll == 0)) then
+            if (field_particle_density_from_test_particle .and. (jj == 0) .and. (ll == 0)) then
                ! get the density produced by the combined test particle operator C_{test,isa} = C_{test,isa,isa} + C_{test,isa,isb} + ...
                ! this is stored in field(:,:,:,:,isa), all other entries are zero
                field = 0.
@@ -4782,7 +4412,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       call g_to_h(g, phi, bpar, fphi)
 
       ! add field particle contribution to RHS:
-      if (fieldpart) then
+      if (include_field_particle_part) then
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -4798,7 +4428,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                mm1 = -ll1 + im - 1
                jj1 = ij - 1
 
-               if (density_conservation_tp .and. (jj1 == 0) .and. (ll1 == 0)) then
+               if (field_particle_density_from_test_particle .and. (jj1 == 0) .and. (ll1 == 0)) then
                   isb = is
                   g(:,:,ikxkyz) = g(:,:,ikxkyz) - code_dt*flds(iky,ikx,iz,it, 2 + (is-1)*((jmax+1)*(lmax+1)**2*nspec) + (idx1-1)*nspec + (isb-1))&
                                   * modmw(:, :, iz, is) / modmwnorm(iz)
@@ -4860,12 +4490,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! get g^{n+1} from h^{n+1} and phi^{n+1}
       call g_to_h(g, phi, bpar, -fphi)
 
-      !fields_updated = .false.
-
       deallocate (g_in)
       if (em_fields) deallocate (apar_old, bpar_old, phi_zero)
       deallocate (field)
-      deallocate (gvmutr)
 
    end subroutine advance_implicit_fp
 
@@ -4873,7 +4500,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    !                   Coefficient of the gyro-diffusive term
    !****************************************************************************
    ! The finite-Larmor-radius (classical diffusion) term of the test-particle operator is diagonal in velocity space:
-   ! C_test[h] contains -cfac * kperp2 * gyro_diffusion_coefficient * h. It is used both in the matrix of the implicit
+   ! C_test[h] contains -scale_flr_terms * kperp2 * gyro_diffusion_coefficient * h. It is used both in the matrix of the implicit
    ! solve (init_fp_diffmatrix) and in the density correction after the solve (solve_test_particle_operator).
    !****************************************************************************
    real function gyro_diffusion_coefficient(iv, imu, iz, is)
@@ -4891,19 +4518,19 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
 
       ia = 1
       ! intra-species
-      nusum = nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) + deflknob * nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
+      nusum = nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) + scale_pitch_angle_scattering * nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
       ! inter-species
       do isb = 1, nspec
          if (isb == is) cycle
          if ((is == 2) .and. (isb == 1)) then
-            eiediff = eiediffknob
-            eidefl = eideflknob
+            eiediff = scale_energy_diffusion_ei
+            eidefl = scale_pitch_angle_scattering_ei
          else
             eiediff = 1
             eidefl = 1
          end if
          nusum = nusum + eiediff * nupa(iv, imu, iz, is, isb) * bmag(ia, iz) * mu(imu) &
-                 + eidefl * deflknob * nuD(iv, imu, iz, is, isb) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
+                 + eidefl * scale_pitch_angle_scattering * nuD(iv, imu, iz, is, isb) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
       end do
       ! (k_perp rho)^2 / k_perp^2 of species is, with bess_fac as in the argument of the Bessel functions
       gyro_diffusion_coefficient = 0.5 * (spec(is)%bess_fac * spec(is)%smz / bmag(ia, iz))**2 * nusum
@@ -4914,13 +4541,14 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
    !                       Solve [1 - Deltat C_test] h = ghrs
    !****************************************************************************
    ! The velocity-space part of the test-particle operator conserves density analytically, but on the non-uniform mu
-   ! grid (without density_conservation) the implicit solve changed the density by about 1e-5 of h per time step
-   ! (benchmark C2, Nov 2026). With kinetic electrons, quasineutrality amplifies this by 1/(k_perp rho_i)^2, so that
-   ! collisions alone were unstable. With density_correction_solve, this density error is removed after the solve, by
-   ! adding a multiple of modmw, which has no momentum and no energy moment. The finite-Larmor-radius (classical
-   ! diffusion) term of the operator (gyro_diffusion_coefficient), the diagonal flr_diag below, changes the gyrocentre density physically, so only
-   ! the remainder is removed: the solution x of [1 + flr_diag - Deltat C_v] x = ghrs must satisfy
-   ! n[x] + n[flr_diag x] = n[ghrs], where n[.] is the density moment on the grid. (Conserving n[x] instead made the
+   ! grid (without conservative_test_particle_density) the implicit solve changed the density by about 1e-5 of h per
+   ! time step (benchmark C2, Nov 2026). With kinetic electrons, quasineutrality amplifies this by 1/(k_perp rho_i)^2,
+   ! so that collisions alone were unstable. With density_correction_solve, this density error is removed after the
+   ! solve, by adding a multiple of modmw, which has no momentum and no energy moment. The finite-Larmor-radius
+   ! (classical diffusion) term of the operator (gyro_diffusion_coefficient) is diagonal in velocity space and changes
+   ! the gyrocentre density physically, so only the remainder is removed: with flr_diag = 1 + Deltat (the diagonal
+   ! FLR term), the solution x of [flr_diag - Deltat C_v] x = ghrs, where C_v is the velocity-space part, must
+   ! satisfy n[flr_diag x] = n[ghrs], where n[.] is the density moment on the grid. (Conserving n[x] instead made the
    ! ion-ion collisions unstable in benchmark C2.) The correction is linear in ghrs, so it is applied in the same
    ! way to the response matrices.
    !****************************************************************************
@@ -4953,11 +4581,11 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          allocate (hvmu(nvpa, nmu), flr_diag(nvpa, nmu))
          hvmu = transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
          call integrate_vmu(hvmu, iz, density_rhs)
-         ! the diagonal finite-Larmor-radius term of cdiffmat_band (see init_fp_diffmatrix)
+         ! 1 plus the diagonal finite-Larmor-radius term of cdiffmat_band (see init_fp_diffmatrix)
          do iv = 1, nvpa
             do imu = 1, nmu
                flr_diag(iv, imu) = 1.
-               if (testpart) flr_diag(iv, imu) = flr_diag(iv, imu) + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
+               if (include_test_particle_part) flr_diag(iv, imu) = flr_diag(iv, imu) + code_dt * scale_flr_terms * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
             end do
          end do
       end if
@@ -4965,7 +4593,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       call band_lu_solve(nvpa * nmu, nmu + 1, nmu + 1, cdiffmat_band(:, :, ikxkyzt, is), ipiv(:, ikxkyzt, is), ghrs)
 
       if (density_correction_solve) then
-         ! density error: n[(1 + flr_diag) x] - n[ghrs], removed with modmw
+         ! density error: n[flr_diag x] - n[ghrs], removed with modmw
          hvmu = flr_diag * transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
          call integrate_vmu(hvmu, iz, density_error)
          density_error = density_error - density_rhs

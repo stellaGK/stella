@@ -1,8 +1,15 @@
 !###############################################################################
-!                                                                               
+!                   Electrostatic potential of each species                     
 !###############################################################################
 ! 
-! Module for ...
+! The response-matrix approach of the implicit collision operators needs the
+! contribution of single species, or of single response functions, to the
+! electrostatic potential: the quasineutrality sum over the species is not
+! taken here, so that every species index of <fld> holds its own term.
+!   get_fields_by_spec      (collisions_dougherty.f90): the term of species is,
+!                           from g of species is (charge, density, J0 of is)
+!   get_fields_by_spec_idx  (collisions_fokkerplanck.f90): the potential of
+!                           species isa applied to every species slot of g
 ! 
 !###############################################################################
 module field_equations_collisions
@@ -124,11 +131,13 @@ contains
    !========================= ADVANCE FIELDS BY SPEC ===========================
    !============================================================================
    ! This is used in collisions_fokkerplanck.f90
-   ! Note that is looks identical to the routine above - we don't know why they
-   ! are separated
    ! 
    ! apply phi_isa[ ] to all species indices contained in g
    ! ie get phi_isa[g_is1], phi_isa[g_is2], phi_isa[g_is3] ...
+   ! Unlike get_fields_by_spec, the charge, density and Bessel argument are those of species isa for every species
+   ! slot is: in the Fokker-Planck response matrix, slot is holds dh_isa/dpsi^{isa,is}, a distribution of species
+   ! isa (see init_fp_conserve). For the same reason J0 is computed here instead of taken from gyro_average, and
+   ! there is no skip_fsa.
    !============================================================================
    subroutine get_fields_by_spec_idx(isa, g, fld)
 
@@ -188,7 +197,7 @@ contains
             is = is_idx(kxkyz_lo, ikxkyz)
             wgt = spec(isa)%z * spec(isa)%dens
             do imu = 1, nmu
-               ! AVB: changed this for use of j0, check
+               ! J0 of species isa (see above)
                arg = spec(isa)%bess_fac * spec(isa)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
                g0(:, imu) = g(:, imu, ikxkyz) * j0(arg) ! AVB: gyroaverage
             end do
