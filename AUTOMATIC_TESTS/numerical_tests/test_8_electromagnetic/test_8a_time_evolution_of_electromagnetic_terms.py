@@ -158,7 +158,22 @@ def test_each_gyrokinetic_term_for_electromagnetic_magnetic_drifts(tmp_path, ste
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
     compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The magnetic drift terms for EM is evolving correctly.')
-    
+
+#-------------------------------------------------------------------------------
+#  Check whether the implicit drifts (with implicit streaming) evolve correctly #
+#-------------------------------------------------------------------------------
+def test_each_gyrokinetic_term_for_electromagnetic_drifts_implicit(tmp_path, stella_version):
+
+    # Run stella inside of <tmp_path> based on <input_filename>
+    input_filename = input_filename_stem + '_drifts_implicit.in'
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
+
+    # Compare phi2(t) in the netCDF files
+    local_netcdf_file = tmp_path / (input_filename_stem + '_drifts_implicit.out.nc')
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)
+    print('  -->  The implicit drifts for EM are evolving correctly.')
+
 #-------------------------------------------------------------------------------
 #              Check whether the nonlinear term evolves correctly              #
 #-------------------------------------------------------------------------------
