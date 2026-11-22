@@ -449,12 +449,15 @@ contains
       ! The blocks keep the index ikxkyzt of the point, so the calculation below is the same for every chunk.
       npoints_chunk = max(1, int(128.e6 / (3. * 16. * nvpa * nmu**2 * nspec**2)))
       cdiffmat_band = 0.
-      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
+      ! exact_conservation also needs the full test-particle matrices, to apply them to the moments of F0 in init_deltaj_vmu
+      if ((exact_conservation_tp) .or. (density_conservation_tp) .or. (exact_conservation)) then
          if (.not. allocated(blockmatrix)) &
             allocate (blockmatrix(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
+         blockmatrix = 0.
+      end if
+      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
          if (.not. allocated(blockmatrix_sum)) &
             allocate (blockmatrix_sum(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec))
-         blockmatrix = 0.
       end if
 
       do ikxkyzt_first = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc, npoints_chunk
@@ -1374,7 +1377,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       end if
 
       ! construct full block matrix
-      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
+      if ((exact_conservation_tp) .or. (density_conservation_tp) .or. (exact_conservation)) then
          ! this is memory intensive, operating with blockmatrix is slow
          ! currently used for exact conservation scheme on non-uniform grids
          ! AVB: to do - replace this with band matrix operations
@@ -1926,13 +1929,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            end do
                         end do
 
-                        do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
-                           iky = iky_idx(kxkyzt_lo, ikxkyzt)
-                           ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
-                           iz = iz_idx(kxkyzt_lo, ikxkyzt)
-                           is = isa  ! all species local on kxkyzt_lo
-       vpaF0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), (spec(isa)%mass / spec(isb)%mass)**2 * vpaF0vec(:, iz))
-                        end do
+                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
+                        call apply_testpart_matrix(vpaF0vec, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -1976,14 +1974,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            end do
                         end do
 
-                        do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
-                           iky = iky_idx(kxkyzt_lo, ikxkyzt)
-                           ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
-                           iz = iz_idx(kxkyzt_lo, ikxkyzt)
-                           is = isa  ! all species local on kxkyzt_lo
-                           if (iky /= naky) cycle
-       vpaF0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), (spec(isa)%mass / spec(isb)%mass)**2 * vpaF0vec(:, iz))
-                        end do
+                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
+                        call apply_testpart_matrix(vpaF0vec, isa, isb, (spec(isa)%mass / spec(isb)%mass)**2)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -2031,13 +2023,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            end do
                         end do
 
-                        do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
-                           iky = iky_idx(kxkyzt_lo, ikxkyzt)
-                           ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
-                           iz = iz_idx(kxkyzt_lo, ikxkyzt)
-                           is = isa  ! all species local on kxkyzt_lo
-      v2F0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), -(spec(isa)%mass / spec(isb)%mass)**1.5 * v2F0vec(:, iz))
-                        end do
+                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
+                        call apply_testpart_matrix(v2F0vec, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -2077,14 +2064,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
                            end do
                         end do
 
-                        do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
-                           iky = iky_idx(kxkyzt_lo, ikxkyzt)
-                           ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
-                           iz = iz_idx(kxkyzt_lo, ikxkyzt)
-                           is = isa  ! all species local on kxkyzt_lo
-                           if (iky /= naky) cycle
-      v2F0vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, is, isb) / code_dt / spec(is)%vnew(isb), -(spec(isa)%mass / spec(isb)%mass)**1.5 * v2F0vec(:, iz))
-                        end do
+                        ! apply the test-particle operator C^{ab} on every z point, see apply_testpart_matrix
+                        call apply_testpart_matrix(v2F0vec, isa, isb, -(spec(isa)%mass / spec(isb)%mass)**1.5)
 
                         do izs = 1, nz_local
                            do ix = 1, nvpa
@@ -2244,6 +2225,11 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !$omp end parallel do
       call sum_allreduce(psijnorm)
 
+      ! exact_conservation only needs the test-particle matrices above, and they are large
+      if (.not. ((exact_conservation_tp) .or. (density_conservation_tp))) then
+         if (allocated(blockmatrix)) deallocate (blockmatrix)
+      end if
+
       psijnorm = psijnorm / (4 * pi) ! account for theta and phi integrals included in integrate_vmu
 
       ! to check self-adjointness
@@ -2377,6 +2363,46 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       !call close_output_file (tmpunit)
 
    end subroutine init_deltaj_vmu
+
+   !****************************************************************************
+   !        The test-particle operator applied to a moment of F0 on every z
+   !****************************************************************************
+   ! vec(:, iz) = blockmatrix / code_dt / vnew * factor * vec(:, iz), i.e. C^{isa, isb}
+   ! applied to factor * vec, on every z point, for the exact conservation terms of
+   ! init_deltaj_vmu, which do not depend on (ky, kx). The matrix of one point per z,
+   ! (iky = naky, ikx = 1, tube 1), is used; it is on one processor (kxkyzt_lo), which
+   ! applies it, and the sum over the processors gives the result on every processor.
+   !****************************************************************************
+   subroutine apply_testpart_matrix(vec, isa, isb, factor)
+
+      use mp, only: sum_allreduce
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky
+      use grids_species, only: spec
+      use grids_time, only: code_dt
+      use parallelisation_layouts, only: kxkyzt_lo, idx
+
+      implicit none
+
+      real, dimension(:, -nzgrid:), intent(in out) :: vec
+      integer, intent(in) :: isa, isb
+      real, intent(in) :: factor
+
+      integer :: iz, ikxkyzt
+
+      !-------------------------------------------------------------------------
+
+      do iz = -nzgrid, nzgrid
+         ikxkyzt = idx(kxkyzt_lo, naky, 1, iz, 1)
+         if (ikxkyzt >= kxkyzt_lo%llim_proc .and. ikxkyzt <= kxkyzt_lo%ulim_proc) then
+            vec(:, iz) = matmul(blockmatrix(:, :, ikxkyzt, isa, isb) / code_dt / spec(isa)%vnew(isb), factor * vec(:, iz))
+         else
+            vec(:, iz) = 0.
+         end if
+      end do
+      call sum_allreduce(vec)
+
+   end subroutine apply_testpart_matrix
 
    !****************************************************************************
    !                                      Title
