@@ -1,7 +1,15 @@
 # Run these tests automatically on Github on every push and pull request.
 # Use the macOS operating system, which has 4 cores.
 name: Check stella
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+
+# A pull request from a branch of this repository is already tested by the push to that
+# branch, so its pull_request run skips all jobs (see the "if" of the first jobs); pull
+# requests from forks are tested by their pull_request run. A new push to a branch or
+# pull request cancels the run of the previous push, except on master.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 # We always run in a bash shell
 defaults:
@@ -15,6 +23,7 @@ jobs:
 #              Build stella on different operating systems              
 #-----------------------------------------------------------------------
   build-stella:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
   
     # Set environment variables
     env:
@@ -214,6 +223,7 @@ jobs:
 
   # Build stella to perform python and fortran tests
   build-stella-quick: 
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Build stella quickly
     runs-on: ubuntu-22.04
     env:
@@ -396,6 +406,7 @@ jobs:
   # readw_and_open() routine used to break when reading a VMEC equilibrium in debug
   # mode; the VMEC tests (2 and 5) pass in debug mode locally, so they are run as well.
   debug-build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-22.04
     name: "Build stella in debug mode"
     env:
