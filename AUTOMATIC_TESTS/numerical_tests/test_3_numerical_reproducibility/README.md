@@ -23,6 +23,8 @@ What is tested
   single-processor run. No expected output is needed.
 - `test_3c_diagnostics_do_not_affect_evolution.py`: checks that writing the diagnostics
   every time step (nwrite = 1) gives the same evolution as nwrite = 10.
+- `test_3d_time_step_changes.py`: runs every input file as a linear simulation with delt = 10, which the CFL condition reduces before the first time step, and with delt equal to that reduced time step, and checks that both give the same evolution. This verifies that `reset_dt` rebuilds every matrix which contains the time step (e.g. the response matrix and the implicit collision operators); the time step changes during nonlinear simulations go through the same routine. When a new term with a time step dependent matrix is added to stella, add an input file which switches it on to `input_files` in `reproducibility_settings.py`.
+- `test_3e_order_of_the_time_advance.py`: runs a short linear simulation up to the same time with the time steps dt, dt/2 and dt/4, and checks the order of accuracy of the time advance: 2, 3 and 4 for the explicit rk2, rk3 and rk4 algorithms with explicit parallel streaming and mirror terms, and at least 1 for the default algorithm with implicit parallel streaming and mirror terms. Bugs in the time advance (e.g. a term evaluated at the wrong Runge-Kutta stage) often keep the results close to the correct ones but lower the order.
 
 The input files all derive from `es_nonlinear.in` (nonlinear, shaped Miller geometry,
 kinetic ions and electrons, all gyrokinetic terms, hyper dissipation). Each other input
