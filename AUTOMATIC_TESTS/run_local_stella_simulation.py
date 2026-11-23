@@ -251,6 +251,31 @@ def compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file,
     return error
     
         
+#-------------------------------------------------------------------------------
+# Quantities which describe the full state of a simulation: the fields on the full
+# (t,tube,z,kx,ky) grid, the moments, and the distribution function in velocity space
+full_state_keys = ['phi_vs_t', 'apar_vs_t', 'bpar_vs_t', 'density', 'upar', 'temperature', 'g2_vs_vpamus']
+
+def compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file, rtol=1e-8, atol=1e-24):
+    '''Besides the time traces of |phi|^2, compare the quantities of <full_state_keys> which
+    are present in the expected output, since |phi|^2 is insensitive to e.g. the phase of phi
+    or errors in the distribution function. Expected output files without these quantities
+    (i.e. which only contain the time traces) are still supported.'''
+    with xr.open_dataset(expected_netcdf_file) as expected_netcdf:
+        # Only expected output created by numerical_tests/create_expected_output.py is compared, since
+        # older expected output files can contain these quantities from older stella versions
+        if expected_netcdf.attrs.get('full_state_reference', 0) != 1: return
+        keys = [key for key in full_state_keys if key in expected_netcdf.variables]
+        # The fields and the moments are compared relative to the common scale of their group, since
+        # some of them can vanish up to round-off errors, e.g. apar without parallel streaming, or upar
+        # without parallel streaming and mirror terms, which would otherwise be compared to themselves
+        groups = [[key for key in group if key in keys] for group in [['phi_vs_t', 'apar_vs_t', 'bpar_vs_t'], ['density', 'upar', 'temperature']]]
+        scales = [max([float(np.nanmax(np.abs(expected_netcdf[key].values))) for key in group], default=0) for group in groups]
+    groups.append([key for key in keys if not any(key in group for group in groups)]); scales.append(0)
+    for group, scale in zip(groups, scales):
+        if group: compare_netcdf_quantities_normwise(local_netcdf_file, expected_netcdf_file, group, rtol=rtol, atol=atol + rtol * scale, label='expected')
+    return
+    
 #-------------------------------------------------------------------------------  
 def compare_local_potential_with_expected_potential(local_netcdf_file='', expected_netcdf_file='', run_data={}, error=False): 
 
@@ -290,6 +315,9 @@ def compare_local_potential_with_expected_potential(local_netcdf_file='', expect
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.' 
     
+    # Compare the full state if it is present in the expected output
+    compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
+
     return error
         
 #-------------------------------------------------------------------------------  
@@ -351,6 +379,9 @@ def compare_local_potential_with_expected_potential_em(local_netcdf_file='', exp
                 compare_local_array_with_expected_array(local_bpar2, expected_bpar2)
         
         assert (not error), f'The potential data does not match in the netCDF files.'
+
+    # Compare the full state if it is present in the expected output
+    compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
 
     return error
 

@@ -88,6 +88,7 @@ def test_whether_init_noise_option_is_the_same(tmp_path, stella_version, error=F
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'  
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print('  -->  The potential is initialized the same as in the previous run (noise).')
     return
@@ -123,6 +124,7 @@ def test_whether_init_default_option_is_the_same(tmp_path, stella_version, error
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'  
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print('  -->  The potential is initialized the same as in the previous run (default).')
     return
