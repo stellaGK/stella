@@ -63,6 +63,7 @@ module geometry
    use namelist_geometry, only: geo_option_multibox
    use namelist_geometry, only: geo_option_zpinch
    use namelist_geometry, only: geo_option_slab
+   use namelist_geometry, only: geo_option_gvec
 
    implicit none
 
@@ -223,6 +224,7 @@ contains
          if (geo_option_switch==geo_option_inputprof) call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_multibox)  call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_vmec)      call get_geometry_arrays_from_VMEC(nalpha, naky)
+         if (geo_option_switch==geo_option_gvec)      call get_geometry_arrays_from_GVEC(nalpha, naky)
          if (geo_option_switch==geo_option_zpinch)    call get_geometry_arrays_from_zpinch(nalpha)
          if (geo_option_switch==geo_option_slab)      call get_geometry_arrays_from_slab(nalpha)
          
@@ -696,6 +698,200 @@ contains
       end subroutine deallocate_temporary_arrays
 
    end subroutine get_geometry_arrays_from_VMEC
+
+   !=========================================================================
+   !========================== GVEC EQUILIBRIUM ============================
+   !=========================================================================
+   !
+   ! Reads a pre-computed GVEC geometry file (produced by gvec_to_stella.py)
+   ! and constructs all stella geometry arrays.
+   !
+   ! The coordinate transformations (alpha/psi_t → x/y) and boundary-condition
+   ! setup are identical to those in get_geometry_arrays_from_VMEC.
+   !
+   !=========================================================================
+   subroutine get_geometry_arrays_from_GVEC(nalpha, naky)
+
+      use mp,          only: mp_abort
+      use gvec_geometry, only: read_gvec_parameters, get_gvec_geometry
+      use gvec_geometry, only: radial_coordinate_switch, radial_coordinate_sgnpsitpsit
+      use gvec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r
+      use debug_flags,   only: const_alpha_geo
+      use grids_z,       only: nzgrid
+
+      implicit none
+
+      integer, intent(in) :: nalpha, naky
+
+      ! Temporary arrays for coordinate transformation
+      real, dimension(:, :), allocatable :: psit_displacement_fac, grad_alpha_grad_alpha
+      real, dimension(:, :), allocatable :: grad_alpha_grad_psit, grad_alpha_grad_psi
+      real, dimension(:, :), allocatable :: grad_psit_grad_psit, grad_psi_grad_psi
+      real, dimension(:, :), allocatable :: B_times_gradB_dot_gradalpha, B_times_kappa_dot_gradalpha
+      real, dimension(:, :), allocatable :: B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradpsit
+      real, dimension(:, :), allocatable :: gds23_alphapsit, gds24_alphapsit
+      real, dimension(:, :), allocatable :: gds25_alphapsit, gds26_alphapsit
+      real, dimension(:, :), allocatable :: grad_x_grad_x, grad_y_grad_y, grad_y_grad_x
+      real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2
+
+      real :: rho, shat, iota, field_period_ratio
+      real :: dpsidpsit, dpsidx, dpsitdx, dxdpsit
+
+      !----------------------------------------------------------------------
+
+      if (q_as_x) call mp_abort('q_as_x = True is not implemented for GVEC. Aborting.')
+
+      ! Read the gvec_parameters namelist
+      call read_gvec_parameters()
+
+      ! Allocate all geometry arrays
+      call allocate_arrays(nalpha, nzgrid)
+      call allocate_temporary_arrays(nalpha, nzgrid)
+
+      ! Compute geometry from the GVEC netCDF file
+      call get_gvec_geometry(nzgrid, nalpha, naky, geo_surf, grho, bmag, &
+               b_dot_gradz_avg, b_dot_gradz, &
+               grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
+               gds23_alphapsit, gds24_alphapsit, gds25_alphapsit, gds26_alphapsit, &
+               B_times_gradB_dot_gradalpha, B_times_gradB_dot_gradpsit, &
+               B_times_kappa_dot_gradalpha, B_times_kappa_dot_gradpsit, &
+               gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_gradzeta_RR, &
+               sign_torflux, theta_vmec, dzdzeta, aref, bref, alpha, zeta, &
+               field_period_ratio, psit_displacement_fac)
+
+      ! Flux surface quantities
+      rho  = geo_surf%rhotor
+      shat = geo_surf%shat
+      iota = 1.0 / geo_surf%qinp
+
+      ! Coordinate transformation: (alpha, psi_t) → (x, y)
+      ! Identical to the VMEC branch.
+      if (radial_coordinate_switch == radial_coordinate_sgnpsitpsit) then
+         dxdpsi   = 1.0 / rho
+         dydalpha = rho
+         dpsidpsit = sign_torflux
+         drhodpsi  = 1.0 / rho
+         clebsch_factor = sign_torflux
+      else if (radial_coordinate_switch == radial_coordinate_minuspsit) then
+         dxdpsi    = -sign_torflux / rho
+         dydalpha  = rho
+         dpsidpsit = -1.0
+         drhodpsi  = -sign_torflux / rho
+         clebsch_factor = -1.0
+      else if (radial_coordinate_switch == radial_coordinate_r) then
+         dxdpsi    = 1.0
+         dydalpha  = rho
+         dpsidpsit = sign_torflux / rho
+         drhodpsi  = 1.0
+         clebsch_factor = sign_torflux * rho
+      end if
+
+      dxdpsit = dxdpsi * dpsidpsit
+      dpsidx  = 1.0 / dxdpsi
+      dpsitdx = 1.0 / dxdpsit
+
+      grad_alpha_grad_psi = dpsidpsit * grad_alpha_grad_psit
+      grad_psi_grad_psi   = dpsidpsit * dpsidpsit * grad_psit_grad_psit
+      grad_y_grad_x       = dxdpsi * dydalpha * grad_alpha_grad_psi
+      grad_x_grad_x       = grad_psi_grad_psi * dxdpsi**2
+      grad_y_grad_y       = grad_alpha_grad_alpha * dydalpha**2
+      gds23 = gds23_alphapsit * dydalpha * dydalpha * dxdpsit
+      gds24 = gds24_alphapsit * dydalpha * dxdpsit  * dxdpsit
+      gds25 = gds25_alphapsit * dydalpha * dydalpha * dxdpsit
+      gds26 = gds26_alphapsit * dydalpha * dxdpsit  * dxdpsit
+      B_times_gradB_dot_grady = B_times_gradB_dot_gradalpha * dydalpha
+      B_times_gradB_dot_gradx = B_times_gradB_dot_gradpsit  * dxdpsit
+      B_times_kappa_dot_grady = B_times_kappa_dot_gradalpha * dydalpha
+      B_times_kappa_dot_gradx = B_times_kappa_dot_gradpsit  * dxdpsit
+
+      grad_x           = sqrt(abs(grad_x_grad_x))
+      grady_dot_grady  = grad_y_grad_y
+      gradx_dot_grady  = grad_y_grad_x
+      gradx_dot_gradx  = (grad_x)**2
+
+      gradzeta_gradx_R2overB2 = gradzeta_gradpsit_R2overB2  * dxdpsit
+      gradzeta_grady_R2overB2 = gradzeta_gradalpha_R2overB2 * dydalpha
+
+      x_displacement_fac = dpsitdx * psit_displacement_fac
+
+      call calculate_twist_and_shift_geo_fac_gvec()
+
+      call deallocate_temporary_arrays
+
+      if (const_alpha_geo) call set_ffs_geo_coefs_constant(nalpha)
+
+      btor          = -1000.0
+      drhodpsip     = -1000.0
+      drhodpsip_psi0 = -1000.0
+      bmag_psi0     = bmag
+
+   contains
+
+      subroutine calculate_twist_and_shift_geo_fac_gvec()
+         use grids_z, only: boundary_option_switch, boundary_option_linked_stellarator
+         use constants, only: pi
+         use debug_flags, only: print_extra_info_to_terminal
+         implicit none
+         if (print_extra_info_to_terminal) then
+            write (*, '(A)') "####################################################"
+            write (*, '(A)') "               BOUNDARY CONDITIONS (GVEC)"
+            write (*, '(A)') "####################################################"
+         end if
+         select case (boundary_option_switch)
+         case (boundary_option_linked_stellarator)
+            if (print_extra_info_to_terminal) then
+               write (*, *) ' '; write (*, *) 'Stellarator symmetric twist and shift BC'; end if
+            twist_and_shift_geo_fac = -2.0 * dpsidx * dydalpha &
+               * (grad_alpha_grad_psi(1, nzgrid)) / (grad_psi_grad_psi(1, nzgrid))
+         case default
+            if (print_extra_info_to_terminal) then
+               write (*, *) ' '; write (*, *) 'Standard twist and shift BC'; end if
+            twist_and_shift_geo_fac = -2.0 * pi * field_period_ratio &
+               * dpsidx * dydalpha * drhodpsi * shat * iota / rho
+         end select
+         grad_x_grad_y_end = grad_y_grad_x(1, nzgrid)
+         if (print_extra_info_to_terminal) &
+            write (*, *) 'twist_and_shift_geo_fac: ', twist_and_shift_geo_fac
+      end subroutine calculate_twist_and_shift_geo_fac_gvec
+
+      subroutine allocate_temporary_arrays(nalpha, nzgrid)
+         implicit none
+         integer, intent(in) :: nalpha, nzgrid
+         allocate (psit_displacement_fac(nalpha, -nzgrid:nzgrid))
+         allocate (grad_alpha_grad_alpha(nalpha, -nzgrid:nzgrid))
+         allocate (grad_alpha_grad_psi(nalpha, -nzgrid:nzgrid))
+         allocate (grad_alpha_grad_psit(nalpha, -nzgrid:nzgrid))
+         allocate (grad_psit_grad_psit(nalpha, -nzgrid:nzgrid))
+         allocate (grad_psi_grad_psi(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_gradB_dot_gradalpha(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_kappa_dot_gradalpha(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_gradB_dot_gradpsit(nalpha, -nzgrid:nzgrid))
+         allocate (B_times_kappa_dot_gradpsit(nalpha, -nzgrid:nzgrid))
+         allocate (gds23_alphapsit(nalpha, -nzgrid:nzgrid))
+         allocate (gds24_alphapsit(nalpha, -nzgrid:nzgrid))
+         allocate (gds25_alphapsit(nalpha, -nzgrid:nzgrid))
+         allocate (gds26_alphapsit(nalpha, -nzgrid:nzgrid))
+         allocate (grad_x_grad_x(nalpha, -nzgrid:nzgrid))
+         allocate (grad_y_grad_y(nalpha, -nzgrid:nzgrid))
+         allocate (grad_y_grad_x(nalpha, -nzgrid:nzgrid))
+         allocate (gradzeta_gradpsit_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_gradpsit_R2overB2 = 0.0
+         allocate (gradzeta_gradalpha_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_gradalpha_R2overB2 = 0.0
+      end subroutine allocate_temporary_arrays
+
+      subroutine deallocate_temporary_arrays
+         implicit none
+         deallocate (psit_displacement_fac, grad_alpha_grad_alpha)
+         deallocate (grad_alpha_grad_psi, grad_psi_grad_psi)
+         deallocate (grad_alpha_grad_psit, grad_psit_grad_psit)
+         deallocate (B_times_gradB_dot_gradalpha, B_times_kappa_dot_gradalpha)
+         deallocate (B_times_gradB_dot_gradpsit, B_times_kappa_dot_gradpsit)
+         deallocate (gds23_alphapsit, gds24_alphapsit)
+         deallocate (gds25_alphapsit, gds26_alphapsit)
+         deallocate (grad_y_grad_y, grad_x_grad_x, grad_y_grad_x)
+         deallocate (gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2)
+      end subroutine deallocate_temporary_arrays
+
+   end subroutine get_geometry_arrays_from_GVEC
 
    !=========================================================================
    !========================== MILLER EQUILIBRIUM  ==========================
@@ -1589,6 +1785,7 @@ contains
          case (geo_option_inputprof)
             call finish_miller_geometry
          case (geo_option_vmec)
+         case (geo_option_gvec)
          end select
       end if
 

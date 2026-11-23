@@ -24,6 +24,11 @@ include(BuildType)
 option(STELLA_ENABLE_LAPACK "Enable LAPACK wrappers" ON)
 option(STELLA_ENABLE_FFT "Enable FFTs" ON)
 option(STELLA_ENABLE_NETCDF "Enable NetCDF" ON)
+# Link against the GVEC library so a GVEC state file can be read directly,
+# without the gvec_to_stella.py pre-processing step. OFF by default so stella
+# still builds anywhere GVEC is not installed; the netCDF path is unaffected.
+option(STELLA_ENABLE_GVEC "Enable direct reading of GVEC state files" OFF)
+set(GVEC_ROOT "" CACHE PATH "Path to a GVEC build directory containing lib/libGVEC.a and include/")
 option(STELLA_ENABLE_DOUBLE "Promotes precisions of real and complex to double" ON)
 option(STELLA_ENABLE_PETSC "Enable PETSc" OFF)
 
@@ -82,6 +87,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/geometry/geometry_miller.f90
   ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90
   ../STELLA_CODE/geometry/geometry_vmec.f90
+  ../STELLA_CODE/geometry/geometry_gvec.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
   ../STELLA_CODE/geometry/geometry_slab.f90
   ../STELLA_CODE/geometry/geometry.f90
@@ -149,6 +155,8 @@ set(STELLA_SOURCES_fpp
   ../STELLA_CODE/field_equations/field_equations_radialvariation.fpp
   ../STELLA_CODE/radial_variation/gk_sources.fpp
   ../STELLA_CODE/neoclassical/sfincs_interface.fpp
+  ../STELLA_CODE/geometry/geometry_gvec_read_netCDF_file.fpp
+  ../STELLA_CODE/geometry/geometry_gvec_evaluate.fpp
 )
 
 set_source_files_properties(${STELLA_SOURCES_fpp} PROPERTIES
@@ -274,6 +282,32 @@ if (STELLA_ENABLE_NETCDF)
   add_subdirectory(../EXTERNALS/neasyf ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/neasyf)
   target_link_libraries(libstella PUBLIC netCDF::netcdff neasyf::neasyf)
   target_compile_definitions(libstella PUBLIC NETCDF=_DEFAULT_)
+endif()
+
+if (STELLA_ENABLE_GVEC)
+  # GVEC must have been built with -DCOMPILE_GVEC_TO_GENE=ON, which adds the
+  # gyrokinetic interface (MODgvec_gvec_to_gene) to libGVEC.
+  if (NOT GVEC_ROOT)
+    message(FATAL_ERROR
+      "STELLA_ENABLE_GVEC=ON requires -DGVEC_ROOT=<gvec build dir> "
+      "(the directory holding lib/libGVEC.a and include/).")
+  endif()
+  find_library(GVEC_LIBRARY NAMES GVEC gvec HINTS ${GVEC_ROOT}/lib REQUIRED)
+  if (NOT EXISTS ${GVEC_ROOT}/include/modgvec_gvec_to_gene.mod)
+    message(FATAL_ERROR
+      "${GVEC_ROOT}/include/modgvec_gvec_to_gene.mod not found -- rebuild GVEC "
+      "with -DCOMPILE_GVEC_TO_GENE=ON.")
+  endif()
+  find_package(BLAS REQUIRED)
+  find_package(LAPACK REQUIRED)
+  # Only the Fortran component: GVEC is built with OpenMP, but requiring the C
+  # component fails on macOS where Apple clang ships without it.
+  find_package(OpenMP REQUIRED COMPONENTS Fortran)
+  target_include_directories(libstella PUBLIC ${GVEC_ROOT}/include)
+  target_link_libraries(libstella PUBLIC ${GVEC_LIBRARY} ${LAPACK_LIBRARIES}
+                        ${BLAS_LIBRARIES} OpenMP::OpenMP_Fortran ${CMAKE_DL_LIBS})
+  target_compile_definitions(libstella PUBLIC GVEC=_DEFAULT_)
+  message(STATUS "  GVEC direct reading    : ON (${GVEC_LIBRARY})")
 endif()
 
 if (STELLA_ENABLE_DOUBLE)
@@ -440,6 +474,7 @@ message("
    LAPACK support           : ${STELLA_ENABLE_LAPACK}
    FFTW support             : ${STELLA_ENABLE_FFT}
    NetCDF support           : ${STELLA_ENABLE_NETCDF}
+   GVEC direct reading      : ${STELLA_ENABLE_GVEC}
    Default real kind        : ${STELLA_DEFAULT_REAL_KIND}
    POSIX support            : ${STELLA_ENABLE_POSIX}
    Use F2003/8 intrinsics   : ${STELLA_ENABLE_F200X}

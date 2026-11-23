@@ -1,0 +1,94 @@
+! Check the GVEC geometry branch on the ARC-LENGTH z-grid.
+!
+! The geometry netCDF file <gvec_geometry.nc> is written by the test module
+! test_2f_gvec_geometry.py, which fills it with analytically known values so
+! that stella's geometry arrays can be predicted in closed form.
+!
+! Here zed_equal_arc = .true., so stella re-interpolates every geometry array
+! from the fine (nzgrid_file) grid onto an arc-length grid. The geometry file
+! must therefore be generated with nzgrid_file = nzgrid * z_grid_refinement_factor.
+!
+! This path is separate from the direct-copy path exercised by gvec_geometry.in,
+! and is where a mis-specified arc-length grid shows up as NaN rather than as an
+! error, so it needs its own test.
+
+&geometry_options
+  geometry_option = 'gvec'
+/
+&gvec_parameters
+  gvec_filename = 'gvec_geometry.nc'
+  z_grid_refinement_factor = 4
+  verbose = .false.
+/
+
+&gyrokinetic_terms
+  include_parallel_streaming = .false.
+  include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .false.
+  include_drive = .false.
+  include_nonlinear = .true.
+/
+
+&species_options
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
+  nx = 6
+  ny = 9
+  y0 = 15
+/
+&z_grid
+  nzed = 16
+  nperiod = 1
+  zed_equal_arc = .true.
+/
+&z_boundary_condition
+  boundary_option = 'linked'
+/
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
+/
+
+&diagnostics
+  nsave = 1
+  nwrite = 1
+/
+
+&initialise_distribution
+  initialise_distribution_option = 'noise'
+  phiinit = 0.01
+/
+&initialise_distribution_noise
+  rng_seed = 1
+/
+
+&time_trace_options
+  nstep = 1
+/
+&time_step
+  delt = 0.01
+/
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+  stream_implicit = .true.
+  mirror_implicit = .true.
+  drifts_implicit = .false.
+/
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
