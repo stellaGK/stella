@@ -128,7 +128,7 @@ contains
          call get_neo_mu_factors(f_neoclassical(:, :, :, :, :, 0), phi_neoclassical(:, :, 0), &
             dneo_h_dmu, dneo_h_dmu_global, neo_mu_fac, neo_mu_fac_global)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dfneo_drho'
-         call get_dfneo_drho(f_neoclassical, dneo_h_drho)
+         call get_dfneo_drho(f_neoclassical, dneo_h_dvpa_global, dneo_h_dmu_global, dneo_h_drho)
          if (debug) write (6, *) 'neoclassical_terms::init_neoclassical_terms::get_dphineo_drho'
          call get_dphineo_drho(phi_neoclassical, dneo_phi_drho)
          ! TODO (OR): neo_alpha_fac currently holds the raw dF_1/dalpha from SFINCS, not the full alpha factor appearing in the GKE.
@@ -706,37 +706,43 @@ contains
 
 
    !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   !****************************************************************************
    ! Radial derivative of the SFINCS H_1 on the central surface.
    !****************************************************************************
-   subroutine get_dfneo_drho(fneo, dfneo)
+   subroutine get_dfneo_drho(fneo, dfneo_dvpa, dfneo_dmu, dfneo)
+      ! Parallelisation.
+      use parallelisation_layouts, only: vmu_lo
 
+      ! Calculations.
       use calculations_finite_differences, only: fd3pt, fd5pt
+
+      ! Grids.
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
-      use grids_species, only: nspec, spec                                   
-      use parallelisation_layouts, only: vmu_lo
+      use grids_velocity, only: vpa, mu
+      use grids_species, only: nspec, spec
       use grids_kxky, only: nalpha
+
+      ! Geometry.
+      use geometry, only: bmag, dBdrho
 
       implicit none
 
       real, dimension(:, -nzgrid:, :, :, :, -nradii/2:), intent(in) :: fneo
+      real, dimension(:, -nzgrid:, :, :, :), intent(in) :: dfneo_dvpa, dfneo_dmu
       real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: dfneo
 
-      integer :: ia, iz, iv, imu, is, irad                                   
-      real :: delrho                                                         
+      integer :: ia, iz, iv, imu, is, irad
+      real :: delrho
       real, dimension(:), allocatable :: tmp1, tmp2
-      real, dimension(:, :), allocatable :: to_local_normalisation           
+      real, dimension(:, :), allocatable :: to_local_normalisation
       real, dimension(:, :, :, :, :), allocatable :: dfneo_local
 
-      ! Allocate local arrays. 
+      ! Allocate local arrays.
       allocate(tmp1(nradii), tmp2(nradii))
-      allocate(to_local_normalisation(nspec, nradii))                       
+      allocate(to_local_normalisation(nspec, nradii))
       allocate(dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
 
-      ! Factor converting the SFINCS H_1 on each surface 
+      ! Factor converting the SFINCS H_1 on each surface
       ! to that surface's own Maxwellian normalisation, as is done in NEO.
       do irad = -nradii / 2, nradii / 2
          delrho = irad * drho
@@ -752,13 +758,17 @@ contains
                do iz = -nzgrid, nzgrid
                   do ia = 1, nalpha
                      ! hack to avoid dealing with negative indices in fd5pt
-                     tmp1 = fneo(ia, iz, iv, imu, is, :) * to_local_normalisation(is, :)  
+                     tmp1 = fneo(ia, iz, iv, imu, is, :) * to_local_normalisation(is, :)
                      if (nradii == 5) then
                         call fd5pt(tmp1, tmp2, drho)
                      else
                         call fd3pt(tmp1, tmp2, drho)
                      end if
-                     dfneo_local(ia, iz, iv, imu, is) = tmp2(nradii / 2 + 1)
+
+                     ! Fixed (vpa, mu).
+                     dfneo_local(ia, iz, iv, imu, is) = tmp2(nradii / 2 + 1) &
+                     + mu(imu) * ( dBdrho(iz) / bmag(ia, iz) + spec(is)%tprim ) * dfneo_dmu(ia, iz, iv, imu, is) &
+                     + 0.5 * spec(is)%tprim * vpa(iv) * dfneo_dvpa(ia, iz, iv, imu, is)
                   end do
                end do
             end do
@@ -773,7 +783,7 @@ contains
 
       ! Deallocate local arrays.
       deallocate(dfneo_local)
-      deallocate(to_local_normalisation)                                    
+      deallocate(to_local_normalisation)
       deallocate(tmp1, tmp2)
 
    end subroutine get_dfneo_drho

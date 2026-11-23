@@ -390,9 +390,9 @@ contains
             call distribute_vmus_over_procs(neo_mu_fac_global(ia, iz, :, :, :), neo_mu_fac(ia, iz, :))
         end do
 
-        ! Calculate the neo_h rho derivative on the central surface at fixed kinetic energy, E, and the neo_phi rho derivative on the central surface.  
-        call get_rho_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac(ia, :, :), drho, dneo_h_drho(ia, :, :), dneo_phi_drho(ia, :))
-
+        ! Calculate the neo_h rho derivative on the central surface at vpa and mu, and the neo_phi rho derivative on the central surface.  
+        call get_rho_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, dneo_h_dvpa(ia, :, :), dneo_h_dmu(ia, :, :), drho, dneo_h_drho(ia, :, :), dneo_phi_drho(ia, :))
+        
         ! DIAGNOSTIC.
         if (proc0) then
             call write_neo_phi_on_stella_z_grid_diagnostic(dneo_phi_drho(ia, :), "dneo_phi_drho_on_stella_z_grid_central_surface")
@@ -1165,42 +1165,54 @@ contains
 !
 ! ================================================================================================================================================================================= !
 
-    subroutine get_rho_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, neo_vpa_fac, drho, dneo_h_drho, dneo_phi_drho)
+    subroutine get_rho_derivatives(neo_h_right, neo_h_left, neo_phi_right, neo_phi_left, dh_dvpa, dh_dmu, drho, dneo_h_drho, dneo_phi_drho)
         ! Parallelisation.
         use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-        
-        ! Grids. 
+
+        ! Grids.
         use grids_z, only: nzgrid
         use grids_velocity, only: vpa, mu
+        use grids_species, only: spec
 
         ! Geometry.
-        use geometry, only: dbdzed, b_dot_gradz
+        use geometry, only: bmag, dBdrho
 
         implicit none
 
         real, intent(in) :: drho
-        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: neo_h_right, neo_h_left, neo_vpa_fac
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: neo_h_right, neo_h_left
+        real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: dh_dvpa, dh_dmu
         real, dimension(-nzgrid:), intent(in) :: neo_phi_right, neo_phi_left
 
         real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(out) :: dneo_h_drho
         real, dimension(-nzgrid:), intent(out) :: dneo_phi_drho
 
-        ! Local variables. 
-        integer :: ivmu, is, imu, iv, iz, ia 
+        ! Local variables.
+        integer :: ivmu, is, imu, iv, ia
 
         ! Assume one magnetic field line.
         ia = 1
 
-        ! ================================================================================ ! 
+        ! ================================================================================ !
 
         ! The neo_phi derivative is trivial to calculate via a central difference algorithm.
         dneo_phi_drho = (neo_phi_right - neo_phi_left) / (2.0 * drho)
 
-        ! In a similiar way we calculate the neo_h derivative, at fixed v_parallel and mu.
-        dneo_h_drho = (neo_h_right - neo_h_left)  / (2.0 * drho)
-            
-    end subroutine get_rho_derivatives
+        ! Central difference of neo_h: this is the derivative at fixed NEO variables (E, ξ).
+        dneo_h_drho = (neo_h_right - neo_h_left) / (2.0 * drho)
 
+        ! Transform to fixed stella variables (v∥, μ). 
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            iv = iv_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            is = is_idx(vmu_lo, ivmu)
+
+            dneo_h_drho(:, ivmu) = dneo_h_drho(:, ivmu) &
+                + mu(imu) * ( dBdrho(:) / bmag(ia, :) + spec(is)%tprim ) * dh_dmu(:, ivmu) &
+                + 0.5 * spec(is)%tprim * vpa(iv) * dh_dvpa(:, ivmu)
+        end do
+
+    end subroutine get_rho_derivatives
 
 ! ================================================================================================================================================================================= !
 ! ---------------------------------- Calculate the zeroeth order moment of H_1. This is used in the field equations and also for testing purposes. -------------------------------- !
