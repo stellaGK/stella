@@ -163,8 +163,11 @@ contains
         ! Grids. 
         use grids_z, only: nzgrid, delzed
         use grids_kxky, only: nalpha
-        use grids_velocity, only: nvpa, nmu 
+        use grids_velocity, only: nvpa, nmu, mu    
         use grids_species, only: nspec, spec
+        
+        ! Geometry. 
+        use geometry, only: get_dzed, bmag, dbdzed
 
         ! For NEO's data. 
         use NEO_interface, only: read_basic_neo_files, read_neo_f_and_phi, read_neo_transport, read_neo_equil
@@ -291,8 +294,8 @@ contains
         ! DIAGNOSTIC.
         if (proc0) then
             call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi(ia, :), "neo_phi_on_stella_z_grid_central_surface")
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_left, "neo_phi_on_stella_z_grid_left_surface")
-            ! call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_right, "neo_phi_on_stella_z_grid_right_surface")
+            call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_left, "neo_phi_on_stella_z_grid_left_surface")
+            call write_neo_phi_on_stella_z_grid_diagnostic(neo_phi_right, "neo_phi_on_stella_z_grid_right_surface")
         end if
 
         ! Now reconstruct H_1 on stellas v∥​ and μ grids for all three surfaces (ia = 1).
@@ -366,27 +369,7 @@ contains
         end do        
 
         ! z derivatives can also be obtained via splines.
-        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, 1, dneo_h_hat_dz_z_grid, .true.)
-        call get_neo_h_on_stella_grids(dneo_h_hat_dz_z_grid, neo_grid, 1, dneo_h_dz_global)
-         
-        ! Now compact distribution into 3 indices for use in the GK equation and also for calculating the derivatives.  
-        do iz = -nzgrid, nzgrid
-            call distribute_vmus_over_procs(dneo_h_dz_global(iz, :, :, :), dneo_h_dz(ia, iz, :))
-        end do
-
         call get_neo_phi_on_stella_z_grid(neo_phi_in, neo_grid, 1, dneo_phi_dz(ia, :), .true.)
-
-        call get_zed_factor(neo_zed_fac_global(ia, :, :, :, :), dneo_h_dz_global, dneo_phi_dz(ia, :), neo_h_global, neo_phi(ia, :), neo_grid)
-
-        ! Now compact distribution into 3 indices for use in the GKE.  
-        do iz = -nzgrid, nzgrid
-            call distribute_vmus_over_procs(neo_zed_fac_global(ia, iz, :, :, :), neo_zed_fac(ia, iz, :))
-        end do
-
-        ! DIAGNOSTIC.
-        if (proc0) then
-            call write_neo_phi_on_stella_z_grid_diagnostic(dneo_phi_dz(ia, :), "dneo_phi_dz_on_stella_z_grid_central_surface")
-        end if
 
         ! We will need the derivatives of the distribution with respect to stellas velocity variables.
         call get_neo_h_velocity_derivs_on_stella_grids(neo_h_hat_z_grid, neo_grid, 1, dneo_h_dvpa_global(ia, :, :, :, :), dneo_h_dmu_global(ia, :, :, :, :))
@@ -429,6 +412,41 @@ contains
         if (proc0) then
             call write_distribution_moment_diagnostic(neo_dens_vpa_deriv, "neo_distribution_vpa_deriv_first_moment_on_stella_z_grid_central_surface") 
             call write_distribution_moment_diagnostic(neo_dens_mu_deriv, "neo_distribution_mu_deriv_first_moment_on_stella_z_grid_central_surface")
+        end if
+
+        call get_neo_h_hat_on_stella_z_grid(neo_h_hat_in, neo_grid, 1, dneo_h_hat_dz_z_grid, .true.)
+        call get_neo_h_on_stella_grids(dneo_h_hat_dz_z_grid, neo_grid, 1, dneo_h_dz_global)
+         
+        ! The derivative resulting from this is at fixed NEO velocity variables.
+        ! Transform this to fixed stella velocity variables. 
+        do iz = -nzgrid, nzgrid
+            do iv = 1, nvpa
+                do imu = 1, nmu
+                    do is = 1, nspec
+                        dneo_h_dz_global(iz, iv, imu, is) = dneo_h_dz_global(iz, iv, imu, is) &
+                        + mu(imu) * dbdzed(ia, iz) * dneo_h_dmu_global(ia, iz, iv, imu, is) &
+                        / bmag(ia, iz) 
+                    end do 
+                end do
+            end do
+        end do
+
+        ! Now compact distribution into 3 indices for use in the GK equation and also for calculating the derivatives.  
+        do iz = -nzgrid, nzgrid
+            call distribute_vmus_over_procs(dneo_h_dz_global(iz, :, :, :), dneo_h_dz(ia, iz, :))
+        end do
+
+
+        call get_zed_factor(neo_zed_fac_global(ia, :, :, :, :), dneo_h_dz_global, dneo_phi_dz(ia, :), neo_h_global, neo_phi(ia, :), neo_grid)
+
+        ! Now compact distribution into 3 indices for use in the GKE.  
+        do iz = -nzgrid, nzgrid
+            call distribute_vmus_over_procs(neo_zed_fac_global(ia, iz, :, :, :), neo_zed_fac(ia, iz, :))
+        end do
+
+        ! DIAGNOSTIC.
+        if (proc0) then
+            call write_neo_phi_on_stella_z_grid_diagnostic(dneo_phi_dz(ia, :), "dneo_phi_dz_on_stella_z_grid_central_surface")
         end if
 
         ! NEO is axisymmetric, so every field line is identical: copy the ia = 1 data on to ia = 2, ..., nalpha.

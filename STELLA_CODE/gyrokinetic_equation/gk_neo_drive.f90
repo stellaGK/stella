@@ -119,9 +119,10 @@ contains
                 energy(:, iz) = ( vpa(iv)**2 + vperp2(:, iz, imu) ) * ( spec(is)%temp_psi0 / spec(is)%temp )
 
                 wstar1yrho(:, iz, ivmu) = 0.5 * wstar1yknob * dydalpha * drhodpsi &
-                * ( dneo_h_drho(:, iz, ivmu) - spec(is)%z * dneo_phi_drho(:, iz)  &
+                * ( dneo_h_drho(:, iz, ivmu) - spec(is)%zt * &
+                ( dneo_phi_drho(:, iz) + spec(is)%tprim * neo_phi(:, iz) ) &
                 - ( spec(is)%fprim + spec(is)%tprim * ( energy(:, iz) - 1.5 ) ) &
-                * ( neo_h(:, iz, ivmu) - spec(is)%z * neo_phi(:, iz) ) ) / clebsch_factor
+                * ( neo_h(:, iz, ivmu) - spec(is)%zt * neo_phi(:, iz) ) ) / clebsch_factor
             end do
         end do
 

@@ -708,12 +708,15 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
+   !****************************************************************************
+   ! Radial derivative of the SFINCS H_1 on the central surface.
+   !****************************************************************************
    subroutine get_dfneo_drho(fneo, dfneo)
 
       use calculations_finite_differences, only: fd3pt, fd5pt
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
-      use grids_species, only: nspec
+      use grids_species, only: nspec, spec                                   
       use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: nalpha
 
@@ -722,12 +725,26 @@ contains
       real, dimension(:, -nzgrid:, :, :, :, -nradii/2:), intent(in) :: fneo
       real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(out) :: dfneo
 
-      integer :: ia, iz, iv, imu, is
+      integer :: ia, iz, iv, imu, is, irad                                   
+      real :: delrho                                                         
       real, dimension(:), allocatable :: tmp1, tmp2
+      real, dimension(:, :), allocatable :: to_local_normalisation           
       real, dimension(:, :, :, :, :), allocatable :: dfneo_local
 
-      allocate (tmp1(nradii), tmp2(nradii))
-      allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
+      ! Allocate local arrays. 
+      allocate(tmp1(nradii), tmp2(nradii))
+      allocate(to_local_normalisation(nspec, nradii))                       
+      allocate(dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
+
+      ! Factor converting the SFINCS H_1 on each surface 
+      ! to that surface's own Maxwellian normalisation, as is done in NEO.
+      do irad = -nradii / 2, nradii / 2
+         delrho = irad * drho
+         do is = 1, nspec
+            to_local_normalisation(is, irad + nradii / 2 + 1) = (1.0 - delrho * spec(is)%tprim)**1.5 &
+            / (1.0 - delrho * spec(is)%fprim)
+         end do
+      end do
 
       do is = 1, nspec
          do imu = 1, nmu
@@ -735,7 +752,7 @@ contains
                do iz = -nzgrid, nzgrid
                   do ia = 1, nalpha
                      ! hack to avoid dealing with negative indices in fd5pt
-                     tmp1 = fneo(ia, iz, iv, imu, is, :)
+                     tmp1 = fneo(ia, iz, iv, imu, is, :) * to_local_normalisation(is, :)  
                      if (nradii == 5) then
                         call fd5pt(tmp1, tmp2, drho)
                      else
@@ -754,8 +771,10 @@ contains
          end do
       end do
 
-      deallocate (dfneo_local)
-      deallocate (tmp1, tmp2)
+      ! Deallocate local arrays.
+      deallocate(dfneo_local)
+      deallocate(to_local_normalisation)                                    
+      deallocate(tmp1, tmp2)
 
    end subroutine get_dfneo_drho
 
