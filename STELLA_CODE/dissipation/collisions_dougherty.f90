@@ -38,7 +38,7 @@ module collisions_dougherty
    complex, dimension(:, :, :), allocatable :: mudiff_zf_response
    integer, dimension(:, :), allocatable :: mudiff_zf_idx
 
-   ! Only initialise once
+   ! Set once the collision model has been built; reset by finish_collisions_dougherty
    logical :: initialised_dougherty = .false.
 
 contains
@@ -95,8 +95,10 @@ contains
 
       !----------------------------------------------------------------------
 
-      ! Only initialise once
-      if (initialised_dougherty) return
+      ! Do not return early if <initialised_dougherty> is set: the implicit matrices are
+      ! (1 - code_dt*nu*L), and the conservation response matrices are built from them,
+      ! so they must be rebuilt whenever code_dt changes. reset_dt() clears the outer
+      ! <initialised_collisions> flag and calls init_collisions() for exactly this reason.
       initialised_dougherty = .true.
 
       ! Initialise implicit collision scheme
@@ -286,9 +288,12 @@ contains
 
       if (.not. allocated(vpadiff_response)) then
          allocate (vpadiff_response(nresponse_vpa, nresponse_vpa, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-         vpadiff_response = 0.
          allocate (vpadiff_idx(nresponse_vpa, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       end if
+
+      ! Zero on every call, since this routine is called again from reset_dt() and the
+      ! response matrix is LU-factorised in place, so the previous factors must not be kept
+      vpadiff_response = 0.
 
       if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
          if (.not. allocated(vpadiff_zf_response)) then
@@ -548,9 +553,12 @@ contains
 
       if (.not. allocated(mudiff_response)) then
          allocate (mudiff_response(nresponse_mu, nresponse_mu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-         mudiff_response = 0.
          allocate (mudiff_idx(nresponse_mu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       end if
+
+      ! Zero on every call, since this routine is called again from reset_dt() and the
+      ! response matrix is LU-factorised in place, so the previous factors must not be kept
+      mudiff_response = 0.
 
       if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
          if (.not. allocated(mudiff_zf_response)) then
