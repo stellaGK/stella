@@ -439,7 +439,10 @@ contains
    !                Read distribution function from a netcdf file               
    !****************************************************************************
    subroutine stella_restore(g, scale, istatus)
-   
+
+      use mp, only: broadcast
+      use arrays, only: shift_state
+      use grids_kxky, only: naky
       use parallelisation_layouts, only: kxkyz_lo
 #ifdef NETCDF_PARALLEL
       use save_stella_for_restart_parallel_netcdf, only: read_stella_data_for_restart_from_single_file
@@ -484,7 +487,16 @@ contains
 #else
       write(*,*) 'Could not read restart data from a netcdf file, since netcdf is not loaded.'
 #endif
-      
+
+      ! Ranks without kxkyz elements return from the reader before <shift_state> is read, so they would keep
+      ! shift_state = 0 while the others have the saved value, and remap on a different schedule (with remap_em > 0
+      ! this deadlocks the field solve).  Take it from proc0, which always holds kxkyz elements.
+      if (.not. allocated(shift_state)) then
+         allocate (shift_state(naky))
+         shift_state = 0.
+      end if
+      call broadcast(shift_state)
+
    end subroutine stella_restore
 
 #ifdef NETCDF
