@@ -21,7 +21,7 @@ standardLabels = {
 
     "normalized" : {
         # TIME AXIS:
-        "t"             : "$t\, v_{\mathrm{th},r}/a$",\
+        "t"             : "$t\\, v_{\\mathrm{th},r}/a$",\
         # Z AXIS:
         "x"             : "$x/\\rho_i$",\
         "y"             : "$y/\\rho_i$",\
@@ -35,8 +35,8 @@ standardLabels = {
         "ky**2"         : "$(k_{y}\\rho_i)^{2}$",\
         "1/ky**2"       : "$(k_{y}\\rho_i)^{-2}$",\
         # VPA OR MU AXIS:
-        "vpa"           : "$v_\\parallel/v_{\mathrm{th},{s}}$",\
-        "mu"            : "$\\mu B_r/v^2_{\mathrm{th},{s}}$",\
+        "vpa"           : "$v_\\parallel/v_{\\mathrm{th},{s}}$",\
+        "mu"            : "$\\mu B_r/v^2_{\\mathrm{th},{s}}$",\
         # GROWTHRATE AND FREQUENCY
         "omega"         : "$\\omega a/v_{\\mathrm{th},i}$",\
         "gamma"         : "$\\gamma a/v_{\\mathrm{th},i}$",\
@@ -61,9 +61,9 @@ standardLabels = {
         "phi2_allModes" : "$\\sum_{k_x,k_y} |\\hat\\varphi|^2$",\
         "phi2_zonal"    : "$\\sum_{k_x,k_y=0} |\\hat\\varphi|^2$",\
         "phi2_nozonal"  : "$\\sum_{k_x,k_y \\neq 0} |\\hat\\varphi|^2$",\
-        "phi2_fieldlineaverage" : "$\\langle \\varphi^2 \\rangle_z \, ({\\rho_i T_i}/{ae})^2$",\
-        "phi2_zonal_fieldlineaverage" : "$\\sum_{k_x,k_y=0} |\\langle\\hat\\varphi\\rangle_z|^2 \, ({\\rho_i T_i}/{ae})^2$",\
-        "phi2_nozonal_fieldlineaverage" : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat\\varphi\\rangle_z|^2 \, ({\\rho_i T_i}/{ae})^2$",\
+        "phi2_fieldlineaverage" : "$\\langle \\varphi^2 \\rangle_z \\, ({\\rho_i T_i}/{ae})^2$",\
+        "phi2_zonal_fieldlineaverage" : "$\\sum_{k_x,k_y=0} |\\langle\\hat\\varphi\\rangle_z|^2 \\, ({\\rho_i T_i}/{ae})^2$",\
+        "phi2_nozonal_fieldlineaverage" : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat\\varphi\\rangle_z|^2 \\, ({\\rho_i T_i}/{ae})^2$",\
         "phi2_fieldlineaverage_norm" : "$\\langle \\tilde{\\varphi}^2 \\rangle_z$",\
         "phi2_zonal_fieldlineaverage_norm" : "$\\sum_{k_x,k_y=0} |\\langle\\hat{\\tilde{\\varphi}}\\rangle_z|^2$",\
         "phi2_nozonal_fieldlineaverage_norm" : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat{\\tilde{\\varphi}}\\rangle_z|^2$",\
@@ -225,28 +225,28 @@ for quantity in list(standardLabels["normalized"].keys()):
 
 for units in ["normalized", "SI"]:
     for quant in ['qflux', 'pflux', 'vflux', 'phi', 'phi_real', 'phi_imag', 'phiRealImag']:
-        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y}\,$"+standardLabels[units][quant]
-        standardLabels[units][quant+" vs ky"] = "$\\sum_{k_x}\,$"+standardLabels[units][quant] 
+        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y}\\,$"+standardLabels[units][quant]
+        standardLabels[units][quant+" vs ky"] = "$\\sum_{k_x}\\,$"+standardLabels[units][quant] 
     for quant in ['phi2' ]:
-        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y}\,$"+standardLabels[units][quant]
-        standardLabels[units][quant+" vs ky"] = "$\\sum_{k_x}\,$"+standardLabels[units][quant] 
+        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y}\\,$"+standardLabels[units][quant]
+        standardLabels[units][quant+" vs ky"] = "$\\sum_{k_x}\\,$"+standardLabels[units][quant] 
         standardLabels[units][quant+" vs z"]  = "$|$"+standardLabels[units][quant]+"/"+standardLabels[units][quant]+"$_{max}|$"
     for quant in ['phi2_zonal']:
-        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y=0}\,$"+standardLabels[units]["phi2"]
+        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y=0}\\,$"+standardLabels[units]["phi2"]
         standardLabels[units][quant+" vs ky"] = standardLabels[units]["phi2"] 
         standardLabels[units][quant+" vs z"]  = standardLabels[units][quant].replace(standardLabels[units]["phi2"], standardLabels[units]["phi2 vs z"])
     for quant in ['phi2_nozonal']:
-        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y\\neq 0}\,$"+standardLabels[units]["phi2"]
-        standardLabels[units][quant+" vs ky"] = "$\\sum_{k_x}\,$"+standardLabels[units]["phi2"]
+        standardLabels[units][quant+" vs kx"] = "$\\sum_{k_y\\neq 0}\\,$"+standardLabels[units]["phi2"]
+        standardLabels[units][quant+" vs ky"] = "$\\sum_{k_x}\\,$"+standardLabels[units]["phi2"]
         standardLabels[units][quant+" vs z"]  = standardLabels[units][quant].replace(standardLabels[units]["phi2"], standardLabels[units]["phi2 vs z"])
     for quant in ['gvmus']:
-        standardLabels[units][quant+" vs vpa"] = "$\\sum_{\\mu}\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")
-        standardLabels[units][quant+" vs mu"]  = "$\\sum_{v_\\parallel}\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")  
-        standardLabels[units][quant+" vs z"]   = "$\\sum_{v_\\parallel}\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")
+        standardLabels[units][quant+" vs vpa"] = "$\\sum_{\\mu}\\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")
+        standardLabels[units][quant+" vs mu"]  = "$\\sum_{v_\\parallel}\\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")  
+        standardLabels[units][quant+" vs z"]   = "$\\sum_{v_\\parallel}\\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")
     for quant in ['gzvs']:
         standardLabels[units][quant+" vs vpa"] = "$\\sum_{z}$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, z)")
-        standardLabels[units][quant+" vs mu"]  = "$\\sum_{v_\\parallel}\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")  
-        standardLabels[units][quant+" vs z"]   = "$\\sum_{v_\\parallel}\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")
+        standardLabels[units][quant+" vs mu"]  = "$\\sum_{v_\\parallel}\\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")  
+        standardLabels[units][quant+" vs z"]   = "$\\sum_{v_\\parallel}\\,$"+standardLabels[units][quant].replace("_{s}", "_{s}(v_\\parallel, \\mu)")
     for quant in ['phi', 'phi_real', 'phi_imag', 'phiRealImag']:
         standardLabels[units][quant+" vs z"] = "$|$"+standardLabels[units][quant]+"/"+standardLabels[units][quant]+"$_{max}|$"
     

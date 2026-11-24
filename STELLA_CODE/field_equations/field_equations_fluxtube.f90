@@ -348,6 +348,9 @@ contains
          
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(phi)
+         
+         ! Stop timer
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ] / [ sum_s (Z_s² n_s/T_s) (1 - Gamma0) ]
          ! by dividing with denominator_fields[iky,ikz,iz] = sum_s (Z_s² n_s/T_s) (1 - Gamma0) in the calculate_phi() routine
@@ -889,16 +892,17 @@ contains
                   ! denominator_fields_MBR_h = n_e/T_e / sum_(s not e) (Z_s² n_s/T_s)
                   denominator_fields_MBR_h = efac / (sum(spec%zt * spec%z * spec%dens))
                   do ikx = 1, nakx
+                     ! Skip the kx=ky=0 mode, which we do not need anyway: Gamma0 = 1 gives
+                     ! denominator_fields = n_e/T_e, so <tmp> = 0 and we would divide by zero
+                     if (ikx == 1 .and. akx(1) < epsilon(0.)) then
+                        denominator_fields_MBR(1, :) = 0.0
+                        cycle
+                     end if
                      ! tmp = T_e / n_e - int (dl/B)/(sum_(s not e) (Z_s² n_s/T_s) * (1- Gamma0))
                      tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
                      ! denominator_fields_MBR = 1/ (T_e/n_e - <1/denominator_field>_FSA )
                      denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
                   end do
-                  
-                  ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway
-                  if (akx(1) < epsilon(0.)) then
-                     denominator_fields_MBR(1, :) = 0.0
-                  end if
                end if
             end if
 

@@ -12,6 +12,9 @@ endif
 F90FLAGS +=
 CPPFLAGS += -DFCOMPILER=_INTEL_
 
+# The Intel compilers use "-module" instead of "-J" for the directory of the *.mod files
+MODULE_FLAG = -module
+
 ifndef DBLESIZEOPT
 cmd=$(shell basename $(shell which $(FC)))
 ifneq ($(cmd),$(FC))
