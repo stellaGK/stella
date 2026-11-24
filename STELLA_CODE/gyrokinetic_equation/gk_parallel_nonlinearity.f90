@@ -90,7 +90,7 @@ contains
 
          if (.not. allocated(d_par_nl_drifty_dr)) allocate (d_par_nl_drifty_dr(-nzgrid:nzgrid))
          d_par_nl_drifty_dr = 0.25 * rhostar * dcvdriftdrho(1, :)
-         if (.not. allocated(d_par_nl_drifty_dr)) allocate (d_par_nl_driftx_dr(-nzgrid:nzgrid))
+         if (.not. allocated(d_par_nl_driftx_dr)) allocate (d_par_nl_driftx_dr(-nzgrid:nzgrid))
          if (q_as_x) then
                d_par_nl_driftx_dr = 0.25 * rhostar * dcvdrift0drho(1, :)
          else
@@ -457,6 +457,10 @@ contains
       if (allocated(par_nl_curv)) deallocate (par_nl_curv)
       if (allocated(par_nl_driftx)) deallocate (par_nl_driftx)
       if (allocated(par_nl_drifty)) deallocate (par_nl_drifty)
+      if (allocated(d_par_nl_fac_dr)) deallocate (d_par_nl_fac_dr)
+      if (allocated(d_par_nl_curv_dr)) deallocate (d_par_nl_curv_dr)
+      if (allocated(d_par_nl_driftx_dr)) deallocate (d_par_nl_driftx_dr)
+      if (allocated(d_par_nl_drifty_dr)) deallocate (d_par_nl_drifty_dr)
 
       initialised_parallel_streaming = .false.
 
