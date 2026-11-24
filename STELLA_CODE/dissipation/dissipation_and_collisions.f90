@@ -98,6 +98,12 @@ contains
          end if
       end if
 
+      ! Implicit collisions are advanced in the implicit part of the time step, which is skipped
+      ! when fully_explicit = .true. (set in read_parameters_numerical, which is called before this
+      ! routine, when the mirror term, the parallel streaming and the drifts are all explicit).
+      ! Without this, implicit Dougherty collisions were silently skipped in such runs (November 2026).
+      if (include_collisions .and. collisions_implicit) fully_explicit = .false.
+
       ! Read input parameters for the hyper-dissipation
       if (hyper_dissipation) then
          call read_parameters_hyper
