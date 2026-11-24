@@ -68,12 +68,14 @@ def run_linear_simulation(input_file, folder, stella_version, explicit_algorithm
     path_input_file = copy_input_file(input_file, folder)
     text = open(path_input_file, 'r').read()
     for old, new in (('include_nonlinear = .true.', 'include_nonlinear = .false.'),
-                     ('delt = 0.01', f'delt = {delt!r}'),
                      ('nstep = 50', f'nstep = {nstep}'),
                      ('nwrite = 10', f'nwrite = {nstep}'),
                      ("explicit_algorithm = 'rk3'", f"explicit_algorithm = '{explicit_algorithm}'")):
         assert old in text, f'Expected "{old}" in {input_file}.'
         text = text.replace(old, new)
+    # Replace the time step of the input file, whatever its value
+    text, count = re.subn(r'^(\s*delt\s*=\s*)\S+', lambda m: f'{m.group(1)}{delt!r}', text, flags=re.M)
+    assert count == 1, f'Expected one "delt = ..." line in {input_file}.'
     open(path_input_file, 'w').write(text)
     os.chdir(folder)
     run_stella(get_stella_path(stella_version), input_file, nproc=nproc_expected_output)

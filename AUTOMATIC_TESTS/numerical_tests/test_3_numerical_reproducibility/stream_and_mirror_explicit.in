@@ -126,7 +126,7 @@
   nstep = 50
 /
 &time_step
-  delt = 0.01
+  delt = 0.0005
 /
 &numerical_algorithms
   explicit_algorithm = 'rk3'
