@@ -195,15 +195,15 @@ def create_listOfVariedValues(experiments, knob1, key1, knob2, key2, variedVaria
                     if (knob!=knob1 or variable!=key1) and (knob!=knob2 or variable!=key2):  
                         value = simulation.inputParameters[knob][variable]
                         variable, value = change_stellaParametersForLabels(simulation, knob, variable, value)
-                        varied_values += [variable + "$\,=\,$" + str(value)]
+                        varied_values += [variable + "$\\,=\\,$" + str(value)]
              
             # If a/Lne = a/Lni replace it by a/Ln
             if any("$a/L_{ni}$" in v for v in varied_values) and any("$a/L_{ne}$" in v for v in varied_values):
                 _elements = [e for e in varied_values if e!='']
-                _ionDensityGrad = float([e for e in _elements if "$a/L_{ni}$" in e][0].split("$\,=\,$")[-1])
+                _ionDensityGrad = float([e for e in _elements if "$a/L_{ni}$" in e][0].split("$\\,=\\,$")[-1])
                 _others = [e for e in _elements if ("$a/L_{ni}$" not in e) and ("$a/L_{ne}$" not in e)] 
-                if len(_others) != 0: varied_values = _others + ["$a/L_{n}$" + "$\,=\,$" + str(_ionDensityGrad)]
-                if len(_others) == 0: varied_values = ["$a/L_{n}$" + "$\,=\,$" + str(_ionDensityGrad)]
+                if len(_others) != 0: varied_values = _others + ["$a/L_{n}$" + "$\\,=\\,$" + str(_ionDensityGrad)]
+                if len(_others) == 0: varied_values = ["$a/L_{n}$" + "$\\,=\\,$" + str(_ionDensityGrad)]
 
             # If kymax and ny are both in varied_values then remove ny
             if any("ky max" in v for v in varied_values) and any("ny" in v for v in varied_values):
@@ -215,7 +215,7 @@ def create_listOfVariedValues(experiments, knob1, key1, knob2, key2, variedVaria
                           
             # If nothing was different because we only have one experiment, use the radial position as the label 
             if varied_values==[]: 
-                varied_values = ["$\\rho$" + "$\,=\,$" +  str(simulation.input.rho)] 
+                varied_values = ["$\\rho$" + "$\\,=\\,$" +  str(simulation.input.rho)] 
              
             # Sort the varied values and then join them in a string 
             varied_values.sort()
