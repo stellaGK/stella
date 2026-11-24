@@ -888,7 +888,7 @@ contains
 
       deallocate (g0x, g0v)
 
-      if (proc0) call time_message(.false., time_mirror, ' Mirror advance')
+      if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
    end subroutine advance_mirror_implicit
 

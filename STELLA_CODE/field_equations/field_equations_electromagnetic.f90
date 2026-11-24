@@ -465,6 +465,9 @@ contains
          
       end if
 
+      ! Stop timer
+      if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi_and_bpar')
+
    end subroutine calculate_phi_and_bpar
 
    !****************************************************************************
