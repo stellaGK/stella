@@ -18,6 +18,12 @@
 # Both bugs fixed in November 2026 (the advection speed taken at vpa = -vpa_max
 # for every vpa, and the vpa-sign dependent d<phi>/dz at the ends of the chains)
 # change the parallel flow of this test by 960% and 6%.
+#
+# The input file parallel_nonlinearity_curvature.in also switches on betaprim and
+# the y-drift, so that the curvature term vpa*mu*par_nl_curv of the advection
+# speed, which is uniform in (x,y), is tested as well. Until November 2026 it was
+# added to every Fourier mode, i.e. as a spike at x = y = 0, which changes the
+# parallel flow of this test by 1.8%.
 ################################################################################
 
 # Python modules
@@ -31,8 +37,9 @@ import xarray as xr
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
 with open(module_path, 'r') as file: exec(file.read())
 
-# Input file of the tests
+# Input files of the tests: the second one also switches on the curvature term of the advection speed
 input_filename = 'parallel_nonlinearity.in'
+input_filenames = ['parallel_nonlinearity.in', 'parallel_nonlinearity_curvature.in']
 
 #-------------------------------------------------------------------------------
 #                           Get the stella version                             #
@@ -44,7 +51,8 @@ def stella_version(pytestconfig):
 #-------------------------------------------------------------------------------
 #                    Compare with the expected output                          #
 #-------------------------------------------------------------------------------
-def test_whether_parallel_nonlinearity_evolves_correctly(tmp_path, stella_version, error=False):
+@pytest.mark.parametrize('input_filename', input_filenames)
+def test_whether_parallel_nonlinearity_evolves_correctly(input_filename, tmp_path, stella_version, error=False):
 
     # Run stella inside of <tmp_path>
     run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
