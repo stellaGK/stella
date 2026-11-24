@@ -125,7 +125,6 @@ contains
       ! Grids + Arrays
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: dvpa, vpa, mu
-      use grids_extended_zgrid, only: periodic
       use grids_z, only: nzgrid, delzed, ntubes
       use grids_kxky, only: akx, aky, rho_clamped
       use grids_kxky, only: nakx, naky, nx, ny, ikx_max
@@ -141,12 +140,8 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use calculations_finite_differences, only: third_order_upwind
-      use calculations_finite_differences, only: second_order_centered_zed
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use calculations_transforms, only: transform_kx2x, transform_x2kx
-      
-      ! GK equation
-      use gk_parallel_streaming, only: stream_sign
 
       implicit none
 
@@ -159,12 +154,11 @@ contains
       integer :: ivmu, ixyz
       integer :: iz, it, iv, imu, is
       integer :: iky, ie, iseg
-      integer :: advect_sign
-      real :: cfl_dt
-      real, dimension(:), allocatable :: dgdv
+      real :: cfl_dt, speed_max, speed_min
+      real, dimension(:), allocatable :: dgdv, dgdv_minus
       real, dimension(:, :, :, :, :), allocatable :: g0xy
-      real, dimension(:, :, :), allocatable :: gxy_vmulocal
-      real, dimension(:, :), allocatable :: g1xy, advect_speed
+      real, dimension(:, :, :), allocatable :: gxy_vmulocal, advect_speed
+      real, dimension(:, :), allocatable :: g1xy
       complex, dimension(2) :: gleft, gright
       complex, dimension(:, :, :, :), allocatable :: phi_gyro, dphidz
       complex, dimension(:, :), allocatable :: g0k, g0kxy, g0k_swap
@@ -220,20 +214,22 @@ contains
          call gyro_average(dphidz, ivmu, phi_gyro)
          if (radial_variation) phi_gyro = phi_gyro + phi_corr_GA(:, :, :, :, ivmu)
 
+         ! Get d<phi>/dz with a centered stencil at every point, also at the ends of the chains of connected kx,
+         ! where the ghost zones are zero (or periodic). The parallel acceleration must not depend on the sign of vpa:
+         ! <second_order_centered_zed> upwinds with the sign of the streaming term at the ends of the chains, which
+         ! made d<phi>/dz differ between vpa < 0 and vpa > 0 there and drove a spurious momentum flux
          do iky = 1, naky
-               do it = 1, ntubes
+            do it = 1, ntubes
                do ie = 1, neigen(iky)
                   do iseg = 1, nsegments(ie, iky)
-                     ! First fill in ghost zones at boundaries in g(z)
+                     ! First fill in ghost zones at boundaries in <phi>(z)
                      call fill_zed_ghost_zones(it, iseg, ie, iky, phi_gyro, gleft, gright)
                      ! Now get d<phi>/dz
-                     call second_order_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
-                        phi_gyro(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
-                        delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
-                        dphidz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
+                     call get_dphidz_centered(phi_gyro(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
+                        gleft(2), gright(1), delzed(0), dphidz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
                   end do
                end do
-               end do
+            end do
          end do
 
          if (radial_variation) then
@@ -289,15 +285,16 @@ contains
       if (allocated(g1xy)) deallocate (g1xy)
 
       allocate (gxy_vmulocal(nvpa, nmu, xyz_lo%llim_proc:xyz_lo%ulim_alloc))
-      allocate (advect_speed(nmu, xyz_lo%llim_proc:xyz_lo%ulim_alloc))
+      allocate (advect_speed(nvpa, nmu, xyz_lo%llim_proc:xyz_lo%ulim_alloc))
 
       ! We now have the advection velocity in vpa in (x,y) space.
       ! Next redistribute it so that (vpa,mu) are local
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
       call scatter(xyz2vmu, g0xy, gxy_vmulocal)
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
-      ! advect_speed does not depend on vpa
-      advect_speed = gxy_vmulocal(1, :, :)
+      ! The advection speed depends on vpa through the drift and curvature terms (proportional to vpa),
+      ! so keep it at every vpa point
+      advect_speed = gxy_vmulocal
 
       ! Transform g from (kx,ky) to (x,y)
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -317,24 +314,34 @@ contains
       call scatter(xyz2vmu, g0xy, gxy_vmulocal)
       if (proc0) call time_message(.false., time_parallel_nl(:, 2), ' parallel nonlinearity redist')
 
-      allocate (dgdv(nvpa))
+      allocate (dgdv(nvpa), dgdv_minus(nvpa))
 
       ! We now need to form dg/dvpa and obtain product of dg/dvpa with advection speed
       do ixyz = xyz_lo%llim_proc, xyz_lo%ulim_proc
          do imu = 1, nmu
-            ! advect_sign set to +/- 1 depending on sign of the parallel nonlinearity
-            ! advection velocity
-            ! NB: advect_sign = -1 corresponds to positive advection velocity
-            advect_sign = int(sign(1.0, advect_speed(imu, ixyz)))
-            call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, advect_sign, dgdv)
-            gxy_vmulocal(:, imu, ixyz) = dgdv * advect_speed(imu, ixyz)
-            ! A zero advection speed does not limit the time step (avoid dividing by zero)
-            if (abs(advect_speed(imu, ixyz)) > 0.) cfl_dt_parallel = min(cfl_dt_parallel, dvpa / abs(advect_speed(imu, ixyz)))
+            ! The sign of the advection speed sets the upwinding of dg/dvpa at each vpa point
+            ! NB: a positive advect_speed (upwind sign +1) corresponds to a negative advection velocity
+            speed_max = maxval(advect_speed(:, imu, ixyz))
+            speed_min = minval(advect_speed(:, imu, ixyz))
+            if (speed_min >= 0.) then
+               call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, 1, dgdv)
+            else if (speed_max < 0.) then
+               call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, -1, dgdv)
+            else
+               ! The advection speed changes sign along vpa: upwind each point separately
+               call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, 1, dgdv)
+               call third_order_upwind(1, gxy_vmulocal(:, imu, ixyz), dvpa, -1, dgdv_minus)
+               where (advect_speed(:, imu, ixyz) < 0.) dgdv = dgdv_minus
+            end if
+            gxy_vmulocal(:, imu, ixyz) = dgdv * advect_speed(:, imu, ixyz)
+            ! The fastest advection along vpa limits the time step (a zero speed does not limit it)
+            speed_max = max(abs(speed_max), abs(speed_min))
+            if (speed_max > 0.) cfl_dt_parallel = min(cfl_dt_parallel, dvpa / speed_max)
          end do
       end do
 
       ! Finished with dgdv and advect_speed
-      deallocate (dgdv, advect_speed)
+      deallocate (dgdv, dgdv_minus, advect_speed)
 
       ! Now that we have the full parallel nonlinearity in (x,y)-space.
       ! Need to redistribute so that (x,y) local for transforms
@@ -410,6 +417,32 @@ contains
       if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')
 
    end subroutine advance_parallel_nonlinearity
+
+   !****************************************************************************
+   !                    CENTERED d<phi>/dz FOR THE ACCELERATION                !
+   !****************************************************************************
+   ! Second-order centered derivative of <phi> along one 2pi segment, with the ghost values <fleft> and <fright> beyond
+   ! its ends (from fill_zed_ghost_zones: the neighbouring segment, the periodic copy, or zero beyond the ends of a chain)
+   !****************************************************************************
+   subroutine get_dphidz_centered(f, fleft, fright, del, df)
+
+      implicit none
+
+      complex, dimension(:), intent(in) :: f
+      complex, intent(in) :: fleft, fright
+      real, intent(in) :: del
+      complex, dimension(:), intent(out) :: df
+
+      integer :: n
+
+      !-------------------------------------------------------------------------
+
+      n = size(f)
+      df(1) = 0.5 * (f(2) - fleft) / del
+      df(2:n - 1) = 0.5 * (f(3:n) - f(1:n - 2)) / del
+      df(n) = 0.5 * (fright - f(n - 1)) / del
+
+   end subroutine get_dphidz_centered
 
    !****************************************************************************
    !                      FINALISE PARALLEL NONLINEARITY                       !
