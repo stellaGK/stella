@@ -104,7 +104,7 @@ contains
    end subroutine integrate_mu_local
 
    !---------------- Each processor has a number of ivmu points ----------------
-   subroutine integrate_mu_nonlocal(iz, g, total)
+   subroutine integrate_mu_nonlocal(iz, g, total, reduce)
 
       use mp, only: nproc, sum_reduce
       use parallelisation_layouts, only: vmu_lo
@@ -116,6 +116,9 @@ contains
       integer, intent(in) :: iz
       real, dimension(vmu_lo%llim_proc:), intent(in) :: g
       real, dimension(:, :), intent(out) :: total
+      ! If <reduce> = False, each processor only holds its own contribution, which allows
+      ! the caller to sum many integrals over the processors at once (default: True)
+      logical, intent(in), optional :: reduce
 
       ! Local variables
       integer :: is, imu, iv, ivmu, ia
@@ -142,6 +145,9 @@ contains
       end do
 
       ! Each processor has a few [ivmu] points, so sum all calculations
+      if (present(reduce)) then
+         if (.not. reduce) return
+      end if
       if (nproc > 1) call sum_reduce(total, 0)
 
    end subroutine integrate_mu_nonlocal
@@ -151,7 +157,7 @@ contains
 !###############################################################################
 
    !---------------- Each processor has a number of ivmu points ----------------
-   subroutine integrate_vpa_nonlocal(g_vs_ivmus, g_vs_mus)
+   subroutine integrate_vpa_nonlocal(g_vs_ivmus, g_vs_mus, reduce)
 
       use mp, only: nproc, sum_reduce
       use parallelisation_layouts, only: vmu_lo
@@ -162,6 +168,9 @@ contains
       ! Arguments
       real, dimension(vmu_lo%llim_proc:), intent(in) :: g_vs_ivmus
       real, dimension(:, :), intent(out) :: g_vs_mus
+      ! If <reduce> = False, each processor only holds its own contribution, which allows
+      ! the caller to sum many integrals over the processors at once (default: True)
+      logical, intent(in), optional :: reduce
       
       ! Local variables
       integer :: is, imu, iv, ivmus
@@ -185,6 +194,9 @@ contains
       end do
 
       ! Each processor has a few [ivmu] points, so sum all calculations
+      if (present(reduce)) then
+         if (.not. reduce) return
+      end if
       if (nproc > 1) call sum_reduce(g_vs_mus, 0)
 
    end subroutine integrate_vpa_nonlocal
