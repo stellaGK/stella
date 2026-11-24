@@ -299,4 +299,5 @@ It is the responsibility of the respective authors to list their contributions t
 - November 2026: Fixed the double Maxwellian factor of the drive term with neoclassical terms: with `include_neoclassical_terms = .true.`, `wstar` was multiplied by $F_0$ a second time (introduced in v1.0), so the gradient drive was proportional to $F_0^2$ and `dfneo_drho` picked up a spurious factor $F_0$. Neoclassical terms are currently disabled at input, so no v1.0 results are affected (H. Thienpondt).
 - October 2026: The $v_\parallel$ hyper-dissipation is now applied; it was calculated but never added to the gyrokinetic equation (H. Thienpondt).
 - October 2026: The explicit `rk3` time advance now uses the Shu–Osher SSPRK3 scheme. The previous scheme was only third order for linear terms; for the nonlinear term it was second order. Linear results do not change (H. Thienpondt).
+- October 2026: With `flip_flop = .true.`, $(\omega, \gamma)$ are now calculated over two time steps; before, they alternated between two wrong values every time step, which also prevented `autostop` (H. Thienpondt).
 
