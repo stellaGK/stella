@@ -652,10 +652,12 @@ contains
          dx = (2 * pi * x0) / nx
          dy = (2 * pi * y0) / ny
    
+         ! The shift of the x-grid is only used for radial variation (and multibox) simulations,
+         ! and requires radial derivatives which are not calculated for VMEC equilibria
          x_shift = pi * x0
          pfac = 1.0
          if (periodic_variation) pfac = 0.5
-         if (centered_in_rho) then
+         if (centered_in_rho .and. (radial_variation .or. runtype_option_switch == runtype_multibox)) then
             if (q_as_x) then
                dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
                x_shift = pi * x0 * (1.0 - 0.5 * pfac * rhostar * pi * x0 * geo_surf%d2qdr2 / (dqdrho**2 * dxdpsi))
