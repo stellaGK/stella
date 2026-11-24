@@ -1,0 +1,97 @@
+! Linear simulation of a zonal mode with only Dougherty collisions (without momentum conservation)
+! and the y drift, which does nothing for the zonal mode, so that the mirror term, the parallel
+! streaming and the drifts are all explicit. Starts from a parallel flow, which the collisions damp.
+! Used by test_4g to check that implicit collisions act when no other term is implicit.
+
+&geometry_options
+  geometry_option = 'miller'
+/
+&geometry_miller
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+/
+&gyrokinetic_terms
+  include_parallel_streaming = .false.
+  include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .true.
+  include_drive = .false.
+  include_nonlinear = .false.
+/
+&dissipation_and_collisions_options
+  include_collisions = .true.
+  vnew_ref = 0.1
+  collision_model = 'dougherty'
+  collisions_implicit = .true.
+/
+&collisions_dougherty
+  momentum_conservation = .false.
+  energy_conservation = .false.
+/
+&species_options
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 2.22
+  mass = 1.0
+  temp = 1.0
+  tprim = 6.92
+  type = 'ion'
+  z = 1.0
+/
+&kxky_grid_option
+  grid_option = 'range'
+/
+&kxky_grid_range
+  naky = 1
+  nakx = 1
+  aky_min = 0.0
+  aky_max = 0.0
+  akx_min = 0.05
+  akx_max = 0.05
+/
+&z_grid
+  nzed = 16
+  nperiod = 1
+/
+&velocity_grids
+  nmu = 6
+  nvgrid = 16
+  vpa_max = 3.0
+  vperp_max = 3.0
+/
+&time_step
+  delt = 0.01
+  delt_option = 'set_by_hand'
+/
+&time_trace_options
+  nstep = 200
+  autostop = .false.
+/
+&initialise_distribution
+  initialise_distribution_option = 'maxwellian'
+  phiinit = 1.0
+/
+&initialise_distribution_maxwellian
+  width0 = 1.0
+  den0 = 0.0
+  upar0 = 1.0
+/
+&diagnostics
+  nwrite = 50
+  write_all = .true.
+/
+&diagnostics_moments
+  write_moments = .true.
+/
