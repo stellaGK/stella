@@ -176,7 +176,7 @@ contains
 
       ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       character(*), intent(in) :: dist 
       logical, optional, intent(in) :: skip_fsa
       
