@@ -117,7 +117,7 @@ module grids_kxky
    real :: phase_shift_angle
    integer :: jtwist
    real :: jtwistfac
-   real :: ikx_twist_shift
+   integer :: ikx_twist_shift
    logical :: centered_in_rho, periodic_variation, randomize_phase_shift
 
    ! For Range
