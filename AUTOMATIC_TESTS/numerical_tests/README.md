@@ -18,3 +18,5 @@ Perform some simulations and check whether the time trace of the potential match
     test_4_gyrokinetic_equation/test_4i_diamagnetic_drift_explicit.py::test_whether_diamagnetic_drift_explicit_evolves_correctly  
     test_4_gyrokinetic_equation/test_4j_drifts_implicit.py::test_whether_drifts_implicit_evolves_correctly 
     test_5_fluxtube/test_5a_miller_linear_and_nonlinear.py::test_whether_miller_linear_evolves_correctly  
+
+ On 14/11/2026 test 4f (test_4f_parallel_nonlinearity.py, parallel_nonlinearity.in) has been added, the first test of the parallel nonlinearity with rhostar > 0 (before, only test_all_flags2.in of test 5 switched it on, with rhostar = 0, where the term vanishes). It compares the full state and the parallel flow, relative to its own size, with the expected output, and checks that only the parallel nonlinearity drives a parallel flow from the initial noise. The two bugs of the parallel nonlinearity fixed in November 2026 change the parallel flow of this test by 1023% and 11%, and both make it fail.
