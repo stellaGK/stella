@@ -190,10 +190,12 @@ contains
       use grids_kxky, only: naky, nalpha
       use grids_z, only: nzgrid
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
+      use grids_extended_zgrid, only: periodic
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
-      integer :: iky, ie, iseg
+      integer :: iky, ie, iseg, ikx
       real, dimension(:), allocatable :: tmp
       
       !-------------------------------------------------------------------------
@@ -210,6 +212,15 @@ contains
                   kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid) = tmp
                   kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp
                end do
+            end if
+            ! Periodic modes connect z = nzgrid back onto z = -nzgrid with the same kx. If
+            ! grad x . grad y differs at the two ends of the flux tube, so does |k_perp^2|,
+            ! and the two copies of this point would get a different field from the same g
+            if (periodic(iky) .and. .not. full_flux_surface) then
+               ikx = ikxmod(1, ie, iky)
+               tmp = 0.5 * (kperp2(iky, ikx, :, nzgrid) + kperp2(iky, ikx, :, -nzgrid))
+               kperp2(iky, ikx, :, -nzgrid) = tmp
+               kperp2(iky, ikx, :, nzgrid) = tmp
             end if
          end do
       end do
