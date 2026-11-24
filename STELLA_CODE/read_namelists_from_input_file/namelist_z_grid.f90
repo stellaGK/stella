@@ -266,9 +266,9 @@ contains
 
          write (unit, '(A)') '&z_boundary_condition'
          write (unit, '(A, A, A)') '  boundary_option = "', trim(boundary_option),'"'
-         write (unit, '(A, ES0.2)') '  shat_zero = ', shat_zero
-         write (unit, '(A, ES0.2)') '  grad_x_grad_y_zero = ', grad_x_grad_y_zero
-         write (unit, '(A, ES0.2)') '  dkx_over_dky = ', dkx_over_dky
+         write (unit, '(A, ES10.2)') '  shat_zero = ', shat_zero
+         write (unit, '(A, ES10.2)') '  grad_x_grad_y_zero = ', grad_x_grad_y_zero
+         write (unit, '(A, ES10.2)') '  dkx_over_dky = ', dkx_over_dky
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

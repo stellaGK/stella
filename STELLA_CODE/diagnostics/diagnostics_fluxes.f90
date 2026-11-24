@@ -438,7 +438,7 @@ contains
       write (fluxes_unit, str) code_time, pflux_vs_s, vflux_vs_s, qflux_vs_s 
 
       ! Flush the data from the buffer to the actual ascii file
-      call flush(fluxes_unit) 
+      flush (fluxes_unit)
 
    end subroutine write_fluxes_to_ascii_file
 
