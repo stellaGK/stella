@@ -293,6 +293,7 @@ contains
       ! Local variables
       complex :: tmp
       real :: wgt
+      complex, dimension(:), allocatable :: contrib
       complex, dimension(:, :), allocatable :: g0
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
       logical :: skip_fsa_local
@@ -321,12 +322,12 @@ contains
          ! Start timer
          call region_start('int_dv_g')
          
-         ! Iterate over the (kx,ky,z,mu,vpa,s) points; species sum needs reduction
+         ! Iterate over the (kx,ky,z,mu,vpa,s) points; the sum over the species is done after the loop
+         allocate (contrib(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, nvpa, nmu) &
          !$omp private(ikxkyz, iz, it, ikx, iky, is, wgt, tmp, g0) &
-         !$omp reduction(+:phi) &
-         !$omp shared(g, spec)
+         !$omp shared(contrib, g, spec)
          allocate (g0(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -343,12 +344,24 @@ contains
             ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J_0 * g ]
             wgt = spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
+            contrib(ikxkyz) = wgt * tmp
 
          end do
          !$omp end do
          deallocate (g0)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + contrib(ikxkyz)
+         end do
+         deallocate (contrib)
 
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(phi)
@@ -666,6 +679,7 @@ contains
       ! Local variables
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
       real :: tmp, wgt
+      real, dimension(:), allocatable :: contrib
       real, dimension(:, :), allocatable :: g0
       
       !-------------------------------------------------------------------------
@@ -689,12 +703,12 @@ contains
          !
          !     (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J_0(a_k)²) exp(v²)
          !----------------------------------------------------------------------
-         ! Species sum needs reduction
+         ! The sum over the species is done after the loop
+         allocate (contrib(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, ia, nvpa, nmu) &
          !$omp private(ikxkyz, it, iz, ikx, iky, is, wgt, tmp, g0) &
-         !$omp reduction(+:denominator_fields) &
-         !$omp shared(spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj0v)
+         !$omp shared(contrib, spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj0v)
          allocate (g0(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -715,12 +729,25 @@ contains
             ! with (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J_0(a_k)²) exp(v²)
             wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
             call integrate_vmu(g0, iz, tmp)
-            denominator_fields(iky, ikx, iz) = denominator_fields(iky, ikx, iz) + tmp * wgt
+            contrib(ikxkyz) = tmp * wgt
 
          end do
          !$omp end do
          deallocate (g0)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            denominator_fields(iky, ikx, iz) = denominator_fields(iky, ikx, iz) + contrib(ikxkyz)
+         end do
+         deallocate (contrib)
 
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(denominator_fields)

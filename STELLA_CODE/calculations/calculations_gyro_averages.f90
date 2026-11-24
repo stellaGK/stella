@@ -554,21 +554,23 @@ contains
       total = 0.
       ia = 1
 
-      !$omp parallel do default(none) &
+      ! The threads share out the (z, tube) points, so that every thread sums over the velocity points of
+      ! its own part of <total>, in the same order as without threads (an OpenMP reduction would need a
+      ! private copy of <total> on the stack of every thread)
+      !$omp parallel do collapse(2) default(none) &
       !$omp firstprivate(vmu_lo, ia, nzgrid, ntubes, naky, nakx, bessel, factor_option) &
       !$omp private(ivmu, iv, imu, is, imus, it, iz, ikx, iky, factor, gyro_g) &
-      !$omp reduction(+:total) &
-      !$omp shared(g, weights, wgts_mu, wgts_vpa, vpa, mu, aj0x, aj1x, aj_index)
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
-         imus = aj_index(ivmu)
-         factor = 1.0
-         if (factor_option == 1) factor = vpa(iv)
-         if (factor_option == 2) factor = mu(imu)
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
+      !$omp shared(g, weights, wgts_mu, wgts_vpa, vpa, mu, aj0x, aj1x, aj_index, total)
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
+               imus = aj_index(ivmu)
+               factor = 1.0
+               if (factor_option == 1) factor = vpa(iv)
+               if (factor_option == 2) factor = mu(imu)
                do ikx = 1, nakx
                   do iky = 1, naky
                      if (bessel == 0) then

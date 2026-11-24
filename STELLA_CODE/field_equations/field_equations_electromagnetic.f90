@@ -280,6 +280,7 @@ contains
       ! Local variables
       complex :: tmp
       real :: wgt
+      complex, dimension(:), allocatable :: contrib, contrib_phi, contrib_bpar
       complex, dimension(:, :), allocatable :: g0
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
       
@@ -295,12 +296,12 @@ contains
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::kxkyzlo::include_bpar'
          call region_start('int_dv_g')
          
-         ! Iterate over the (kx,ky,z,mu,vpa,s) points; species sum needs reduction
+         ! Iterate over the (kx,ky,z,mu,vpa,s) points; the sum over the species is done after the loop
+         allocate (contrib_phi(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc), contrib_bpar(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, nvpa, nmu) &
          !$omp private(ikxkyz, iz, it, ikx, iky, is, wgt, tmp, g0) &
-         !$omp reduction(+:phi, bpar) &
-         !$omp shared(g, spec, mu, beta)
+         !$omp shared(contrib_phi, contrib_bpar, g, spec, mu, beta)
          allocate (g0(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -314,18 +315,31 @@ contains
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
             wgt = spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
+            contrib_phi(ikxkyz) = wgt * tmp
 
             ! Integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar
             call gyro_average_j1(spread(mu, 1, nvpa) * g(:, :, ikxkyz), ikxkyz, g0)
             wgt = -2.0 * beta* spec(is)%z * spec(is)%dens_psi0 * spec(is)%temp_psi0
             call integrate_vmu(g0, iz, tmp)
-            bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + wgt * tmp
+            contrib_bpar(ikxkyz) = wgt * tmp
 
          end do
          !$omp end do
          deallocate (g0)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + contrib_phi(ikxkyz)
+            bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + contrib_bpar(ikxkyz)
+         end do
+         deallocate (contrib_phi, contrib_bpar)
 
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(phi)
@@ -349,13 +363,13 @@ contains
          ! Debug 
          if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::kxkyzlo::include_apar'
          
-         ! Iterate over the (kx,ky,z,mu,vpa,s) points; species sum needs reduction
+         ! Iterate over the (kx,ky,z,mu,vpa,s) points; the sum over the species is done after the loop
          ! This gives: 2 β sum_s Z_s n_s vth J0 vpa g
+         allocate (contrib(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, nvpa, nmu) &
          !$omp private(ikxkyz, iz, it, ikx, iky, is, wgt, tmp, g0) &
-         !$omp reduction(+:apar) &
-         !$omp shared(g, spec, vpa, beta)
+         !$omp shared(contrib, g, spec, vpa, beta)
          allocate (g0(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -368,12 +382,24 @@ contains
             call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, g0)
             wgt = 2.0 * beta * spec(is)%z * spec(is)%dens * spec(is)%stm
             call integrate_vmu(g0, iz, tmp)
-            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
+            contrib(ikxkyz) = tmp * wgt
 
          end do
          !$omp end do
          deallocate (g0)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + contrib(ikxkyz)
+         end do
+         deallocate (contrib)
 
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(apar)
@@ -581,6 +607,7 @@ contains
       integer :: ikxkyz, iky, ikx, iz, it, is
       real :: wgt
       complex :: tmp
+      complex, dimension(:), allocatable :: contrib
       complex, dimension(:, :), allocatable :: scratch
       
       !-------------------------------------------------------------------------
@@ -589,12 +616,12 @@ contains
       apar = 0.
       
       if (include_apar) then
-         ! Species sum needs reduction
+         ! The sum over the species is done after the loop
+         allocate (contrib(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, nvpa, nmu) &
          !$omp private(ikxkyz, iz, it, ikx, iky, is, wgt, tmp, scratch) &
-         !$omp reduction(+:apar) &
-         !$omp shared(g, spec, vpa, beta)
+         !$omp shared(contrib, g, spec, vpa, beta)
          allocate (scratch(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -606,11 +633,23 @@ contains
             call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, scratch)
             wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
             call integrate_vmu(scratch, iz, tmp)
-            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
+            contrib(ikxkyz) = tmp * wgt
          end do
          !$omp end do
          deallocate (scratch)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + contrib(ikxkyz)
+         end do
+         deallocate (contrib)
          ! Apar for different species may be spread over processors at this point, so
          ! broadcast to all procs and sum over species
          call sum_allreduce(apar)
@@ -695,6 +734,7 @@ contains
       integer, intent (inout) :: nfields
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
       real :: tmp, wgt, denom_tmp
+      real, dimension(:), allocatable :: contrib
       real, dimension(:, :), allocatable :: g0
 
       !-------------------------------------------------------------------------
@@ -714,12 +754,12 @@ contains
       ! Paralel Ampere's Law apar_denom
       !
       if (include_apar) then
-         ! Species sum needs reduction
+         ! The sum over the species is done after the loop
+         allocate (contrib(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, ia, nvpa, nmu) &
          !$omp private(ikxkyz, it, iz, ikx, iky, is, wgt, tmp, g0) &
-         !$omp reduction(+:apar_denom) &
-         !$omp shared(spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj0v, vpa, beta)
+         !$omp shared(contrib, spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj0v, vpa, beta)
          allocate (g0(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -735,23 +775,36 @@ contains
                  * spread(maxwell_mu(ia, iz, :, is) * aj0v(:, ikxkyz)**2, 1, nvpa)
             wgt = 2.0 * beta * spec(is)%z * spec(is)%z * spec(is)%dens / spec(is)%mass
             call integrate_vmu(g0, iz, tmp)
-            apar_denom(iky, ikx, iz) = apar_denom(iky, ikx, iz) + tmp * wgt
+            contrib(ikxkyz) = tmp * wgt
          end do
          !$omp end do
          deallocate (g0)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            apar_denom(iky, ikx, iz) = apar_denom(iky, ikx, iz) + contrib(ikxkyz)
+         end do
+         deallocate (contrib)
          call sum_allreduce(apar_denom)
          apar_denom = apar_denom + kperp2(:, :, ia, :)
       end if 
 
       ! 
       if (include_bpar) then
-         ! denominator_fields33; species sum needs reduction
+         ! denominator_fields33; the sum over the species is done after the loop
+         allocate (contrib(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, ia, nvpa, nmu) &
          !$omp private(ikxkyz, it, iz, ikx, iky, is, wgt, tmp, g0) &
-         !$omp reduction(+:denominator_fields33) &
-         !$omp shared(spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj1v, mu)
+         !$omp shared(contrib, spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj1v, mu)
          allocate (g0(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -768,20 +821,33 @@ contains
                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             wgt = 8.0 * spec(is)%temp * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            denominator_fields33(iky, ikx, iz) = denominator_fields33(iky, ikx, iz) + tmp * wgt
+            contrib(ikxkyz) = tmp * wgt
          end do
          !$omp end do
          deallocate (g0)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            denominator_fields33(iky, ikx, iz) = denominator_fields33(iky, ikx, iz) + contrib(ikxkyz)
+         end do
+         deallocate (contrib)
          call sum_allreduce(denominator_fields33)
          denominator_fields33 = 1.0 + beta * denominator_fields33
 
-         !denominator_fields13; species sum needs reduction
+         !denominator_fields13; the sum over the species is done after the loop
+         allocate (contrib(kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
          !$omp parallel default(none) &
          !$omp firstprivate(kxkyz_lo, ia, nvpa, nmu) &
          !$omp private(ikxkyz, it, iz, ikx, iky, is, wgt, tmp, g0) &
-         !$omp reduction(+:denominator_fields13) &
-         !$omp shared(spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj0v, aj1v, mu)
+         !$omp shared(contrib, spec, maxwell_vpa, maxwell_mu, maxwell_fac, aj0v, aj1v, mu)
          allocate (g0(nvpa, nmu))
          !$omp do
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -798,11 +864,24 @@ contains
                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             wgt = -4.0 * spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            denominator_fields13(iky, ikx, iz) = denominator_fields13(iky, ikx, iz) + tmp * wgt
+            contrib(ikxkyz) = tmp * wgt
          end do
          !$omp end do
          deallocate (g0)
          !$omp end parallel
+
+         ! Add the contributions in the order of the (kx,ky,z,species) points, so that the sum over the species
+         ! does not depend on the number of threads (an OpenMP reduction would also need a private copy of the
+         ! whole field on the stack of every thread)
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            denominator_fields13(iky, ikx, iz) = denominator_fields13(iky, ikx, iz) + contrib(ikxkyz)
+         end do
+         deallocate (contrib)
          call sum_allreduce(denominator_fields13)
          denominator_fields31 = -0.5 * beta * denominator_fields13
       end if

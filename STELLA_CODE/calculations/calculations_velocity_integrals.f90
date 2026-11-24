@@ -380,31 +380,30 @@ contains
          ia = 1
       end if
 
-      ! Iterate over the i[vpa, mu, s] points; species/velocity sum needs reduction
-      !$omp parallel default(none) &
+      ! Iterate over the i[vpa, mu, s] points. The threads share out the (z, tube) points, so that every
+      ! thread sums over the velocity points of its own part of <total>, in the same order as without
+      ! threads (an OpenMP reduction would need a private copy of <total> on the stack of every thread)
+      !$omp parallel do collapse(2) default(none) &
       !$omp firstprivate(vmu_lo, ia, nzgrid, ntubes) &
       !$omp private(ivmu, iv, imu, is, it, iz) &
-      !$omp reduction(+:total) &
-      !$omp shared(g, weights, wgts_mu, wgts_vpa)
-      !$omp do
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      !$omp shared(g, weights, wgts_mu, wgts_vpa, total)
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
 
-         ! Obtain the [ivpa, imu, is] indices from [ivmus]
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
+               ! Obtain the [ivpa, imu, is] indices from [ivmus]
+               iv = iv_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
 
-         ! Integrate over mu, vpa, species
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
+               ! Integrate over mu, vpa, species
                total(:, :, iz, it) = total(:, :, iz, it) + &
                   wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, iz, it, ivmu) * weights(is)
+
             end do
          end do
-
       end do
-      !$omp end do
-      !$omp end parallel
+      !$omp end parallel do
 
       ! Each processor has a few [ivmu] points, so sum all calculations
       call sum_allreduce(total)
