@@ -105,6 +105,9 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         }
     
     # Replace variables
+    # mat_gen and mat_read were renamed in Nov 2026, see rename_response_matrix_options()
+    if downgrade: input_parameters = rename_response_matrix_options(input_parameters, downgrade=True)
+
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     # Deal with stella v0.8
@@ -717,7 +720,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         #------------------- knobs --> parallelisation------------------
         'knobs:fields_kxkyz:False'                  : 'parallelisation:fields_kxkyz:False',
         'knobs:lu_option:none'                      : 'parallelisation:lu_option:default',
-        'knobs:mat_gen:True'                        : 'parallelisation:mat_gen:True',
+        'knobs:mat_gen:True'                        : 'parallelisation:mat_gen:False',
         'knobs:mat_read:False'                      : 'parallelisation:mat_read:False',
         #------------------- knobs --> numerical_algorithms------------------
         'knobs:stream_implicit:True'                : 'numerical_algorithms:stream_implicit:True',
@@ -807,7 +810,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'parameters_numerical:fphi:1.0'                            : 'scale_gyrokinetic_terms:fphi:1.0',
         'parameters_numerical:fields_kxkyz:False'                  : 'parallelisation:fields_kxkyz:False',
         'parameters_numerical:lu_option:none'                      : 'parallelisation:lu_option:default',
-        'parameters_numerical:mat_gen:True'                        : 'parallelisation:mat_gen:True',
+        'parameters_numerical:mat_gen:True'                        : 'parallelisation:mat_gen:False',
         'parameters_numerical:mat_read:False'                      : 'parallelisation:mat_read:False',
         'parameters_numerical:stream_implicit:True'                : 'numerical_algorithms:stream_implicit:True',
         'parameters_numerical:mirror_implicit:True'                : 'numerical_algorithms:mirror_implicit:True',
@@ -1120,6 +1123,9 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         # The options of the Fokker-Planck operator were renamed in Nov 2026
         input_parameters = rename_fokker_planck_options(input_parameters)
 
+        # mat_gen and mat_read were renamed in Nov 2026
+        input_parameters = rename_response_matrix_options(input_parameters)
+
     # For old stella versions, always turn off apar and radial_moments
     if downgrade:
         if 'knobs' not in input_parameters.keys(): input_parameters['knobs'] = {}
@@ -1197,6 +1203,14 @@ fokker_planck_options_downgrade = {
     'spitzer_scale_epar'                        : ('i1fac', lambda x: x),
     'spitzer_scale_grad_t'                      : ('i2fac', lambda x: x),
 }
+
+def rename_response_matrix_options(input_parameters, downgrade=False):
+    '''mat_gen and mat_read of &parallelisation are called save_response_matrix and load_response_matrix since Nov 2026.'''
+    options = input_parameters.get('parallelisation', {})
+    for old_name, new_name in [('mat_gen', 'save_response_matrix'), ('mat_read', 'load_response_matrix')]:
+        if downgrade: old_name, new_name = new_name, old_name
+        if old_name in options: options[new_name] = options.pop(old_name)
+    return input_parameters
 
 def rename_fokker_planck_options(input_parameters, downgrade=False):
 

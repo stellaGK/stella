@@ -47,6 +47,13 @@
 ! library has no unified shared memory) keeps its own copy, as before. The pivots
 ! <idx> are small and every process keeps its own copy.
 ! 
+! Files:
+! ------
+! With <save_response_matrix> the LU factors are written to mat/response_mat.<job>,
+! and with <load_response_matrix> they are read from it instead of being built,
+! after checking that they belong to this simulation (see the section on the
+! response matrix file).
+! 
 !###############################################################################
 module response_matrix
 
@@ -61,7 +68,6 @@ module response_matrix
    ! Make routines available to other modules
    public :: init_response_matrix
    public :: finish_response_matrix
-   public :: read_response_matrix
    
    ! Only initialise once
    public :: initialised_response_matrix
@@ -86,6 +92,16 @@ module response_matrix
    ! The response matrix is built in blocks of columns of at most this size (bytes)
    integer, parameter :: block_bytes = 32 * 1024 * 1024
 
+   ! The response matrix is only read from its file once, at the start
+   logical :: tried_loading_response_matrix = .false.
+
+   ! First record of the response matrix file, to recognise files of other versions
+   character(len=*), parameter :: response_matrix_file_format = 'stella response matrix file, format 2 (November 2026)'
+
+   ! The LU factors read from the file must give back the unit vector of the
+   ! columns built for this simulation to this accuracy (see check_loaded_response_matrix)
+   real, parameter :: load_tolerance = 1.e-6
+
 contains
 
 !###############################################################################
@@ -97,20 +113,18 @@ contains
    !============================================================================
    subroutine init_response_matrix
 
-      use mp, only: proc0
       use debug_flags, only: print_extra_info_to_terminal
       use parallelisation_layouts, only: verbose
-      use linear_solve, only: lu_decomposition
-      use parallelisation_layouts, only: iv_idx, is_idx
-      use parallelisation_layouts, only: mat_gen
-      use file_units, only: unit_response_matrix
+      use parallelisation_layouts, only: save_response_matrix, load_response_matrix
 
       implicit none
 
+      logical :: loaded
+
       ! ------------------------------------------------------------------------
-      !              Set up memory and timings for response matrix              
+      !              Set up memory and timings for response matrix
       ! ------------------------------------------------------------------------
-      
+
       ! Print info to command prompt
       if (verbose .and. print_extra_info_to_terminal) then
          write (*, '(A)') '############################################################'
@@ -118,9 +132,6 @@ contains
          write (*, '(A)') '############################################################'
          write (*, '(A)') ''
       end if
-      
-      ! Set up response matrix utils
-      call setup_response_matrix_file_io
 
       ! Only initialise once
       if (initialised_response_matrix) return
@@ -129,57 +140,32 @@ contains
       ! Allocate the response matrices, shared by the processes of each
       ! shared-memory domain if possible
       call allocate_response_matrix
-      
+
       ! ------------------------------------------------------------------------
-      !                      Construct the response matrix                      
+      !            Read the response matrix from a file, if requested
       ! ------------------------------------------------------------------------
-      
+      ! This is only done at the start of the simulation: when the time step
+      ! changes, the response matrix is built again. If the file does not belong
+      ! to this simulation, a warning is printed and the matrix is built instead.
+      loaded = .false.
+      if (load_response_matrix .and. .not. tried_loading_response_matrix) then
+         tried_loading_response_matrix = .true.
+         loaded = read_response_matrix_file()
+      end if
+
+      ! ------------------------------------------------------------------------
+      !                      Construct the response matrix
+      ! ------------------------------------------------------------------------
+
       ! This is the main routine for computing the response matrix, where all
-      ! the calculations are done.
-      call construct_response_matrix
-
-      ! ------------------------------------------------------------------------
-      !                         Close the initialisation                        
-      ! ------------------------------------------------------------------------
-      
-      ! Write the response matrix to an output file if <mat_gen> = True
-      if (proc0 .and. mat_gen) then
-         close (unit=unit_response_matrix)
+      ! the calculations are done. The file is written again whenever the
+      ! matrix is built, so that it holds the matrix of the last time step.
+      if (.not. loaded) then
+         call construct_response_matrix
+         if (save_response_matrix) call write_response_matrix_file
       end if
-      
+
    end subroutine init_response_matrix
-   
-   !============================================================================
-   !                     Set up .io file for response matrix                    
-   !============================================================================
-   subroutine setup_response_matrix_file_io
-
-      use mp, only: proc0, job
-      use parallelisation_layouts, only: mat_gen
-      use system_fortran, only: systemf
-      use grids_kxky, only: naky
-      use file_units, only: unit_response_matrix
-
-      implicit none
-
-      ! Local variables
-      character(len=15) :: job_str
-      character(len=100) :: file_name
-
-      ! ------------------------------------------------------------------------
-
-      ! All matrices handled by processor i_proc and job are stored
-      ! on a single file named: response_mat_job.iproc
-      if (proc0 .and. mat_gen) then
-         call systemf('mkdir -p mat')
-         write (job_str, '(I1.1)') job
-         file_name = './mat/response_mat_'//trim(job_str)
-         open (unit=unit_response_matrix, status='replace', file=file_name, &
-               position='rewind', action='write', form='unformatted')
-         write (unit=unit_response_matrix) naky
-      end if
-
-   end subroutine setup_response_matrix_file_io
 
 !===============================================================================
 !===============================================================================
@@ -230,12 +216,8 @@ contains
    !============================================================================
    subroutine construct_response_matrix
 
-      use mp, only: proc0
-      use parallelisation_layouts, only: mat_gen
-      use arrays, only: response_matrix
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
-      use file_units, only: unit_response_matrix
 
       implicit none
 
@@ -246,11 +228,6 @@ contains
       
       ! Loop over all ky modes, as these are all independent of one another.
       do iky = 1, naky
-
-         ! Write the ky-value to the output file
-         if (proc0 .and. mat_gen) then
-            write (unit=unit_response_matrix) iky, neigen(iky)
-         end if
 
          ! ---------------------------------------------------------------------
          !              STEP 1) Find the response matrix to invert              
@@ -285,18 +262,6 @@ contains
 
          ! LU decompose the matrix
          call lu_decompose_response_matrix(iky)
-
-         ! ---------------------------------------------------------------------
-         !                  Write the response matrix to a file                 
-         ! ---------------------------------------------------------------------
-
-         ! Write response matrix to file
-         do ie = 1, neigen(iky)
-            if (proc0 .and. mat_gen) then
-               write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
-               write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
-            end if
-         end do
 
       end do
 
@@ -336,9 +301,52 @@ contains
    !============================================================================
    subroutine calculate_response_matrix_to_invert(iky, ie)
 
-      use mp, only: proc0, sum_allreduce, mp_abort
       use timers, only: region_start, region_end
-      use parallelisation_layouts, only: mat_gen
+      use arrays, only: response_matrix
+
+      implicit none
+
+      ! Arguments
+      integer, intent(in) :: iky, ie
+
+      ! Local variables
+      integer :: nresponse, icol, icol_first, ncol_block, ncols
+      complex, dimension(:, :), allocatable :: block
+
+      !-------------------------------------------------------------------------
+
+      ! Start the timer
+      call region_start('response_matrix')
+
+      ! The columns are computed in blocks of <ncol_block> columns, so that every
+      ! process only needs a private copy of one block, and the root of the
+      ! shared-memory domain copies the finished columns into <zloc>
+      nresponse = get_nresponse(iky, ie)
+      ncol_block = max(1, min(nresponse, block_bytes / max(1, nresponse * storage_size(block) / 8)))
+      allocate (block(nresponse, ncol_block))
+
+      do icol_first = 1, nresponse, ncol_block
+         ncols = min(ncol_block, nresponse - icol_first + 1)
+         call compute_response_matrix_columns(iky, ie, [(icol, icol = icol_first, icol_first + ncols - 1)], block(:, :ncols))
+         if (builds_response_matrix) response_matrix(iky)%eigen(ie)%zloc(:, icol_first:icol_first + ncols - 1) = block(:, :ncols)
+      end do
+
+      deallocate (block)
+
+      ! Stop the timer
+      call region_end('response_matrix')
+
+   end subroutine calculate_response_matrix_to_invert
+
+   !============================================================================
+   !        Columns <icols> of the matrix to invert of chain <ie> of <iky>
+   !============================================================================
+   ! Computes the columns <icols> of the matrix to invert into <columns>, on
+   ! every MPI process (see calculate_response_matrix_to_invert for the steps).
+   !============================================================================
+   subroutine compute_response_matrix_columns(iky, ie, icols, columns)
+
+      use mp, only: sum_allreduce, mp_abort
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: beta
       use grids_extended_zgrid, only: nzext
@@ -349,26 +357,22 @@ contains
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
       use field_equations, only: nfields
-      use file_units, only: unit_response_matrix
-      use arrays, only: response_matrix
 
       implicit none
 
       ! Arguments
       integer, intent(in) :: iky, ie
+      integer, dimension(:), intent(in) :: icols
+      complex, dimension(:, :), intent(out) :: columns
 
       ! Local variables
-      integer :: nz_ext, nresponse, nresponse_per_field
+      integer :: nz_ext, nresponse_per_field
       integer :: offset_apar, offset_bpar
-      integer :: icol, icol_first, ncol_block, ncols
+      integer :: k, ncols
       integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
       real, dimension(:, :), allocatable :: wgts_fields
-      complex, dimension(:, :), allocatable :: block
 
       !-------------------------------------------------------------------------
-
-      ! Start the timer
-      call region_start('response_matrix')
 
       ! ------------------------------------------------------------------------
       !              Set up system to compute response of the pdf
@@ -378,30 +382,20 @@ contains
       ! since every segment shares its first point with the previous one
       ! (see <build_chain_points_from_segments> in grids_extended_zgrid).
       ! ------------------------------------------------------------------------
-      
+
       ! Calculate the number of z-points on the extended z-domain
       nz_ext = nzext(ie, iky)
 
       ! We need to treat the zonal mode specially to avoid double counting the end
       ! points in zed, as it is periodic so these end points are the same.
       ! This is also needed if 'periodic' is chosen for the boundary conditions.
-      ! At this point <nresponse> is the number of independednt zed values for
-      ! each field. This is the number of unit impulses we need to apply in order
-      ! to get the response matrix.
+      ! At this point <nresponse_per_field> is the number of independent zed values
+      ! for each field. This is the number of unit impulses we need to apply in order
+      ! to get the response matrix, for each of the fields phi, apar and bpar.
       if (periodic(iky)) then
          nresponse_per_field = nz_ext - 1
       else
          nresponse_per_field = nz_ext
-      end if
-
-      ! If electromagnetic, we need to consider the response of phi, apar, and bpar.
-      ! If we have more fields we need to apply more unit impulses -> one for each
-      ! of the fields phi, apar, and bpar.
-      nresponse = nresponse_per_field * nfields
-
-      ! Write <ie> and <nresponse> to the output file
-      if (proc0 .and. mat_gen) then
-         write (unit=unit_response_matrix) ie, nresponse
       end if
 
       ! Offsets of the apar and bpar blocks in the matrix to invert (rows and columns)
@@ -429,57 +423,39 @@ contains
       ! ------------------------------------------------------------------------
       !    Get the matrix we need to invert depending on the fields included
       ! ------------------------------------------------------------------------
+      ncols = size(icols)
 
-      ! The columns are computed in blocks of <ncol_block> columns, so that every
-      ! process only needs a private copy of one block, and the root of the
-      ! shared-memory domain copies the finished columns into <zloc>
-      ncol_block = max(1, min(nresponse, block_bytes / max(1, nresponse * storage_size(block) / 8)))
-      allocate (block(nresponse, ncol_block))
-
-      do icol_first = 1, nresponse, ncol_block
-         ncols = min(ncol_block, nresponse - icol_first + 1)
-
-         ! a) Response of the pdf to the unit impulses, integrated over the
-         !    velocity points of this rank (1.A, 1.B and 1.C.I)
-         !$omp parallel do default(none) schedule(dynamic, 1) &
-         !$omp private(icol) &
-         !$omp shared(ncols, icol_first, nresponse, iky, ie, nz_ext, nresponse_per_field, nfields, iz_from_izext, ikx_from_izext, wgts_fields, block)
-         do icol = 1, ncols
-            call get_velocity_integrated_pdf_response(iky, ie, icol_first + icol - 1, nz_ext, nresponse_per_field, nfields, &
-               iz_from_izext, ikx_from_izext, wgts_fields, block(:, icol))
-         end do
-         !$omp end parallel do
-
-         ! b) Sum over the velocity points on all MPI ranks. This ends the
-         !    parallelisation over velocity space, so every rank has the
-         !    velocity integrals of all columns of the block.
-         call sum_allreduce(block(:, :ncols))
-
-         ! c) Divide by the field equations prefactors and turn the columns into
-         !    the columns of the matrix to invert (1.C.II and 1.D); if the matrix
-         !    is shared, only the root of the shared-memory domain writes them
-         if (builds_response_matrix) then
-            !$omp parallel do default(none) schedule(static) &
-            !$omp private(icol) &
-            !$omp shared(ncols, icol_first, iky, ie, nz_ext, nresponse_per_field, offset_apar, offset_bpar, block, response_matrix)
-            do icol = 1, ncols
-               call fill_response_matrix_column(icol_first + icol - 1, nz_ext, nresponse_per_field, &
-                  offset_apar, offset_bpar, block(:, icol), iky, ie)
-               response_matrix(iky)%eigen(ie)%zloc(:, icol_first + icol - 1) = block(:, icol)
-            end do
-            !$omp end parallel do
-         end if
+      ! a) Response of the pdf to the unit impulses, integrated over the
+      !    velocity points of this rank (1.A, 1.B and 1.C.I)
+      !$omp parallel do default(none) schedule(dynamic, 1) &
+      !$omp private(k) &
+      !$omp shared(ncols, icols, iky, ie, nz_ext, nresponse_per_field, nfields, iz_from_izext, ikx_from_izext, wgts_fields, columns)
+      do k = 1, ncols
+         call get_velocity_integrated_pdf_response(iky, ie, icols(k), nz_ext, nresponse_per_field, nfields, &
+            iz_from_izext, ikx_from_izext, wgts_fields, columns(:, k))
       end do
+      !$omp end parallel do
 
-      deallocate (block)
+      ! b) Sum over the velocity points on all MPI ranks. This ends the
+      !    parallelisation over velocity space, so every rank has the
+      !    velocity integrals of all columns.
+      call sum_allreduce(columns)
+
+      ! c) Divide by the field equations prefactors and turn the columns into
+      !    the columns of the matrix to invert (1.C.II and 1.D)
+      !$omp parallel do default(none) schedule(static) &
+      !$omp private(k) &
+      !$omp shared(ncols, icols, iky, ie, nz_ext, nresponse_per_field, offset_apar, offset_bpar, columns)
+      do k = 1, ncols
+         call fill_response_matrix_column(icols(k), nz_ext, nresponse_per_field, &
+            offset_apar, offset_bpar, columns(:, k), iky, ie)
+      end do
+      !$omp end parallel do
 
       ! Deallocate temporary arrays
       deallocate (wgts_fields, iz_from_izext, ikx_from_izext)
 
-      ! Stop the timer
-      call region_end('response_matrix')
-
-   end subroutine calculate_response_matrix_to_invert
+   end subroutine compute_response_matrix_columns
 
    !============================================================================
    !          Velocity-integrated response of the pdf to a unit impulse
@@ -1214,93 +1190,259 @@ contains
    end subroutine lu_decompose_response_matrix
 
 !###############################################################################
-!########################### READ RESPONSE MATRIX ##############################
+!################### WRITE AND READ THE RESPONSE MATRIX FILE ###################
+!###############################################################################
+! With <save_response_matrix> = .true., the LU factors and pivots of all
+! response matrices are written to the Fortran unformatted file
+! mat/response_mat.<job> (by proc0, every time the matrix is built), and with
+! <load_response_matrix> = .true. they are read from it at the start of the
+! simulation instead of being built. The file holds:
+!     <response_matrix_file_format>
+!     naky, nfields, code_dt
+!     for every ky:          iky, neigen(iky)
+!        for every chain:    ie, nresponse
+!                            idx (pivots)
+!                            zloc (LU factors)
+! The matrix depends on every input of the simulation (grids, geometry, species,
+! physics, time step and its centring), while only the sizes and the time step
+! are stored. A matrix that is read is therefore only used if
+!   1) the file has this format, the same naky, nfields and time step, and
+!      the same number and sizes of the chains, and
+!   2) it solves the response matrix of this simulation: for every chain, the
+!      first and the middle column of every field are built (a unit impulse
+!      each, which costs a small part of building the whole matrix), and the
+!      loaded LU factors must give back the unit vector to <load_tolerance>.
+! Otherwise a warning says why, and the matrix is built instead.
 !###############################################################################
 
    !============================================================================
-   !                           Read the response matrix                         
+   !                     Name of the response matrix file
    !============================================================================
-   subroutine read_response_matrix
+   function response_matrix_file_name() result(file_name)
 
+      use mp, only: job
+
+      implicit none
+
+      character(len=100) :: file_name
+
+      write (file_name, '(A, I0)') './mat/response_mat.', job
+
+   end function response_matrix_file_name
+
+   !============================================================================
+   !                   Write the response matrices to the file
+   !============================================================================
+   subroutine write_response_matrix_file
+
+      use mp, only: proc0
+      use system_fortran, only: systemf
       use arrays, only: response_matrix
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
-      use mp, only: proc0, job, broadcast, mp_abort, mpicmplx
-      use mp_shared_memory, only: broadcast_to_domain_roots, fence_shared_window
+      use grids_time, only: code_dt
+      use field_equations, only: nfields
       use file_units, only: unit_response_matrix
 
       implicit none
 
-      ! Local variables
       integer :: iky, ie
-      integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
-      integer :: nresponse
-      character(len=15) :: job_str
-      character(len=100) :: file_name
-      integer :: ie_dump, istat
-      logical, parameter :: debug = .false.
 
       ! ------------------------------------------------------------------------
 
-      ! All matrices handled for the job i_job are read
-      ! from a single file named: responst_mat.ijob by that
-      ! jobs root process
-      if (proc0) then
-         write (job_str, '(I1.1)') job
-         file_name = './mat/response_mat.'//trim(job_str)
+      ! proc0 is the root of its shared-memory domain, so it holds the factors
+      if (.not. proc0) return
 
-         open (unit=unit_response_matrix, status='old', file=file_name, &
-               action='read', form='unformatted', iostat=istat)
-         if (istat /= 0) then
-            print *, 'Error opening response_matrix by root processor for job ', job_str
-         end if
-
-         read (unit=unit_response_matrix) naky_dump
-         if (naky /= naky_dump) call mp_abort('mismatch in naky and naky_dump')
-      end if
-
-      ! Allocate the matrices, shared by the processes of each shared-memory
-      ! domain if possible (proc0 is the root of its domain)
-      call allocate_response_matrix
-
+      call systemf('mkdir -p mat')
+      open (unit=unit_response_matrix, file=trim(response_matrix_file_name()), status='replace', &
+            action='write', form='unformatted')
+      write (unit_response_matrix) response_matrix_file_format
+      write (unit_response_matrix) naky, nfields, code_dt
       do iky = 1, naky
-         if (proc0) then
-            read (unit=unit_response_matrix) iky_dump, neigen_dump
-            if (iky_dump /= iky .or. neigen_dump /= neigen(iky)) &
-               call mp_abort('mismatch in iky_dump/neigen_dump')
-         end if
-
-         ! Loop over the sets of connected kx values
+         write (unit_response_matrix) iky, neigen(iky)
          do ie = 1, neigen(iky)
-
-            nresponse = get_nresponse(iky, ie)
-            if (proc0) then
-               read (unit=unit_response_matrix) ie_dump, nresponse_dump
-               if (ie_dump /= ie .or. nresponse /= nresponse_dump) &
-                  call mp_abort('mismatch in ie/nresponse_dump')
-               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
-               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
-            end if
-
-            ! Every process needs the pivots, and every copy of the matrix
-            ! (the root of every shared-memory domain, or every process)
-            call broadcast(response_matrix(iky)%eigen(ie)%idx)
-            if (shared_response_matrix) then
-               call broadcast_to_domain_roots(response_matrix(iky)%eigen(ie)%zloc, mpicmplx)
-            else
-               call broadcast(response_matrix(iky)%eigen(ie)%zloc)
-            end if
-
+            write (unit_response_matrix) ie, get_nresponse(iky, ie)
+            write (unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
+            write (unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
          end do
       end do
-      if (shared_response_matrix) call fence_shared_window(response_window)
+      close (unit_response_matrix)
 
-      if (proc0) close (unit_response_matrix)
+   end subroutine write_response_matrix_file
 
-      if (debug) then
-         print *, 'File', file_name, ' successfully read by root proc for job: ', job_str
+   !============================================================================
+   !       Read the response matrices from the file, and check them
+   !============================================================================
+   ! Returns .true. if the matrices were read and belong to this simulation.
+   ! proc0 first reads the whole file into its own copy (the shared window of its
+   ! domain, or its private copy), then the factors are sent to the other copies.
+   !============================================================================
+   logical function read_response_matrix_file() result(loaded)
+
+      use mp, only: proc0, broadcast, mpicmplx
+      use mp_shared_memory, only: broadcast_to_domain_roots, fence_shared_window
+      use arrays, only: response_matrix
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: neigen
+      use grids_time, only: code_dt
+      use field_equations, only: nfields
+      use file_units, only: unit_response_matrix
+      use timers, only: region_start, region_end
+
+      implicit none
+
+      ! Local variables
+      character(len=len(response_matrix_file_format)) :: format_in_file
+      integer :: naky_in_file, nfields_in_file, iky_in_file, neigen_in_file
+      integer :: ie_in_file, nresponse_in_file
+      real :: code_dt_in_file
+      integer :: iky, ie, ios
+      character(len=300) :: problem
+      character(len=100) :: file_name
+
+      ! ------------------------------------------------------------------------
+
+      call region_start('response_matrix')
+      file_name = response_matrix_file_name()
+      problem = ''
+
+      ! 1) proc0 reads the file and checks its format and sizes
+      if (proc0) then
+         open (unit=unit_response_matrix, file=trim(file_name), status='old', action='read', &
+               form='unformatted', iostat=ios)
+         if (ios /= 0) then
+            problem = 'it does not exist'
+         else
+            read (unit_response_matrix, iostat=ios) format_in_file
+            if (ios /= 0 .or. format_in_file /= response_matrix_file_format) then
+               problem = 'it was not written in this format (it may have been written by another version of stella)'
+            end if
+            if (problem == '') then
+               read (unit_response_matrix, iostat=ios) naky_in_file, nfields_in_file, code_dt_in_file
+               if (ios /= 0) then
+                  problem = 'it could not be read'
+               else if (naky_in_file /= naky) then
+                  write (problem, '(A, I0, A, I0)') 'it has naky = ', naky_in_file, ' instead of ', naky
+               else if (nfields_in_file /= nfields) then
+                  write (problem, '(A, I0, A, I0)') 'it has ', nfields_in_file, ' fields instead of ', nfields
+               else if (abs(code_dt_in_file - code_dt) > 1.e-10 * abs(code_dt)) then
+                  write (problem, '(A, ES12.5, A, ES12.5)') 'it was made with the time step code_dt = ', &
+                     code_dt_in_file, ' instead of ', code_dt
+               end if
+            end if
+            do iky = 1, naky
+               if (problem /= '') exit
+               read (unit_response_matrix, iostat=ios) iky_in_file, neigen_in_file
+               if (ios /= 0 .or. iky_in_file /= iky .or. neigen_in_file /= neigen(iky)) then
+                  write (problem, '(A, I0)') 'it has another number of chains of connected kx modes for iky = ', iky
+                  exit
+               end if
+               do ie = 1, neigen(iky)
+                  read (unit_response_matrix, iostat=ios) ie_in_file, nresponse_in_file
+                  if (ios /= 0 .or. ie_in_file /= ie .or. nresponse_in_file /= get_nresponse(iky, ie)) then
+                     write (problem, '(A, I0, A, I0)') 'it has another size of the response matrix for iky = ', &
+                        iky, ' and chain ', ie
+                     exit
+                  end if
+                  read (unit_response_matrix, iostat=ios) response_matrix(iky)%eigen(ie)%idx
+                  if (ios == 0) read (unit_response_matrix, iostat=ios) response_matrix(iky)%eigen(ie)%zloc
+                  if (ios /= 0) then
+                     problem = 'it could not be read'
+                     exit
+                  end if
+               end do
+            end do
+            close (unit_response_matrix)
+         end if
       end if
-   end subroutine read_response_matrix
+
+      ! 2) Every process needs the pivots, and every copy of the factors (the root
+      !    of every shared-memory domain, or every process) is filled
+      call broadcast(problem)
+      if (problem == '') then
+         do iky = 1, naky
+            do ie = 1, neigen(iky)
+               call broadcast(response_matrix(iky)%eigen(ie)%idx)
+               if (shared_response_matrix) then
+                  call broadcast_to_domain_roots(response_matrix(iky)%eigen(ie)%zloc, mpicmplx)
+               else
+                  call broadcast(response_matrix(iky)%eigen(ie)%zloc)
+               end if
+            end do
+         end do
+         if (shared_response_matrix) call fence_shared_window(response_window)
+
+         ! 3) The factors must solve the response matrix of this simulation
+         call check_loaded_response_matrix(problem)
+      end if
+
+      loaded = (problem == '')
+      if (proc0) then
+         if (loaded) then
+            write (*, '(A)') 'The response matrix has been read from '//trim(file_name)//'.'
+         else
+            write (*, '(A)') 'WARNING: the response matrix is not read from '//trim(file_name)//', since '// &
+               trim(problem)//'. It is built instead.'
+         end if
+      end if
+      call region_end('response_matrix')
+
+   end function read_response_matrix_file
+
+   !============================================================================
+   !      Check that the loaded LU factors solve this simulation's matrix
+   !============================================================================
+   ! For every chain, the first and the middle column of every field are built
+   ! for this simulation and solved with the loaded LU factors, which must give
+   ! back the unit vector of that column. <problem> is set if they do not.
+   !============================================================================
+   subroutine check_loaded_response_matrix(problem)
+
+      use mp, only: max_allreduce
+      use arrays, only: response_matrix
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: neigen
+      use field_equations, only: nfields
+      use linear_solve, only: lu_back_substitution
+
+      implicit none
+
+      character(len=*), intent(in out) :: problem
+
+      integer :: iky, ie, ifield, k, nresponse, nresponse_per_field
+      integer, dimension(2 * 3) :: icols
+      complex, dimension(:, :), allocatable :: columns
+      real :: error
+
+      ! ------------------------------------------------------------------------
+
+      error = 0.
+      do iky = 1, naky
+         do ie = 1, neigen(iky)
+            nresponse = get_nresponse(iky, ie)
+            nresponse_per_field = nresponse / nfields
+            do ifield = 1, nfields
+               icols(2 * ifield - 1) = (ifield - 1) * nresponse_per_field + 1
+               icols(2 * ifield) = (ifield - 1) * nresponse_per_field + (nresponse_per_field + 1) / 2
+            end do
+            allocate (columns(nresponse, 2 * nfields))
+            call compute_response_matrix_columns(iky, ie, icols(:2 * nfields), columns)
+            do k = 1, 2 * nfields
+               call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, response_matrix(iky)%eigen(ie)%idx, columns(:, k))
+               columns(icols(k), k) = columns(icols(k), k) - 1.0
+               error = max(error, maxval(abs(columns(:, k))))
+            end do
+            deallocate (columns)
+         end do
+      end do
+      call max_allreduce(error)
+
+      if (error > load_tolerance) then
+         write (problem, '(A, ES9.2, A)') 'its LU factors do not solve the response matrix of this simulation (error ', &
+            error, '), so the input file was changed after the file was written'
+      end if
+
+   end subroutine check_loaded_response_matrix
 
 
 !###############################################################################

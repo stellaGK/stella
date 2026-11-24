@@ -7,10 +7,16 @@
 !   parallelisation
 !     xyzs_layout = 'yxzs'
 !     vms_layout = 'vms'
-!     mat_gen = .false.
-!     mat_read = .false.
+!     save_response_matrix = .false.
+!     load_response_matrix = .false.
 !     fields_kxkyz = .false.
 !     response_matrix_sharing = 'numa'
+! 
+! <save_response_matrix> writes the LU factors of the response matrix to
+! mat/response_mat.<job>, and <load_response_matrix> reads them from that file
+! instead of building them, after checking that they belong to this simulation
+! (see gyrokinetic_equation/response_matrix). Their old names <mat_gen> and
+! <mat_read> are still read.
 ! 
 ! <response_matrix_sharing> chooses which processes share one copy of the LU
 ! factors of the response matrix (see utils/mp_shared_memory): 'numa' (the
@@ -50,7 +56,7 @@ contains
    !                              PARALLELISATION                              !
    !****************************************************************************
    subroutine read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-      mat_gen, mat_read, fields_kxkyz, response_matrix_sharing, verbose)
+      save_response_matrix, load_response_matrix, fields_kxkyz, response_matrix_sharing, verbose)
 
       use mp, only: proc0
 
@@ -60,11 +66,14 @@ contains
       character(len=4), intent (out) :: xyzs_layout
       character(len=3), intent (out) :: vms_layout
       character(len=5), intent (out) :: kymus_layout
-      logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read, verbose
+      logical, intent (out)  :: fields_kxkyz, save_response_matrix, load_response_matrix, verbose
       character(len=4), intent (out) :: response_matrix_sharing
 
       ! No longer used, only read for older input files
       character(30) :: lu_option
+
+      ! Old names of <save_response_matrix> and <load_response_matrix>
+      logical :: mat_gen, mat_read
       
       !-------------------------------------------------------------------------
 
@@ -86,6 +95,8 @@ contains
          kymus_layout = 'kymus'
          fields_kxkyz = .false.
          lu_option = 'default'
+         save_response_matrix = .false.
+         load_response_matrix = .false.
          mat_gen = .false.
          mat_read = .false.
          response_matrix_sharing = 'numa'
@@ -102,7 +113,8 @@ contains
 
          ! Variables in the <parallelisation> namelist
          namelist /parallelisation/ xyzs_layout, vms_layout, kymus_layout, &
-             mat_gen, mat_read, lu_option, fields_kxkyz, response_matrix_sharing, verbose
+             save_response_matrix, load_response_matrix, mat_gen, mat_read, lu_option, fields_kxkyz, &
+             response_matrix_sharing, verbose
          
          !----------------------------------------------------------------------
 
@@ -115,6 +127,10 @@ contains
             write (*, '(A)') 'WARNING: lu_option = "'//trim(lu_option)//'" is no longer supported and is ignored.'
             write (*, '(A)') '         The response matrix is LU decomposed with PLASMA or LAPACK.'
          end if
+
+         ! The old names of <save_response_matrix> and <load_response_matrix>
+         call use_old_name('mat_gen', mat_gen, 'save_response_matrix', save_response_matrix)
+         call use_old_name('mat_read', mat_read, 'load_response_matrix', load_response_matrix)
 
       end subroutine read_input_file_parallelisation
 
@@ -164,8 +180,8 @@ contains
          write (unit, '(A, A, A)') '  vms_layout = "', trim(vms_layout), '"'
          write (unit, '(A, A, A)') '  kymus_layout = "', trim(kymus_layout), '"'
          write (unit, '(A, L1)') '  fields_kxkyz = ', fields_kxkyz
-         write (unit, '(A, L1)') '  mat_gen = ', mat_gen
-         write (unit, '(A, L1)') '  mat_read = ', mat_read
+         write (unit, '(A, L1)') '  save_response_matrix = ', save_response_matrix
+         write (unit, '(A, L1)') '  load_response_matrix = ', load_response_matrix
          write (unit, '(A, A, A)') '  response_matrix_sharing = "', trim(response_matrix_sharing), '"'
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
@@ -173,5 +189,26 @@ contains
       end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_parallelisation
+
+   !****************************************************************************
+   !         Accept the old name of a logical option, but not both names
+   !****************************************************************************
+   subroutine use_old_name(old_name, old_value, new_name, new_value)
+
+      use mp, only: mp_abort
+
+      implicit none
+
+      character(*), intent(in) :: old_name, new_name
+      logical, intent(in) :: old_value
+      logical, intent(in out) :: new_value
+
+      if (.not. old_value) return
+      if (new_value) call mp_abort('Both the old option '//old_name//' and its new name '//new_name// &
+         ' are set in &parallelisation: set only '//new_name//'. Aborting.')
+      write (*, '(A)') 'Note: '//old_name//' in &parallelisation is deprecated: use '//new_name//' instead.'
+      new_value = .true.
+
+   end subroutine use_old_name
 
 end module namelist_parallelisation

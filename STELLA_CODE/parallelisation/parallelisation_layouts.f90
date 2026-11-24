@@ -64,8 +64,8 @@
 !&parallelisation
 !   xyzs_layout = 'yxzs'
 !   vms_layout = 'vms'
-!   mat_gen = .false.
-!   mat_read = .false.
+!   save_response_matrix = .false.
+!   load_response_matrix = .false.
 !   fields_kxkyz = .false.
 !   response_matrix_sharing = 'numa'
 !/
@@ -106,9 +106,9 @@ module parallelisation_layouts
    public :: fields_kxkyz
    
    ! Flags to read and write the response matrix to a NetCDF file
-   public :: mat_gen
+   public :: save_response_matrix
    public :: response_matrix_sharing
-   public :: mat_read
+   public :: load_response_matrix
    
    ! Print extra info with respect to the parallelisation
    public :: verbose
@@ -273,9 +273,10 @@ module parallelisation_layouts
    ! However, the fields can be calculated using g(vpa, mu, -kxkysz-layout-) if <fields_kxkyz> = True
    logical :: fields_kxkyz
    
-   ! Flags to read and write the response matrix to a NetCDF file
-   logical :: mat_gen
-   logical :: mat_read
+   ! Write the LU factors of the response matrix to a file, or read them from it
+   ! (a Fortran unformatted file mat/response_mat.<job>, see response_matrix)
+   logical :: save_response_matrix = .false.
+   logical :: load_response_matrix = .false.
 
    ! Which processes share one copy of the response matrix: 'numa', 'node' or 'none'
    character(len=4) :: response_matrix_sharing = 'numa'
@@ -330,7 +331,7 @@ contains
       implicit none
 
       call read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-          mat_gen, mat_read, fields_kxkyz, response_matrix_sharing, verbose)
+          save_response_matrix, load_response_matrix, fields_kxkyz, response_matrix_sharing, verbose)
 
    end subroutine read_parameters
 
@@ -346,8 +347,8 @@ contains
       call broadcast(xyzs_layout)
       call broadcast(vms_layout)
       call broadcast(kymus_layout)
-      call broadcast(mat_gen)
-      call broadcast(mat_read)
+      call broadcast(save_response_matrix)
+      call broadcast(load_response_matrix)
       call broadcast(response_matrix_sharing)
       call broadcast(fields_kxkyz)
 

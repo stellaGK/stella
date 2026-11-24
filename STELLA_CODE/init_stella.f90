@@ -585,12 +585,10 @@ contains
       ! Initialise parts of the gyrokinetic equation
       use gyrokinetic_equation_initialisation, only: init_gyrokinetic_equation
       use response_matrix, only: init_response_matrix
-      use response_matrix, only: read_response_matrix
       
       ! Flags related to the gyrokinetic equation
       use parameters_numerical, only: stream_implicit
       use parameters_numerical, only: driftkinetic_implicit
-      use parallelisation_layouts, only: mat_read
       
       implicit none
       
@@ -619,14 +617,10 @@ contains
       ! magnetic drifts, gradient drive, etc. terms during time advance
       if (debug) write (6, *) 'stella::init_stella::init_gyrokinetic_equation'
       call init_gyrokinetic_equation
+      ! The response matrix is read from a file instead if <load_response_matrix> = .true.
       if (stream_implicit .or. driftkinetic_implicit) then
-         if (mat_read) then
-            if (debug) write (6, *) "stella::init_stella::read_response_matrix"
-            call read_response_matrix
-         else
-            if (debug) write (6, *) "stella::init_stella::init_response_matrix"
-            call init_response_matrix
-         end if
+         if (debug) write (6, *) "stella::init_stella::init_response_matrix"
+         call init_response_matrix
       end if
       
    end subroutine init_time_step_and_gyrokinetic_equation
