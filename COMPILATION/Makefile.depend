@@ -1114,6 +1114,7 @@ $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/grids_time.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/gyrokinetic_equation_explicit.o \
 	 $(OBJ_DIR)/gyrokinetic_equation_initialisation.o \
 	 $(OBJ_DIR)/initialise_arrays.o \
 	 $(OBJ_DIR)/initialise_distribution_function.o \
