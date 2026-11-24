@@ -104,6 +104,13 @@
 &diagnostics
   nsave = 100
   nwrite = 10
+  write_all_potential = .true.
+/
+&diagnostics_moments
+  write_moments = .true.
+/
+&diagnostics_distribution
+  write_g2_vs_vpamus = .true.
 /
 
 !===============================================================================

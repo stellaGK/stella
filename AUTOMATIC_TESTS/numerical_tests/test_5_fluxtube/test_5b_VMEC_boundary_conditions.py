@@ -63,6 +63,7 @@ def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path, stella_versio
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'   
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and linked BC ({int(local_netcdf["nproc"])} CPUs).')
     return
@@ -101,6 +102,7 @@ def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path, stella_v
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'  
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and stellarator symmetric BC ({int(local_netcdf["nproc"])} CPUs).')
     return
@@ -139,6 +141,7 @@ def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path, stella_vers
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'  
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and periodic BC ({int(local_netcdf["nproc"])} CPUs).')
     return
@@ -177,6 +180,7 @@ def test_whether_vmec_nonlinear_zero_evolves_correctly(tmp_path, stella_version,
             print('\nCompare the potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2) 
         assert (not error), f'The potential data does not match in the netCDF files.'  
+        compare_full_state_with_expected(local_netcdf_file, expected_netcdf_file)
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and periodic BC ({int(local_netcdf["nproc"])} CPUs).')
     return
