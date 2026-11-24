@@ -534,6 +534,7 @@
   mat_gen = .false.
   mat_read = .false.
   fields_kxkyz = .false.
+  response_matrix_sharing = 'numa'
 /
 
 !===============================================================================

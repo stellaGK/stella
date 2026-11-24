@@ -35,6 +35,18 @@
 ! 
 ! Step 2) LU decompose the matrix.
 ! 
+! Storage:
+! --------
+! The LU factors are the same on every MPI process, and every process reads them
+! in the back substitution of every time step. They are stored once per shared-
+! memory domain (one per NUMA domain by default, see <response_matrix_sharing> in
+! the namelist <parallelisation> and utils/mp_shared_memory) in one MPI shared-
+! memory window for all matrices: the root of the domain builds and LU decomposes
+! them (with PLASMA or LAPACK, using its OpenMP threads), and all processes of the
+! domain read them. A process that does not share its domain (or if the MPI
+! library has no unified shared memory) keeps its own copy, as before. The pivots
+! <idx> are small and every process keeps its own copy.
+! 
 !###############################################################################
 module response_matrix
 
@@ -61,6 +73,19 @@ module response_matrix
    ! Only initialise once
    logical :: initialised_response_matrix = .false.
 
+   ! The shared-memory window that holds the LU factors of all response matrices
+   ! of this shared-memory domain, if they are shared
+   integer :: response_window
+   logical :: shared_response_matrix = .false.
+   logical :: allocated_response_matrix = .false.
+
+   ! Whether this process writes and LU decomposes the matrices: the root of the
+   ! shared-memory domain if they are shared, else every process
+   logical :: builds_response_matrix = .true.
+
+   ! The response matrix is built in blocks of columns of at most this size (bytes)
+   integer, parameter :: block_bytes = 32 * 1024 * 1024
+
 contains
 
 !###############################################################################
@@ -79,8 +104,6 @@ contains
       use parallelisation_layouts, only: iv_idx, is_idx
       use parallelisation_layouts, only: mat_gen
       use file_units, only: unit_response_matrix
-      use arrays, only: response_matrix
-      use grids_kxky, only: naky
 
       implicit none
 
@@ -103,8 +126,9 @@ contains
       if (initialised_response_matrix) return
       initialised_response_matrix = .true.
 
-      ! Allocate response matrix
-      if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
+      ! Allocate the response matrices, shared by the processes of each
+      ! shared-memory domain if possible
+      call allocate_response_matrix
       
       ! ------------------------------------------------------------------------
       !                      Construct the response matrix                      
@@ -232,10 +256,6 @@ contains
          !              STEP 1) Find the response matrix to invert              
          ! ---------------------------------------------------------------------
          
-         ! For a given ky, we need to associate an %eigen to it - to denote the
-         ! connected modes. The response matrix for each ky has neigen(ky).
-         if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
-
          ! The unit impulses (columns of the response matrix) of each (iky, ie) are
          ! independent and are computed in parallel over OpenMP threads inside
          ! calculate_response_matrix_to_invert. The (iky, ie) themselves could
@@ -340,9 +360,10 @@ contains
       ! Local variables
       integer :: nz_ext, nresponse, nresponse_per_field
       integer :: offset_apar, offset_bpar
-      integer :: icol
+      integer :: icol, icol_first, ncol_block, ncols
       integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
       real, dimension(:, :), allocatable :: wgts_fields
+      complex, dimension(:, :), allocatable :: block
 
       !-------------------------------------------------------------------------
 
@@ -383,10 +404,6 @@ contains
          write (unit=unit_response_matrix) ie, nresponse
       end if
 
-      ! Allocate response_matrix%eigen%zloc = size of response matrix to invert
-      ! Allocate response_matrix%idx = pivot index needed for LU decomposition
-      call setup_response_matrix_zloc_idx(iky, ie, nresponse)
-
       ! Offsets of the apar and bpar blocks in the matrix to invert (rows and columns)
       offset_apar = 0; offset_bpar = 0
       if (include_apar) offset_apar = nresponse_per_field
@@ -413,31 +430,48 @@ contains
       !    Get the matrix we need to invert depending on the fields included
       ! ------------------------------------------------------------------------
 
-      ! a) Response of the pdf to the unit impulses, integrated over the
-      !    velocity points of this rank (1.A, 1.B and 1.C.I)
-      !$omp parallel do default(none) schedule(dynamic, 1) &
-      !$omp private(icol) &
-      !$omp shared(nresponse, iky, ie, nz_ext, nresponse_per_field, nfields, iz_from_izext, ikx_from_izext, wgts_fields, response_matrix)
-      do icol = 1, nresponse
-         call get_velocity_integrated_pdf_response(iky, ie, icol, nz_ext, nresponse_per_field, nfields, &
-            iz_from_izext, ikx_from_izext, wgts_fields, response_matrix(iky)%eigen(ie)%zloc(:, icol))
-      end do
-      !$omp end parallel do
+      ! The columns are computed in blocks of <ncol_block> columns, so that every
+      ! process only needs a private copy of one block, and the root of the
+      ! shared-memory domain copies the finished columns into <zloc>
+      ncol_block = max(1, min(nresponse, block_bytes / max(1, nresponse * storage_size(block) / 8)))
+      allocate (block(nresponse, ncol_block))
 
-      ! b) Sum over the velocity points on all MPI ranks. This ends the
-      !    parallelisation over velocity space, so every rank has the
-      !    velocity integrals of all columns.
-      call sum_allreduce(response_matrix(iky)%eigen(ie)%zloc)
+      do icol_first = 1, nresponse, ncol_block
+         ncols = min(ncol_block, nresponse - icol_first + 1)
 
-      ! c) Divide by the field equations prefactors and turn the columns into
-      !    the columns of the matrix to invert (1.C.II and 1.D)
-      !$omp parallel do default(none) schedule(static) &
-      !$omp private(icol) &
-      !$omp shared(nresponse, iky, ie, nz_ext, nresponse_per_field, offset_apar, offset_bpar)
-      do icol = 1, nresponse
-         call fill_response_matrix_column(iky, ie, icol, nz_ext, nresponse_per_field, offset_apar, offset_bpar)
+         ! a) Response of the pdf to the unit impulses, integrated over the
+         !    velocity points of this rank (1.A, 1.B and 1.C.I)
+         !$omp parallel do default(none) schedule(dynamic, 1) &
+         !$omp private(icol) &
+         !$omp shared(ncols, icol_first, nresponse, iky, ie, nz_ext, nresponse_per_field, nfields, iz_from_izext, ikx_from_izext, wgts_fields, block)
+         do icol = 1, ncols
+            call get_velocity_integrated_pdf_response(iky, ie, icol_first + icol - 1, nz_ext, nresponse_per_field, nfields, &
+               iz_from_izext, ikx_from_izext, wgts_fields, block(:, icol))
+         end do
+         !$omp end parallel do
+
+         ! b) Sum over the velocity points on all MPI ranks. This ends the
+         !    parallelisation over velocity space, so every rank has the
+         !    velocity integrals of all columns of the block.
+         call sum_allreduce(block(:, :ncols))
+
+         ! c) Divide by the field equations prefactors and turn the columns into
+         !    the columns of the matrix to invert (1.C.II and 1.D); if the matrix
+         !    is shared, only the root of the shared-memory domain writes them
+         if (builds_response_matrix) then
+            !$omp parallel do default(none) schedule(static) &
+            !$omp private(icol) &
+            !$omp shared(ncols, icol_first, iky, ie, nz_ext, nresponse_per_field, offset_apar, offset_bpar, block, response_matrix)
+            do icol = 1, ncols
+               call fill_response_matrix_column(icol_first + icol - 1, nz_ext, nresponse_per_field, &
+                  offset_apar, offset_bpar, block(:, icol), iky, ie)
+               response_matrix(iky)%eigen(ie)%zloc(:, icol_first + icol - 1) = block(:, icol)
+            end do
+            !$omp end parallel do
+         end if
       end do
-      !$omp end parallel do
+
+      deallocate (block)
 
       ! Deallocate temporary arrays
       deallocate (wgts_fields, iz_from_izext, ikx_from_izext)
@@ -645,23 +679,24 @@ contains
    !============================================================================
    !              Fill one column of the response matrix to invert
    !============================================================================
-   ! Column <icol> of <zloc> holds the velocity integrals of the pdf response
-   ! to its unit impulse (summed over all MPI ranks). Divide by the appropriate
-   ! prefactors of the field equations (1.C.II) and overwrite it with the column
-   ! of the matrix to invert (1.D). Called inside an OpenMP parallel region, with
-   ! each thread working on different columns of <zloc>.
+   ! <column> (column <icol> of the matrix) holds the velocity integrals of the
+   ! pdf response to its unit impulse (summed over all MPI ranks). Divide by the
+   ! appropriate prefactors of the field equations (1.C.II) and overwrite it with
+   ! the column of the matrix to invert (1.D). Called inside an OpenMP parallel
+   ! region, with each thread working on different columns.
    !============================================================================
-   subroutine fill_response_matrix_column(iky, ie, icol, nz_ext, nresponse_per_field, &
-         offset_apar, offset_bpar)
+   subroutine fill_response_matrix_column(icol, nz_ext, nresponse_per_field, &
+         offset_apar, offset_bpar, column, iky, ie)
 
       use parameters_physics, only: include_apar, include_bpar
-      use arrays, only: response_matrix
 
       implicit none
 
       ! Arguments
-      integer, intent(in) :: iky, ie, icol, nz_ext, nresponse_per_field
+      integer, intent(in) :: icol, nz_ext, nresponse_per_field
       integer, intent(in) :: offset_apar, offset_bpar
+      complex, dimension(:), intent(in out) :: column
+      integer, intent(in) :: iky, ie
 
       ! Local variables
       integer :: ifield, idx, nresponse
@@ -677,9 +712,9 @@ contains
       ! Velocity integrals of the pdf response for each field
       allocate (phi_ext(nz_ext), apar_ext(nz_ext), bpar_ext(nz_ext))
       phi_ext = 0.0; apar_ext = 0.0; bpar_ext = 0.0
-      phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, icol)
-      if (include_apar) apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:offset_apar + nresponse, icol)
-      if (include_bpar) bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:offset_bpar + nresponse, icol)
+      phi_ext(:nresponse) = column(:nresponse)
+      if (include_apar) apar_ext(:nresponse) = column(offset_apar + 1:offset_apar + nresponse)
+      if (include_bpar) bpar_ext(:nresponse) = column(offset_bpar + 1:offset_bpar + nresponse)
 
       ! ------------------------------------------------------------------------
       !            1.C.II) Divide by the appropriate field prefactors
@@ -705,9 +740,9 @@ contains
       end if
 
       ! But everywhere else, simply add a negative sign:
-      response_matrix(iky)%eigen(ie)%zloc(:nresponse, icol) = -phi_ext(:nresponse)
-      if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, icol) = -apar_ext(:nresponse)
-      if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, icol) = -bpar_ext(:nresponse)
+      column(:nresponse) = -phi_ext(:nresponse)
+      if (include_apar) column(offset_apar + 1:nresponse + offset_apar) = -apar_ext(:nresponse)
+      if (include_bpar) column(offset_bpar + 1:nresponse + offset_bpar) = -bpar_ext(:nresponse)
 
       deallocate (phi_ext, apar_ext, bpar_ext)
 
@@ -988,41 +1023,141 @@ contains
    end subroutine solve_field_equations_using_pdf_response
 
    !============================================================================
-   !                            Allocate zloc and idx                           
+   !                 Size of the response matrix of (iky, ie)
    !============================================================================
-   ! Sets up the response matrix storage for a given (iky, ie) eigenmode.
-   ! 
-   ! Allocate the following:
-   ! ----------------------
-   ! - response_matrix%eigen%zloc is the dimension of the response matrix for a
-   !   given eigen chain 
-   ! - response_matrix%idx is needed to keep track of permutations to the response
-   !   matrix made during LU decomposition it will be input to LU back substitution
-   !   during linear solve
-   ! 
-   ! Every MPI process stores its own copy of the response matrix.
+   ! For each ky and set of connected kx values, the matrix is N x N, with
+   ! N = (number of zeds per 2pi segment x number of 2pi segments) x nfields.
+   ! The zonal mode (and periodic boundary conditions) do not count the end
+   ! points in zed twice, as they are the same.
    !============================================================================
-   subroutine setup_response_matrix_zloc_idx(iky, ie, nresponse)
+   integer function get_nresponse(iky, ie) result(nresponse)
 
-      use arrays, only: response_matrix
+      use grids_extended_zgrid, only: nzext, periodic
+      use field_equations, only: nfields
 
       implicit none
 
-      ! Arguments
-      integer, intent(in) :: iky, ie, nresponse
+      integer, intent(in) :: iky, ie
 
-      ! For each ky and set of connected kx values, so we must have a response matrix
-      ! that is N x N , with N = number of zeds per 2pi segment x number of 2pi segments
+      if (periodic(iky)) then
+         nresponse = (nzext(ie, iky) - 1) * nfields
+      else
+         nresponse = nzext(ie, iky) * nfields
+      end if
 
-      ! Allocate zloc as an (nresponse x nresponse) matrix if not already allocated
-      if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
-         allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+   end function get_nresponse
 
-      ! Allocate idx as a length-nresponse vector for LU decomposition pivots
-      if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
-         allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
+   !============================================================================
+   !                     Allocate all response matrices
+   !============================================================================
+   ! - response_matrix%eigen%zloc is the (nresponse x nresponse) matrix of the
+   !   chain <ie> of <iky>, which is overwritten by its LU factors. If the
+   !   processes of a shared-memory domain share it, it points into one shared
+   !   window for all matrices, allocated by the root of the domain (a window
+   !   for every matrix would be slow on some clusters).
+   ! - response_matrix%idx keeps track of the permutations made during the LU
+   !   decomposition; it is input to the LU back substitution. Every process
+   !   keeps its own copy.
+   !============================================================================
+   subroutine allocate_response_matrix
 
-   end subroutine setup_response_matrix_zloc_idx
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_intptr_t, c_f_pointer
+      use mpi, only: MPI_ADDRESS_KIND, MPI_WIN_NULL
+      use mp, only: proc0, mp_comm
+      use mp_shared_memory, only: init_shared_memory_domains, allocate_shared_window
+      use mp_shared_memory, only: domain_size, ndomains, min_domain_size, max_domain_size
+      use mp_shared_memory, only: nprivate_processes, domain_root
+      use parallelisation_layouts, only: response_matrix_sharing
+      use debug_flags, only: print_extra_info_to_terminal
+      use parallelisation_layouts, only: verbose
+      use arrays, only: response_matrix
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: neigen
+
+      implicit none
+
+      ! Alignment of every matrix in the window (bytes)
+      integer(kind=MPI_ADDRESS_KIND), parameter :: alignment = 64
+
+      integer :: iky, ie, nresponse
+      integer(kind=MPI_ADDRESS_KIND) :: nbytes, offset
+      integer(c_intptr_t) :: address
+      type(c_ptr) :: base
+      complex :: z
+      character(len=12) :: size_mb
+
+      ! -------------------------------------------------------------------------
+
+      ! The matrices are allocated once, and reused when the time step changes
+      if (allocated_response_matrix) return
+      allocated_response_matrix = .true.
+
+      if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
+      do iky = 1, naky
+         if (.not. associated(response_matrix(iky)%eigen)) allocate (response_matrix(iky)%eigen(neigen(iky)))
+      end do
+
+      ! Split the processes into shared-memory domains
+      call init_shared_memory_domains(mp_comm, response_matrix_sharing)
+
+      ! Size of all matrices, each aligned to <alignment> bytes
+      nbytes = 0
+      do iky = 1, naky
+         do ie = 1, neigen(iky)
+            nresponse = get_nresponse(iky, ie)
+            nbytes = nbytes + aligned(int(nresponse, MPI_ADDRESS_KIND)**2 * storage_size(z) / 8)
+         end do
+      end do
+
+      ! One shared window for all matrices of the domain
+      response_window = MPI_WIN_NULL
+      shared_response_matrix = .false.
+      if (domain_size > 1) then
+         call allocate_shared_window(nbytes, response_window, base)
+         shared_response_matrix = (response_window /= MPI_WIN_NULL)
+      end if
+      builds_response_matrix = domain_root .or. .not. shared_response_matrix
+
+      ! Print the storage to the command prompt
+      if (proc0 .and. verbose .and. print_extra_info_to_terminal) then
+         write (size_mb, '(F12.1)') real(nbytes) / 1024.**2
+         if (shared_response_matrix) then
+            write (*, '(A, A, A, I0, A, I0, A, I0, A)') 'The response matrices (', trim(adjustl(size_mb)), &
+               ' MiB) are shared by the processes of each of the ', ndomains, ' shared-memory domains (', &
+               min_domain_size, ' to ', max_domain_size, ' processes).'
+            if (nprivate_processes > 0) write (*, '(I0, A)') nprivate_processes, &
+               ' processes keep their own copy, since their cores lie in more than one NUMA domain.'
+         else
+            write (*, '(A, A, A)') 'Every process keeps its own copy of the response matrices (', &
+               trim(adjustl(size_mb)), ' MiB).'
+         end if
+         write (*, *) ''
+      end if
+
+      ! Point every matrix into the window, or allocate it
+      offset = 0
+      do iky = 1, naky
+         do ie = 1, neigen(iky)
+            nresponse = get_nresponse(iky, ie)
+            if (shared_response_matrix) then
+               address = transfer(base, address) + int(offset, c_intptr_t)
+               call c_f_pointer(transfer(address, base), response_matrix(iky)%eigen(ie)%zloc, [nresponse, nresponse])
+               offset = offset + aligned(int(nresponse, MPI_ADDRESS_KIND)**2 * storage_size(z) / 8)
+            else
+               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+            end if
+            allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
+         end do
+      end do
+
+   contains
+
+      integer(kind=MPI_ADDRESS_KIND) function aligned(n)
+         integer(kind=MPI_ADDRESS_KIND), intent(in) :: n
+         aligned = ((n + alignment - 1) / alignment) * alignment
+      end function aligned
+
+   end subroutine allocate_response_matrix
  
 !===============================================================================
 !                    Step 2) LU decompose the response matrix
@@ -1030,7 +1165,8 @@ contains
 ! This section LU decomposes the response matrix for each eigen chain.
 ! It prepares the matrix for efficient inversion during the implicit solve.
 ! The decomposition uses <lu_decomposition> (PLASMA or LAPACK when available,
-! see utils/linear_solve). Every MPI process factorises its own copy.
+! see utils/linear_solve). The root of every shared-memory domain factorises
+! the copy of its domain.
 !===============================================================================
 
    !============================================================================
@@ -1042,6 +1178,7 @@ contains
       use arrays, only: response_matrix
       use grids_extended_zgrid, only: neigen
       use linear_solve, only: lu_decomposition
+      use mp_shared_memory, only: fence_shared_window, broadcast_in_domain
 
       implicit none
 
@@ -1058,10 +1195,18 @@ contains
       call region_start('lu_decomposition')
 
       ! Now that we have the reponse matrix for this ky and set of connected kx values
-      ! get the LU decomposition so we are ready to solve the linear system
+      ! get the LU decomposition so we are ready to solve the linear system. Only
+      ! the root of the shared-memory domain has written the matrix; it decomposes
+      ! it (with its OpenMP threads) and gives the pivots to the other processes.
       do ie = 1, neigen(iky)
-         call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, response_matrix(iky)%eigen(ie)%idx, dum)
+         if (builds_response_matrix) call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, response_matrix(iky)%eigen(ie)%idx, dum)
       end do
+      if (shared_response_matrix) then
+         call fence_shared_window(response_window)
+         do ie = 1, neigen(iky)
+            call broadcast_in_domain(response_matrix(iky)%eigen(ie)%idx)
+         end do
+      end if
       
       ! Stop the timer
       call region_end('lu_decomposition')
@@ -1078,21 +1223,18 @@ contains
    subroutine read_response_matrix
 
       use arrays, only: response_matrix
-      use common_types, only: response_matrix_type
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
-      use grids_extended_zgrid, only: nzext
-      use grids_extended_zgrid, only: periodic
-      use mp, only: proc0, job, broadcast, mp_abort
-      use field_equations, only: nfields
+      use mp, only: proc0, job, broadcast, mp_abort, mpicmplx
+      use mp_shared_memory, only: broadcast_to_domain_roots, fence_shared_window
       use file_units, only: unit_response_matrix
 
       implicit none
 
       ! Local variables
-      integer :: iky, ie, nz_ext
+      integer :: iky, ie
       integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
-      integer :: nresponse, nresponse_per_field
+      integer :: nresponse
       character(len=15) :: job_str
       character(len=100) :: file_name
       integer :: ie_dump, istat
@@ -1117,7 +1259,9 @@ contains
          if (naky /= naky_dump) call mp_abort('mismatch in naky and naky_dump')
       end if
 
-      if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
+      ! Allocate the matrices, shared by the processes of each shared-memory
+      ! domain if possible (proc0 is the root of its domain)
+      call allocate_response_matrix
 
       do iky = 1, naky
          if (proc0) then
@@ -1126,50 +1270,30 @@ contains
                call mp_abort('mismatch in iky_dump/neigen_dump')
          end if
 
-         if (.not. associated(response_matrix(iky)%eigen)) &
-            allocate (response_matrix(iky)%eigen(neigen(iky)))
-
          ! Loop over the sets of connected kx values
          do ie = 1, neigen(iky)
-         
-            ! Number of zeds x number of segments
-            nz_ext = nzext(ie, iky)
 
-            ! Treat zonal mode specially to avoid double counting as it is periodic
-            if (periodic(iky)) then
-               nresponse_per_field = nz_ext - 1
-            else
-               nresponse_per_field = nz_ext
-            end if
-            nresponse = nresponse_per_field * nfields
-
+            nresponse = get_nresponse(iky, ie)
             if (proc0) then
                read (unit=unit_response_matrix) ie_dump, nresponse_dump
                if (ie_dump /= ie .or. nresponse /= nresponse_dump) &
                   call mp_abort('mismatch in ie/nresponse_dump')
-            end if
-
-            ! For each ky and set of connected kx values,
-            ! must have a response matrix that is N x N
-            ! with N = number of zeds per 2pi segment x number of 2pi segments
-            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
-               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
-
-            ! response_matrix%idx is needed to keep track of permutations
-            ! to the response matrix made during LU decomposition
-            ! it will be input to LU back substitution during linear solve
-            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
-               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
-            if (proc0) then
                read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
                read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
             end if
 
+            ! Every process needs the pivots, and every copy of the matrix
+            ! (the root of every shared-memory domain, or every process)
             call broadcast(response_matrix(iky)%eigen(ie)%idx)
-            call broadcast(response_matrix(iky)%eigen(ie)%zloc)
+            if (shared_response_matrix) then
+               call broadcast_to_domain_roots(response_matrix(iky)%eigen(ie)%zloc, mpicmplx)
+            else
+               call broadcast(response_matrix(iky)%eigen(ie)%zloc)
+            end if
 
          end do
       end do
+      if (shared_response_matrix) call fence_shared_window(response_window)
 
       if (proc0) close (unit_response_matrix)
 
@@ -1186,10 +1310,32 @@ contains
    subroutine finish_response_matrix
 
       use arrays, only: response_matrix
+      use mp_shared_memory, only: free_shared_window, finish_shared_memory_domains
 
       implicit none
 
-      if (allocated(response_matrix)) deallocate (response_matrix)
+      integer :: iky, ie
+
+      if (allocated(response_matrix)) then
+         do iky = 1, size(response_matrix)
+            if (.not. associated(response_matrix(iky)%eigen)) cycle
+            do ie = 1, size(response_matrix(iky)%eigen)
+               if (shared_response_matrix) then
+                  nullify (response_matrix(iky)%eigen(ie)%zloc)
+               else if (associated(response_matrix(iky)%eigen(ie)%zloc)) then
+                  deallocate (response_matrix(iky)%eigen(ie)%zloc)
+               end if
+               if (associated(response_matrix(iky)%eigen(ie)%idx)) deallocate (response_matrix(iky)%eigen(ie)%idx)
+            end do
+            deallocate (response_matrix(iky)%eigen)
+         end do
+         deallocate (response_matrix)
+      end if
+      if (shared_response_matrix) call free_shared_window(response_window)
+      if (allocated_response_matrix) call finish_shared_memory_domains
+      shared_response_matrix = .false.
+      allocated_response_matrix = .false.
+      builds_response_matrix = .true.
       initialised_response_matrix = .false.
 
    end subroutine finish_response_matrix

@@ -196,7 +196,7 @@ export OMP_NUM_THREADS=1
 mpirun -n 4 /path/to/stella/stella input.in
 ```
 
-$\texttt{stella}$ is parallelised with MPI and, on top of that, with OpenMP threads. Always set `OMP_NUM_THREADS`, the number of threads of every MPI process: if it is not set, every MPI process may start one thread per core, which slows the simulation down enormously. With `OMP_NUM_THREADS=1`, $\texttt{stella}$ runs as a pure MPI code, with one MPI process per core.
+$\texttt{stella}$ is parallelised with MPI and, on top of that, with OpenMP threads. Always set `OMP_NUM_THREADS`, the number of threads of every MPI process: if it is not set, every MPI process may start one thread per core, which slows the simulation down enormously. With `OMP_NUM_THREADS=1`, $\texttt{stella}$ runs as a pure MPI code, with one MPI process per core. Bind the MPI processes to cores (e.g. `mpirun --bind-to core`, or `srun --cpu-bind=cores`): the processes of every NUMA domain then share one copy of the response matrix (see `response_matrix_sharing` in the namelist `&parallelisation`).
 
 All output files start with the name of the input file:
 - `input.out.nc`: all diagnostics (fields, fluxes, moments, geometry, grids) in NetCDF format.
@@ -329,6 +329,7 @@ It is the responsibility of the respective authors to list their contributions t
 - The shared-memory domains for the response matrix can now be parallelised over NUMA domains rather than over nodes. This is particularly useful on supercomputers with multiple sockets per node, where inter-socket communication can be relatively slow. To enable this feature, set `SPLIT_BY_NUMA = on` in the makefile and ensure that `--ntasks-per-socket` is specified in the sbatch script. This has been implemented by H. Thienpondt in December 2025.
 - More automatic tests have been added by H. Thienpondt in October 2026 to test the full numerical reproducibility of the code. The electromagnetic tests (test 8) now compare with the new $\texttt{stella}$ data.
 - The response matrix is now LU decomposed with PLASMA (or LAPACK) by every MPI process, which replaces the local and global parallel LU decompositions (`lu_option`) and the MPI shared-memory windows of the response matrix and of the radial variation. `SPLIT_BY_NUMA` has been removed with them, as have stella's own dense LU routines: LAPACK is now required (V. Seitz, October 2026).
+- The LU factors of the response matrix are again stored once per NUMA domain (socket) in an MPI shared-memory window, instead of once per MPI process: the first process of every NUMA domain builds and LU decomposes them with PLASMA (using its OpenMP threads), and the other processes of the domain only read them in the back substitution of every time step. The NUMA domain of a process is found from the cores it may run on, so this works with `mpirun` and `srun`, and the NUMA domains may have different numbers of processes; a process whose cores lie in more than one NUMA domain keeps its own copy. The input variable `response_matrix_sharing` of `&parallelisation` chooses `'numa'` (default), `'node'` or `'none'` (every process keeps its own copy). The results are the same as before to round-off; with one thread per process the linear simulations with a large response matrix are up to 32% faster (H. Thienpondt, November 2026).
 
 ### Diagnostics
 

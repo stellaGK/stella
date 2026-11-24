@@ -23,6 +23,7 @@ set(STELLA_UTILS_SOURCES_fpp
   job_manage.fpp
   linear_solve.fpp
   mp.fpp
+  mp_shared_memory.fpp
   plasma_interface.fpp
   ran.fpp
   spfunc.fpp

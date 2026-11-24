@@ -167,6 +167,7 @@ $(OBJ)/interface_random_number_generator.o: $(OBJ_DIR)/file_utils.o  $(OBJ_DIR)/
 $(OBJ)/job_manage.o: $(OBJ)/file_utils.o $(OBJ)/mp.o
 $(OBJ)/linear_solve.o: $(OBJ)/plasma_interface.o
 $(OBJ)/mp.o: $(OBJ)/file_utils.o $(OBJ)/constants.o
+$(OBJ)/mp_shared_memory.o: 
 $(OBJ)/mt19937.o: 
 $(OBJ)/netcdf_utils.o: $(OBJ)/constants.o $(OBJ)/mp.o $(OBJ)/file_utils.o
 $(OBJ)/plasma_interface.o: $(OBJ)/mp.o

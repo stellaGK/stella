@@ -10,6 +10,12 @@
 !     mat_gen = .false.
 !     mat_read = .false.
 !     fields_kxkyz = .false.
+!     response_matrix_sharing = 'numa'
+! 
+! <response_matrix_sharing> chooses which processes share one copy of the LU
+! factors of the response matrix (see utils/mp_shared_memory): 'numa' (the
+! processes of every NUMA domain, default), 'node' (the processes of every node)
+! or 'none' (every process keeps its own copy).
 ! 
 ! The option <lu_option> ('default', 'local' or 'global') is no longer used:
 ! the response matrix is always LU decomposed with <lu_decomposition> (PLASMA
@@ -44,7 +50,7 @@ contains
    !                              PARALLELISATION                              !
    !****************************************************************************
    subroutine read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-      mat_gen, mat_read, fields_kxkyz, verbose)
+      mat_gen, mat_read, fields_kxkyz, response_matrix_sharing, verbose)
 
       use mp, only: proc0
 
@@ -55,6 +61,7 @@ contains
       character(len=3), intent (out) :: vms_layout
       character(len=5), intent (out) :: kymus_layout
       logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read, verbose
+      character(len=4), intent (out) :: response_matrix_sharing
 
       ! No longer used, only read for older input files
       character(30) :: lu_option
@@ -81,6 +88,7 @@ contains
          lu_option = 'default'
          mat_gen = .false.
          mat_read = .false.
+         response_matrix_sharing = 'numa'
          verbose = .true.
 
       end subroutine set_default_parameters_parallelisation
@@ -94,7 +102,7 @@ contains
 
          ! Variables in the <parallelisation> namelist
          namelist /parallelisation/ xyzs_layout, vms_layout, kymus_layout, &
-             mat_gen, mat_read, lu_option, fields_kxkyz, verbose
+             mat_gen, mat_read, lu_option, fields_kxkyz, response_matrix_sharing, verbose
          
          !----------------------------------------------------------------------
 
@@ -133,6 +141,11 @@ contains
                kymus_layout /= 'mukys') then
                call mp_abort('parallelisation_layouts: read_parameters finds illegal kymus_layout. Aborting.')
          end if
+         if (response_matrix_sharing /= 'numa' .and. &
+               response_matrix_sharing /= 'node' .and. &
+               response_matrix_sharing /= 'none') then
+               call mp_abort('response_matrix_sharing in &parallelisation must be "numa", "node" or "none". Aborting.')
+         end if
 
       end subroutine check_inputs_parallelisation
       
@@ -153,6 +166,7 @@ contains
          write (unit, '(A, L1)') '  fields_kxkyz = ', fields_kxkyz
          write (unit, '(A, L1)') '  mat_gen = ', mat_gen
          write (unit, '(A, L1)') '  mat_read = ', mat_read
+         write (unit, '(A, A, A)') '  response_matrix_sharing = "', trim(response_matrix_sharing), '"'
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 

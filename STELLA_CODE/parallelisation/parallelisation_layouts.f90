@@ -67,6 +67,7 @@
 !   mat_gen = .false.
 !   mat_read = .false.
 !   fields_kxkyz = .false.
+!   response_matrix_sharing = 'numa'
 !/
 ! 
 !###############################################################################
@@ -106,6 +107,7 @@ module parallelisation_layouts
    
    ! Flags to read and write the response matrix to a NetCDF file
    public :: mat_gen
+   public :: response_matrix_sharing
    public :: mat_read
    
    ! Print extra info with respect to the parallelisation
@@ -274,6 +276,9 @@ module parallelisation_layouts
    ! Flags to read and write the response matrix to a NetCDF file
    logical :: mat_gen
    logical :: mat_read
+
+   ! Which processes share one copy of the response matrix: 'numa', 'node' or 'none'
+   character(len=4) :: response_matrix_sharing = 'numa'
    
    ! Print extra info to command prompt
    ! This variable is not broadcasted so it can only be true on proc0
@@ -325,7 +330,7 @@ contains
       implicit none
 
       call read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
-          mat_gen, mat_read, fields_kxkyz, verbose)
+          mat_gen, mat_read, fields_kxkyz, response_matrix_sharing, verbose)
 
    end subroutine read_parameters
 
@@ -343,6 +348,7 @@ contains
       call broadcast(kymus_layout)
       call broadcast(mat_gen)
       call broadcast(mat_read)
+      call broadcast(response_matrix_sharing)
       call broadcast(fields_kxkyz)
 
    end subroutine broadcast_parameters
