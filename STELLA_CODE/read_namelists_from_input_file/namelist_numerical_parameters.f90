@@ -305,6 +305,8 @@ contains
          implicit none
 
          explicit_algorithm = 'rk3'
+         ! Keep flip_flop = .false.: flip_flop = .true. is unstable with kinetic electrons
+         ! (see advance_distribution_function_and_fields in stella.f90)
          flip_flop = .false.
          stream_implicit = .true.
          stream_iterative_implicit = .false.
