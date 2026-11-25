@@ -428,6 +428,7 @@ contains
       integer :: ikxkyz, ikxkyzt, iky, ikx, iz, it, is, isb
       integer :: imu, ia, iv, ivv, imm, imu2
       integer :: nc, nb, lldab, bm_colind, bm_rowind
+      integer :: ikxkyzt_first, ikxkyzt_last, npoints_chunk
       real :: vpap, vpam, vfac, mum, mup
       real :: xpv, xmv, nupapv, nupamv, nuDpv, nuDmv, mwpv, mwmv, gam_mu, gam_mum, gam_mup
       real :: mwm, mwp, nuDm, nuDp, nupam, nupap, xm, xp
@@ -438,13 +439,30 @@ contains
 
       !-------------------------------------------------------------------------
 
-      if (.not. allocated(aa_blcs)) allocate (aa_blcs(nvpa, nmu, nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
-      if (.not. allocated(bb_blcs)) allocate (bb_blcs(nvpa, nmu, nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
-      if (.not. allocated(cc_blcs)) allocate (cc_blcs(nvpa, nmu, nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
       if (.not. allocated(cdiffmat_band)) &
          allocate (cdiffmat_band(3 * (nmu + 1) + 1, nmu * nvpa, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec))
       if (.not. allocated(ipiv)) &
          allocate (ipiv(nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec))
+
+      ! The blocks aa_blcs, bb_blcs and cc_blcs are (nvpa,nmu,nmu) per point and species pair, i.e. larger than
+      ! cdiffmat_band, so they are not stored for all points at once: they are calculated for a chunk of at most
+      ! <npoints_chunk> points (about 128 MB of blocks), added to cdiffmat_band (and blockmatrix), and freed.
+      ! The blocks keep the index ikxkyzt of the point, so the calculation below is the same for every chunk.
+      npoints_chunk = max(1, int(128.e6 / (3. * 16. * nvpa * nmu**2 * nspec**2)))
+      cdiffmat_band = 0.
+      if ((exact_conservation_tp) .or. (density_conservation_tp)) then
+         if (.not. allocated(blockmatrix)) &
+            allocate (blockmatrix(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
+         if (.not. allocated(blockmatrix_sum)) &
+            allocate (blockmatrix_sum(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec))
+         blockmatrix = 0.
+      end if
+
+      do ikxkyzt_first = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc, npoints_chunk
+      ikxkyzt_last = min(ikxkyzt_first + npoints_chunk - 1, kxkyzt_lo%ulim_proc)
+      allocate (aa_blcs(nvpa, nmu, nmu, ikxkyzt_first:ikxkyzt_last, nspec, nspec))
+      allocate (bb_blcs(nvpa, nmu, nmu, ikxkyzt_first:ikxkyzt_last, nspec, nspec))
+      allocate (cc_blcs(nvpa, nmu, nmu, ikxkyzt_first:ikxkyzt_last, nspec, nspec))
 
       ! AVB: calculate the discretisation matrix -\Delta t C_test^{ab}
       ! because of mixed vpa-mu derivatives in the test particle operator
@@ -464,7 +482,7 @@ contains
 
       do imu = 1, nmu
          do iv = 1, nvpa
-            do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
+            do ikxkyzt = ikxkyzt_first, ikxkyzt_last
                iky = iky_idx(kxkyzt_lo, ikxkyzt)
                ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
                iz = iz_idx(kxkyzt_lo, ikxkyzt)
@@ -1334,7 +1352,7 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
             do isb = 1, nspec
                do imu = 1, nmu
                   do iv = 1, nvpa
-                     do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
+                     do ikxkyzt = ikxkyzt_first, ikxkyzt_last
                         bb_blcs(iv, imu, imu, ikxkyzt, is, isb) = 1. ! AVB: in beta
                      end do
                   end do
@@ -1349,15 +1367,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          ! currently used for exact conservation scheme on non-uniform grids
          ! AVB: to do - replace this with band matrix operations
 
-         if (.not. allocated(blockmatrix)) &
-            allocate (blockmatrix(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec, nspec))
-         if (.not. allocated(blockmatrix_sum)) &
-            allocate (blockmatrix_sum(nvpa * nmu, nvpa * nmu, kxkyzt_lo%llim_proc:kxkyzt_lo%ulim_alloc, nspec))
-
-         blockmatrix = 0.
          do is = 1, nspec
             do isb = 1, nspec
-               do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
+               do ikxkyzt = ikxkyzt_first, ikxkyzt_last
                   do iv = 1, nvpa
                      ! diagonal blocks:
                      blockmatrix(nmu * (iv - 1) + 1:nmu * iv, nmu * (iv - 1) + 1:nmu * iv, ikxkyzt, is, isb) = bb_blcs(iv, :, :, ikxkyzt, is, isb)
@@ -1381,9 +1393,8 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
       ! All inputs (aa/bb/cc_blcs) and the output (cdiffmat_band) live on
       ! kxkyzt_lo with all species local on each rank, so the assembly is
       ! fully local: no global temporary, no sum_allreduce, no copy step.
-      cdiffmat_band = 0.
 
-      do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
+      do ikxkyzt = ikxkyzt_first, ikxkyzt_last
          iky = iky_idx(kxkyzt_lo, ikxkyzt)
          ikx = ikx_idx(kxkyzt_lo, ikxkyzt)
          iz = iz_idx(kxkyzt_lo, ikxkyzt)
@@ -1474,6 +1485,9 @@ bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb)= bb_blcs(iv,imu,imu-1,ikxkyzt,is,isb) - cod
          end do  ! is (target species)
 
       end do  ! ikxkyzt
+
+      deallocate (aa_blcs, bb_blcs, cc_blcs)
+      end do  ! chunks of ikxkyzt
 
       ! add the gyro-diffusive term to cdiffmat (diagonal)
       do ikxkyzt = kxkyzt_lo%llim_proc, kxkyzt_lo%ulim_proc
