@@ -19,6 +19,7 @@ module gyrokinetic_equation_explicit
    
    ! Make routines available to stella.f90
    public :: advance_distribution_function_using_explicit_gyrokinetic_terms
+   public :: enforce_parallel_boundary_conditions
 
    private
 
@@ -46,11 +47,7 @@ contains
       
       ! Grids
       use grids_z, only: nzgrid
-      use grids_kxky, only: naky
-      use grids_extended_zgrid, only: periodic
-      use grids_extended_zgrid, only: phase_shift
-      use gk_parallel_streaming, only: stream_sign
-      
+
       ! Calculations
       use calculations_tofrom_ghf, only: gbar_to_g
       
@@ -69,7 +66,7 @@ contains
       integer, intent(in) :: istep
 
       ! Local variables
-      integer :: ivmu, iv, sgn, iky
+      integer :: ivmu
 
       !-------------------------------------------------------------------------
 
@@ -119,16 +116,7 @@ contains
       end if
 
       ! Enforce periodicity for periodic (including zonal) modes
-      ! <stream_sign> > 0 corresponds to dz/dt < 0
-      do iky = 1, naky
-         if (periodic(iky)) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               sgn = stream_sign(iv)
-               g(iky, :, sgn * nzgrid, :, ivmu) = g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
-            end do
-         end if
-      end do
+      call enforce_periodicity(g)
 
       ! Stop the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
@@ -223,10 +211,12 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! Re-impose the twist-and-shift chain joins on the input of every Runge-Kutta stage
+      ! Re-impose the twist-and-shift chain joins and the periodicity of the periodic
+      ! (including zonal) modes on the input of every Runge-Kutta stage
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call enforce_chain_joins(pdf(:, :, :, :, ivmu))
       end do
+      call enforce_periodicity(pdf)
 
       ! Initialise the right-hand-side of the gyrokinetic equation to zero
       rhs_ky = 0.
@@ -404,6 +394,7 @@ contains
       end if
       if (hyp_vpa) then
          call advance_hyper_vpa(gin, dg)
+         gout = gout + dg
       end if
       deallocate (dg)
       
@@ -563,9 +554,12 @@ contains
       ! Count the iterations
       counter = 1
 
-      ! SSP rk3 algorithm to advance explicit part of code
+      ! SSP rk3 algorithm (Shu & Osher 1988) to advance explicit part of code
       ! if GK equation written as dg/dt = rhs - vpar . grad h,
       ! add_explicit_gyrokinetic_terms returns rhs*dt
+      !     g1 = g0 + dt*rhs(g0)
+      !     g2 = 3/4 g0 + 1/4 (g1 + dt*rhs(g1))
+      !     g^{n+1} = 1/3 g0 + 2/3 (g2 + dt*rhs(g2))
       do while (counter <= 3)
       
          ! Third order Runge-Kutta Scheme
@@ -577,7 +571,7 @@ contains
             if (rk_step) call mb_communicate(g1)
             call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
          case (3)
-            g2 = g1 + g2
+            g2 = 0.75 * g0 + 0.25 * (g1 + g2)
             if (rk_step) call mb_communicate(g2)
             call add_explicit_gyrokinetic_terms(g2, g, restart_time_step, istep)
          end select
@@ -592,7 +586,7 @@ contains
       end do
 
       ! This is g at intermediate time level
-      g = g0 / 3.+0.5 * g1 + (g2 + g) / 6.
+      g = g0 / 3. + 2. / 3. * (g2 + g)
 
    end subroutine advance_explicit_rk3
 
@@ -742,5 +736,74 @@ contains
       end do
 
    end subroutine enforce_chain_joins
+
+   !****************************************************************************
+   !                 ENFORCE THE PERIODICITY OF PERIODIC MODES
+   !****************************************************************************
+   ! Periodic modes (all modes with periodic boundary conditions, otherwise the
+   ! zonal modes) store the point z = +-nzgrid twice. The copy at the end where
+   ! the characteristic enters is overwritten by the copy at the other end.
+   ! This is done at the end of the explicit time step and on the input of every
+   ! Runge-Kutta stage: otherwise the stages evaluate the right-hand side on states
+   ! whose two copies differ by O(dt) (e.g. the nonlinear term of a zonal mode differs
+   ! at the two ends), which limits the explicit time advance to first order in dt.
+   ! <stream_sign> > 0 corresponds to dz/dt < 0
+   !****************************************************************************
+   subroutine enforce_periodicity(pdf)
+
+      use parallelisation_layouts, only: vmu_lo, iv_idx
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: periodic, phase_shift
+      use gk_parallel_streaming, only: stream_sign
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: pdf
+
+      integer :: iky, ivmu, iv, sgn
+
+      !-------------------------------------------------------------------------
+
+      do iky = 1, naky
+         if (.not. periodic(iky)) cycle
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            iv = iv_idx(vmu_lo, ivmu)
+            sgn = stream_sign(iv)
+            pdf(iky, :, sgn * nzgrid, :, ivmu) = pdf(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
+         end do
+      end do
+
+   end subroutine enforce_periodicity
+
+   !****************************************************************************
+   !                ENFORCE THE PARALLEL BOUNDARY CONDITIONS ON G
+   !****************************************************************************
+   ! Make the two copies of the twist-and-shift joins and of the end points of the
+   ! periodic modes equal, as they are at the end of every time step. This is used
+   ! for the initial distribution function, which does not satisfy these conditions
+   ! (e.g. the default initialisation of linear runs). Otherwise the first stage of
+   ! the first time step uses the fields of the inconsistent initial condition, a
+   ! one-off error of O(dt), which limits the time advance to first order in dt.
+   !****************************************************************************
+   subroutine enforce_parallel_boundary_conditions(g)
+
+      use parallelisation_layouts, only: vmu_lo
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+
+      integer :: ivmu
+
+      !-------------------------------------------------------------------------
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call enforce_chain_joins(g(:, :, :, :, ivmu), end_of_step=.true.)
+      end do
+      call enforce_periodicity(g)
+
+   end subroutine enforce_parallel_boundary_conditions
 
 end module gyrokinetic_equation_explicit

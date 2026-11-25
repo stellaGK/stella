@@ -379,7 +379,7 @@
 /
 
 &numerical_upwinding_for_derivatives
-  zed_upwind = 0.02
+  zed_upwind = 0.02   ! 0.0 if include_apar = .true.
   vpa_upwind = 0.02
   time_upwind = 0.02
 /

@@ -30,6 +30,7 @@
 # Python modules
 import pytest
 import os, sys
+import re
 import pathlib
 import numpy as np
 import xarray as xr
@@ -63,10 +64,12 @@ def write_linear_input_file(input_file, folder, delt):
     again during the simulation, at slightly different times in the runs (A) and (B).'''
     path_input_file = copy_input_file(input_file, folder)
     text = open(path_input_file, 'r').read()
-    for old, new in (('include_nonlinear = .true.', 'include_nonlinear = .false.'),
-                     ('delt = 0.01', f'delt = {delt!r}')):
+    for old, new in (('include_nonlinear = .true.', 'include_nonlinear = .false.'),):
         assert old in text, f'Expected "{old}" in {input_file}.'
         text = text.replace(old, new)
+    # Replace the time step of the input file, whatever its value
+    text, count = re.subn(r'^(\s*delt\s*=\s*)\S+', lambda m: f'{m.group(1)}{delt!r}', text, flags=re.M)
+    assert count == 1, f'Expected one "delt = ..." line in {input_file}.'
     open(path_input_file, 'w').write(text)
     return path_input_file
 
