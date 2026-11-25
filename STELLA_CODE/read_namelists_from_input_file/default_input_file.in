@@ -435,7 +435,6 @@
   vpa_operator = .true.
   mu_operator = .true.
   cfac = 1.0
-  cfac2 = 1.0
   nuxfac = 1.0
   i1fac = 1.0
   i2fac = 0.0

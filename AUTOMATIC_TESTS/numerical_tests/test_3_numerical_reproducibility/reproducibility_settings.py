@@ -19,6 +19,7 @@ input_files = [
     'collisions_fokker_planck_implicit.in',
     'collisions_fokker_planck_fieldpart.in',
     'collisions_fokker_planck_fieldpart_adiabatic.in',
+    'collisions_fokker_planck_fieldpart_drift_kinetic.in',
     'collisions_fokker_planck_explicit.in',
     'explicit_algorithm_rk4.in',
     'explicit_algorithm_euler.in',
