@@ -547,6 +547,8 @@ contains
 
       !----------------------------------------------------------------------
 
+      ia = 1
+
       nresponse_mu = 1
       if (momentum_conservation) nresponse_mu = nresponse_mu + nspec
       if (energy_conservation) nresponse_mu = nresponse_mu + nspec
@@ -622,7 +624,6 @@ contains
       idx = 2
 
       if (momentum_conservation) then
-         ia = 1
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
