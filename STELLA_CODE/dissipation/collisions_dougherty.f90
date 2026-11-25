@@ -1776,6 +1776,7 @@ contains
       use linear_solve, only: lu_back_substitution
       use grids_time, only: code_dt
       use parameters_physics, only: fphi
+      use parameters_physics, only: include_apar, include_bpar
       use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
@@ -1808,6 +1809,9 @@ contains
       complex, dimension(:), allocatable :: tmp2
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
+      complex, dimension(:, :, :, :), allocatable :: apar_old, bpar_old, phi_zero
+      logical :: em_fields
+
       !----------------------------------------------------------------------
 
       ia = 1
@@ -1815,6 +1819,17 @@ contains
       ! Store input g for use later, as g will be overwritten below
       allocate (g_in(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       g_in = g
+
+      ! h = g + (Z/T) J0 phi F0 + 4 mu (J1/b) bpar F0 uses the B_par of the start of the step, in the inhomogeneous
+      ! solution as well as in the final solve. Before, the inhomogeneous solution lacked the B_par part of h, and
+      ! its field solve below overwrote B_par (and A_par) with the fields of h_inh, which lacks the Maxwellian
+      ! (phi and B_par) part of h; that B_par was then used to convert between g and h.
+      em_fields = include_apar .or. include_bpar
+      if (em_fields) then
+         allocate (apar_old, source=apar); allocate (bpar_old, source=bpar)
+         allocate (phi_zero, mold=phi); phi_zero = 0.
+         call g_to_h(g, phi_zero, bpar_old, fphi)
+      end if
 
       ! Since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
       ! g = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
@@ -1831,6 +1846,10 @@ contains
       ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
       call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+
+      if (em_fields) then
+         apar = apar_old; bpar = bpar_old
+      end if
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1951,6 +1970,7 @@ contains
       call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g_in)
+      if (em_fields) deallocate (apar_old, bpar_old, phi_zero)
 
    end subroutine advance_vpadiff_implicit
 
@@ -1964,6 +1984,7 @@ contains
       use linear_solve, only: lu_back_substitution
       use grids_time, only: code_dt
       use parameters_physics, only: fphi
+      use parameters_physics, only: include_apar, include_bpar
       use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
@@ -1997,6 +2018,9 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
+      complex, dimension(:, :, :, :), allocatable :: apar_old, bpar_old, phi_zero
+      logical :: em_fields
+
       !----------------------------------------------------------------------
 
       ia = 1
@@ -2004,6 +2028,17 @@ contains
       ! Store input g for use later, as g will be overwritten below
       allocate (g_in(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       g_in = g
+
+      ! h = g + (Z/T) J0 phi F0 + 4 mu (J1/b) bpar F0 uses the B_par of the start of the step, in the inhomogeneous
+      ! solution as well as in the final solve. Before, the inhomogeneous solution lacked the B_par part of h, and
+      ! its field solve below overwrote B_par (and A_par) with the fields of h_inh, which lacks the Maxwellian
+      ! (phi and B_par) part of h; that B_par was then used to convert between g and h.
+      em_fields = include_apar .or. include_bpar
+      if (em_fields) then
+         allocate (apar_old, source=apar); allocate (bpar_old, source=bpar)
+         allocate (phi_zero, mold=phi); phi_zero = 0.
+         call g_to_h(g, phi_zero, bpar_old, fphi)
+      end if
 
       ! Since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
       ! g = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
@@ -2021,6 +2056,10 @@ contains
       ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
       call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+
+      if (em_fields) then
+         apar = apar_old; bpar = bpar_old
+      end if
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -2144,6 +2183,7 @@ contains
       call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g_in)
+      if (em_fields) deallocate (apar_old, bpar_old, phi_zero)
 
    end subroutine advance_mudiff_implicit
 

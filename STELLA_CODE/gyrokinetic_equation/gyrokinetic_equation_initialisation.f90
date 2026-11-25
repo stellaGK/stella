@@ -30,7 +30,7 @@ contains
    subroutine init_gyrokinetic_equation
 
       ! Physics flags
-      use dissipation_and_collisions, only: include_collisions
+      use dissipation_and_collisions, only: include_collisions, collisions_implicit
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
       
@@ -97,8 +97,10 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_radial_variation'
       if (radial_variation) call init_radial_variation
       
-      ! ...
-      if (include_collisions) then
+      ! Explicit collisions limit the time step, so they are initialised before the CFL condition.
+      ! Implicit collisions do not, but their matrices contain the time step, so they are only built
+      ! after the CFL condition has set it; otherwise they are built twice when it reduces delt.
+      if (include_collisions .and. .not. collisions_implicit) then
          if (debug) write (6, *) 'time_advance::init_time_advance::init_collisions'
          call init_collisions
       end if
@@ -106,6 +108,12 @@ contains
       ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_cfl'
       call init_cfl
+
+      ! ...
+      if (include_collisions .and. collisions_implicit) then
+         if (debug) write (6, *) 'time_advance::init_time_advance::init_collisions'
+         call init_collisions
+      end if
 
       ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_source_timeaverage'
