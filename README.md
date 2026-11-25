@@ -268,6 +268,7 @@ It is the responsibility of the respective authors to list their contributions t
 - The automatic testing infrastructure has been implemented by H. Thienpondt in July 2024.
 - The $\texttt{stella}$ code has been reorganized and cleaned up by H. Thienpondt and G. Acton in October 2025.
 - The shared-memory domains for the response matrix can now be parallelized over NUMA domains rather than over nodes. This is particularly useful on supercomputers with multiple sockets per node, where inter-socket communication can be relatively slow. To enable this feature, set `SPLIT_BY_NUMA = on` in the makefile and ensure that `--ntasks-per-socket` is specified in the sbatch script. This has been implemented by H. Thienpondt in December 2025.
+- The implicit Fokker–Planck collision operator has been parallelised over $(k_x, k_y, z, \text{tube})$ with its own data layout by G. Acton in May 2026, so that the memory of its band matrices per processor decreases with the number of processors.
 
 ### Diagnostics
 
