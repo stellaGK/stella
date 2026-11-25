@@ -161,6 +161,7 @@ contains
       use parallelisation_layouts
       use parameters_numerical, only: fully_explicit
       use common_types, only: spec_type
+      use mp, only: mp_abort
 
       implicit none
 
@@ -181,6 +182,14 @@ contains
       ! Everything else is independent of the time step and is set up only on the first call.
       ! In particular, the knobs below rescale spec%vnew in place and must not be applied twice.
       if (.not. initialised_fokker_planck) then
+
+         ! The field-particle part is only implemented in the implicit algorithm: the explicit algorithm
+         ! (advance_collisions_fp_explicit) applies the test-particle operator only, so stop instead of
+         ! silently running without the field-particle part
+         if (fieldpart .and. .not. collisions_implicit) then
+            call mp_abort('The field-particle part of the Fokker-Planck operator (fieldpart = .true.) is only ' &
+               //'implemented for implicit collisions (collisions_implicit = .true.). Aborting.')
+         end if
 
          ! disable inter-species collisions if interspec==false
          if (.not. interspec) then
