@@ -43,8 +43,10 @@ with open(module_path, 'r') as file: exec(file.read())
 module_path = str(pathlib.Path(__file__).parent / 'reproducibility_settings.py')
 with open(module_path, 'r') as file: exec(file.read())
 
-# The runs (A) and (B) differ in their time step by a relative 1e-9 (see below), so the
-# results agree to about 1e-8; a term which keeps the old time step gives differences of order 1
+# The runs (A) and (B) differ in their time step by a relative 1e-12 (see below), so the
+# results agree to about 1e-8; a term which keeps the old time step gives differences of order 1.
+# The difference must be this small since some inputs amplify a change of the time step: with
+# the Fokker-Planck field-particle part a relative change of 1e-9 changes the results by 1.5e-5
 rtol_time_step = 1e-5
 
 # Quantities which are compared on the full grid
@@ -98,7 +100,7 @@ def test_whether_the_time_step_change_is_followed_by_every_term(input_file, tmp_
     assert code_dt < 9, f'The time step was not reduced by the CFL condition (code_dt = {code_dt}).'
 
     # (B) delt = the reduced time step (slightly smaller, so that stella does not reduce it again)
-    netcdf_b = run_linear_simulation(input_file, tmp_path / 'delt_cfl', stella_version, code_dt * (1 - 1e-9))
+    netcdf_b = run_linear_simulation(input_file, tmp_path / 'delt_cfl', stella_version, code_dt * (1 - 1e-12))
 
     # Compare the time evolution
     with xr.open_dataset(netcdf_a) as reduced, xr.open_dataset(netcdf_b) as direct:
