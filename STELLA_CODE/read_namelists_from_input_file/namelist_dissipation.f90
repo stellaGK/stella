@@ -45,11 +45,10 @@
 !     vpa_operator = .true.
 !     mu_operator = .true.
 !     cfac = 1.0
-!     cfac2 = 1.0
 !     nuxfac = 1.0
 !     i1fac = 1.0
 !     i2fac = 0.0
-!     no_j1l1 = .true.
+!     no_j1l1 = .false.
 !     no_j1l2 = .false.
 !     no_j0l2 = .false.
 !   
@@ -258,7 +257,7 @@ contains
       interspec, intraspec, iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob, eimassr_approx, &
       advfield_coll, spitzer_problem, density_conservation, density_conservation_field, density_conservation_tp, &
       exact_conservation, exact_conservation_tp, vpa_operator, mu_operator, &
-      cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
+      cfac, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
 
       use mp, only: proc0
       
@@ -274,7 +273,7 @@ contains
       logical, intent (out) :: vpa_operator, mu_operator
       logical, intent (out) :: no_j1l1, no_j1l2, no_j0l2
       real, intent (out) :: iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob
-      real, intent (out) :: cfac, cfac2, nuxfac, i1fac, i2fac
+      real, intent (out) :: cfac, nuxfac, i1fac, i2fac
          
       !-------------------------------------------------------------------------
 
@@ -311,14 +310,15 @@ contains
          exact_conservation_tp = .false.      ! if True and lmax=jmax=1 then momentum and energy conserved to machine precision, by using the test particle operator &
          ! to compute field particle terms; this is slower than exact_conservation
          spitzer_problem = .false.            ! to solve the Spitzer problem for tests of the collision operator
-         cfac = 1                             ! scale gyrodiffusive term in test particle component of Fokker-Planck operator
-         cfac2 = 1                            ! scale gyrodiffusive terms in field particle component of Fokker-Planck operator - in beta
+         cfac = 1                             ! scale the gyrodiffusive (FLR) terms: the classical diffusion of the test particle component and
+         ! the m /= 0 (J1) terms of the field particle component of the Fokker-Planck operator; cfac = 0 is the drift-kinetic operator
          nuxfac = 1                           ! scale nux (mixed derivative) terms in test particle component of Fokker-Planck operator
          jmax = 1                             ! maximum j in Hirshman-Sigmar expansion of the field particle operator
          lmax = 1                             ! maximum l in spherical harmonic expansion of the field particle operator
          i1fac = 1                            ! for Spitzer problem
          i2fac = 0                            ! for Spitzer problem
-         no_j1l1 = .true.                     ! disable j1l1 term in the field particle component of Fokker-Planck operator
+         no_j1l1 = .false.                    ! disable j1l1 term in the field particle component of Fokker-Planck operator; it is needed with
+         ! the FLR terms (cfac = 1) to agree with GS2 and CGYRO
          no_j1l2 = .false.                    ! disable j1l2 term
          no_j0l2 = .false.                    ! disable j0l2 term
          vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
@@ -339,7 +339,7 @@ contains
             interspec, intraspec, iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, &
             deflknob, eimassr_approx, advfield_coll, spitzer_problem, density_conservation, &
             density_conservation_field, density_conservation_tp, exact_conservation, exact_conservation_tp, &
-            vpa_operator, mu_operator, cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2
+            vpa_operator, mu_operator, cfac, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2
          
          !----------------------------------------------------------------------
 
@@ -387,7 +387,6 @@ contains
          write (unit, '(A, ES12.4)') '  eideflknob = ', eideflknob
          write (unit, '(A, ES12.4)') '  deflknob = ', deflknob
          write (unit, '(A, ES12.4)') '  cfac = ', cfac
-         write (unit, '(A, ES12.4)') '  cfac2 = ', cfac2
          write (unit, '(A, ES12.4)') '  nuxfac = ', nuxfac
          write (unit, '(A, ES12.4)') '  i1fac = ', i1fac
          write (unit, '(A, ES12.4)') '  i2fac = ', i2fac

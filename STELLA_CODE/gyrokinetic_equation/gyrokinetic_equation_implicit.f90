@@ -74,7 +74,10 @@ contains
       integer, intent(in) :: istep
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      
+
+      ! Local variables
+      logical :: apply_collisions, apply_mirror
+
       !-------------------------------------------------------------------------
 
       ! Start the timer for the implicit part of the solve
@@ -89,6 +92,16 @@ contains
 
       if (rk_step) call mb_communicate(g)
 
+      ! The implicit collisions and the implicit mirror term both work on the velocity-local
+      ! distribution <gvmu>. When the collisions are directly followed by the mirror term, the
+      ! collisions leave their result in <gvmu> and the mirror term continues from it, which
+      ! saves two redistributions. This hand-over is only valid in that order: when the order is
+      ! reversed (flip_flop), the mirror term has to scatter <g> itself, and the collisions have
+      ! to gather their result back into <g>; otherwise the mirror term acts on a stale <gvmu>
+      ! and the collision update is lost on every other time step.
+      apply_collisions = collisions_implicit .and. include_collisions
+      apply_mirror = mirror_implicit .and. include_mirror
+
       if (mod(istep, 2) == 1 .or. .not. flip_flop) then
 
          if (prp_shear_enabled) then
@@ -101,14 +114,15 @@ contains
             fields_updated = .false.
          end if
 
-         if (collisions_implicit .and. include_collisions) then
+         ! Collisions followed by the mirror term: hand over <gvmu> (see above)
+         if (apply_collisions) then
             call advance_fields(g, phi, apar, bpar, dist='g')
-            call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
+            call advance_collisions_implicit(apply_mirror, phi, apar, bpar, g)
             fields_updated = .false.
          end if
 
-         if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g, apar)
+         if (apply_mirror) then
+            call advance_mirror_implicit(apply_collisions, g, apar)
             fields_updated = .false.
          end if
 
@@ -144,14 +158,16 @@ contains
             fields_updated = .false.            
          end if
 
-         if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g, apar)
+         ! Mirror term followed by the collisions: no hand-over, so the mirror term scatters <g>
+         ! itself and the collisions gather their result back into <g>
+         if (apply_mirror) then
+            call advance_mirror_implicit(.false., g, apar)
             fields_updated = .false.
          end if
 
-         if (collisions_implicit .and. include_collisions) then
+         if (apply_collisions) then
             call advance_fields(g, phi, apar, bpar, dist='g')
-            call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
+            call advance_collisions_implicit(.false., phi, apar, bpar, g)
             fields_updated = .false.
          end if
 

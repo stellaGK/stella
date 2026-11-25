@@ -43,7 +43,7 @@ module collisions_fokkerplanck
    logical :: advfield_coll
 
    integer :: nresponse = 1
-   real :: cfac, cfac2
+   real :: cfac
    real :: nuxfac
    real :: iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob
    logical :: eimassr_approx
@@ -77,6 +77,8 @@ module collisions_fokkerplanck
    real, dimension(:, :, :, :, :), allocatable :: jm0
    real, dimension(:), allocatable :: mwnorm
    real, dimension(:), allocatable :: modmwnorm
+   ! With kinetic electrons, restore the density of the test-particle solve on the velocity grid (see solve_test_particle_operator)
+   logical :: density_correction_solve
    real :: i1fac, i2fac
 
    ! Set once the time-step-independent setup has been done; reset by finish_collisions_fp
@@ -108,7 +110,7 @@ contains
                density_conservation_field, density_conservation_tp, &
                exact_conservation, exact_conservation_tp, &
                vpa_operator, mu_operator, &
-               cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
+               cfac, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
 
       ! Broadcast the parameters to all processors
       call broadcast(fieldpart)
@@ -133,7 +135,6 @@ contains
       call broadcast(vpa_operator)
       call broadcast(mu_operator)
       call broadcast(cfac)
-      call broadcast(cfac2)
       call broadcast(nuxfac)
       call broadcast(jmax)
       call broadcast(lmax)
@@ -153,19 +154,20 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine init_collisions_fp(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
+   subroutine init_collisions_fp(collisions_implicit, cfl_dt_collisions)
 
-      use grids_species, only: spec, nspec
+      use grids_species, only: spec, nspec, has_electron_species
       use grids_velocity, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
       use parallelisation_layouts
       use parameters_numerical, only: fully_explicit
       use common_types, only: spec_type
+      use mp, only: mp_abort, nproc
 
       implicit none
 
       logical, intent(in) :: collisions_implicit
-      real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
+      real, intent(out) :: cfl_dt_collisions
 
       integer :: is, is2
       integer, parameter :: ion_species = 1
@@ -181,6 +183,22 @@ contains
       ! Everything else is independent of the time step and is set up only on the first call.
       ! In particular, the knobs below rescale spec%vnew in place and must not be applied twice.
       if (.not. initialised_fokker_planck) then
+
+         ! The field-particle part is only implemented in the implicit algorithm: the explicit algorithm
+         ! (advance_collisions_fp_explicit) applies the test-particle operator only, so stop instead of
+         ! silently running without the field-particle part
+         if (fieldpart .and. .not. collisions_implicit) then
+            call mp_abort('The field-particle part of the Fokker-Planck operator (fieldpart = .true.) is only ' &
+               //'implemented for implicit collisions (collisions_implicit = .true.). Aborting.')
+         end if
+
+         ! With several species, these options use the test-particle matrices (blockmatrix) of another
+         ! species at the same (ky,kx,z) point (get_psi, get_testpart_density), which are only available
+         ! when that block is on the same processor; otherwise the term is silently skipped
+         if (fieldpart .and. (exact_conservation_tp .or. density_conservation_tp) .and. nspec > 1 .and. nproc > 1) then
+            call mp_abort('The options exact_conservation_tp and density_conservation_tp of the Fokker-Planck ' &
+               //'field-particle part are not MPI parallel for several species: run on one processor. Aborting.')
+         end if
 
          ! disable inter-species collisions if interspec==false
          if (.not. interspec) then
@@ -236,6 +254,8 @@ contains
 
       end if
 
+      density_correction_solve = has_electron_species(spec) .and. (.not. density_conservation)
+
       if (collisions_implicit) then
          call init_fp_diffmatrix
          ! deltaj only uses the test-particle operator blockmatrix/code_dt, which does not
@@ -247,8 +267,7 @@ contains
          do is = 1, nspec
             vnew_max = max(vnew_max, maxval(spec(is)%vnew))
          end do
-         cfl_dt_vpadiff = 2.0 * dvpa**2 / vnew_max
-         cfl_dt_mudiff = minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2))
+         cfl_dt_collisions = min(2.0 * dvpa**2 / vnew_max, minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2)))
       end if
 
       initialised_fokker_planck = .true.
@@ -1403,7 +1422,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       end do
 
-      ! add the gyro-diffusive term to cdiffmat
+      ! add the gyro-diffusive term to cdiffmat (diagonal)
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -1411,31 +1430,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          is = is_idx(kxkyz_lo, ikxkyz)
          do iv = 1, nvpa
             do imu = 1, nmu
-               ! diagonal indices in blockmatrix
                ivv = nmu * (iv - 1) + imu
-               imm = ivv
-               if ((max(1, ivv - (nmu + 1)) <= imm) .and. (imm <= min(nvpa * nmu, ivv + (nmu + 1)))) then
-                  ! intra-species:
-   cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) &
-          + code_dt * cfac * 0.5 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 * (nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) &
-                                                                        + deflknob * nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu)))
-                  ! inter-species:
-                  do isb = 1, nspec
-                     if (isb == is) cycle
-
-                     if ((is == 2) .and. (isb == 1)) then
-                        eiediff = eiediffknob
-                        eidefl = eideflknob
-                     else
-                        eiediff = 1
-                        eidefl = 1
-                     end if
-
-   cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1 + imm - ivv, ivv, iky, ikx, iz, is) &
-                          + code_dt*cfac*0.5*kperp2(iky,ikx,ia,iz)*(spec(is)%smz/bmag(ia,iz))**2*(eiediff*nupa(iv,imu,iz,is,isb)*bmag(ia,iz)*mu(imu) &
-                                                              + eidefl * deflknob * nuD(iv, imu, iz, is, isb) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu)))
-                  end do
-               end if
+               cdiffmat_band(nmu + 1 + nmu + 1 + 1, ivv, iky, ikx, iz, is) = cdiffmat_band(nmu + 1 + nmu + 1 + 1, ivv, iky, ikx, iz, is) &
+                  + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
             end do
          end do
       end do
@@ -1483,7 +1480,99 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          call zgbtrf(nc, nc, nb, nb, cdiffmat_band(:, :, iky, ikx, iz, is), lldab, ipiv(:, iky, ikx, iz, is), info)
       end do
 
+      ! The responses dh_a/dpsi^{ab} of the field-particle part are stored in the (ky,kx,z) block of
+      ! species b, but are solved with the LU factorisation of species a (see get_psi_response)
+      if (share_species_blocks()) call share_band_matrices_between_processors
+
    end subroutine init_fp_diffmatrix
+
+   !****************************************************************************
+   !        Share data of all species blocks between the processors
+   !****************************************************************************
+   ! With the field-particle part and several species, the processor that owns the (ky,kx,z)
+   ! block of species b also needs the LU factorisation <cdiffmat_band>, <ipiv> and the Bessel
+   ! functions <jm> of the other species a at the same (ky,kx,z) point (get_psi_response, get_psi),
+   ! which are computed by the processor that owns the block of species a. Before, these were
+   ! read without being computed, which crashed stella (free(): invalid size) with more than one
+   ! processor and species. The arrays have the full (ky,kx,z,species) size on every processor,
+   ! so they are completed with a sum over the processors.
+   !****************************************************************************
+   logical function share_species_blocks()
+
+      use mp, only: nproc
+      use grids_species, only: nspec
+
+      implicit none
+
+      share_species_blocks = fieldpart .and. nspec > 1 .and. nproc > 1
+
+   end function share_species_blocks
+
+   !****************************************************************************
+   subroutine get_owned_species_blocks(owned)
+
+      use grids_z, only: nzgrid
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+
+      implicit none
+
+      logical, dimension(:, :, -nzgrid:, :), intent(out) :: owned
+      integer :: ikxkyz
+
+      !-------------------------------------------------------------------------
+
+      ! Each (ky,kx,z,species) point is owned by exactly one processor: the one with its first tube
+      owned = .false.
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         if (it_idx(kxkyz_lo, ikxkyz) /= 1) cycle
+         owned(iky_idx(kxkyz_lo, ikxkyz), ikx_idx(kxkyz_lo, ikxkyz), iz_idx(kxkyz_lo, ikxkyz), is_idx(kxkyz_lo, ikxkyz)) = .true.
+      end do
+
+   end subroutine get_owned_species_blocks
+
+   !****************************************************************************
+   subroutine share_band_matrices_between_processors
+
+      use mp, only: sum_allreduce
+      use grids_species, only: nspec
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky, nakx
+
+      implicit none
+
+      logical, dimension(:, :, :, :), allocatable :: owned
+      integer, dimension(:), allocatable :: ipiv_flat
+      integer :: iky, ikx, iz, is
+
+      !-------------------------------------------------------------------------
+
+      allocate (owned(naky, nakx, -nzgrid:nzgrid, nspec))
+      call get_owned_species_blocks(owned)
+
+      ! Keep only the blocks factorised by the owner (the other blocks hold the identity, or the
+      ! same factorisation for another tube), so that the sum gives one copy of every block
+      do is = 1, nspec
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  if (owned(iky, ikx, iz, is)) cycle
+                  cdiffmat_band(:, :, iky, ikx, iz, is) = 0.
+                  ipiv(:, iky, ikx, iz, is) = 0
+               end do
+            end do
+         end do
+         call sum_allreduce(cdiffmat_band(:, :, :, :, :, is))
+      end do
+
+      allocate (ipiv_flat(size(ipiv)))
+      ipiv_flat = reshape(ipiv, (/size(ipiv)/))
+      call sum_allreduce(ipiv_flat)
+      ipiv = reshape(ipiv_flat, shape(ipiv))
+
+      deallocate (owned, ipiv_flat)
+
+   end subroutine share_band_matrices_between_processors
 
    !****************************************************************************
    !                                      Title
@@ -1552,6 +1641,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       allocate (jm0(nmu, naky, nakx, -nzgrid:nzgrid, nspec))
 
       jm = 0
+      jm0 = 0
       ia = 1
 
       aj1fac = 1.0
@@ -1584,17 +1674,60 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          end do
       end do
 
-      if (cfac2 == 0.) then
-         ! disable gyro-diffusive effects in the field particle operator
-         jm(:, 0, :, :, :, :) = 1.
-         if (lmax > 0) then
-            do mm = 1, lmax
-               jm(:, mm, :, :, :, :) = 0.
-            end do
-         end if
+      ! The field-particle part also needs <jm> of the species that are owned by other processors
+      ! (see share_species_blocks)
+      if (share_species_blocks()) call share_bessel_fn_between_processors
+
+      ! The m /= 0 terms of the field-particle part (J1 for l = 1: the perpendicular momentum) restore what the
+      ! classical (gyro-)diffusion of the test-particle part removes, so scale them by the same <cfac>. With cfac = 0
+      ! (no classical diffusion) they would otherwise inject perpendicular momentum, and the growth rate runs away with
+      ! the collision frequency (benchmark C1, Oct 2026: gamma = 0.28 instead of 0.08 at nu_ii = 1). J0 is kept on the
+      ! m = 0 terms, so that the momentum and energy at the particle position are conserved, as in GS2, GENE and CGYRO.
+      ! This replaces the input <cfac2>, which removed J0 and J1 of the field-particle part together.
+      if (lmax > 0) then
+         do mm = 1, lmax
+            jm(:, mm, :, :, :, :) = cfac * jm(:, mm, :, :, :, :)
+         end do
       end if
 
    end subroutine init_bessel_fn
+
+   !****************************************************************************
+   subroutine share_bessel_fn_between_processors
+
+      use mp, only: sum_allreduce
+      use grids_species, only: nspec
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky, nakx
+
+      implicit none
+
+      logical, dimension(:, :, :, :), allocatable :: owned
+      integer :: iky, ikx, iz, is
+
+      !-------------------------------------------------------------------------
+
+      allocate (owned(naky, nakx, -nzgrid:nzgrid, nspec))
+      call get_owned_species_blocks(owned)
+
+      ! Keep only the values of the owner, so that the sum gives one copy of every point
+      do is = 1, nspec
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  if (owned(iky, ikx, iz, is)) cycle
+                  jm(:, :, iky, ikx, iz, is) = 0.
+                  jm0(:, iky, ikx, iz, is) = 0.
+               end do
+            end do
+         end do
+         call sum_allreduce(jm(:, :, :, :, :, is))
+         call sum_allreduce(jm0(:, :, :, :, is))
+      end do
+
+      deallocate (owned)
+
+   end subroutine share_bessel_fn_between_processors
 
    !****************************************************************************
    !                                      Title
@@ -1938,6 +2071,20 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                      call integrate_vmu(modmw(:, :, iz, isa), iz, modmwnorm(iz))
                   end do
 
+                  ! The l = 0 terms of the field-particle part (energy exchange, j >= 1) must not change the density.
+                  ! For electrons colliding with ions, Delta_j^{ab} depends on the ion speed, which is sqrt(m_i/m_e) = 43
+                  ! times the electron speed, so part of it lies inside the first cells of the electron grid. On the grid
+                  ! its density moment was then as large as its energy moment (benchmark C2, Nov 2026), so the energy
+                  ! exchange created electron density and the growth rate ran away at large collisionality. Remove the
+                  ! density moment on the grid with modmw, which has no energy moment, so the energy exchange is unchanged.
+                  if ((ll == 0) .and. (jj >= 1)) then
+                     do iz = -nzgrid, nzgrid
+                        call integrate_vmu(deltaj(ll, jj, isa, isb, :, :, ia, iz), iz, deltajint(iz))
+                     end do
+                     deltaj(ll, jj, isa, isb, :, :, ia, :) = deltaj(ll, jj, isa, isb, :, :, ia, :) &
+                                             - modmw(:, :, :, isa) / spread(spread(modmwnorm, 1, nvpa), 2, nmu) * spread(spread(deltajint, 1, nvpa), 2, nmu)
+                  end if
+
                   ! to ensure number conservation to machine precision, \Delta_{j=1} -> \Delta_{j=1} - F0/\int F0 dv * \int \Delta_{j=1} dv
 
                   ! AVB: to do - need to generalise this to higher-order terms in the field particle operator
@@ -2255,7 +2402,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          is = is_idx(kxkyz_lo, ikxkyz)
 
    ghrs = reshape(transpose(spread(ztmax(:,is),2,nmu)*spread(maxwell_mu(1,iz,:,is),1,nvpa)*spread(jm0(:,iky,ikx,iz,is),1,nvpa)), shape=(/ nmu*nvpa /))
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
          gvmu(:, :, ikxkyz) = transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
       end do
 
@@ -2326,7 +2473,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                         ghrs(nmu * (iv - 1) + imu) = -code_dt * modmw(iv, imu, iz, is) / modmwnorm(iz)
                      end do
                   end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
                   do ix = 1, nvpa
                      gvmu(ix, :, ikxkyz) = ghrs(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu)
                   end do
@@ -2385,7 +2532,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                      ghrs(nmu * (iv - 1) + imu) = ztmax(iv, is) * maxwell_mu(1, iz, imu, is) * jm0(imu, iky, ikx, iz, is)
                   end do
                end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
                do ix = 1, nvpa
                   gvmu(ix, :, ikxkyz) = ghrs(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu)
                end do
@@ -2451,7 +2598,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
                            ghrs(nmu * (iv - 1) + imu) = -code_dt * modmw(iv, imu, iz, is) / modmwnorm(iz)
                         end do
                      end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
                      do ix = 1, nvpa
                         gvmu(ix, :, ikxkyz) = ghrs(nmu * (ix - 1) + 1:nmu * (ix - 1) + nmu)
                      end do
@@ -2511,6 +2658,15 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       !      call close_output_file (tmpunit)
       !  end if
       !end do
+
+      ! If <advfield_coll> = False, the electrostatic potential terms are disabled in the field particle
+      ! operator, so decouple phi from the field particle terms in the response matrix. Otherwise the
+      ! (unused) phi component of the right-hand side would contaminate the field particle terms.
+      if (.not. advfield_coll) then
+         fp_response(1, :, :) = 0.
+         fp_response(:, 1, :) = 0.
+         fp_response(1, 1, :) = 1.
+      end if
 
       ! LU decomposition for response
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -2670,8 +2826,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
          ! solve for response
          ! need to solve [1 - Deltat C_{test}] dh_a/dpsi^ab = delta_{ab} for dh_a/dpsi^ab. Here, C_{test} includes self collisions and a-b collisions,
-         call zgbtrs('No transpose', nvpa * nmu, nmu + 1, nmu + 1, 1, &
-                     cdiffmat_band(:, :, iky, ikx, iz, isa), 3 * (nmu + 1) + 1, ipiv(:, iky, ikx, iz, isa), ghrs, nvpa * nmu, info)
+         call solve_test_particle_operator(ghrs, iky, ikx, iz, isa)
 
          do iv = 1, nvpa
             response(iv, :, ikxkyz) = ghrs(nmu * (iv - 1) + 1:nmu * (iv - 1) + nmu)
@@ -2744,6 +2899,12 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       allocate (g0(nvpa, nmu))
       allocate (ghrs(nmu * nvpa))
+
+      ! Each processor only fills the (ky,kx,z,tube,species) points it owns, and <fld> is summed
+      ! over all processors at the end, so the other points must be zero. Otherwise the values that
+      ! <fld> holds on entry (e.g. the previous psi moment) are added once for every other
+      ! processor, which made the field-particle part depend on the number of processors and blow up
+      fld = 0.
 
       if (density_conservation) then
          conservative_wgts = .true.
@@ -4222,7 +4383,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
-      complex, dimension(:, :, :, :, :), allocatable :: flds
+      complex, dimension(:, :, :, :, :), allocatable :: flds, flds_solved
       complex, dimension(:, :, :), allocatable :: g_in
       complex, dimension(:, :), allocatable :: gvmutr
       complex, dimension(:), allocatable :: ghrs
@@ -4286,7 +4447,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
             ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
          end do
 
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
 
          do iv = 1, nvpa
             g(iv, :, ikxkyz) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
@@ -4299,6 +4460,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       if (advfield_coll) then
          call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h')
          flds(:, :, :, :, 1) = phi
+      else
+         ! phi is decoupled from the field particle terms in the response matrix (see init_fp_conserve)
+         flds(:, :, :, :, 1) = 0.
       end if
 
       ! next get the psi^{s1s2,jlm}_inh^{n+1}
@@ -4332,6 +4496,11 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       end if
 
       ! AVB: obtain phi^{n+1} and psijlm^{n+1} from response matrix
+      ! The response matrix is only applied on the processor that owns is = 1 for each
+      ! (ky,kx,z,tube) point, so store the solution in <flds_solved>, which is summed over
+      ! all processors below. Note that <flds> contains the inhomogeneous fields on every
+      ! processor, so summing <flds> itself would add these for every other processor.
+      allocate (flds_solved(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse)); flds_solved = 0.
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -4341,11 +4510,16 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          ! no need to compute multiple times
          is = is_idx(kxkyz_lo, ikxkyz); if (is /= 1) cycle
          call lu_back_substitution(fp_response(:, :, ikxkyz), diff_idx(:, ikxkyz), flds(iky, ikx, iz, it, :))
+         flds_solved(iky, ikx, iz, it, :) = flds(iky, ikx, iz, it, :)
       end do
+
+      ! Collect the solution of the response matrix from all processors
+      call sum_allreduce(flds_solved)
+      flds = flds_solved
+      deallocate (flds_solved)
 
       if (advfield_coll) then
          phi(:, :, :, :) = flds(:, :, :, :, 1)
-         call sum_allreduce(phi)
       end if
 
       g = g_in
@@ -4413,7 +4587,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          do iv = 1, nvpa
             ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
          end do
-    call zgbtrs('No transpose', nvpa*nmu, nmu+1, nmu+1, 1, cdiffmat_band(:,:,iky,ikx,iz,is), 3*(nmu+1)+1, ipiv(:,iky,ikx,iz,is), ghrs, nvpa*nmu, info)
+    call solve_test_particle_operator(ghrs, iky, ikx, iz, is)
          do iv = 1, nvpa
             g(iv, :, ikxkyz) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
          end do
@@ -4432,5 +4606,108 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       deallocate (ghrs)
 
    end subroutine advance_implicit_fp
+
+   !****************************************************************************
+   !                   Coefficient of the gyro-diffusive term
+   !****************************************************************************
+   ! The finite-Larmor-radius (classical diffusion) term of the test-particle operator is diagonal in velocity space:
+   ! C_test[h] contains -cfac * kperp2 * gyro_diffusion_coefficient * h. It is used both in the matrix of the implicit
+   ! solve (init_fp_diffmatrix) and in the density correction after the solve (solve_test_particle_operator).
+   !****************************************************************************
+   real function gyro_diffusion_coefficient(iv, imu, iz, is)
+
+      use grids_velocity, only: vpa, mu
+      use grids_species, only: spec, nspec
+      use geometry, only: bmag
+
+      implicit none
+
+      integer, intent(in) :: iv, imu, iz, is
+
+      real :: eiediff, eidefl, nusum
+      integer :: isb, ia
+
+      ia = 1
+      ! intra-species
+      nusum = nupa(iv, imu, iz, is, is) * bmag(ia, iz) * mu(imu) + deflknob * nuD(iv, imu, iz, is, is) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
+      ! inter-species
+      do isb = 1, nspec
+         if (isb == is) cycle
+         if ((is == 2) .and. (isb == 1)) then
+            eiediff = eiediffknob
+            eidefl = eideflknob
+         else
+            eiediff = 1
+            eidefl = 1
+         end if
+         nusum = nusum + eiediff * nupa(iv, imu, iz, is, isb) * bmag(ia, iz) * mu(imu) &
+                 + eidefl * deflknob * nuD(iv, imu, iz, is, isb) * (vpa(iv)**2 + bmag(ia, iz) * mu(imu))
+      end do
+      gyro_diffusion_coefficient = 0.5 * (spec(is)%smz / bmag(ia, iz))**2 * nusum
+
+   end function gyro_diffusion_coefficient
+
+   !****************************************************************************
+   !                       Solve [1 - Deltat C_test] h = ghrs
+   !****************************************************************************
+   ! The velocity-space part of the test-particle operator conserves density analytically, but on the non-uniform mu
+   ! grid (without density_conservation) the implicit solve changed the density by about 1e-5 of h per time step
+   ! (benchmark C2, Nov 2026). With kinetic electrons, quasineutrality amplifies this by 1/(k_perp rho_i)^2, so that
+   ! collisions alone were unstable. With density_correction_solve, this density error is removed after the solve, by
+   ! adding a multiple of modmw, which has no momentum and no energy moment. The finite-Larmor-radius (classical
+   ! diffusion) term of the operator (gyro_diffusion_coefficient), the diagonal flr_diag below, changes the gyrocentre density physically, so only
+   ! the remainder is removed: the solution x of [1 + flr_diag - Deltat C_v] x = ghrs must satisfy
+   ! n[x] + n[flr_diag x] = n[ghrs], where n[.] is the density moment on the grid. (Conserving n[x] instead made the
+   ! ion-ion collisions unstable in benchmark C2.) The correction is linear in ghrs, so it is applied in the same
+   ! way to the response matrices.
+   !****************************************************************************
+   subroutine solve_test_particle_operator(ghrs, iky, ikx, iz, is)
+
+      use grids_velocity, only: nvpa, nmu
+      use grids_time, only: code_dt
+      use arrays, only: kperp2
+      use calculations_velocity_integrals, only: integrate_vmu
+
+      implicit none
+
+      complex, dimension(:), intent(in out) :: ghrs
+      integer, intent(in) :: iky, ikx, iz, is
+
+      complex, dimension(:, :), allocatable :: hvmu
+      real, dimension(:, :), allocatable :: flr_diag
+      complex :: density_rhs, density_error
+      real :: modmw_density
+      integer :: info, iv, imu, ia
+
+      if (density_correction_solve) then
+         ia = 1
+         allocate (hvmu(nvpa, nmu), flr_diag(nvpa, nmu))
+         hvmu = transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
+         call integrate_vmu(hvmu, iz, density_rhs)
+         ! the diagonal finite-Larmor-radius term of cdiffmat_band (see init_fp_diffmatrix)
+         do iv = 1, nvpa
+            do imu = 1, nmu
+               flr_diag(iv, imu) = 1. + code_dt * cfac * kperp2(iky, ikx, ia, iz) * gyro_diffusion_coefficient(iv, imu, iz, is)
+            end do
+         end do
+      end if
+
+      call zgbtrs('No transpose', nvpa * nmu, nmu + 1, nmu + 1, 1, cdiffmat_band(:, :, iky, ikx, iz, is), &
+                  3 * (nmu + 1) + 1, ipiv(:, iky, ikx, iz, is), ghrs, nvpa * nmu, info)
+
+      if (density_correction_solve) then
+         ! density error: n[(1 + flr_diag) x] - n[ghrs], removed with modmw
+         hvmu = flr_diag * transpose(reshape(ghrs, shape=(/nmu, nvpa/)))
+         call integrate_vmu(hvmu, iz, density_error)
+         density_error = density_error - density_rhs
+         call integrate_vmu(flr_diag * modmw(:, :, iz, is), iz, modmw_density)
+         do iv = 1, nvpa
+            ghrs(nmu * (iv - 1) + 1:nmu * iv) = ghrs(nmu * (iv - 1) + 1:nmu * iv) &
+                                                - modmw(iv, :, iz, is) / modmw_density * density_error
+         end do
+         deallocate (hvmu, flr_diag)
+      end if
+
+   end subroutine solve_test_particle_operator
 
 end module collisions_fokkerplanck

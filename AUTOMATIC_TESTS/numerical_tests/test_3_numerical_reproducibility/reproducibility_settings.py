@@ -17,6 +17,10 @@ input_files = [
     'collisions_dougherty_implicit.in',
     'collisions_dougherty_explicit.in',
     'collisions_fokker_planck_implicit.in',
+    'collisions_fokker_planck_fieldpart.in',
+    'collisions_fokker_planck_fieldpart_adiabatic.in',
+    'collisions_fokker_planck_fieldpart_drift_kinetic.in',
+    'collisions_fokker_planck_fieldpart_noadvfield.in',
     'collisions_fokker_planck_explicit.in',
     'explicit_algorithm_rk4.in',
     'explicit_algorithm_euler.in',
@@ -48,12 +52,4 @@ nproc_expected_output = 1
 # invariance tests are marked as strict expected failures for these input files,
 # so once the bug is fixed, the test will report an XPASS (and fail) as a reminder
 # to remove the input file from this dictionary.
-known_mpi_bugs = {
-    'collisions_dougherty_implicit.in': 'Implicit Dougherty collisions with momentum/energy '
-        'conservation and nspec > 1: the response matrix solve for the conservation terms '
-        '(flds) is only done on the processor that owns is = 1, and flds is not reduced '
-        'across processors (advance_vpadiff_implicit / advance_mudiff_implicit).',
-    'collisions_fokker_planck_implicit.in': 'Implicit Fokker-Planck collisions: phi = flds(:,:,:,:,1) '
-        'is summed with sum_allreduce, while every processor holds the full flds array but only '
-        'solved its own (ky,kx,z) points (advance_implicit_fp).',
-}
+known_mpi_bugs = {}
