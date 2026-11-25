@@ -1091,16 +1091,21 @@ contains
          character(len=25) :: fmt_min = "(a24, f9.2, a4, f9.2, a1)"
          character(len=25) :: fmt_sec = "(a24, f9.2, a4, f9.2, a1)"
          character(len=25) :: fmt_hours = "(a24, f9.2, a6, f9.2, a1)"
+         real :: percentage
          
          !----------------------------------------------------------------------
          
+         ! The total can be zero, e.g. for the response matrix when no term is implicit
+         percentage = 0.
+         if (timer_total > 0.) percentage = timer / timer_total * 100.
+         
          ! Write timers in hours, seconds or minutes
          if (hours) then
-            write (*, fmt=fmt_hours) trim(routine), timer / 60 / 60., 'hours', timer/timer_total*100., '%'
+            write (*, fmt=fmt_hours) trim(routine), timer / 60 / 60., 'hours', percentage, '%'
          else if (seconds) then
-            write (*, fmt=fmt_sec) trim(routine), timer, 'sec', timer/timer_total*100., '%'
+            write (*, fmt=fmt_sec) trim(routine), timer, 'sec', percentage, '%'
          else
-            write (*, fmt=fmt_min) trim(routine), timer / 60., 'min', timer/timer_total*100., '%'
+            write (*, fmt=fmt_min) trim(routine), timer / 60., 'min', percentage, '%'
          end if
       
       end subroutine write_time_message
