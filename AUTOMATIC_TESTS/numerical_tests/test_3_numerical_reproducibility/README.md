@@ -47,12 +47,10 @@ bit-for-bit identical when a simulation is repeated. Perturbing a single input p
 Known bugs
 ----------
 
-The MPI invariance tests are marked as strict expected failures (xfail) for two input
-files, since the results depend on the number of processors (see `known_mpi_bugs` in
+The MPI invariance tests are marked as strict expected failures (xfail) for one input
+file, since the results depend on the number of processors (see `known_mpi_bugs` in
 `reproducibility_settings.py`):
 
-- `collisions_dougherty_implicit.in`: implicit Dougherty collisions with momentum and
-  energy conservation and more than one species (relative differences of about 1e-3).
 - `collisions_fokker_planck_implicit.in`: implicit Fokker-Planck collisions (relative
   differences of about 1e-6, growing with the number of processors).
 
