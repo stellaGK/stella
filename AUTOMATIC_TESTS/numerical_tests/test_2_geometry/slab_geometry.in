@@ -1,0 +1,138 @@
+
+! Sheared slab geometry test: uniform B, linear shear, no curvature
+
+!===============================================================================
+!                               Magnetic Geometry
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'slab'
+/
+
+&geometry_slab
+  shat = 0.5
+  qinp = 1.4
+  rmaj = 3.0
+  betaprim = 0.0
+  curvy_slab = .false.
+/
+
+
+!===============================================================================
+!                                    Physics
+!===============================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+
+! Not used, but the test will check its value
+&electromagnetic
+  beta = 0.01
+/
+
+!===============================================================================
+!                                Kinetic species
+!===============================================================================
+
+&species_options
+  nspec = 2
+  species_option = 'stella'
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = 'box'
+/
+&kxky_grid_box
+  nx = 6
+  ny = 9
+  y0 = 5.0
+  x0 = 5.0
+/
+&z_grid
+  nzed = 4
+/
+&z_boundary_condition
+  boundary_option = 'periodic'
+/
+&velocity_grids
+  nmu = 2
+  nvgrid = 3
+  vpa_max = 3.0
+/
+
+!===============================================================================
+!                                  Diagnostics
+!===============================================================================
+
+&diagnostics
+  nsave = 10
+  nwrite = 1
+  save_for_restart = .false.
+  write_all = .true.
+/
+
+!===============================================================================
+!                              Initialize potential
+!===============================================================================
+
+&initialize_distribution
+  initialize_distribution_option = 'default'
+  phiinit = 0.01
+/
+
+&initialize_distribution_maxwellian
+  width0 = 1.0
+/
+
+!===============================================================================
+!                                    Numerics
+!===============================================================================
+
+&time_trace_options
+  nstep = 10
+  avail_cpu_time = 82800
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation
+!===============================================================================
+
+&dissipation_and_collisions_options
+  hyper_dissipation = .true.
+/

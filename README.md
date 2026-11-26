@@ -260,6 +260,7 @@ It is the responsibility of the respective authors to list their contributions t
 
 - The $\texttt{VMEC}$ interface has been written by M. Landreman and has been incorporated into $\texttt{stella}$ by M. Barnes in 2018.
 - The z-pinch magnetic geometry has been added by L. Podavini and M. Barnes in September 2024.
+- The sheared slab geometry (`geometry_option = 'slab'`, with an optional constant curvature, `curvy_slab`) has been added by G. Acton in June 2026.
 
 ### Code infrastructure
 
