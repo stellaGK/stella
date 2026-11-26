@@ -106,8 +106,8 @@
 !                              Initialize potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'noise'
+&initialise_distribution
+  initialise_distribution_option = 'noise'
   phiinit = 0.01
 /
 

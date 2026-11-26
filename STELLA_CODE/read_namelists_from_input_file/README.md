@@ -31,7 +31,9 @@ Overview of stella namelists:
 GEOMETRY
   geometry_options
   geometry_vmec
+  geometry_gvec
   geometry_miller
+  geometry_slab
   geometry_zpinch
   geometry_from_txt
 
@@ -67,11 +69,11 @@ DIAGNOSTICS
   diagnostics_moments
 
 INITIALIZE FIELDS
-  initialize_distribution
-  initialize_distribution_maxwellian
-  initialize_distribution_noise
-  initialize_distribution_kpar
-  initialize_distribution_rh
+  initialise_distribution
+  initialise_distribution_maxwellian
+  initialise_distribution_noise
+  initialise_distribution_kpar
+  initialise_distribution_rh
   restart_options
 
 DISSIPATION AND COLLISIONS

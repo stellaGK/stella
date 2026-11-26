@@ -324,6 +324,7 @@ contains
       ! Local variables
       !integer :: info_numa
       integer :: ierror
+      integer :: min_shared_proc, max_shared_proc, node_proc, max_node_proc, comm_node_shared
       logical :: init
       
       !-------------------------------------------------------------------------
@@ -385,6 +386,39 @@ contains
       
       ! Rank <sproc> of this process within the shared-memory communicator (i.e. within a node)
       call mpi_comm_rank(comm_shared, sproc, ierror)
+
+#ifdef SPLIT_BY_NUMA
+      ! The NUMA domains (sockets) only have the same number of processes if Slurm divides the processes
+      ! evenly over the sockets of every node, which it does not do by default (e.g. with only --ntasks).
+      ! Moreover, when stella is started with srun instead of mpirun, OpenMPI does not know to which cores
+      ! the processes are bound, and puts every process in a NUMA domain of its own, so that nothing is shared.
+      ! In both cases, use one shared-memory domain per node instead of stopping with an error.
+      call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_node_shared, ierror)
+      call mpi_comm_size(comm_node_shared, node_proc, ierror)
+      call mpi_allreduce(node_proc, max_node_proc, 1, mpi_integer, mpi_max, comm_all, ierror)
+      call mpi_allreduce(nshared_proc, min_shared_proc, 1, mpi_integer, mpi_min, comm_all, ierror)
+      call mpi_allreduce(nshared_proc, max_shared_proc, 1, mpi_integer, mpi_max, comm_all, ierror)
+      if (min_shared_proc /= max_shared_proc .or. (max_shared_proc == 1 .and. max_node_proc > 1)) then
+         if (aproc0) then
+            if (min_shared_proc /= max_shared_proc) then
+               write (*, '(A, I0, A, I0, A)') ' WARNING: the NUMA domains have between ', min_shared_proc, ' and ', &
+                  max_shared_proc, ' processes, so one shared-memory domain per node is used instead of one per NUMA domain.'
+               write (*, '(A)') '          This is slower; give every socket the same number of processes, e.g. with the Slurm options'
+               write (*, '(A)') '          --ntasks-per-node=<n> --ntasks-per-socket=<n/2> --distribution=block:block'
+            else
+               write (*, '(A)') ' WARNING: MPI put every process in a NUMA domain of its own (e.g. when stella is started with srun),'
+               write (*, '(A)') '          so one shared-memory domain per node is used instead of one per NUMA domain.'
+               write (*, '(A)') '          Start stella with mpirun to share the response matrix within every NUMA domain.'
+            end if
+         end if
+         call mpi_comm_free(comm_shared, ierror)
+         comm_shared = comm_node_shared
+         call mpi_comm_size(comm_shared, nshared_proc, ierror)
+         call mpi_comm_rank(comm_shared, sproc, ierror)
+      else
+         call mpi_comm_free(comm_node_shared, ierror)
+      end if
+#endif
       
       ! Set <sproc0> to True if this is rank 0 in the shared-memory communicator ("master" rank)
       sproc0 = (sproc == 0)

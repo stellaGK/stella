@@ -214,9 +214,11 @@ def compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file,
         assert_same_shape(local_quantity, expected_quantity, key)
         if not (np.allclose(local_quantity, expected_quantity, rtol=1e-8, atol=1e-100)):
         
-            # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes
+            # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes:
+            # Re[omega] of the ky = 0 modes is zero up to round-off (about 1e-12), which changes with the
+            # number of processes and the platform, hence atol = 1e-10
             if key in ['omega']: 
-                if not (np.allclose(local_quantity, expected_quantity, rtol=1e-8, atol=1e-12)):
+                if not (np.allclose(local_quantity, expected_quantity, rtol=1e-8, atol=1e-10)):
                     print(f'\nERROR: The {key} arrays do not match in the netCDF files.'); error = True
                     print(f'Compare the {key} arrays in the local and expected netCDF files:')                     
                     compare_local_array_with_expected_array(local_quantity, expected_quantity, name=key1)   
