@@ -1,0 +1,81 @@
+! Check the sign of the magnetic field in test_2h_vmec_magnetic_field_sign.py:
+! a circular tokamak (R0 = 3 m, a = 1 m, q = 1.4 + 0.8 s, s = 0.25, one field period).
+! The test runs this input file with wout_*_Bplus.nc and with wout_*_Bminus.nc,
+! two VMEC++ equilibria that only differ by the sign of the magnetic field (made
+! by vmec_magnetic_field_sign/make_vmec_files.py). A short linear ITG simulation
+! (ky = 1, theta0 = 1, adiabatic electrons) has the same |phi|^2(t), growth rate
+! and heat flux for both, and the opposite real frequency.
+
+&geometry_options
+  geometry_option = 'vmec'
+/
+&geometry_vmec
+  vmec_filename = 'wout_tok_circ_Bplus.nc'
+  torflux = 0.25
+  nfield_periods = 1.0
+  verbose = .false.
+/
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+/
+
+&species_options
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+&kxky_grid_range
+  naky = 1
+  nakx = 1
+  aky_min = 1.0
+  aky_max = 1.0
+  theta0_min = 1.0
+  theta0_max = 1.0
+/
+&z_grid
+  nzed = 48
+  nperiod = 1
+  zed_equal_arc = .false.
+/
+&z_boundary_condition
+  boundary_option = 'zero'
+/
+&velocity_grids
+  nmu = 4
+  nvgrid = 8
+/
+
+&diagnostics
+  nsave = 1000
+  nwrite = 10
+/
+&diagnostics_omega
+  write_omega_vs_kxky = .true.
+/
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.001
+/
+
+&time_trace_options
+  nstep = 250
+/
+&time_step
+  delt = 0.02
+/
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/

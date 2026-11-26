@@ -105,7 +105,7 @@ contains
       integer :: nfp_tmp, sign_tmp
       ! Temporary flat 2-D buffer (C-order from netCDF): (nalpha, nz_file)
       real, allocatable :: buf2d(:, :)   ! shape (nalpha, 2*nzgrid_file+1)
-      real, allocatable :: buf1d(:)
+      real(kind=8), allocatable :: buf1d(:)
       integer :: nz_file
 
       ierr = 0
@@ -247,9 +247,19 @@ contains
       ! with "Start+count exceeds dimension bound" - including for nalpha = 1.
       allocate (dbl_buf(nz_loc, nalpha_loc))
 
+      ! Only the covariant components of B, the displacement factor and the factors of the
+      ! momentum flux may be missing from the file (they are then set to zero); the other
+      ! arrays define the geometry, so a missing one is an error
       stat = nf90_inq_varid(ncid, varname, varid)
       if (stat /= nf90_noerr) then
-         write (*, '(3A)') "  WARNING: variable '", trim(varname), "' not found in GVEC geometry file"
+         select case (trim(varname))
+         case ('B_sub_theta', 'B_sub_zeta', 'psit_displacement_fac', 'gradzeta_gradalpha_R2overB2', &
+               'gradzeta_gradpsit_R2overB2', 'b_dot_gradzeta_RR')
+            write (*, '(3A)') "  WARNING: variable '", trim(varname), "' not found in GVEC geometry file, it is set to zero"
+         case default
+            write (*, '(3A)') "  ERROR: variable '", trim(varname), "' not found in GVEC geometry file"
+            ierr = ierr + 1
+         end select
          out2d = 0.0
          deallocate(dbl_buf)
          return

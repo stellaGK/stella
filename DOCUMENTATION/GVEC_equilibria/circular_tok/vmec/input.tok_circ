@@ -36,19 +36,15 @@
   PMASS_TYPE = 'power_series'
   AM = 100.0 -200.0 100.0
 
-  ! Rotational transform iota = 1/q = 1/(1.4+0.8*s)
-  ! Sampled at VMEC full-grid values s=0,1/16,...,1
+  ! Rotational transform iota = 1/q = 1/(1.4+0.8*s), as a power series in s
   PIOTA_TYPE = 'power_series'
-  AI = 0.71428571428571 -0.40816326530612 0.23310023310023 -0.13320826330...
-
-  ! Use ai_aux for a better iota representation
-  NCURR = 0
   AI = 0.714285714 -0.408163265 0.233100233 -0.133208263 0.076118375 -0.043495929 0.024854245
 
   ! Boundary: circular cross-section R0=3, a=1
+  ! RBC(n,m) and ZBS(n,m): toroidal mode number n first
   RBC(0,0) = 3.0
-  RBC(1,0) = 1.0
-  ZBS(1,0) = 1.0
+  RBC(0,1) = 1.0
+  ZBS(0,1) = 1.0
 
   RAXIS_CC = 3.0
   ZAXIS_CS = 0.0

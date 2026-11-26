@@ -109,11 +109,12 @@ contains
       use parameters_physics, only: fphi
       
       ! Geometry 
-      use geometry, only: bmag, btor, geo_surf
+      use geometry, only: geo_surf
       use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: gradzeta_gradx_R2overB2
       use geometry, only: gradzeta_grady_R2overB2
       use geometry, only: b_dot_gradzeta_RR
+      use geometry, only: clebsch_factor, dxdpsi, dydalpha
       use geometry, only: one_over_nablarho
       use geometry, only: fluxnorm_vs_z
       
@@ -147,7 +148,7 @@ contains
       complex, dimension(:, :), allocatable :: velocityintegrand_vs_vpamu, temp1_vs_vpamu, temp2_vs_vpamu
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       logical :: write_vs_kxkyz
-      real :: prefac
+      real :: prefac, bhat_factor
 
       !-------------------------------------------------------------------------
 
@@ -176,6 +177,13 @@ contains
       ! <write_fluxes_kxky> since the latter will field line average fluxes(kx,ky,z,s,t)
       ! If both are false only fluxes(s,t) are calculated.
       write_vs_kxkyz = write_fluxes_kxkyz .or. write_fluxes_kxky
+
+      ! The perpendicular part of the momentum flux contains (b x k) . ∇ζ, with the unit vector b = B/B
+      ! We have B = <clebsch_factor> ∇ψ x ∇α and ∇x x ∇y = <dxdpsi> <dydalpha> ∇ψ x ∇α (in normalised units),
+      ! so that b = <bhat_factor> (∇x x ∇y) / B with <bhat_factor> = <clebsch_factor> / (<dxdpsi> <dydalpha>)
+      ! The sign of <bhat_factor> changes with the sign of B, e.g., <bhat_factor> = -1 for Miller,
+      ! and <bhat_factor> = sgn(psi_t) for VMEC with <radial_coordinate> = 'sgn(psi_t) psi_t'
+      bhat_factor = clebsch_factor / (dxdpsi * dydalpha)
 
       !===================================
       !           ELECTROSTATIC           
@@ -208,16 +216,18 @@ contains
                   phi(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! For the parallel (first term) and perpendicular (second term) component of the momentum flux we have,
-            ! <VELOCITY_INTEGRAND>(vpa,mu) = δf*J0*vpa*(b.∇ζ)*R^2 
-            !        - i*δf*J1*ky*vperp^2*rho*(gradx_dot_grady*shat+theta0*gradx_dot_gradx*shat^2)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
-            !        + i*δf*J1*ky*vperp^2*rho*(theta0*gradx_dot_grady*shat+grady_dot_grady)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
+            ! <VELOCITY_INTEGRAND>(vpa,mu) = δf*J0*vpa*(b.∇ζ)*R^2 + i*δf*(J1/x)*vperp^2*(sqrt(T*m)/Z)*(R^2/B)*(b x k).∇ζ
+            ! with k = kx ∇x + ky ∇y, kx = theta0*shat*ky and b = <bhat_factor> (∇x x ∇y) / B, so that
+            ! (R^2/B)*(b x k).∇ζ = <bhat_factor>*ky*(R^2/B^2)*[(∇ζ.∇y)*(gradx_dot_grady+theta0*shat*gradx_dot_gradx)
+            !        - (∇ζ.∇x)*(theta0*shat*gradx_dot_grady+grady_dot_grady)]
+            ! Both terms change sign with B, so that the momentum flux does not change when B is reversed
             
             ! First add the parallel component of the momentum flux: δf*J0*vpa*(b.∇ζ)*R^2 
             velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_gradzeta_RR(ia, iz)
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             
             ! Next add the perpendicular component
-            velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
+            velocityintegrand_vs_vpamu = bhat_factor * df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
                     * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) *  &
                     (gradx_dot_grady(ia, iz) + theta0(iky, ikx) * gradx_dot_gradx (ia, iz) * geo_surf%shat) &
                     - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gradx_dot_grady(ia, iz) * geo_surf%shat + grady_dot_grady(ia, iz)))
@@ -260,14 +270,15 @@ contains
                apar(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! TODO -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !! Only valid for axis-symmetric devices now
-            ! Apar contribution to the parallel (first term) and perpendicular (second term) component of the momentum flux
+            ! Apar contribution to the parallel (first term) and perpendicular (second term) component of the momentum flux,
+            ! which is the phi contribution with phi replaced by -2*stm*vpa*apar
             velocityintegrand_vs_vpamu = -2.0*spread(vpa**2, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
                     * b_dot_gradzeta_RR(ia, iz)
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
-            velocityintegrand_vs_vpamu = 2.0*spread(vpa, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
-                    * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
-                    * (gradx_dot_grady(ia, iz) + theta0(iky, ikx) * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
-                    / (geo_surf%qinp * bmag(ia, iz)**2)
+            velocityintegrand_vs_vpamu = -2.0*spread(vpa, 2, nmu) * spec(is)%stm * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
+                    * bhat_factor * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
+                    * (gradzeta_grady_R2overB2(ia, iz) * (gradx_dot_grady(ia, iz) + theta0(iky, ikx) * gradx_dot_gradx(ia, iz) * geo_surf%shat) &
+                    - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gradx_dot_grady(ia, iz) * geo_surf%shat + grady_dot_grady(ia, iz)))
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), vflux_vs_s(is))

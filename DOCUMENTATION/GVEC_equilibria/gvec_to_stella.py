@@ -220,45 +220,37 @@ def gvec_to_stella(
     dp_dr       = float(state.evaluate_profile("p",    np.array([rho0]), deriv=1)[0])
 
     # ── Toroidal/poloidal handedness ──────────────────────────────────────────
-    # GVEC does not guarantee positive toroidal and poloidal flux, but stella's
-    # VMEC conventions assume it. GVEC's own GIST exporter (gist.py,
-    # determine_flip) resolves this by flipping the angle directions until both
-    # fluxes are positive; we reproduce that rule exactly.
+    # The formulas of stella's VMEC geometry hold in the frame of the VMEC
+    # angles (theta, zeta), whose Jacobian is negative (signgs = -1), with the
+    # toroidal flux of the right-handed frame, psi_t = signgs * phi_VMEC, as the
+    # radial coordinate (geometry_vmec_read_netCDF_file.f90). GVEC's logical
+    # coordinates (rho, theta, zeta) are right-handed (positive Jacobian), so one
+    # angle is reversed to obtain a frame of the same handedness as VMEC's; with
+    # the cylindrical map of GVEC (hmap = 1), reversing zeta gives the VMEC angles
+    # of the same equilibrium (e.g. after pygvec convert-wout). Reversing an angle
+    # changes the sign of iota and of the Jacobian, but not the toroidal flux
+    # Phi' = B^zeta * Jac, so psi_t is the toroidal flux of GVEC in both frames.
     #
-    # Without it, every quantity that is ODD under the flip - grad x . grad y and
-    # all of the magnetic-drift terms - comes out sign-reversed relative to VMEC,
-    # while the even ones (|B|, |grad x|^2) agree. W7-X has Phi < 0 and chi < 0
-    # and so needs flip = "both"; configurations with both fluxes positive need
-    # no flip, which is why they appear to work without it.
+    # A frame with a positive Jacobian (no flip, or both angles flipped) gives the
+    # same metric coefficients and drifts, but the wrong sign of the Clebsch
+    # factor B = sign_torflux grad(psi_t) x grad(alpha) for stella, which reverses
+    # the drive relative to the drifts, so it is not offered.
+    _ev_j = state.evaluate("Jac", rho=rho0, theta=np.array([0.0]), zeta=np.array([0.0])).squeeze()
+    if float(_ev_j.Jac) <= 0:
+        sys.exit("ERROR: the Jacobian of the GVEC state is not positive.")
     if flip == "auto":
-        _ev_f = state.evaluate("Phi", "chi", rho=1.0).squeeze()
-        _Phi, _chi = float(_ev_f.Phi), float(_ev_f.chi)
-        if _Phi < 0 and _chi < 0:
-            flip = "both"
-        elif _Phi < 0:
-            flip = "tor"
-        elif _chi < 0:
-            flip = "pol"
-        else:
-            flip = "none"
-        if verbose:
-            print(f"  flux signs: Phi = {_Phi:.6e}, chi = {_chi:.6e} -> flip = '{flip}'")
-    if flip not in ("none", "tor", "pol", "both"):
-        sys.exit(f"ERROR: flip must be none/tor/pol/both/auto, got '{flip}'")
+        flip = "tor"
+    if flip not in ("tor", "pol"):
+        sys.exit(f"ERROR: flip must be tor/pol/auto, got '{flip}'")
 
-    flip_tor = flip in ("tor", "both")
-    flip_pol = flip in ("pol", "both")
+    flip_tor = flip == "tor"
+    flip_pol = flip == "pol"
 
-    # Same bookkeeping as gist.py: a toroidal flip negates iota and Phi, a
-    # poloidal flip negates iota; applying both leaves iota unchanged.
-    if flip_tor:
-        iota0 = -iota0
-        diota_drho = -diota_drho
-        phi_edge_over_2pi = -phi_edge_over_2pi
-        Phi_edge = -Phi_edge
-    if flip_pol:
-        iota0 = -iota0
-        diota_drho = -diota_drho
+    # Reversing one angle reverses the sign of iota.
+    iota0 = -iota0
+    diota_drho = -diota_drho
+    if verbose:
+        print(f"  flip = '{flip}'")
 
     q0   = 1.0 / iota0
     # shat = (rho/q)(dq/drho) = -rho * (diota/drho) / iota
@@ -569,10 +561,11 @@ def _parse_args():
     )
     p.add_argument("state_file", help="Path to GVEC state file")
     p.add_argument("--flip", default="auto",
-                   choices=["auto", "none", "tor", "pol", "both"],
-                   help="flip the toroidal/poloidal angle direction so that both fluxes "
-                        "are positive, as stella's VMEC conventions assume "
-                        "(default: auto, same rule as GVEC's gist.py)")
+                   choices=["auto", "tor", "pol"],
+                   help="reverse the toroidal (tor) or poloidal (pol) angle, so that the "
+                        "frame has the handedness of the VMEC angles that stella's VMEC "
+                        "conventions assume (default: auto = tor, which gives the VMEC "
+                        "angles for the cylindrical map of GVEC)")
     p.add_argument("--a-minor", "--a_minor", type=float, default=None,
                    help="override the reference minor radius in metres (e.g. VMEC's "
                         "Aminor_p) so a GVEC export shares a VMEC run's normalisation")

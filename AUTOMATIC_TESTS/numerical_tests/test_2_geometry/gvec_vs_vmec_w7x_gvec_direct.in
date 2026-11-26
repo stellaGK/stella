@@ -1,0 +1,84 @@
+! Compare the VMEC and GVEC geometries in test_2g_gvec_vs_vmec_geometry.py:
+! the W7-X equilibrium wout_w7x_kjm.nc (s = 0.49, one field period), read by
+! the VMEC geometry and, converted to GVEC (GVEC_w7x_kjm_State.dat, read directly
+! by stella linked to the GVEC library), by the GVEC geometry.
+! The input files of the two geometries differ only in the geometry namelists.
+! The geometry files are made by gvec_vs_vmec/make_gvec_vs_vmec_files.py, with
+! nzgrid = 24, so nzed = 48 here. A short linear ITG simulation (ky = 1,
+! theta0 = 1, adiabatic electrons) checks that the drive and the drifts have
+! the same signs relative to each other.
+
+&geometry_options
+  geometry_option = 'gvec'
+/
+&geometry_gvec
+  gvec_state_file = 'GVEC_w7x_kjm_State.dat'
+  gvec_parameter_file = 'GVEC_w7x_kjm_parameter.ini'
+  torflux = 0.49
+  nfield_periods = 1.0
+  verbose = .false.
+/
+
+&gyrokinetic_terms
+  include_nonlinear = .false.
+/
+
+&species_options
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+
+&kxky_grid_option
+  grid_option = 'range'
+/
+&kxky_grid_range
+  naky = 1
+  nakx = 1
+  aky_min = 1.0
+  aky_max = 1.0
+  theta0_min = 1.0
+  theta0_max = 1.0
+/
+&z_grid
+  nzed = 48
+  nperiod = 1
+  zed_equal_arc = .false.
+/
+&z_boundary_condition
+  boundary_option = 'zero'
+/
+&velocity_grids
+  nmu = 4
+  nvgrid = 8
+/
+
+&diagnostics
+  nsave = 1000
+  nwrite = 10
+/
+&diagnostics_omega
+  write_omega_vs_kxky = .true.
+/
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.001
+/
+
+&time_trace_options
+  nstep = 250
+/
+&time_step
+  delt = 0.02
+/
+&debug_flags
+  print_extra_info_to_terminal = .false.
+/

@@ -319,11 +319,12 @@ contains
       ! If the magnetic |∇x . ∇y| is almost zero, override parallel boundary 
       ! condition so that it is periodic if using the stellarator symmetric
       !twist and shift bc, in which kx_shift is proportional to |∇x . ∇y|
-      ! Note that <grad_x_grad_y_end> is only calculated for VMEC, so for the other
+      ! Note that <grad_x_grad_y_end> is only calculated for VMEC and GVEC, so for the other
       ! geometries the stellarator symmetric twist and shift bc falls back to periodic bc
       case (boundary_option_linked_stellarator)
-         if (geo_option_switch /= geo_option_vmec) then
-            write (*, *) 'Using periodic boundary conditions as boundary_option = "stellarator" is only implemented for VMEC'
+         if (geo_option_switch /= geo_option_vmec .and. geo_option_switch /= geo_option_gvec) then
+            write (*, *) 'Using periodic boundary conditions as boundary_option = "stellarator" is only implemented for', &
+               ' VMEC and GVEC'
             boundary_option_switch = boundary_option_self_periodic
          else if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) then
             write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
@@ -724,6 +725,7 @@ contains
    subroutine get_geometry_arrays_from_GVEC(nalpha, naky)
 
       use mp,          only: mp_abort
+      use parameters_physics, only: radial_variation
       use gvec_geometry, only: read_gvec_parameters, get_gvec_geometry
       use gvec_geometry, only: radial_coordinate_switch, radial_coordinate_sgnpsitpsit
       use gvec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r
@@ -751,6 +753,10 @@ contains
       !----------------------------------------------------------------------
 
       if (q_as_x) call mp_abort('q_as_x = True is not implemented for GVEC. Aborting.')
+
+      ! The radial derivatives of the geometric quantities (e.g. <djacdrho>, <dBdrho>)
+      ! are not calculated for GVEC, so radial variation is not implemented for GVEC
+      if (radial_variation) call mp_abort('radial_variation = True is not implemented for GVEC. Aborting.')
 
       ! Read the geometry_gvec namelist
       call read_gvec_parameters()
@@ -1076,8 +1082,10 @@ contains
 
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
       ! For Miller or axi-symmetric devices we have: ∇ζ . ∇ψp = 0 and ∇ζ . ∇α = ∇ζ . ∇ζ = (1/R^2) 
-      !      (R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα) = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
-      gradzeta_grady_R2overB2 = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+      !      (R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα)
+      ! NB: before November 2026 this was geo_surf%rhoc / (geo_surf%qinp * bmag**2) = 1/(<dxdpsi> B^2), which included
+      ! the factor -<clebsch_factor>/(<dxdpsi>*<dydalpha>) of the momentum flux, see <bhat_factor> in diagnostics_fluxes_fluxtube.f90
+      gradzeta_grady_R2overB2 = dydalpha / bmag**2
       gradzeta_gradx_R2overB2 = 0.0
 
       ! For the momentum flux we need R^2 * b . ∇ζ

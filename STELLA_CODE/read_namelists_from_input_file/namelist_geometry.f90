@@ -31,7 +31,7 @@
 !     alpha0 = 0.0
 !     zeta_center = 0.0
 !     rectangular_cross_section = .false.
-!     nfield_periods = -1.0
+!     nfield_periods = -1.0 (must be set, > 0)
 !     torflux = 0.6354167
 !     z_grid_refinement_factor = 1.0
 !     surface_option = 0
@@ -575,6 +575,13 @@ contains
          in_file = input_unit_exist('geometry_vmec', dexist)
          if (dexist) read (unit=in_file, nml=geometry_vmec)
 
+         ! The number of field periods has no default: with <nfield_periods> <= 0 the
+         ! parallel coordinate z = zeta*nfp/nfield_periods would run against zeta
+         if (nfield_periods <= 0.0) then
+            call mp_abort('&geometry_vmec: set <nfield_periods> to the number of field periods '// &
+               'of the flux tube (nfield_periods > 0). Aborting.')
+         end if
+
          ! Read the text option in <radial_coordinate> and store it in <radial_coordinate_switch>
          ierr = error_unit()
          call get_option_value(radial_coordinate, radial_coordinate_options, &
@@ -702,10 +709,10 @@ contains
          write (unit, '(2A)')       '  gvec_parameter_file = "', trim(gvec_parameter_file)//'"'
          write (unit, '(A,I0)')     '  sfl_coord = ', sfl_coord
          write (unit, '(A,I0)')     '  sfl_factor = ', sfl_factor
-         write (unit, '(A,ES10.4)') '  torflux = ', torflux
-         write (unit, '(A,ES10.4)') '  alpha0 = ', alpha0
-         write (unit, '(A,ES10.4)') '  zeta_center = ', zeta_center
-         write (unit, '(A,ES10.4)') '  nfield_periods = ', nfield_periods
+         write (unit, '(A,ES12.4)') '  torflux = ', torflux
+         write (unit, '(A,ES12.4)') '  alpha0 = ', alpha0
+         write (unit, '(A,ES12.4)') '  zeta_center = ', zeta_center
+         write (unit, '(A,ES12.4)') '  nfield_periods = ', nfield_periods
          write (unit, '(A,I0)')     '  z_grid_refinement_factor = ', z_grid_refinement_factor
          write (unit, '(A,L1)')     '  verbose = ', verbose
          write (unit, '(A)')        '/'

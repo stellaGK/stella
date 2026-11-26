@@ -258,9 +258,8 @@ contains
       ! for the computation. This parameter should lie in the interval [0,1].
       ! If <verbose> is .true. in the vmec_parameters namelist, lots of diagnostic information is printed.
       ! 
-      ! If <number_of_field_periods_inputfile> > 0, then this parameter does what you think:
-      ! the extent of the toroidal in zeta will be 2*pi*<number_of_field_periods_inputfile>/<nfp>.
-      ! If <number_of_field_periods_inputfile> <= 0, the entire 2*pi toroidal domain will be included.
+      ! The extent of the toroidal domain in zeta is 2*pi*<number_of_field_periods_inputfile>/<nfp>,
+      ! where <number_of_field_periods_inputfile> > 0 is checked in namelist_geometry.f90.
       ! 
       ! If <vmec_surface_option> = 0, the magnetic surface specified by <s_inputfile> will 
       ! be used, by interpolating between the surfaces available in the vmec file.
@@ -390,7 +389,6 @@ contains
 
       ! Length of the simulated field line 
       number_of_field_periods = number_of_field_periods_inputfile
-      if (number_of_field_periods_inputfile <= 0) number_of_field_periods = nfp 
 
       ! Silly step because <nfp_out> is a real, and <nfp> is an integer
       nfp_out = nfp 
@@ -1329,11 +1327,6 @@ contains
 
          ! Only continue if <verbose> is True and <print_extra_info_to_terminal> is True
          if (.not. (verbose .and. print_extra_info_to_terminal)) return  
-
-         ! Length of the simulated field line 
-         if (number_of_field_periods_inputfile <= 0)  then
-            write(*,*) "   Since <nfield_periods> in the <vmec_parameters> knob was <= 0, it is being set to nfp =", nfp
-         end if 
 
          ! Set reference length and magnetic field for stella's normalization
          ! Using the choices made by Pavlos Xanthopoulos in GIST  
