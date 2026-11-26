@@ -54,7 +54,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use parameters_physics, only: radial_variation
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
       
       ! Diagnostics flags
       use parameters_diagnostics, only: write_radial_fluxes 
@@ -114,7 +114,7 @@ contains
                do iz = -nzgrid, nzgrid
                   if (radial_variation) then
                      g0k = g1(:, :, iz, it, ivmu) &
-                           * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                           * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                               * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                               * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                               + dBdrho(iz) / bmag(ia, iz))
@@ -124,13 +124,13 @@ contains
                   end if
 
                   !subtract adiabatic contribution part of g
-                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
+                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, aj_index(ivmu))**2 &
                         * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                                  - aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                  - aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                                   + dBdrho(iz) / bmag(ia, iz))
@@ -165,7 +165,7 @@ contains
 
                   if (radial_variation) then
                      g0k = g1(:, :, iz, it, ivmu) &
-                           * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                           * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                               * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                               * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                               + dBdrho(iz) / bmag(ia, iz) &
@@ -178,14 +178,14 @@ contains
                   end if
 
                   ! Subtract adiabatic contribution part of g
-                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
+                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, aj_index(ivmu))**2 &
                         * (vpa(iv)**2 + vperp2(ia, iz, imu)) * maxwell_vpa(iv, is) &
                         * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                         
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                                  - aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                  - aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                                   + dBdrho(iz) / bmag(ia, iz) &
@@ -220,7 +220,7 @@ contains
 
                   if (radial_variation) then
                      g0k = g1(:, :, iz, it, ivmu) &
-                           * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                           * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                               * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                               * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                               + dIdrho / (rmajor(iz) * btor(iz)))
@@ -232,14 +232,14 @@ contains
                   end if
                   
                   ! Subtract adiabatic contribution part of g
-                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
+                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, aj_index(ivmu))**2 &
                         * vpa(iv) * rmajor(iz) * btor(iz) * maxwell_vpa(iv, is) &
                         * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) / bmag(ia, iz)
 
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                                  - aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                  - aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                                   + dIdrho / (rmajor(iz) * btor(iz)))
@@ -258,13 +258,13 @@ contains
                   call gyro_average_j1(g0k, iz, ivmu, g2(:, :, iz, it, ivmu))
                   if (radial_variation) then
                      g0k = -g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
-                           * (d_gradxdotgrady_drho(ia, iz) + theta0 * d_gradxdotgradx_drho(ia, iz)) * aj1x(:, :, iz, ivmu) * spec(is)%smz &
+                           * (d_gradxdotgrady_drho(ia, iz) + theta0 * d_gradxdotgradx_drho(ia, iz)) * aj1x(:, :, iz, aj_index(ivmu)) * spec(is)%smz &
                            / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
 
                      g0k = g0k - g(:, :, iz, it, ivmu) * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
                            * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
                            / (geo_surf%qinp * bmag(ia, iz)**2) &
-                           * (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
+                           * (0.5 * aj0x(:, :, iz, aj_index(ivmu)) - aj1x(:, :, iz, aj_index(ivmu))) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))
 
                      g0k = g0k + g2(:, :, iz, it, ivmu) &
@@ -277,7 +277,7 @@ contains
                   end if
 
                   ! Subtract adiabatic contribution part of g
-                  g0k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
+                  g0k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, aj_index(ivmu)) * aj1x(:, :, iz, aj_index(ivmu)) &
                         * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
                         * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
                         / (geo_surf%qinp * bmag(ia, iz)**2)
@@ -285,24 +285,24 @@ contains
                   g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
-                     g1k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
+                     g1k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, aj_index(ivmu)) * aj1x(:, :, iz, aj_index(ivmu)) &
                            * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                            * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
                            * (d_gradxdotgrady_drho(ia, iz) + theta0 * d_gradxdotgradx_drho(ia, iz)) * spec(is)%smz &
                            / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
 
-                     g1k = g1k - spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) &
+                     g1k = g1k - spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, aj_index(ivmu)) &
                            * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                            * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
                            * (gradx_dot_grady(ia, iz) + theta0 * gradx_dot_gradx(ia, iz) * geo_surf%shat) * spec(is)%smz &
                            / (geo_surf%qinp * bmag(ia, iz)**2) &
-                           * (0.5 * aj0x(:, :, iz, ivmu) - aj1x(:, :, iz, ivmu)) &
+                           * (0.5 * aj0x(:, :, iz, aj_index(ivmu)) - aj1x(:, :, iz, aj_index(ivmu))) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz))
 
                      g1k = g1k + &
                            g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                                  - 0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                  - 0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                                   - geo_surf%d2qdr2 * geo_surf%rhoc / (geo_surf%shat * geo_surf%qinp) &
