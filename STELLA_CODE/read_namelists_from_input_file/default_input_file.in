@@ -44,6 +44,20 @@
   n_tolerated_test_arrays_inconsistencies = 0
 /
 
+&geometry_gvec
+  gvec_filename = 'gvec_stella_geometry.nc'
+  gvec_state_file = ''
+  gvec_parameter_file = ''
+  sfl_coord = 1
+  sfl_factor = 4
+  torflux = -1.0
+  alpha0 = -999.0
+  zeta_center = -999.0
+  nfield_periods = -1.0
+  z_grid_refinement_factor = 1
+  verbose = .true.
+/
+
 &geometry_zpinch
   betaprim = 0.0
 /
