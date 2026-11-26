@@ -123,8 +123,9 @@ def self_consistency_check(data: dict, label: str = ""):
 
     q    = float(data["safety_factor_q"])
     shat = float(data["shat"])
-    check(q > 0,
-          f"safety factor q > 0 (q={q:.4f})")
+    # q < 0 is allowed: its sign is that of iota in the frame of the VMEC angles
+    check(q != 0 and np.isfinite(q),
+          f"safety factor q finite and non-zero (q={q:.4f})")
     check(abs(shat) < 50,
           f"|shat| reasonable (shat={shat:.4f})")
 

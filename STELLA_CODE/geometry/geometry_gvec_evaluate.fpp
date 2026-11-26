@@ -128,7 +128,6 @@ contains
       real(dp) :: phi_edge_over_2pi, a_ref, B_ref
       real(dp) :: nfp_sim_real
       logical  :: flip_tor, flip_pol
-      real(dp) :: chi_sign
       real(dp) :: alpha0_use, zeta_center_use
 
       real(dp), allocatable :: thet2d(:, :), zeta2d(:, :), theta_out2d(:, :)
@@ -226,24 +225,17 @@ contains
       ! stella works in s_vmec = rho^2, so d/ds = (1/2rho) d/drho
       dp_ds = dp_drho / (2.0d0 * rho0)
 
-      ! Flux-sign (handedness) normalisation
-      ! GVEC does not guarantee positive toroidal and poloidal flux, but stella's
-      ! VMEC conventions assume it. Reverse the toroidal and/or poloidal angle
-      ! until both are positive, exactly as GVEC's own GIST exporter does.
-      ! chi' = iota * Phi', so sign(chi) = sign(Phi) * sign(iota).
-      chi_sign = sign(1.0d0, Fa) * sign(1.0d0, iota0)
-      flip_tor = (Fa < 0.0d0)
-      flip_pol = (chi_sign < 0.0d0)
-
-      if (flip_tor) then
-         iota0 = -iota0
-         diota_drho = -diota_drho
-         phi_edge_over_2pi = -phi_edge_over_2pi
-      end if
-      if (flip_pol) then
-         iota0 = -iota0
-         diota_drho = -diota_drho
-      end if
+      ! Handedness
+      ! The formulas of stella's VMEC geometry hold in the frame of the VMEC
+      ! angles, whose Jacobian is negative, with the toroidal flux of the
+      ! right-handed frame as psi_t. The logical coordinates of GVEC are
+      ! right-handed, so the toroidal angle is reversed, as in gvec_to_stella.py.
+      ! This reverses the sign of iota, but not the toroidal flux
+      ! Phi' = B^zeta * Jacobian, so phi_edge_over_2pi keeps its sign.
+      flip_tor = .true.
+      flip_pol = .false.
+      iota0 = -iota0
+      diota_drho = -diota_drho
 
       safety_factor_q = 1.0d0 / iota0
       ! shat = -rho * (diota/drho) / iota

@@ -26,49 +26,27 @@ geometry arrays (bmag, grad\_alpha·grad\_alpha, etc.) agree to within ~1%.
 
 ### Workflow
 
+The automatic test `AUTOMATIC_TESTS/numerical_tests/test_2_geometry/test_2g_gvec_vs_vmec_geometry.py` runs stella with both geometries of this tokamak and of the W7-X equilibrium `wout_w7x_kjm.nc` (converted to GVEC with `pygvec convert-wout`), and compares the geometry arrays, the constants of the flux tube and a short linear ITG simulation. Its equilibrium files are made from the two inputs above by
+
 ```bash
-# 1. Run GVEC
-cd DOCUMENTATION/GVEC_equilibria/circular_tok/gvec
-gvec parameter.ini
-cd ../../../..
-
-# 2. Post-process GVEC → stella geometry file
-python DOCUMENTATION/GVEC_equilibria/gvec_to_stella.py \
-    DOCUMENTATION/GVEC_equilibria/circular_tok/gvec/GVEC_TOK_CIRC_State_00001.dat \
-    --s 0.5 --nalpha 1 --nzgrid 128 \
-    -o DOCUMENTATION/GVEC_equilibria/circular_tok/gvec_stella_tok_circ.nc
-
-# 3. Run VMEC (using your local VMEC installation)
-cd DOCUMENTATION/GVEC_equilibria/circular_tok/vmec
-xvmec input.tok_circ
-cd ../../../..
-
-# 4. Post-process VMEC wout → same stella geometry format
-python DOCUMENTATION/GVEC_equilibria/gvec_to_stella.py \
-    DOCUMENTATION/GVEC_equilibria/circular_tok/vmec/wout_tok_circ.nc \
-    --s 0.5 --nalpha 1 --nzgrid 128 \
-    -o DOCUMENTATION/GVEC_equilibria/circular_tok/vmec_stella_tok_circ.nc
-# (this requires a separate vmec_to_stella.py script or the VMEC branch of stella)
-
-# Alternatively: let stella itself read both and compare its diagnostic output.
-
-# 5. Compare
-python DOCUMENTATION/GVEC_equilibria/compare_gvec_vmec.py \
-    --gvec DOCUMENTATION/GVEC_equilibria/circular_tok/gvec_stella_tok_circ.nc \
-    --vmec DOCUMENTATION/GVEC_equilibria/circular_tok/vmec_stella_tok_circ.nc \
-    --tol 1e-2
+pip install gvec==1.5.1 vmecpp==0.9.4 netCDF4
+python AUTOMATIC_TESTS/numerical_tests/test_2_geometry/gvec_vs_vmec/make_gvec_vs_vmec_files.py <work_folder>
 ```
+
+which solves the tokamak with VMEC++ and with GVEC, and writes the stella geometry files with `gvec_to_stella.py --a-minor <Aminor_p of the wout file>`, so that both geometries use the same reference length (GVEC's own `r_minor` is volume-based, VMEC's `Aminor_p` area-based). When stella is linked to the GVEC library, the test also reads the GVEC states directly (`gvec_state_file`; these runs are skipped otherwise), and it runs both paths with the magnetic field reversed (`gvec_vs_vmec/reverse_magnetic_field.py`), which must keep |B|, the metric, |φ|²(t), the growth rate and the heat flux, and reverse b·∇z, the drifts, the Clebsch factor and the real frequency, as for VMEC. The python interface of GVEC (`gvec_to_stella.py`) takes the toroidal flux from the parameter file (`phiedge`), while its Fortran interface (the direct path) takes the profiles stored in the state file, so a state must be used with the parameter file it was made with.
+
+### Handedness
+
+The logical coordinates of GVEC are right-handed, while the VMEC angles are left-handed (`signgs = -1`). The same equilibrium therefore has a toroidal flux and a rotational transform of opposite signs in the two codes: the VMEC input with `PHIEDGE > 0` and `iota > 0` corresponds to `PhiEdge < 0` and `iota < 0` in GVEC, as `pygvec convert-wout` gives and as `circular_tok/gvec/parameter.ini` sets. `gvec_to_stella.py` reverses the toroidal angle, which gives the VMEC angles for the cylindrical map of GVEC, and keeps the toroidal flux of GVEC as `psi_t`, as stella's VMEC geometry uses `psi_t = signgs * phi`. A frame of the wrong handedness gives the same `|B|`, metric and binormal drifts, but the opposite sign of the Clebsch factor, so the drive is reversed relative to the drifts.
 
 ### Expected result
 
-All geometry quantities should agree within ~1% (tolerance is set by the
-difference in resolution and the minor differences between GVEC's B-spline
-basis and VMEC's Fourier series).  Key scalar cross-checks:
+With the resolutions of the two inputs, all geometry arrays agree to better than 0.5% at s = 0.25. Key scalar cross-checks at s = 0.25:
 
-- `safety_factor_q` ≈ 1.63 at s=0.5 (q0=1.4 + 0.8*0.5)
-- `shat` ≈ 0.49 (= -rho * diota/drho / iota at rho=sqrt(0.5))
-- `L_reference` ≈ 1.0 m
-- `B_reference` ≈ 2.0 T (= 2|Phi_edge/(2π)|/a² = 2*0.5/1 = 1.0 T)
+- `safety_factor_q` = 1.6 (q = 1.4 + 0.8 s)
+- `shat` = 0.25 (= 2 s (dq/ds) / q)
+- `L_reference` = 1.0 m (with `--a-minor 1.0`)
+- `B_reference` = 1.0 T (= 2 |Phi_edge/(2π)| / a² = 2 × 0.5 / 1)
 
 ---
 
@@ -109,7 +87,7 @@ The self-consistency checks should all pass:
 - `bmag > 0` everywhere
 - `|∇ψt|² > 0` everywhere
 - Cauchy-Schwarz inequality satisfied
-- `q > 0`, `|shat|` reasonable
+- `q` finite and non-zero, `|shat|` reasonable
 
 ---
 
