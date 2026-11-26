@@ -190,14 +190,16 @@ def test_whether_omega_diagnostics_are_correct(tmp_path, stella_version, error=F
      
     # Check whether the txt files match (Skip the header line)
     # Compare the columns (time, ky, kx, Re[om], Im[om], Re[omavg], Im[omavg])
-    # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes
+    # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes:
+    # Re[om] of the ky = 0 modes is zero up to round-off (about 1e-12), which changes with the number
+    # of processes and the platform (e.g. 4 processes on macOS in the CI), hence atol = 1e-10
     local_file = stella_local_run_directory / f'{input_file_stem}.omega' 
     expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.omega'  
     local_omega_data = np.loadtxt(local_file, dtype='float').reshape(-1, 7) 
     expected_omega_data = np.loadtxt(expected_file, dtype='float').reshape(-1, 7)  
     assert_same_shape(local_omega_data, expected_omega_data, 'omega')
     for i in range(len(local_omega_data[0,:])):
-        if not np.allclose(local_omega_data[:,i], expected_omega_data[:,i], rtol = 0.0, atol = 1e-12, equal_nan=True):
+        if not np.allclose(local_omega_data[:,i], expected_omega_data[:,i], rtol = 1e-8, atol = 1e-10, equal_nan=True):
             print(f'\nERROR: The omega arrays do not match in the txt files.'); error = True
             print(f'Compare the omega arrays in the local and expected txt files:')
             for j in range(len(local_omega_data[:,i])):
