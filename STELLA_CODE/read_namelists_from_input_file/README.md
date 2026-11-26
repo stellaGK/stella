@@ -67,11 +67,11 @@ DIAGNOSTICS
   diagnostics_moments
 
 INITIALIZE FIELDS
-  initialize_distribution
-  initialize_distribution_maxwellian
-  initialize_distribution_noise
-  initialize_distribution_kpar
-  initialize_distribution_rh
+  initialise_distribution
+  initialise_distribution_maxwellian
+  initialise_distribution_noise
+  initialise_distribution_kpar
+  initialise_distribution_rh
   restart_options
 
 DISSIPATION AND COLLISIONS
