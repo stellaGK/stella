@@ -33,7 +33,7 @@ contains
       use job_manage, only: time_message
       use mp, only: proc0, min_allreduce
       use mp, only: scope, allprocs, subprocs
-      use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       ! Calculations
@@ -66,6 +66,8 @@ contains
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, nx, ny
       use grids_kxky, only: non_twisting, delta_kx
       use grids_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
+      use grids_velocity, only: vpa, nmu
+      use grids_species, only: nspec
 
       ! Flow shear
       use gk_flow_shear, only: prp_shear_enabled
@@ -97,6 +99,14 @@ contains
       integer :: ivmu, iz, it, imu, is
       real :: zero, cfl_dt
       logical :: yfirst
+
+      ! d<chi>/dx and d<chi>/dy in (y,x) space per (mu, species) point <imus> on this processor, see below
+      logical :: chi_by_mu
+      integer :: imus, nmus, iv
+      integer, dimension(:), allocatable :: imus_of_ivmu, ivmu_of_imus
+      integer, dimension(:, :), allocatable :: imus_index
+      real, dimension(:, :, :, :, :), allocatable :: chix, chiy, chix_apar, chiy_apar
+      complex, dimension(:, :), allocatable :: dchidx, dchidy, dchidx_apar, dchidy_apar
 
       !-------------------------------------------------------------------------
 
@@ -162,6 +172,67 @@ contains
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
       if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
 
+      ! <chi> = J_0 (phi - 2 vpa (stm) apar) + (J_1 term of bpar) depends on vpa only through its apar part, which
+      ! is linear in vpa, so the Fourier transforms of d<chi>/dx and d<chi>/dy are done once for every (mu, species)
+      ! on this processor instead of for every vpa: d<chi>/dx(y,x) = chix(:, :, iz, it, imus) + vpa * chix_apar(...),
+      ! and the same for y, with the corrections for the non-twisting flux tube, flow shear and the zonal modes
+      ! applied to both parts as in the loop below. With radial variation or a full flux surface, <chi> depends
+      ! on vpa in other ways as well, and is transformed for every vpa below
+      chi_by_mu = .not. (radial_variation .or. full_flux_surface)
+      if (chi_by_mu) then
+         ! The (mu, species) points on this processor, and one vmu point <ivmu_of_imus> of each
+         allocate (imus_index(nmu, nspec)); imus_index = 0
+         allocate (imus_of_ivmu(vmu_lo%llim_proc:vmu_lo%ulim_alloc)); imus_of_ivmu = 0
+         nmus = 0
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            imu = imu_idx(vmu_lo, ivmu)
+            is = is_idx(vmu_lo, ivmu)
+            if (imus_index(imu, is) == 0) then
+               nmus = nmus + 1
+               imus_index(imu, is) = nmus
+            end if
+            imus_of_ivmu(ivmu) = imus_index(imu, is)
+         end do
+         allocate (ivmu_of_imus(max(nmus, 1)))
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            ivmu_of_imus(imus_of_ivmu(ivmu)) = ivmu
+         end do
+         allocate (chix(ny, nx, -nzgrid:nzgrid, ntubes, max(nmus, 1)))
+         allocate (chiy(ny, nx, -nzgrid:nzgrid, ntubes, max(nmus, 1)))
+         if (include_apar) then
+            allocate (chix_apar(ny, nx, -nzgrid:nzgrid, ntubes, max(nmus, 1)))
+            allocate (chiy_apar(ny, nx, -nzgrid:nzgrid, ntubes, max(nmus, 1)))
+         else
+            allocate (chix_apar(1, 1, 1, 1, 1), chiy_apar(1, 1, 1, 1, 1))
+         end if
+         allocate (dchidx(naky, nakx), dchidy(naky, nakx), dchidx_apar(naky, nakx), dchidy_apar(naky, nakx))
+
+         do imus = 1, nmus
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  ivmu = ivmu_of_imus(imus)
+                  if (non_twisting) then
+                     prefac_z = prefac * phase_ntft(:, :, iz)
+                  else
+                     prefac_z = prefac
+                  end if
+                  apar_kykx = 0.
+                  bpar_kykx = 0.
+                  if (include_apar) apar_kykx = apar(:, :, iz, it)
+                  if (include_bpar) bpar_kykx = bpar(:, :, iz, it)
+                  call get_dchi_vpa_parts(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, &
+                                          dchidx, dchidy, dchidx_apar, dchidy_apar)
+                  call transform_dchidx(dchidx, dchidy, iz, chix(:, :, iz, it, imus))
+                  call forward_transform(dchidy, chiy(:, :, iz, it, imus))
+                  if (include_apar) then
+                     call transform_dchidx(dchidx_apar, dchidy_apar, iz, chix_apar(:, :, iz, it, imus))
+                     call forward_transform(dchidy_apar, chiy_apar(:, :, iz, it, imus))
+                  end if
+               end do
+            end do
+         end do
+      end if
+
       ! Iterate over velocity space
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
@@ -186,33 +257,43 @@ contains
                ! Take the FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
                
-               ! Compute i*kx*<chi>
-               if (full_flux_surface) then
-                  call get_dgdx(phi_gyro(:, :, iz, it, ivmu), g0k)
+               ! d<chi>/dx in (y,x) space: from the transforms per (mu, species) above, or transformed here
+               if (chi_by_mu) then
+                  imus = imus_of_ivmu(ivmu)
+                  g1xy = chix(:, :, iz, it, imus)
+                  if (include_apar) then
+                     iv = iv_idx(vmu_lo, ivmu)
+                     g1xy = g1xy + vpa(iv) * chix_apar(:, :, iz, it, imus)
+                  end if
                else
-                  call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
-               end if
+                  ! Compute i*kx*<chi>
+                  if (full_flux_surface) then
+                     call get_dgdx(phi_gyro(:, :, iz, it, ivmu), g0k)
+                  else
+                     call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
+                  end if
 
-               ! Non-twisting flux tube: add i ΔKx <chi> = (ΔKx/ky) i ky <chi>
-               if (non_twisting) then
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0a)
-                  g0k = g0k + spread(dkx_over_ky(:, iz), 2, nakx) * g0a
-               end if
+                  ! Non-twisting flux tube: add i ΔKx <chi> = (ΔKx/ky) i ky <chi>
+                  if (non_twisting) then
+                     call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0a)
+                     g0k = g0k + spread(dkx_over_ky(:, iz), 2, nakx) * g0a
+                  end if
                
-               ! Zero out the zonal contribution to d<chi>/dx if requested
-               if (suppress_zonal_interaction) then
-                  g0k(1,:) = 0.0
-               end if
+                  ! Zero out the zonal contribution to d<chi>/dx if requested
+                  if (suppress_zonal_interaction) then
+                     g0k(1,:) = 0.0
+                  end if
                
-               ! If running with equilibrium flow shear, make adjustment to
-               ! The term multiplying dg/dy
-               if (prp_shear_enabled .and. hammett_flow_shear) then
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0a)
-                  g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
-               end if
+                  ! If running with equilibrium flow shear, make adjustment to
+                  ! The term multiplying dg/dy
+                  if (prp_shear_enabled .and. hammett_flow_shear) then
+                     call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0a)
+                     g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * g0a
+                  end if
                
-               ! Take the FFT to get d<chi>/dx in (y,x) space
-               call forward_transform(g0k, g1xy)
+                  ! Take the FFT to get d<chi>/dx in (y,x) space
+                  call forward_transform(g0k, g1xy)
+               end if
                
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
@@ -254,15 +335,21 @@ contains
                ! Take the FFT to get dg/dx in (y,x) space
                call forward_transform(g0k, g0xy)
                
-               ! Compute d<chi>/dy in k-space
-               if (full_flux_surface) then
-                  call get_dgdy(phi_gyro(:, :, iz, it, ivmu), g0k)
+               ! d<chi>/dy in (y,x) space: from the transforms per (mu, species) above, or transformed here
+               if (chi_by_mu) then
+                  g1xy = chiy(:, :, iz, it, imus)
+                  if (include_apar) g1xy = g1xy + vpa(iv) * chiy_apar(:, :, iz, it, imus)
                else
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
-               end if
+                  ! Compute d<chi>/dy in k-space
+                  if (full_flux_surface) then
+                     call get_dgdy(phi_gyro(:, :, iz, it, ivmu), g0k)
+                  else
+                     call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar_kykx, bpar_kykx, g0k)
+                  end if
                
-               ! Take the FFT to get d<chi>/dy in (y,x) space
-               call forward_transform(g0k, g1xy)
+                  ! Take the FFT to get d<chi>/dy in (y,x) space
+                  call forward_transform(g0k, g1xy)
+               end if
                
                ! Multiply by the geometric factor appearing in the Poisson bracket;
                ! i.e., (dx/dpsi*dy/dalpha)*0.5
@@ -314,6 +401,8 @@ contains
       if (allocated(g0k_swap)) deallocate (g0k_swap)
       if (allocated(g0xky)) deallocate (g0xky)
       if (allocated(g0kxy)) deallocate (g0kxy)
+      if (chi_by_mu) deallocate (imus_index, imus_of_ivmu, ivmu_of_imus, chix, chiy, chix_apar, chiy_apar, &
+                                 dchidx, dchidy, dchidx_apar, dchidy_apar)
 
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
 
@@ -364,6 +453,27 @@ contains
    contains
 
       !-------------------------------------------------------------------------
+      ! d<chi>/dx (or one of its parts) <dx> in (y,x) space, with the same corrections as in the loop over the
+      ! vmu points: the non-twisting flux tube, the zonal modes and the flow shear (from d<chi>/dy, <dy>)
+      subroutine transform_dchidx(dx, dy, iz, gx)
+
+         implicit none
+
+         complex, dimension(:, :), intent(in) :: dx, dy
+         integer, intent(in) :: iz
+         real, dimension(:, :), intent(out) :: gx
+
+         !----------------------------------------------------------------------
+
+         g0k = dx
+         if (non_twisting) g0k = g0k + spread(dkx_over_ky(:, iz), 2, nakx) * dy
+         if (suppress_zonal_interaction) g0k(1, :) = 0.0
+         if (prp_shear_enabled .and. hammett_flow_shear) g0k = g0k - g_exb * g_exbfac * spread(shift_state, 2, nakx) * dy
+         call forward_transform(g0k, gx)
+
+      end subroutine transform_dchidx
+
+      !-------------------------------------------------------------------------
       subroutine forward_transform(gk, gx)
 
          use calculations_transforms, only: transform_ky2y, transform_kx2x
@@ -405,5 +515,51 @@ contains
       end subroutine forward_transform
 
    end subroutine advance_ExB_nonlinearity
+
+   !****************************************************************************
+   !                 PARTS OF d<chi>/dx AND d<chi>/dy WITHOUT vpa
+   !****************************************************************************
+   ! At the (mu, species) point of <ivmu>, d<chi>/dx = <dchidx> + vpa * <dchidx_apar>, and the same for y,
+   ! with d<chi>/dx and d<chi>/dy as in get_dchidx and get_dchidy: <dchidx> holds the phi and bpar parts,
+   ! which do not depend on vpa, and <dchidx_apar> the apar part, -2 (stm) J_0 i kx apar, without the vpa
+   !****************************************************************************
+   subroutine get_dchi_vpa_parts(iz, ivmu, phi, apar, bpar, dchidx, dchidy, dchidx_apar, dchidy_apar)
+
+      use constants, only: zi
+      use parallelisation_layouts, only: vmu_lo, is_idx
+      use calculations_gyro_averages, only: gyro_average
+      use calculations_kxky_derivatives, only: get_dchidx, get_dchidy
+      use parameters_physics, only: include_apar
+      use grids_species, only: spec
+      use grids_kxky, only: naky, nakx, akx, aky
+
+      implicit none
+
+      integer, intent(in) :: iz, ivmu
+      complex, dimension(:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :), intent(out) :: dchidx, dchidy, dchidx_apar, dchidy_apar
+
+      complex, dimension(naky, nakx) :: no_apar, field
+      integer :: is
+
+      !-------------------------------------------------------------------------
+
+      ! The phi and bpar parts
+      no_apar = 0.
+      call get_dchidx(iz, ivmu, phi, no_apar, bpar, dchidx)
+      call get_dchidy(iz, ivmu, phi, no_apar, bpar, dchidy)
+
+      ! The apar part, without the factor vpa
+      if (include_apar) then
+         is = is_idx(vmu_lo, ivmu)
+         field = -2.0 * spec(is)%stm_psi0 * apar
+         call gyro_average(zi * spread(akx, 1, naky) * field, iz, ivmu, dchidx_apar)
+         call gyro_average(zi * spread(aky, 2, nakx) * field, iz, ivmu, dchidy_apar)
+      else
+         dchidx_apar = 0.
+         dchidy_apar = 0.
+      end if
+
+   end subroutine get_dchi_vpa_parts
 
 end module gk_ExB_nonlinearity
