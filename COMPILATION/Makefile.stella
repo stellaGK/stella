@@ -296,7 +296,7 @@ $(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 # We will use a pattern rule to create symbolic links of these *.fpp files in the $(FPP) directory
 # And we define the *.f90 file paths inside $(FPP), since we will preprocess $(FPP)/*.fpp to $(FPP)/*.f90
 existing_fpp_files := $(wildcard $(STELLA_UTILS)/*.fpp) $(wildcard $(FIELD_EQUATIONS)/*.fpp) $(wildcard $(DIAGNOSTICS)/*.fpp) $(wildcard $(GYROKINETIC_EQUATION)/*.fpp) $(wildcard $(RADIAL_VARIATION)/*.fpp)
-existing_fpp_files := $(existing_fpp_files) $(wildcard $(parallelisation)/*.fpp) $(wildcard $(NEOCLASSICAL)/*.fpp) $(UTILS_DIR)/define.inc
+existing_fpp_files := $(existing_fpp_files) $(wildcard $(parallelisation)/*.fpp) $(wildcard $(NEOCLASSICAL)/*.fpp) $(wildcard $(GEOMETRY)/*.fpp) $(UTILS_DIR)/define.inc
 existing_fpp_file_names := $(notdir $(existing_fpp_files))
 fpp_files_in_build_directory := $(addprefix $(FPP)/, $(existing_fpp_file_names)) 
 f90_from_fpp_files = $(fpp_files_in_build_directory:.fpp=.f90)
@@ -338,6 +338,9 @@ $(FPP)/%.fpp: $(NEOCLASSICAL)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
 $(FPP)/%.fpp: $(RADIAL_VARIATION)/%.fpp | $(FPP)
+	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
+	@ln -sf $< $(FPP)
+$(FPP)/%.fpp: $(GEOMETRY)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
 	
