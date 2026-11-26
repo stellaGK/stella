@@ -15,8 +15,11 @@ which allows the user to restart a simulation in the future, if <save_for_restar
 if toggled to True. The frequency and growth rates are calculated for linear 
 simulations at every time step, and are also averaged over <navg> time steps.
 
+If <dt_write> > 0, the diagnostics are instead written to the text files at the first time step after every multiple of <dt_write> (in units of a/vth), and to the NetCDF file after every multiple of <dt_write>*<nc_mult>, so that the size of the output files is set by <tend> and does not grow when the time step decreases (the NetCDF file then contains about tend/(dt_write*nc_mult) time slices).
+
 &diagnostics
     nwrite = 50.0
+    dt_write = -1.0
     navg = 50.0
     nsave = -1.0
     nc_mult = 1.0
