@@ -509,7 +509,7 @@ contains
       use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use calculations_gyro_averages, only: gyro_average
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
       use arrays, only: kperp2, dkperp2dr
       use grids_z, only: nzgrid, ntubes
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -538,11 +538,11 @@ contains
                is = is_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                iv = iv_idx(vmu_lo, ivmu)
-               gyro_g(:, ivmu) = g_work(:, iz, it, ivmu) * aj0x(1, :, iz, ivmu)
+               gyro_g(:, ivmu) = g_work(:, iz, it, ivmu) * aj0x(1, :, iz, aj_index(ivmu))
                g0k = 0.0
                if (radial_variation) then
                   g0k(1, :) = gyro_g(:, ivmu) &
-                              * (-0.5 * aj1x(1, :, iz, ivmu) / aj0x(1, :, iz, ivmu) * (spec(is)%smz)**2 &
+                              * (-0.5 * aj1x(1, :, iz, aj_index(ivmu)) / aj0x(1, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                                  * (kperp2(1, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                  * (dkperp2dr(1, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                                  + dBdrho(iz) / bmag(ia, iz))

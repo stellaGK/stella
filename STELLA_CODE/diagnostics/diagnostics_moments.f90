@@ -183,7 +183,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use calculations_gyro_averages, only: gyro_average
       use calculations_transforms, only: transform_kx2x_unpadded
-      use arrays_gyro_averages, only: aj0x
+      use arrays_gyro_averages, only: aj0x, aj_index
       
       ! Fields
       use arrays_fields, only: phi
@@ -220,7 +220,7 @@ contains
       !     <dens> = tilde{δn} = (δn_s / n_r) (a / rho_r) 
       !     <dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
       ! We do this in the following steps
-      !     <g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, ivmu)>
+      !     <g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, aj_index(ivmu))>
       !     <integrand> = (Zs/Ts)*phi*(J0^2 - 1) = <spec(is)%zt> * <phi> * (<aj0x>**2 - 1)
       !     <integrand> = (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <integrand> * <maxwell_vpa> * <maxwell_mu> * <maxwell_fac> 
       !     <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <g_gyro> + <integrand> 
@@ -232,7 +232,7 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g_gyro(:, :, :, :, ivmu))
-         integrand(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
+         integrand(:, :, :, :, ivmu) = spread(aj0x(:, :, :, aj_index(ivmu))**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
                   * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) & 
                   * maxwell_fac(is), 4, ntubes)
 
@@ -259,7 +259,7 @@ contains
 
          integrand(:, :, :, :, ivmu) = (g_gyro(:, :, :, :, ivmu) + ztmax(iv, is) &
                * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-               * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+               * maxwell_fac(is) * (aj0x(:, :, :, aj_index(ivmu))**2 - 1.0), 4, ntubes) * phi * fphi) &
                * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
 
       end do
@@ -318,7 +318,7 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use calculations_kxky, only: multiply_by_rho
       use calculations_gyro_averages, only: gyro_average
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
       
       ! Maxwellian
       use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac, ztmax
@@ -382,31 +382,31 @@ contains
          ! obtain the gyro-average of g that appears in the dens_vs_kykxzts integral
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g1(:, :, :, :, ivmu))
          ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-         g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
+         g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, aj_index(ivmu))**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
                   * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) & 
                   * maxwell_fac(is), 4, ntubes)
          
          g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) + g1(:, :, :, :, ivmu)
          ! g2(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) + ztmax(iv, is) &
          !                        * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-         !                                 * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * fphi * phi
+         !                                 * maxwell_fac(is) * (aj0x(:, :, :, aj_index(ivmu))**2 - 1.0), 4, ntubes) * fphi * phi
 
          if (radial_variation) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   !phi
                   g0k = ztmax(iv, is) * maxwell_mu(ia, iz, imu, is) &
-                        * maxwell_fac(is) * (aj0x(:, :, iz, ivmu)**2 - 1.0) * fphi * phi(:, :, iz, it) &
+                        * maxwell_fac(is) * (aj0x(:, :, iz, aj_index(ivmu))**2 - 1.0) * fphi * phi(:, :, iz, it) &
                         * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                            - spec(is)%fprim + (dBdrho(iz) / bmag(ia, iz)) * (1.0 - 2.0 * mu(imu) * bmag(ia, iz)) &
-                           - aj1x(:, :, iz, ivmu) * aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                           - aj1x(:, :, iz, aj_index(ivmu)) * aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                            * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                           / (aj0x(:, :, iz, ivmu)**2 - 1.0 + zero))
+                           / (aj0x(:, :, iz, aj_index(ivmu))**2 - 1.0 + zero))
 
                   !g
                   g0k = g0k + g1(:, :, iz, it, ivmu) &
-                        * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                        * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                            * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                            + dBdrho(iz) / bmag(ia, iz))
@@ -417,7 +417,7 @@ contains
 
                   !phi QN
                   g0k = g0k + ztmax(iv, is) * maxwell_mu(ia, iz, imu, is) * fphi &
-                        * maxwell_fac(is) * (aj0x(:, :, iz, ivmu)**2 - 1.0) * phi_corr_QN(:, :, iz, it)
+                        * maxwell_fac(is) * (aj0x(:, :, iz, aj_index(ivmu))**2 - 1.0) * phi_corr_QN(:, :, iz, it)
 
                   g2(:, :, iz, it, ivmu) = g2(:, :, iz, it, ivmu) + g0k
                end do
@@ -448,7 +448,7 @@ contains
 
          g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
                   * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-                  * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+                  * maxwell_fac(is) * (aj0x(:, :, :, aj_index(ivmu))**2 - 1.0), 4, ntubes) * phi * fphi) &
                   * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
 
          if (radial_variation) then
@@ -457,18 +457,18 @@ contains
                   !phi
                   g0k = ztmax(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                         * (vpa(iv)**2 + vperp2(ia, iz, imu) - 1.5) / 1.5 &
-                        * (aj0x(:, :, iz, ivmu)**2 - 1.0) * phi(:, :, iz, it) * fphi &
+                        * (aj0x(:, :, iz, aj_index(ivmu))**2 - 1.0) * phi(:, :, iz, it) * fphi &
                         * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                            - spec(is)%fprim + (dBdrho(iz) / bmag(ia, iz)) * (1.0 - 2.0 * mu(imu) * bmag(ia, iz)) &
-                           - aj1x(:, :, iz, ivmu) * aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                           - aj1x(:, :, iz, aj_index(ivmu)) * aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                            * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                           / (aj0x(:, :, iz, ivmu)**2 - 1.0 + zero) &
+                           / (aj0x(:, :, iz, aj_index(ivmu))**2 - 1.0 + zero) &
                            + 2.0 * mu(imu) * dBdrho(iz) / (vpa(iv)**2 + vperp2(ia, iz, imu) - 1.5))
 
                   !g
                   g0k = g0k + g1(:, :, iz, it, ivmu) * (vpa(iv)**2 + vperp2(ia, iz, imu) - 1.5) / 1.5 &
-                        * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                        * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                            * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                            + dBdrho(iz) / bmag(ia, iz) &
@@ -479,7 +479,7 @@ contains
                   !phi QN
                   g0k = g0k + fphi * ztmax(iv, is) * maxwell_mu(ia, iz, imu, is) &
                         * (vpa(iv)**2 + vperp2(ia, iz, imu) - 1.5) / 1.5 &
-                        * maxwell_fac(is) * (aj0x(:, :, iz, ivmu)**2 - 1.0) * phi_corr_QN(:, :, iz, it)
+                        * maxwell_fac(is) * (aj0x(:, :, iz, aj_index(ivmu))**2 - 1.0) * phi_corr_QN(:, :, iz, it)
 
                   g2(:, :, iz, it, ivmu) = g2(:, :, iz, it, ivmu) + g0k
                end do
@@ -524,7 +524,7 @@ contains
                do iz = -nzgrid, nzgrid
                   !g
                   g0k = vpa(iv) * g1(:, :, iz, it, ivmu) &
-                        * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                        * (-0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                            * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                            * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
                            + dBdrho(iz) / bmag(ia, iz))

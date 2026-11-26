@@ -44,6 +44,14 @@ module gk_implicit_terms
 
    private
 
+   ! Work arrays of get_gke_rhs, sweep_g_zext and the routines they call, which are called for every chain of the
+   ! extended z-grid; allocated by get_chain_work_arrays at the length of the longest chain, so that they are
+   ! not allocated and freed for every chain
+   complex, dimension(:), allocatable :: work_rhs_fields, work_scratch2, work_dpdf_dz, work_field, work_gyro_field
+   complex, dimension(:), allocatable :: work_wdrift_ext, work_pdf_cf
+   complex, dimension(:, :, :), allocatable :: work_wdrift
+   integer, dimension(:), allocatable :: work_iz_from_izext, work_ikx_from_izext, work_iz_ext
+
 contains
 
    !****************************************************************************
@@ -309,7 +317,7 @@ contains
          use grids_extended_zgrid, only: neigen
 
          integer :: ie, it, iky, ivmu
-         integer :: ulim
+         integer :: ulim, nz_ext_max
          complex, dimension(:), allocatable :: pdf1, pdf2
          complex, dimension(:), allocatable :: phiext, bparext
          complex, dimension(:), allocatable :: aparext, aparext_new, aparext_old
@@ -323,6 +331,32 @@ contains
          ! Start the timer for the pdf update
          if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
 
+         ! The scratch arrays are allocated once, at the length of the longest chain
+         nz_ext_max = maxval(nzext)
+
+         ! pdf1 and pdf2 will be scratch arrays needed to compute the pdf itself,
+         ! as well as contributions to the GK equation
+         allocate (pdf1(nz_ext_max), pdf2(nz_ext_max))
+         ! phiext should contain the appropriate contribution to the time-centered phi;
+         ! for the 'inhomogeneous' GKE, it should have time_upwind_minus * phi^{n};
+         ! for the 'homogeneous' GKE, it should have time_upwind_plus * phi^{n+1};
+         ! and for the full GKE, it should be the sum of these two
+         allocate (phiext(nz_ext_max))
+         ! bpar is treated like phi above MRH
+         allocate (bparext(nz_ext_max)); bparext = 0.0
+         ! If advancing apar, aparext should contain the appropriate contribution
+         ! to the time-centered apar;
+         ! for the 'inhomogeneous' GKE, it should have time_upwind_minus * apar^{n};
+         ! for the 'homogeneous' GKE, it should have time_upwind_plus * apar^{n+1};
+         ! and for the full GKE, it should be the sum of these two
+         allocate (aparext(nz_ext_max)); aparext = 0.0
+         ! If advancing apar, aparext_new should be zero if advancing the 'inhomogeneous'
+         ! piece of g or apar^{n+1} otherwise
+         allocate (aparext_new(nz_ext_max)); aparext_new = 0.0
+         ! If advancing apar, aparext_old will contain the apar originally passed into
+         ! the implicit time advance; needed to convert from g^{n} to gbar^{n}
+         allocate (aparext_old(nz_ext_max)); aparext_old = 0.0
+         if (present(mod)) allocate (phiffsext(nz_ext_max))
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! Solve for the pdf, given the sources for phi and the pdf on the RHS of the GK equation
             ! we do this on set of connected zed segments at a time
@@ -331,65 +365,42 @@ contains
                   do ie = 1, neigen(iky)
                      ! nz_ext is the number of grid points in the extended zed domain
                      nz_ext = nzext(ie, iky)
-                     ! pdf1 and pdf2 will be scratch arrays needed to compute the pdf itself,
-                     ! as well as contributions to the GK equation
-                     allocate (pdf1(nz_ext), pdf2(nz_ext))
-                     ! phiext should contain the appropriate contribution to the time-centered phi;
-                     ! for the 'inhomogeneous' GKE, it should have time_upwind_minus * phi^{n};
-                     ! for the 'homogeneous' GKE, it should have time_upwind_plus * phi^{n+1};
-                     ! and for the full GKE, it should be the sum of these two
-                     allocate (phiext(nz_ext))
-                     ! bpar is treated like phi above MRH
-                     allocate (bparext(nz_ext))
-                     ! If advancing apar, aparext should contain the appropriate contribution
-                     ! to the time-centered apar;
-                     ! for the 'inhomogeneous' GKE, it should have time_upwind_minus * apar^{n};
-                     ! for the 'homogeneous' GKE, it should have time_upwind_plus * apar^{n+1};
-                     ! and for the full GKE, it should be the sum of these two
-                     allocate (aparext(nz_ext)); aparext = 0.0
-                     ! If advancing apar, aparext_new should be zero if advancing the 'inhomogeneous'
-                     ! piece of g or apar^{n+1} otherwise
-                     allocate (aparext_new(nz_ext)); aparext_new = 0.0
-                     ! If advancing apar, aparext_old will contain the apar originally passed into
-                     ! the implicit time advance; needed to convert from g^{n} to gbar^{n}
-                     allocate (aparext_old(nz_ext)); aparext_old = 0.0
                      ! Map the incoming pdf 'g1' onto the extended zed domain and call it 'pdf1'
-                     call map_to_extended_zgrid(it, ie, iky, g1(iky, :, :, :, ivmu), pdf1, ulim)
+                     call map_to_extended_zgrid(it, ie, iky, g1(iky, :, :, :, ivmu), pdf1(:nz_ext), ulim)
                      ! Map the incoming potential 'phi_source' onto the extended zed domain and call it 'phiext'
-                     call map_to_extended_zgrid(it, ie, iky, phi_source(iky, :, :, :), phiext, ulim)
+                     call map_to_extended_zgrid(it, ie, iky, phi_source(iky, :, :, :), phiext(:nz_ext), ulim)
                      ! Map incoming parallel magnetic vector potetial 'apar_sosurce' onto
                      ! extended zed domain and call 'aparext'
                      if (include_apar) then
-                        call map_to_extended_zgrid(it, ie, iky, apar_source(iky, :, :, :), aparext, ulim)
-                        call map_to_extended_zgrid(it, ie, iky, apar(iky, :, :, :), aparext_new, ulim)
-                        call map_to_extended_zgrid(it, ie, iky, apar_old(iky, :, :, :), aparext_old, ulim)
+                        call map_to_extended_zgrid(it, ie, iky, apar_source(iky, :, :, :), aparext(:nz_ext), ulim)
+                        call map_to_extended_zgrid(it, ie, iky, apar(iky, :, :, :), aparext_new(:nz_ext), ulim)
+                        call map_to_extended_zgrid(it, ie, iky, apar_old(iky, :, :, :), aparext_old(:nz_ext), ulim)
                      end if
                      ! map incoming bpar 'bpar_source' onto the extended zed domain and call it 'bparext'
-                     if (include_bpar) call map_to_extended_zgrid(it, ie, iky, bpar_source(iky, :, :, :), bparext, ulim) 
+                     if (include_bpar) call map_to_extended_zgrid(it, ie, iky, bpar_source(iky, :, :, :), bparext(:nz_ext), ulim) 
                      if (present(mod)) then
                         ! For implicit FFS - Need to map the incoming source term on the RHS
                         ! (i.e. the piece that is treated explicitly)
-                        allocate (phiffsext(nz_ext))
-                        call map_to_extended_zgrid(it, ie, iky, phi_source_ffs(iky, :, :, :, ivmu), phiffsext, ulim)
-                        call get_gke_rhs(ivmu, iky, ie, pdf1, phiext, aparext, aparext_new, aparext_old, bparext, pdf2, phiffsext)
+                        call map_to_extended_zgrid(it, ie, iky, phi_source_ffs(iky, :, :, :, ivmu), phiffsext(:nz_ext), ulim)
+                        call get_gke_rhs(ivmu, iky, ie, pdf1(:nz_ext), phiext(:nz_ext), aparext(:nz_ext), aparext_new(:nz_ext), aparext_old(:nz_ext), bparext(:nz_ext), pdf2(:nz_ext), phiffsext(:nz_ext))
                      else
                         ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
                         ! pdf and potential, respectively) and store it in pdf2
-                        call get_gke_rhs(ivmu, iky, ie, pdf1, phiext, aparext, aparext_new, aparext_old, bparext, pdf2)
+                        call get_gke_rhs(ivmu, iky, ie, pdf1(:nz_ext), phiext(:nz_ext), aparext(:nz_ext), aparext_new(:nz_ext), aparext_old(:nz_ext), bparext(:nz_ext), pdf2(:nz_ext))
                      end if
                      ! Given the RHS of the GK equation (pdf2), solve for the pdf at the
                      ! new time level by sweeping in zed on the extended domain;
                      ! the rhs is input as 'pdf2' and over-written with the updated solution for the pdf
-                     call sweep_g_zext(iky, ie, it, ivmu, pdf2)
+                     call sweep_g_zext(iky, ie, it, ivmu, pdf2(:nz_ext))
                      ! Map the pdf 'pdf2' from the extended zed domain
                      ! to the standard zed domain; the mapped pdf is called 'g'
-                     call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
-                     deallocate (pdf1, pdf2, phiext, aparext, aparext_new, aparext_old, bparext)
-                     if (present(mod)) deallocate(phiffsext)
+                     call map_from_extended_zgrid(it, ie, iky, pdf2(:nz_ext), g(iky, :, :, :, ivmu))
                   end do
                end do
             end do
          end do
+         deallocate (pdf1, pdf2, phiext, aparext, aparext_new, aparext_old, bparext)
+         if (present(mod)) deallocate (phiffsext)
 
          ! Stop the timer for the pdf update
          if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
@@ -422,18 +433,19 @@ contains
       complex, dimension(:), optional, intent(in) :: phi_ffs
 
       integer :: nz_ext
-      complex, dimension(:), allocatable :: rhs_fields
 
       !-------------------------------------------------------------------------
       ! nz_ext is the number of grid points in this extended zed domain
       nz_ext = size(pdf)
 
-      ! rhs_fields will be the contribution to the GKE RHS from the given fields
-      allocate (rhs_fields(nz_ext))
+      ! Allocate the work arrays if they are shorter than the chain
+      call get_chain_work_arrays(nz_ext)
+
+      ! work_rhs_fields will be the contribution to the GKE RHS from the given fields
 
       ! NB: rhs is used as a scratch array in get_contributions_from_fields
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
-      call get_contributions_from_fields(phi, apar, aparnew, bpar, ivmu, iky, ie, rhs, rhs_fields)
+      call get_contributions_from_fields(phi, apar, aparnew, bpar, ivmu, iky, ie, rhs, work_rhs_fields(:nz_ext))
 
       if (present(phi_ffs)) then
          call get_contributions_from_pdf(pdf, aparold, ivmu, iky, ie, rhs, phi_ffs)
@@ -442,9 +454,7 @@ contains
       end if
 
       ! Construct RHS of GK eqn
-      rhs = rhs + rhs_fields
-
-      deallocate (rhs_fields)
+      rhs = rhs + work_rhs_fields(:nz_ext)
 
    end subroutine get_gke_rhs
 
@@ -467,7 +477,6 @@ contains
       integer, intent(in) :: ivmu, iky, ie
       complex, dimension(:), intent(out) :: scratch, rhs
 
-      integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
       integer :: nz_ext
 
       !-------------------------------------------------------------------------
@@ -481,22 +490,19 @@ contains
       ! Many arrays are defined locally with 'iz' and 'ikx' as separate indices,
       ! while the extended z-domain combines them into a single 'super-index'.
       ! This step allows us to map between those two representations.
-      allocate (iz_from_izext(nz_ext))
-      allocate (ikx_from_izext(nz_ext))
-      call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
+      call map_to_iz_ikx_from_izext(iky, ie, work_iz_from_izext(:nz_ext), work_ikx_from_izext(:nz_ext))
 
       ! Calculate the contributions to the RHS of the GKE due to source terms proportional to phi
-      call get_contributions_from_phi(phi, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
+      call get_contributions_from_phi(phi, ivmu, iky, work_iz_from_izext(:nz_ext), work_ikx_from_izext(:nz_ext), scratch, rhs)
       ! If advancing apar, get its contribution to the RHS of the GKE and add to phi contribution
       if (include_apar) then
-         call get_contributions_from_apar(apar, aparnew, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
+         call get_contributions_from_apar(apar, aparnew, ivmu, iky, work_iz_from_izext(:nz_ext), work_ikx_from_izext(:nz_ext), scratch, rhs)
       end if
       ! If advancing bpar, get its contribution to the RHS of the GKE and add to phi contribution
       if (include_bpar) then 
-         call get_contributions_from_bpar(bpar, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
+         call get_contributions_from_bpar(bpar, ivmu, iky, work_iz_from_izext(:nz_ext), work_ikx_from_izext(:nz_ext), scratch, rhs)
       end if
 
-      deallocate (iz_from_izext, ikx_from_izext)
 
    end subroutine get_contributions_from_fields
 
@@ -527,7 +533,7 @@ contains
       integer, dimension(:), intent(in) :: iz_from_izext, ikx_from_izext
       complex, dimension(:), intent(out) :: scratch, rhs
 
-      real, dimension(:), allocatable :: z_scratch
+      real, dimension(-nzgrid:nzgrid) :: z_scratch
       integer :: ia, iz, iv, imu, is
       integer :: nz_ext
 
@@ -541,8 +547,6 @@ contains
       ! nz_ext is the number of grid points in the extended zed domain
       nz_ext = size(phi)
 
-      ! Allocate a 1d array in zed for use as a scratch array
-      allocate (z_scratch(-nzgrid:nzgrid))
 
       ! Set scratch to be phi or <phi>= J_0*phi depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
@@ -556,7 +560,6 @@ contains
       call add_streaming_contribution_phi
       if (drifts_implicit) call add_drifts_contribution_phi
 
-      deallocate (z_scratch)
 
    contains
 
@@ -700,8 +703,7 @@ contains
 
       complex, dimension(:), intent(out) :: scratch, rhs
       
-      complex, dimension(:), allocatable :: scratch2
-      real, dimension(:), allocatable :: z_scratch
+      real, dimension(-nzgrid:nzgrid) :: z_scratch
       integer :: ia, iz, iv, imu, is
       integer :: nz_ext
 
@@ -715,10 +717,6 @@ contains
       ! nz_ext is the number of grid points in the extended zed domain
       nz_ext = size(bpar)
       
-      ! Allocate a 1d array in zed for use as a scratch array
-      allocate (z_scratch(-nzgrid:nzgrid))
-      ! Allocate a 1d array to replace the rhs array as a scratch array
-      allocate (scratch2(nz_ext))
 
       ! Set scratch to be bpar or <bpar> depending on whether parallel streaming is
       ! Implicit or only implicit in the kperp = 0 (drift kinetic) piece
@@ -731,7 +729,6 @@ contains
       call add_streaming_contribution_bpar
       if (drifts_implicit) call add_drifts_contribution_bpar
 
-      deallocate (z_scratch, scratch2)
 
    contains
 
@@ -766,15 +763,15 @@ contains
          ! and store values in scratch_left and scratch_right
          call fill_zext_ghost_zones(iky, scratch, scratch_left, scratch_right)
 
-         ! Obtain the zed derivative of <bpar> (stored in scratch) and store in scratch2
-         call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, scratch2)
+         ! Obtain the zed derivative of <bpar> (stored in scratch) and store in work_scratch2
+         call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, work_scratch2(:nz_ext))
 
          ! Center Maxwellian factor in mu and store in dummy variable z_scratch
          z_scratch = maxwell_mu(ia, :, imu, is)
          call center_zed(iv, z_scratch, -nzgrid)
          ! multiply by Maxwellian factor
          do izext = 1, nz_ext
-            scratch2(izext) = scratch2(izext) * z_scratch(iz_from_izext(izext))
+            work_scratch2(izext) = work_scratch2(izext) * z_scratch(iz_from_izext(izext))
          end do
 
          ! NB: could do this once at beginning of simulation to speed things up
@@ -797,10 +794,10 @@ contains
          end if
 
          do izext = 1, nz_ext
-            scratch2(izext) = -z_scratch(iz_from_izext(izext)) * scratch2(izext)
+            work_scratch2(izext) = -z_scratch(iz_from_izext(izext)) * work_scratch2(izext)
          end do
-         ! add scratch2 to rhs
-         rhs = rhs + scratch2
+         ! add work_scratch2 to rhs
+         rhs = rhs + work_scratch2(:nz_ext)
       end subroutine add_streaming_contribution_bpar
 
       !*************************************************************************
@@ -868,7 +865,6 @@ contains
       complex, dimension(:), intent(out) :: scratch
       complex, dimension(:), intent(in out) :: rhs
 
-      complex, dimension(:), allocatable :: scratch2
       integer :: ia, iv, imu, is
       integer :: nz_ext
 
@@ -882,22 +878,18 @@ contains
       ! nz_ext is number of grid points in extended zed domain
       nz_ext = size(scratch)
 
-      allocate (scratch2(nz_ext))
-
       ! set scratch to be apar or <apar> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
       if (driftkinetic_implicit) then
          scratch = apar
-         scratch2 = aparnew
+         work_scratch2(:nz_ext) = aparnew
       else
          call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, apar, scratch)
-         call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, aparnew, scratch2)
+         call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, aparnew, work_scratch2(:nz_ext))
       end if
 
-      call add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
+      call add_gbar_to_g_contribution_apar(work_scratch2(:nz_ext), iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
       if (drifts_implicit) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
-
-      deallocate (scratch2)
 
    end subroutine get_contributions_from_apar
 
@@ -1019,7 +1011,6 @@ contains
       integer :: izext, iz, ia
       integer :: nz_ext
 
-      complex, dimension(:), allocatable :: field, gyro_field
 
       !-------------------------------------------------------------------------
       
@@ -1031,22 +1022,17 @@ contains
 
       nz_ext = size(apar)
 
-      allocate (field(nz_ext))
-      allocate (gyro_field(nz_ext))
-
       ia = 1
 
-      field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar
+      work_field(:nz_ext) = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar
 
       do izext = 1, nz_ext
          iz = iz_from_izext(izext)
-         field(izext) = field(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+         work_field(izext) = work_field(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
 
-      call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, field, gyro_field)
-      pdf = pdf - gyro_field
-
-      deallocate (field, gyro_field)
+      call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, work_field(:nz_ext), work_gyro_field(:nz_ext))
+      pdf = pdf - work_gyro_field(:nz_ext)
 
    end subroutine gbar_to_g_zext
 
@@ -1142,13 +1128,11 @@ contains
       integer, intent(in) :: ivmu, iky, ie
       complex, dimension(:), intent(out) :: rhs
 
-      real, dimension(:), allocatable :: b_dot_gradz_fac
-      complex, dimension(:), allocatable :: dpdf_dz
+      real, dimension(-nzgrid:nzgrid) :: b_dot_gradz_fac
       real :: constant_factor
       integer :: iv, is, iz
       integer :: ia, ikx
 
-      integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
       integer :: nz_ext, izext
       complex :: pdf_left, pdf_right
 
@@ -1165,22 +1149,18 @@ contains
 
       ! Determine the mapping from the extended domain zed index (izext) to the
       ! zed and kx domain indices (iz, ikx)
-      allocate (iz_from_izext(nz_ext))
-      allocate (ikx_from_izext(nz_ext))
-      call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
+      call map_to_iz_ikx_from_izext(iky, ie, work_iz_from_izext(:nz_ext), work_ikx_from_izext(:nz_ext))
 
       ! Fill ghost zones beyond ends of extended zed domain for the pdf
       ! and store values in scratch_left and scratch_right
       call fill_zext_ghost_zones(iky, pdf, pdf_left, pdf_right)
 
-      ! Obtain the zed derivative of the pdf and store in dpdf_dz
-      allocate (dpdf_dz(nz_ext))
-      call get_zed_derivative_extended_domain(iv, pdf, pdf_left, pdf_right, dpdf_dz)
+      ! Obtain the zed derivative of the pdf and store in work_dpdf_dz
+      call get_zed_derivative_extended_domain(iv, pdf, pdf_left, pdf_right, work_dpdf_dz(:nz_ext))
 
       ! Compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
       constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
       ! Use the correctly centered (b . grad z) pre-factor for this sign of vpa
-      allocate (b_dot_gradz_fac(-nzgrid:nzgrid))
       if (stream_sign(iv) > 0) then
          b_dot_gradz_fac = b_dot_gradz_centeredinz(:, -1) * constant_factor
       else
@@ -1191,13 +1171,13 @@ contains
       ! If advancing apar, need to use gbar rather than g=<f> for part of source on RHS of GKE,
       ! so convert from g to gbar
       if (include_apar) then
-         call gbar_to_g_zext(rhs, apar, -1.0, iky, ivmu, ikx_from_izext, iz_from_izext)
+         call gbar_to_g_zext(rhs, apar, -1.0, iky, ivmu, work_ikx_from_izext(:nz_ext), work_iz_from_izext(:nz_ext))
       end if
 
       if (drifts_implicit) then
          do izext = 1, nz_ext
-            ikx = ikx_from_izext(izext)
-            iz = iz_from_izext(izext)
+            ikx = work_ikx_from_izext(izext)
+            iz = work_iz_from_izext(izext)
             rhs(izext) = rhs(izext) + pdf(izext) * zi * time_upwind_minus &
                          * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
 !            rhs(izext) = rhs(izext) * (1.0 + zi * time_upwind_minus &
@@ -1213,17 +1193,14 @@ contains
       ! If we are on a full flux surface, then we have an additional source term
       if(present(source_ffs)) then 
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext) + b_dot_gradz_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
+            rhs(izext) = rhs(izext) + b_dot_gradz_fac(work_iz_from_izext(izext)) * work_dpdf_dz(izext) + source_ffs(izext)
          end do
       else
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext) + b_dot_gradz_fac(iz_from_izext(izext)) * dpdf_dz(izext)
+            rhs(izext) = rhs(izext) + b_dot_gradz_fac(work_iz_from_izext(izext)) * work_dpdf_dz(izext)
          end do
       end if
 
-      deallocate (dpdf_dz)
-      deallocate (b_dot_gradz_fac)
-      deallocate (iz_from_izext, ikx_from_izext)
 
    end subroutine get_contributions_from_pdf
 
@@ -1248,7 +1225,7 @@ contains
    subroutine sweep_g_zext(iky, ie, it, ivmu, pdf)
 
       use constants, only: zi
-      use grids_z, only: nzgrid, ntubes, delzed
+      use grids_z, only: nzgrid, delzed
       use parameters_numerical, only: drifts_implicit
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
       use parameters_numerical, only: time_upwind_plus
@@ -1267,20 +1244,21 @@ contains
       integer, intent(in) :: iky, ie, it, ivmu
       complex, dimension(:), intent(in out) :: pdf
 
-      complex, dimension(:), allocatable :: wdrift_ext, pdf_cf
-      complex, dimension(:, :), allocatable :: wdrift
       complex :: wd_factor, fac1, phase_factor
       real :: zupwnd_p, zupwnd_m, tupwnd_p
       real :: stream_term
       integer :: iz, ikx, ia
       integer :: iv, is
-      integer :: ulim, sgn, iz1, iz2, izext
-      integer, dimension(:), allocatable :: iz_ext
+      integer :: ulim, sgn, iz1, iz2, izext, nz_ext
 
       !-------------------------------------------------------------------------
 
       iv = iv_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
+
+      ! Allocate the work arrays if they are shorter than the chain
+      nz_ext = size(pdf)
+      call get_chain_work_arrays(nz_ext)
 
       sgn = stream_sign(iv)
       ! Avoid repeated calculation of constants
@@ -1291,19 +1269,17 @@ contains
       ! If treating magentic drifts implicitly in time,
       ! get the drift frequency on the extended zed grid
       if (drifts_implicit) then
-         allocate (wdrift(nakx, -nzgrid:nzgrid))
          ia = 1
          ! Sum up the kx and ky contributions to the magnetic drift frequency
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
-               wdrift(ikx, iz) = -zi * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
+               work_wdrift(ikx, iz, :) = -zi * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
             end do
          end do
          ! Obtain the drift frequency on the extended zed domain
-         allocate (wdrift_ext(size(pdf)))
-         call map_to_extended_zgrid(it, ie, iky, spread(wdrift, 3, ntubes), wdrift_ext, ulim)
+         call map_to_extended_zgrid(it, ie, iky, work_wdrift, work_wdrift_ext(:nz_ext), ulim)
          ! NB: need to check if passing periodic(iky) is the right thing to do here
-         call center_zed(iv, wdrift_ext, 1, periodic(iky))
+         call center_zed(iv, work_wdrift_ext(:nz_ext), 1, periodic(iky))
       else
          ulim = size(pdf)
       end if
@@ -1320,9 +1296,8 @@ contains
       ! every point of the chain is taken from the chain itself (the chains of the twist-and-shift
       ! BC always run from z(-nzgrid) to z(nzgrid), and get_updated_pdf steps through z)
       if (non_twisting) then
-         allocate (iz_ext(ulim))
          do izext = 1, ulim
-            iz_ext(izext) = izext_iz(izext, ie, iky)
+            work_iz_ext(izext) = izext_iz(izext, ie, iky)
          end do
       end if
       ! The case of periodic BC must be treated separately from the zero-incoming-BC case
@@ -1333,32 +1308,27 @@ contains
          ! Calculate the particular integral, with zero BC, and store in pdf
          iz = sgn * nzgrid
          pdf(iz1) = 0.0
-         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf, iz_ext)
-         ! Calculate the complementary function, with unit BC, and store in pdf_cf
-         allocate (pdf_cf(ulim))
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, work_wdrift_ext(:nz_ext), pdf, work_iz_ext(:ulim))
+         ! Calculate the complementary function, with unit BC, and store in work_pdf_cf
          iz = sgn * nzgrid
-         pdf_cf = 0.0; pdf_cf(iz1) = 1.0
-         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf_cf, iz_ext)
+         work_pdf_cf(:ulim) = 0.0; work_pdf_cf(iz1) = 1.0
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, work_wdrift_ext(:nz_ext), work_pdf_cf(:ulim), work_iz_ext(:ulim))
          ! Construct pdf = pdf_PI + (pdf_PI(zend)/(1-pdf_CF(zend))) * pdf_CF
          phase_factor = phase_shift(iky)**(-sgn)
-         pdf = pdf + (phase_factor * pdf(iz2) / (1.0 - phase_factor * pdf_cf(iz2))) * pdf_cf
-         deallocate (pdf_cf)
+         pdf = pdf + (phase_factor * pdf(iz2) / (1.0 - phase_factor * work_pdf_cf(iz2))) * work_pdf_cf(:ulim)
       else
          ! Specially treat the most upwind grid point
          iz = sgn * nzgrid
-         if (non_twisting) iz = iz_ext(iz1)
+         if (non_twisting) iz = work_iz_ext(iz1)
          wd_factor = 1.0
-         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
+         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * work_wdrift_ext(iz1)
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
          fac1 = zupwnd_p * wd_factor + sgn * stream_term
          pdf(iz1) = pdf(iz1) * 2.0 / fac1
          ! Now that we have the pdf at the most upwind point, sweep over the
          ! rest of the extended zed domain to obtain the pdf(z)
-         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf, iz_ext)
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, work_wdrift_ext(:nz_ext), pdf, work_iz_ext(:ulim))
       end if
-
-      if (drifts_implicit) deallocate (wdrift, wdrift_ext)
-      if (allocated(iz_ext)) deallocate (iz_ext)
 
    end subroutine sweep_g_zext
 
@@ -1369,16 +1339,17 @@ contains
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
       use parameters_numerical, only: time_upwind_plus
       use gk_parallel_streaming, only: stream_c
+      use grids_kxky, only: non_twisting
 
       implicit none
 
       integer, intent(in out) :: iz
       integer, intent(in) :: iv, is, sgn, iz1, iz2
-      ! Only allocated (and used) when the magnetic drifts are treated implicitly
-      complex, dimension(:), allocatable, intent(in) :: wdrift_ext
+      ! Only used when the magnetic drifts are treated implicitly
+      complex, dimension(:), intent(in) :: wdrift_ext
       complex, dimension(:), intent(in out) :: pdf
       ! z index of every point of the chain (non-twisting flux tube); otherwise z is stepped through
-      integer, dimension(:), allocatable, intent(in) :: iz_ext
+      integer, dimension(:), intent(in) :: iz_ext
 
       integer :: izext
       real :: stream_term
@@ -1396,7 +1367,7 @@ contains
       wd_factor = 1.0
 
       do izext = iz1 - sgn, iz2, -sgn
-         if (allocated(iz_ext)) then
+         if (non_twisting) then
             iz = iz_ext(izext)
          else if (iz == -sgn * nzgrid) then
             iz = sgn * nzgrid - sgn
@@ -1411,6 +1382,37 @@ contains
       end do
 
    end subroutine get_updated_pdf
+
+   !****************************************************************************
+   !                  WORK ARRAYS OF THE SWEEP OVER THE CHAINS
+   !****************************************************************************
+   ! Allocate the work arrays (see the module variables)
+   ! if they are shorter than nz_ext, at the length of the longest chain
+   !****************************************************************************
+   subroutine get_chain_work_arrays(nz_ext)
+
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: nakx
+      use grids_extended_zgrid, only: nzext
+      use parameters_numerical, only: drifts_implicit
+
+      implicit none
+
+      integer, intent(in) :: nz_ext
+
+      integer :: n
+
+      if (allocated(work_rhs_fields)) then
+         if (size(work_rhs_fields) >= nz_ext) return
+         deallocate (work_rhs_fields, work_scratch2, work_dpdf_dz, work_field, work_gyro_field, work_wdrift_ext, work_pdf_cf)
+         deallocate (work_iz_from_izext, work_ikx_from_izext, work_iz_ext)
+      end if
+      n = max(nz_ext, maxval(nzext))
+      allocate (work_rhs_fields(n), work_scratch2(n), work_dpdf_dz(n), work_field(n), work_gyro_field(n), work_wdrift_ext(n), work_pdf_cf(n))
+      allocate (work_iz_from_izext(n), work_ikx_from_izext(n), work_iz_ext(n))
+      if (drifts_implicit .and. .not. allocated(work_wdrift)) allocate (work_wdrift(nakx, -nzgrid:nzgrid, ntubes))
+
+   end subroutine get_chain_work_arrays
 
    !****************************************************************************
    !                           SWEEP G IN ZED FOR ZONAL

@@ -227,6 +227,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       use grids_velocity, only: nvpa, nmu
+      use parameters_physics, only: full_flux_surface
       
       implicit none
       
@@ -240,13 +241,14 @@ contains
       if (debug) write (*, *) 'dist_fn::init_arrays_distribution_function::allocate_arrays'
       if (.not. allocated(gnew)) allocate (gnew(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(gold)) allocate (gold(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      if (.not. allocated(phi_gyro)) allocate (phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      ! <phi> on every vmu-layout point is only stored for full-flux-surface simulations
+      if (full_flux_surface .and. .not. allocated(phi_gyro)) allocate (phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(gvmu)) allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          
       ! Initialise arrays to zero
       gnew = 0.
       gold = 0.
-      phi_gyro = 0.
+      if (allocated(phi_gyro)) phi_gyro = 0.
       gvmu = 0.
       
       !-------------------------------------------------------------------------

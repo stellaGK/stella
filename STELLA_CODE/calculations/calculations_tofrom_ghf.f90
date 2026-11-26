@@ -451,7 +451,7 @@ contains
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use arrays_gyro_averages, only: aj0x, aj1x
+      use arrays_gyro_averages, only: aj0x, aj1x, aj_index
       use calculations_kxky, only: multiply_by_rho
       
       ! Flags
@@ -512,7 +512,7 @@ contains
             if (radial_variation .and. present(phi_corr)) then
                g0k = field * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                  - 0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                  - 0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
 
@@ -663,7 +663,7 @@ contains
       ! Calculations
       use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use calculations_gyro_averages, only: gyro_average
-      use arrays_gyro_averages, only: aj0x, aj1x, j0_ffs
+      use arrays_gyro_averages, only: aj0x, aj1x, j0_ffs, aj_index
       use calculations_kxky, only: multiply_by_rho
       
       ! Flags
@@ -731,7 +731,7 @@ contains
                   if (radial_variation .and. present(phi_corr)) then
                      g0k = field * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                         - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                        - 0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                        - 0.5 * aj1x(:, :, iz, aj_index(ivmu)) / aj0x(:, :, iz, aj_index(ivmu)) * (spec(is)%smz)**2 &
                         * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                         * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
                      call multiply_by_rho(g0k)

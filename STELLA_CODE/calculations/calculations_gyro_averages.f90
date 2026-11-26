@@ -17,7 +17,7 @@
 ! The Bessel functions J0(x) and J1(x) are stored only for the points <ivmu> and
 ! <ikxkyz> that are located on the current processor <iproc>.
 ! 
-! For the (v,mu,s)-grid we have aj0x and aj1x(iky, ikx, iz, ivmu)
+! For the (v,mu,s)-grid we have aj0x and aj1x(iky, ikx, iz, aj_index(ivmu))
 ! For the (kx,ky,z)-grid we have aj0v and aj1v(imu, ikxkyz)
 ! 
 ! The argument of the bessel function is a_k = k_perp*rho_s     see Eq.(19)
@@ -36,7 +36,7 @@ module calculations_gyro_averages
    use debug_flags, only: debug => gyro_averages_debug
    
    ! Load the Bessel functions
-   use arrays_gyro_averages, only: aj0x, aj1x
+   use arrays_gyro_averages, only: aj0x, aj1x, aj_index
    use arrays_gyro_averages, only: aj0v, aj1v
    use arrays_gyro_averages, only: j0_ffs
 
@@ -45,6 +45,7 @@ module calculations_gyro_averages
    ! Make routines available to other modules
    public :: gyro_average
    public :: gyro_average_j1
+   public :: integrate_species_gyro_average
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
 
    private
@@ -93,7 +94,7 @@ contains
       
       !-------------------------------------------------------------------------
 
-      gyro_field = aj0x(iky, ikx, iz, ivmu) * field
+      gyro_field = aj0x(iky, ikx, iz, aj_index(ivmu)) * field
 
    end subroutine gyro_average_local
 
@@ -117,7 +118,7 @@ contains
         
       ! If simulating a flux tube, a gyro-average is local in k-space
       else
-         gyro_field = aj0x(:, :, iz, ivmu) * field
+         gyro_field = aj0x(:, :, iz, aj_index(ivmu)) * field
          
       end if
 
@@ -144,7 +145,7 @@ contains
          
       ! If simulating a flux tube, a gyro-average is local in k-space
       else
-         gyro_field = spread(aj0x(:, :, :, ivmu), 4, ntubes) * field
+         gyro_field = spread(aj0x(:, :, :, aj_index(ivmu)), 4, ntubes) * field
          
       end if
 
@@ -360,10 +361,14 @@ contains
       complex, dimension(vmu_lo%llim_proc:), intent(in) :: field
       integer, intent(in) :: iky, ikx, iz
       complex, dimension(vmu_lo%llim_proc:), intent(out) :: gyro_field
+
+      integer :: ivmu
       
       !-------------------------------------------------------------------------
 
-      gyro_field = aj0x(iky, ikx, iz, :) * field
+      do ivmu = vmu_lo%llim_proc, ubound(field, 1)
+         gyro_field(ivmu) = aj0x(iky, ikx, iz, aj_index(ivmu)) * field(ivmu)
+      end do
 
    end subroutine gyro_average_vmus_nonlocal
    
@@ -377,10 +382,14 @@ contains
       complex, dimension(vmu_lo%llim_proc:), intent(in) :: field
       integer, intent(in) :: iky, ikx, iz
       complex, dimension(vmu_lo%llim_proc:), intent(out) :: gyro_field
+
+      integer :: ivmu
       
       !-------------------------------------------------------------------------
 
-      gyro_field = aj1x(iky, ikx, iz, :) * field
+      do ivmu = vmu_lo%llim_proc, ubound(field, 1)
+         gyro_field(ivmu) = aj1x(iky, ikx, iz, aj_index(ivmu)) * field(ivmu)
+      end do
 
    end subroutine gyro_average_j1_vmus_nonlocal
    
@@ -395,7 +404,7 @@ contains
       
       !-------------------------------------------------------------------------
 
-      gyro_field = aj1x(iky, ikx, iz, ivmu) * field
+      gyro_field = aj1x(iky, ikx, iz, aj_index(ivmu)) * field
 
    end subroutine gyro_average_j1_local
    
@@ -410,7 +419,7 @@ contains
       
       !-------------------------------------------------------------------------
 
-      gyro_field = aj1x(:, :, iz, ivmu) * field
+      gyro_field = aj1x(:, :, iz, aj_index(ivmu)) * field
 
    end subroutine gyro_average_j1_kxky_local
 
@@ -431,7 +440,7 @@ contains
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
-            gyro_field(:, :, iz, it) = aj1x(:, :, iz, ivmu) * field(:, :, iz, it)
+            gyro_field(:, :, iz, it) = aj1x(:, :, iz, aj_index(ivmu)) * field(:, :, iz, it)
          end do
       end do
 
@@ -498,6 +507,77 @@ contains
          end do
       end if
    end subroutine 
+
+   !****************************************************************************
+   !         Integrate the gyro-average of g over velocity and species
+   !****************************************************************************
+   ! total = sum_s weights(s) * 2B/sqrt(pi) int dvpa int dmu J g for a flux tube, with
+   ! J = J_0 (bessel = 0) or J_1(x)/x (bessel = 1), times vpa (moment = 'vpa') or mu
+   ! (moment = 'mu') if present. These are the same operations, in the same order, as
+   ! gyro_average() or gyro_average_j1(), the multiplication with vpa or mu, and
+   ! integrate_species(), but without storing the gyro-average of g of every point.
+   !****************************************************************************
+   subroutine integrate_species_gyro_average(g, weights, total, bessel, moment)
+
+      use mp, only: sum_allreduce
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: naky, nakx
+      use grids_velocity, only: wgts_mu, wgts_vpa, vpa, mu
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: total
+      integer, intent(in) :: bessel
+      character(*), intent(in), optional :: moment
+
+      integer :: ivmu, iv, imu, is, it, iz, ikx, iky, ia, imus, factor_option
+      real :: factor
+      complex :: gyro_g
+
+      !-------------------------------------------------------------------------
+
+      ! The factor of the moment: 0 none, 1 vpa, 2 mu
+      factor_option = 0
+      if (present(moment)) then
+         if (moment == 'vpa') factor_option = 1
+         if (moment == 'mu') factor_option = 2
+      end if
+
+      total = 0.
+      ia = 1
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         imus = aj_index(ivmu)
+         factor = 1.0
+         if (factor_option == 1) factor = vpa(iv)
+         if (factor_option == 2) factor = mu(imu)
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  do iky = 1, naky
+                     if (bessel == 0) then
+                        gyro_g = aj0x(iky, ikx, iz, imus) * g(iky, ikx, iz, it, ivmu)
+                     else
+                        gyro_g = aj1x(iky, ikx, iz, imus) * g(iky, ikx, iz, it, ivmu)
+                     end if
+                     if (factor_option > 0) gyro_g = gyro_g * factor
+                     total(iky, ikx, iz, it) = total(iky, ikx, iz, it) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * gyro_g * weights(is)
+                  end do
+               end do
+            end do
+         end do
+      end do
+
+      ! Each processor has a few [ivmu] points, so sum all calculations
+      call sum_allreduce(total)
+
+   end subroutine integrate_species_gyro_average
    
    !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_solve_ffs(lu, solvec)

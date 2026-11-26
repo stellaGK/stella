@@ -44,7 +44,7 @@ module arrays_gyro_averages
    public :: find_max_required_kalpha_index
 
    ! Make arrays available
-   public :: aj0x, aj0v, aj1x, aj1v
+   public :: aj0x, aj0v, aj1x, aj1v, aj_index
    public :: j0_B_ffs, j0_ffs 
    public :: j1_ffs
    public :: j0_const, j0_B_const
@@ -52,8 +52,11 @@ module arrays_gyro_averages
 
    private
 
-   ! Dimension (naky, nakx, nalpha, -nzgrid:nzgrid, imuvpaspecies) on vmu-layout[llim_proc:ulim_alloc]
+   ! Dimension (naky, nakx, -nzgrid:nzgrid, imus), where imus = imu + nmu * (is - 1) runs over the (mu, species) of the
+   ! vmu-layout points of this process, since J0 and J1 do not depend on vpa; aj_index(ivmu) is the imus of the vmu-layout
+   ! point ivmu [llim_proc:ulim_alloc], so that J0 of ivmu is aj0x(:, :, :, aj_index(ivmu))
    real, dimension(:, :, :, :), allocatable :: aj0x, aj1x
+   integer, dimension(:), allocatable :: aj_index
    
    ! Dimension (nmu, ikxkyzspecies) on kxkyz-layout[llim_proc:ulim_alloc])
    real, dimension(:, :), allocatable :: aj0v, aj1v
@@ -190,7 +193,7 @@ contains
       use geometry, only: bmag
       use grids_z, only: nzgrid
       use grids_kxky, only: naky, nakx
-      use grids_velocity, only: vperp2
+      use grids_velocity, only: vperp2, nmu
       use arrays, only: kperp2
       
       ! Species parameters
@@ -203,7 +206,7 @@ contains
       
       ! Local variables
       integer :: iz, iky, ikx, imu, is, ia
-      integer :: ivmu
+      integer :: ivmu, imus, imus_lo, imus_hi
       real :: arg
       
       !-------------------------------------------------------------------------
@@ -215,14 +218,27 @@ contains
       ! Calculate the Bessel functions for flux-tube simulations
       else
       
+         ! The (mu, species) index imus of every vmu-layout point of this process, and their range
+         if (.not. allocated(aj_index)) allocate (aj_index(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         imus_lo = huge(1); imus_hi = -huge(1)
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            aj_index(ivmu) = imu_idx(vmu_lo, ivmu) + nmu * (is_idx(vmu_lo, ivmu) - 1)
+            imus_lo = min(imus_lo, aj_index(ivmu)); imus_hi = max(imus_hi, aj_index(ivmu))
+         end do
+         ! A process without vmu-layout points still allocates one (mu, species) point
+         if (imus_hi < imus_lo) then
+            imus_lo = 1; imus_hi = 1
+         end if
+         aj_index(max(vmu_lo%llim_proc, vmu_lo%ulim_proc + 1):vmu_lo%ulim_alloc) = imus_lo
+
          ! Allocate the arrays
          if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::allocate_aj0x_aj1x'
          if (.not. allocated(aj0x)) then
-               allocate (aj0x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+               allocate (aj0x(naky, nakx, -nzgrid:nzgrid, imus_lo:imus_hi))
                aj0x = 0.
          end if 
          if (.not. allocated(aj1x)) then
-               allocate (aj1x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+               allocate (aj1x(naky, nakx, -nzgrid:nzgrid, imus_lo:imus_hi))
                aj1x = 0.
          end if
 
@@ -231,9 +247,9 @@ contains
          
          ! Calculate the Bessel functions J_0(x) and J_1(x) on the (kx,ky) grid
          ! Note that j1 returns J_1(x)/x, not J_1(x)
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
+         do imus = imus_lo, imus_hi
+            is = (imus - 1) / nmu + 1
+            imu = imus - nmu * (is - 1)
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   do iky = 1, naky
@@ -242,8 +258,8 @@ contains
                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
                      
                      ! Calculate the Bessel functions with arg = a_k = k_perp*rho_s
-                     aj0x(iky, ikx, iz, ivmu) = j0(arg)
-                     aj1x(iky, ikx, iz, ivmu) = j1(arg)
+                     aj0x(iky, ikx, iz, imus) = j0(arg)
+                     aj1x(iky, ikx, iz, imus) = j1(arg)
                      
                   end do
                end do
@@ -536,6 +552,7 @@ contains
       if (allocated(aj1v)) deallocate (aj1v)
       if (allocated(aj0x)) deallocate (aj0x)
       if (allocated(aj1x)) deallocate (aj1x)
+      if (allocated(aj_index)) deallocate (aj_index)
       if (allocated(j0_ffs)) deallocate (j0_ffs)
       if (allocated(j0_B_ffs)) deallocate (j0_B_ffs)
       if (allocated(j0_B_const)) deallocate (j0_B_const)
