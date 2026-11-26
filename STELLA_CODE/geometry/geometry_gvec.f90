@@ -318,9 +318,11 @@ contains
          ! Interpolate all arrays from (zeta_file) to arc-length grid (zed)
          ! alpha and zeta are taken from the file (they carry the field-line/domain info)
          alpha(:) = alpha_file(:)
-         ! In arc-length mode zeta is replaced by zed (the normalised arc-length),
-         ! but the zeta array still holds the underlying toroidal angles for reference.
-         zeta(:, :) = spread(zeta_file(-nzgrid_file:nzgrid_file:z_grid_refinement_factor), 1, nalpha)
+         ! In arc-length mode the zed grid is uniform in the normalised arc length, so
+         ! the toroidal angle zeta at the zed points is interpolated from the file, as for VMEC.
+         do ia = 1, nalpha
+            call geo_spline(arc_length(ia, :), zeta_file, zed, zeta(ia, :))
+         end do
 
          do ia = 1, nalpha
             b_dot_grad_arclength(ia, :) = 2.0 * pi / zed_domain_size(ia)
@@ -548,7 +550,7 @@ contains
          if (alpha0_nl    > -998.0) write (*, '(A,F8.5,A)')  "        --alpha0 ", alpha0_nl, " \\"
          if (zeta_center_nl > -998.0) write (*, '(A,F8.5,A)')"        --zeta_center ", zeta_center_nl, " \\"
          if (nfield_periods_nl > 0.0) write (*, '(A,I4,A)') "        --nfield_periods ", nint(nfield_periods_nl), " \\"
-         write (*, '(A)')  "        --nzgrid <your_nzgrid> -o new_geometry.nc"
+         write (*, '(A)')  "        --nzgrid <nzgrid> --nzgrid_file <nzgrid_file> -o new_geometry.nc"
          write (*, '(A)') " "
          call mp_abort('geometry_gvec mismatch: please re-run gvec_to_stella.py')
       end if

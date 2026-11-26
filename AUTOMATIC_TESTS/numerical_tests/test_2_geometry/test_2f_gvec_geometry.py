@@ -401,3 +401,38 @@ def test_whether_gvec_arc_length_grid_is_finite(tmp_path, error=False):
 
     assert not error, 'The GVEC arc-length z-grid produced incorrect geometry.'
     print('\n  -->  The GVEC arc-length z-grid reproduces the analytic geometry.')
+
+
+def test_whether_gvec_zeta_follows_the_arc_length_grid(tmp_path, error=False):
+    '''Run with zed_equal_arc = .true. and a b.grad zeta that varies along the
+    field line, and check that the toroidal angle zeta of the output is the
+    angle at the arc-length points.
+
+    The arc-length grid is then not uniform in zeta, so zeta has to be
+    interpolated from the file onto the zed points, like every geometry array.
+    Since bmag = 1 + 0.2 cos(zeta) in the file, the bmag and zeta of the
+    output must satisfy the same relation at every zed point.
+    '''
+    write_synthetic_gvec_file(tmp_path / geometry_filename,
+                              nzgrid=NZGRID * ARC_REFINEMENT)
+
+    run_local_stella_simulation(arc_input_filename, tmp_path, 'master')
+    with nc.Dataset(tmp_path / f'{arc_input_file}.out.nc') as data:
+        zeta = np.array(data['zeta'][:]).ravel()
+        bmag = np.array(data['bmag'][:]).ravel()
+
+    # The arc-length grid is not uniform in zeta when b.grad zeta varies
+    if np.allclose(np.diff(zeta), np.diff(zeta)[0], rtol=1e-3):
+        print('ERROR: zeta is uniform on the arc-length grid, although b.grad zeta varies.')
+        error = True
+
+    expected_bmag = 1.0 + 0.20 * np.cos(zeta)
+    if not np.allclose(bmag, expected_bmag, rtol=5e-3, atol=1e-5):
+        worst = int(np.argmax(np.abs(bmag - expected_bmag)))
+        print(f'ERROR: bmag and zeta of the output do not satisfy bmag = 1 + 0.2 cos(zeta).')
+        print(f'       worst at zeta = {zeta[worst]:.4f}: '
+              f'stella = {bmag[worst]:.6e}, expected = {expected_bmag[worst]:.6e}')
+        error = True
+
+    assert not error, 'The toroidal angle zeta does not follow the GVEC arc-length z-grid.'
+    print('\n  -->  zeta follows the GVEC arc-length z-grid.')

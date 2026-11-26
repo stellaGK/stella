@@ -474,7 +474,7 @@ contains
          use geometry, only: dydalpha
          use geometry, only: q_as_x
          use geometry, only: geo_option_switch
-         use namelist_geometry, only: geo_option_vmec
+         use namelist_geometry, only: geo_option_vmec, geo_option_gvec
          
          implicit none
    
@@ -596,7 +596,7 @@ contains
          
          ! TODO - write comments on phase_shift_angle
          if (rhostar > 0.) then
-            if (geo_option_switch == geo_option_vmec) then
+            if (geo_option_switch == geo_option_vmec .or. geo_option_switch == geo_option_gvec) then
                phase_shift_angle = -2.*pi * (2 * nperiod - 1) * dydalpha / (rhostar * geo_surf%qinp_psi0)
             else
                phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar

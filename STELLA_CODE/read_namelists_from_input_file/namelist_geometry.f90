@@ -709,10 +709,10 @@ contains
          write (unit, '(2A)')       '  gvec_parameter_file = "', trim(gvec_parameter_file)//'"'
          write (unit, '(A,I0)')     '  sfl_coord = ', sfl_coord
          write (unit, '(A,I0)')     '  sfl_factor = ', sfl_factor
-         write (unit, '(A,ES10.4)') '  torflux = ', torflux
-         write (unit, '(A,ES10.4)') '  alpha0 = ', alpha0
-         write (unit, '(A,ES10.4)') '  zeta_center = ', zeta_center
-         write (unit, '(A,ES10.4)') '  nfield_periods = ', nfield_periods
+         write (unit, '(A,ES12.4)') '  torflux = ', torflux
+         write (unit, '(A,ES12.4)') '  alpha0 = ', alpha0
+         write (unit, '(A,ES12.4)') '  zeta_center = ', zeta_center
+         write (unit, '(A,ES12.4)') '  nfield_periods = ', nfield_periods
          write (unit, '(A,I0)')     '  z_grid_refinement_factor = ', z_grid_refinement_factor
          write (unit, '(A,L1)')     '  verbose = ', verbose
          write (unit, '(A)')        '/'
