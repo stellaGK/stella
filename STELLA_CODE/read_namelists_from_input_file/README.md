@@ -31,7 +31,9 @@ Overview of stella namelists:
 GEOMETRY
   geometry_options
   geometry_vmec
+  geometry_gvec
   geometry_miller
+  geometry_slab
   geometry_zpinch
   geometry_from_txt
 

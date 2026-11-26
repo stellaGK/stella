@@ -289,6 +289,9 @@ contains
       ! Stop if the input file uses the namelists of stella v0.5-v0.8, which are no longer read
       call check_for_old_input_file_format
 
+      ! Stop if the input file contains a namelist that stella does not read (e.g. a misspelt one)
+      call check_for_unknown_namelists
+
       ! Read the physics and numerical parameters from the input file
       ! These namelists contain many variables used by other modules, so read it first
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
@@ -374,6 +377,71 @@ contains
 
    end subroutine check_for_old_input_file_format
    
+   !****************************************************************************
+   ! stella only reads a namelist if its line in the input file is exactly "&<name>", in lower case,
+   ! and silently skips any other namelist, so that a misspelt namelist (e.g. &initialize_distribution)
+   ! or a namelist with values on its first line ran with the default values. Stop instead.
+   ! The list of namelists is checked against the code by test_1_whether_stella_runs/test_input_file_checks.py.
+   !****************************************************************************
+   subroutine check_for_unknown_namelists
+
+      use mp, only: proc0, broadcast, mp_abort
+      use file_utils, only: get_input_unit
+
+      implicit none
+
+      ! Namelists which stella reads from the input file, besides &species_parameters_<i>
+      character(len=*), dimension(50), parameter :: known_namelists = [character(len=35) :: &
+         'adiabatic_electron_response', 'adiabatic_ion_response', 'collisions_dougherty', &
+         'collisions_fokker_planck', 'debug_flags', 'diagnostics', 'diagnostics_distribution', &
+         'diagnostics_fluxes', 'diagnostics_moments', 'diagnostics_omega', 'diagnostics_potential', &
+         'diagnostics_stresses', 'dissipation_and_collisions_options', 'electromagnetic', &
+         'euterpe_parameters', 'flow_shear', 'flux_annulus', 'geometry_from_txt', 'geometry_gvec', &
+         'geometry_miller', 'geometry_options', 'geometry_slab', 'geometry_vmec', 'geometry_zpinch', 'gyrokinetic_terms', &
+         'hyper_dissipation', 'initialise_distribution', 'initialise_distribution_kpar', &
+         'initialise_distribution_maxwellian', 'initialise_distribution_noise', &
+         'initialise_distribution_rh', 'kxky_grid_box', 'kxky_grid_option', 'kxky_grid_range', &
+         'multibox_parameters', 'neoclassical_input', 'numerical_algorithms', &
+         'numerical_upwinding_for_derivatives', 'parallelisation', 'physics_inputs', 'restart_options', &
+         'scale_gyrokinetic_terms', 'sfincs_input', 'sources', 'species_options', 'time_step', &
+         'time_trace_options', 'velocity_grids', 'z_boundary_condition', 'z_grid']
+
+      character(len=500) :: line, unknown
+      integer :: unit, iostat
+
+      !----------------------------------------------------------------------
+
+      unknown = ''
+      if (proc0) then
+         call get_input_unit(unit)
+         if (unit > 0) then
+            rewind (unit=unit)
+            do
+               read (unit=unit, fmt='(a)', iostat=iostat) line
+               if (iostat /= 0) exit
+               line = adjustl(line)
+               if (line(1:1) /= '&') cycle
+               if (any(line(2:) == known_namelists)) cycle
+               if (line(2:20) == 'species_parameters_' .and. len_trim(line) > 20) then
+                  if (verify(trim(line(21:)), '0123456789') == 0) cycle
+               end if
+               unknown = line
+               exit
+            end do
+            rewind (unit=unit)
+         end if
+      end if
+      call broadcast(unknown)
+
+      if (unknown /= '') then
+         call mp_abort('The input file contains the line "'//trim(unknown)//'", which is not a namelist that stella '// &
+            'reads, so its values would be ignored. Check the spelling of the namelist (British spelling, e.g. '// &
+            '&initialise_distribution), and write its name in lower case on a line of its own. The namelists are '// &
+            'listed in $STELLA/STELLA_CODE/read_namelists_from_input_file/README.md.')
+      end if
+
+   end subroutine check_for_unknown_namelists
+
    !****************************************************************************
    !                   Initialise grids and magnetic geometry                   
    !****************************************************************************
