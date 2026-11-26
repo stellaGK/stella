@@ -31,7 +31,7 @@
 !     alpha0 = 0.0
 !     zeta_center = 0.0
 !     rectangular_cross_section = .false.
-!     nfield_periods = -1.0
+!     nfield_periods = -1.0 (must be set, > 0)
 !     torflux = 0.6354167
 !     z_grid_refinement_factor = 1.0
 !     surface_option = 0
@@ -574,6 +574,13 @@ contains
          ! Overwrite the default input parameters by those specified in the input file
          in_file = input_unit_exist('geometry_vmec', dexist)
          if (dexist) read (unit=in_file, nml=geometry_vmec)
+
+         ! The number of field periods has no default: with <nfield_periods> <= 0 the
+         ! parallel coordinate z = zeta*nfp/nfield_periods would run against zeta
+         if (nfield_periods <= 0.0) then
+            call mp_abort('&geometry_vmec: set <nfield_periods> to the number of field periods '// &
+               'of the flux tube (nfield_periods > 0). Aborting.')
+         end if
 
          ! Read the text option in <radial_coordinate> and store it in <radial_coordinate_switch>
          ierr = error_unit()

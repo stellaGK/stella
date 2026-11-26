@@ -96,3 +96,25 @@ def test_whether_vmec_geometry_data_in_netcdf_file_is_correct(stella_run, error=
     compare_geometry_in_netcdf_files(stella_run, error=False)
     print('  -->  All VMEC geometry data in the netcdf file matches the expected output.')
     return
+
+#-------------------------------------------------------------------------------
+#               Check whether stella stops without <nfield_periods>            #
+#-------------------------------------------------------------------------------
+def test_whether_vmec_geometry_stops_without_nfield_periods(tmp_path, stella_version):
+    '''<nfield_periods> has no default: with nfield_periods <= 0 the parallel
+    coordinate z = zeta*nfp/nfield_periods would run against zeta, so stella stops.'''
+    if stella_version!='master': pytest.skip('This check has not been implemented for older stella versions.')
+
+    # Write the input file of the VMEC geometry test without <nfield_periods>
+    with open(get_stella_expected_run_directory() / input_filename, 'r') as file:
+        lines = [line for line in file.readlines() if 'nfield_periods' not in line]
+    with open(tmp_path / input_filename, 'w') as file:
+        file.writelines(lines)
+    copy_vmec_file(vmec_filename, tmp_path)
+
+    # Run stella, which should stop with an error
+    os.chdir(tmp_path)
+    with pytest.raises(subprocess.CalledProcessError):
+        run_stella(get_stella_path(stella_version), input_filename, nproc=1)
+    print('  -->  stella stops when <nfield_periods> is not set for the VMEC geometry.')
+    return
