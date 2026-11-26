@@ -86,12 +86,13 @@ module namelist_geometry
    public :: read_namelist_geometry_miller
    public :: read_namelist_geometry_from_txt
    public :: read_namelist_geometry_vmec
+   public :: read_namelist_geometry_gvec
    public :: read_namelist_geometry_zpinch
    public :: read_namelist_geometry_slab
 
    ! Parameters need to be public (geometry_option)
    public :: geo_option_local, geo_option_inputprof, geo_option_vmec
-   public :: geo_option_multibox, geo_option_zpinch, geo_option_slab
+   public :: geo_option_multibox, geo_option_zpinch, geo_option_slab, geo_option_gvec
 
    ! Parameters need to be public (radial_coordinate)
    public :: radial_coordinate_sgnpsitpsit
@@ -107,6 +108,7 @@ module namelist_geometry
    integer, parameter :: geo_option_multibox = 4
    integer, parameter :: geo_option_zpinch = 5
    integer, parameter :: geo_option_slab = 6
+   integer, parameter :: geo_option_gvec = 7
 
    ! Create parameters for <radial_coordinate>
    integer, parameter :: radial_coordinate_sgnpsitpsit = 1
@@ -176,14 +178,15 @@ contains
          implicit none
          
          ! Link text options for <geometry_option> to an integer value
-         type(text_option), dimension(7), parameter :: geoopts = (/ &
+         type(text_option), dimension(8), parameter :: geoopts = (/ &
              text_option('default', geo_option_local), &
              text_option('miller', geo_option_local), &
              text_option('local', geo_option_local), &
              text_option('zpinch', geo_option_zpinch), &
              text_option('input.profiles', geo_option_inputprof), &
              text_option('vmec', geo_option_vmec), &
-             text_option('slab', geo_option_slab)/)
+             text_option('slab', geo_option_slab), &
+             text_option('gvec', geo_option_gvec)/)
 
          ! Variables in the <geometry_options> namelist
          namelist /geometry_options/ geometry_option, q_as_x
@@ -210,10 +213,11 @@ contains
 
          implicit none
          
-         ! Abort if nperiod > 1 for VMEC geometries
-         if (geometry_option_switch==geo_option_vmec) then
+         ! Abort if nperiod > 1 for VMEC or GVEC geometries
+         if (geometry_option_switch==geo_option_vmec .or. &
+             geometry_option_switch==geo_option_gvec) then
             if (nperiod/=1) then
-               call mp_abort('If geometry_option = "VMEC" then nperiod should be set to 1. Aborting.')
+               call mp_abort('If geometry_option = "vmec" or "gvec" then nperiod should be set to 1. Aborting.')
             end if
          end if
             
@@ -605,6 +609,110 @@ contains
       end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_geometry_vmec
+
+   !****************************************************************************
+   !                           GEOMETRY OPTIONS: GVEC                         !
+   !****************************************************************************
+   ! Reads the &geometry_gvec namelist.
+   !
+   ! Parameters mirror the &geometry_vmec namelist:
+   !   gvec_filename            - netCDF file from gvec_to_stella.py
+   !   torflux                  - normalized toroidal flux s ∈ (0,1] of the surface
+   !   alpha0                   - label of the first field line (radians)
+   !   zeta_center              - centre of the toroidal domain (radians)
+   !   nfield_periods           - number of field periods to follow (<= nfp; -1 = all)
+   !   z_grid_refinement_factor - refinement relative to stella's nzgrid
+   !                              (file must have been generated with
+   !                               --nzgrid_file = nzgrid * z_grid_refinement_factor)
+   !   verbose                  - print geometry information
+   !
+   ! The grid parameters (torflux, alpha0, zeta_center, nfield_periods) are
+   ! validated against the pre-computed netCDF file.  If they do not match, stella
+   ! aborts with an error message showing which gvec_to_stella.py arguments to use.
+   !****************************************************************************
+   subroutine read_namelist_geometry_gvec( &
+      z_grid_refinement_factor, radial_coordinate_switch, verbose, gvec_filename, &
+      torflux, alpha0, zeta_center, nfield_periods, &
+      gvec_state_file, gvec_parameter_file, sfl_coord, sfl_factor)
+
+      use mp,      only: proc0, mp_abort
+      use grids_z, only: initialised_grids_z, zed_equal_arc
+
+      implicit none
+
+      integer,         intent(out) :: z_grid_refinement_factor
+      integer,         intent(out) :: radial_coordinate_switch
+      logical,         intent(out) :: verbose
+      character(2000), intent(out) :: gvec_filename
+      real,            intent(out) :: torflux, alpha0, zeta_center, nfield_periods
+      ! Direct path: read a GVEC state file through the GVEC library instead of
+      ! a geometry netCDF written by gvec_to_stella.py.
+      character(2000), intent(out) :: gvec_state_file, gvec_parameter_file
+      integer,         intent(out) :: sfl_coord, sfl_factor
+
+      !-------------------------------------------------------------------------
+
+      if (.not. initialised_grids_z) then
+         call mp_abort('Initialise z-grid parameters before reading geometry namelists. Aborting.')
+      end if
+
+      if (.not. proc0) return
+      call set_defaults
+      call read_from_file
+      call write_to_output
+
+   contains
+
+      subroutine set_defaults
+         implicit none
+         gvec_filename            = 'gvec_stella_geometry.nc'
+         gvec_state_file          = ''      ! empty -> use the netCDF path
+         gvec_parameter_file      = ''      ! needed for non-cylindrical h-maps
+         sfl_coord                = 1       ! 0: old PEST, 1: PEST, 2: Boozer
+         sfl_factor               = 4       ! Fourier-mode factor for the SFL transform
+         verbose                  = .true.
+         radial_coordinate_switch = radial_coordinate_sgnpsitpsit
+         torflux                  = -1.0   ! -1 → read from file
+         alpha0                   = -999.0 ! -999 → read from file
+         zeta_center              = -999.0 ! -999 → read from file
+         nfield_periods           = -1.0   ! -1   → read from file (all periods)
+         if (zed_equal_arc) then
+            z_grid_refinement_factor = 4
+         else
+            z_grid_refinement_factor = 1
+         end if
+      end subroutine set_defaults
+
+      subroutine read_from_file
+         use file_utils, only: input_unit_exist
+         implicit none
+         namelist /geometry_gvec/ gvec_filename, verbose, z_grid_refinement_factor, &
+            torflux, alpha0, zeta_center, nfield_periods, &
+            gvec_state_file, gvec_parameter_file, sfl_coord, sfl_factor
+         in_file = input_unit_exist('geometry_gvec', dexist)
+         if (dexist) read (unit=in_file, nml=geometry_gvec)
+      end subroutine read_from_file
+
+      subroutine write_to_output
+         use file_units, only: unit => unit_input_file_with_defaults
+         implicit none
+         write (unit, '(A)')        '&geometry_gvec'
+         write (unit, '(2A)')       '  gvec_filename = "', trim(gvec_filename)//'"'
+         write (unit, '(2A)')       '  gvec_state_file = "', trim(gvec_state_file)//'"'
+         write (unit, '(2A)')       '  gvec_parameter_file = "', trim(gvec_parameter_file)//'"'
+         write (unit, '(A,I0)')     '  sfl_coord = ', sfl_coord
+         write (unit, '(A,I0)')     '  sfl_factor = ', sfl_factor
+         write (unit, '(A,ES10.4)') '  torflux = ', torflux
+         write (unit, '(A,ES10.4)') '  alpha0 = ', alpha0
+         write (unit, '(A,ES10.4)') '  zeta_center = ', zeta_center
+         write (unit, '(A,ES10.4)') '  nfield_periods = ', nfield_periods
+         write (unit, '(A,I0)')     '  z_grid_refinement_factor = ', z_grid_refinement_factor
+         write (unit, '(A,L1)')     '  verbose = ', verbose
+         write (unit, '(A)')        '/'
+         write (unit, '(A)')        ''
+      end subroutine write_to_output
+
+   end subroutine read_namelist_geometry_gvec
 
    !****************************************************************************
    !                         GEOMETRY OPTIONS: Z-PINCH                         !

@@ -1,0 +1,55 @@
+&INDATA
+!===========================================================================
+! VMEC input: circular tokamak, matched to GVEC tests/circular_tok/gvec/
+!
+! Configuration: circular cross-section, R0=3 m, a=1 m, B_ref~1 T
+!   q-profile: q(s) = 1.4 + 0.8*s  (parabolic, s=Phi/Phi_edge)
+!   pressure:  p(s) = 100*(1-s)^2  Pa
+!   nfp=1 (tokamak)
+!
+! Run VMEC to get wout_tok_circ.nc, then compare with GVEC using
+!   python tests/compare_gvec_vmec.py
+!===========================================================================
+
+  MGRID_FILE = 'none'
+  LFREEB = F
+
+  DELT =  0.900000000000E+00
+  NSTEP =  200
+  TCON0 =  2.00000000000E+00
+  NS_ARRAY =  3  5  9  17  33  65
+  FTOL_ARRAY = 1.0e-6 1.0e-8 1.0e-10 1.0e-11 1.0e-12 1.0e-12
+  NITER_ARRAY = 200 200 400 400 1000 2000
+
+  NFP = 1
+  NCURR = 0
+  LASYM = F
+  LOLDOUT = F
+
+  MPOL = 7
+  NTOR = 0
+
+  PHIEDGE = 3.14159265358979
+
+  ! Pressure: p(s) = 100*(1-s)^2
+  PRES_SCALE = 1.0
+  PMASS_TYPE = 'power_series'
+  AM = 100.0 -200.0 100.0
+
+  ! Rotational transform iota = 1/q = 1/(1.4+0.8*s)
+  ! Sampled at VMEC full-grid values s=0,1/16,...,1
+  PIOTA_TYPE = 'power_series'
+  AI = 0.71428571428571 -0.40816326530612 0.23310023310023 -0.13320826330...
+
+  ! Use ai_aux for a better iota representation
+  NCURR = 0
+  AI = 0.714285714 -0.408163265 0.233100233 -0.133208263 0.076118375 -0.043495929 0.024854245
+
+  ! Boundary: circular cross-section R0=3, a=1
+  RBC(0,0) = 3.0
+  RBC(1,0) = 1.0
+  ZBS(1,0) = 1.0
+
+  RAXIS_CC = 3.0
+  ZAXIS_CS = 0.0
+/

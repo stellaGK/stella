@@ -22,6 +22,8 @@ USE_LOCAL_RAN ?=           # Use local random number generator (mt,undefined) (s
 USE_LOCAL_SPFUNC ?=        # Use local special functions (bin)
 USE_NAGLIB ?=              # Use nag libraray (spfunc,undefined)
 USE_SFINCS ?=              # Link to sfincs library at compilation
+USE_GVEC ?=                # Link to the GVEC library, so a GVEC state file can be
+                           # read directly (needs GVEC_ROOT; see below)
 USE_LAPACK ?= on           # Use LAPACK, needed for test particle collisions
 HAS_ISO_C_BINDING ?= on    # Does the compiler support the iso_c_binding features of Fortran? (needed for local parallel LU decomposition)
 SPLIT_BY_NUMA ?=
@@ -73,6 +75,15 @@ NAG_LIB ?=
 NAG_PREC ?= dble
 SFINCS_LIB ?=
 SFINCS_INC ?=
+# GVEC: point GVEC_ROOT at a GVEC build directory that contains lib/libGVEC.a and
+# include/. GVEC must have been built with -DCOMPILE_GVEC_TO_GENE=ON so that the
+# gyrokinetic interface (MODgvec_gvec_to_gene) is part of the library.
+# GVEC_EXTRA_LIB carries GVEC's own dependencies (BLAS/LAPACK); override it in a
+# platform Makefile if the defaults below are not right for your machine.
+GVEC_ROOT ?=
+GVEC_INC ?=
+GVEC_LIB ?=
+GVEC_EXTRA_LIB ?=
 PETSC_LIB ?=
 PETSC_INC ?=
 LIBSTELL_LIB ?=
@@ -185,6 +196,29 @@ ifdef USE_LAPACK
 	endif
 	CPPFLAGS += -DLAPACK
 endif
+ifdef USE_GVEC
+	ifeq ($(GVEC_ROOT),)
+		$(error USE_GVEC is set but GVEC_ROOT is empty. Point GVEC_ROOT at a GVEC \
+			build directory containing lib/libGVEC.a and include/, built with \
+			-DCOMPILE_GVEC_TO_GENE=ON)
+	endif
+	ifeq ($(GVEC_EXTRA_LIB),)
+		# GVEC needs BLAS/LAPACK; Accelerate provides both on macOS
+		ifeq ($(shell uname -s),Darwin)
+			GVEC_EXTRA_LIB = -framework Accelerate
+		else
+			GVEC_EXTRA_LIB = -llapack -lblas
+		endif
+	endif
+	ifeq ($(GVEC_INC),)
+		GVEC_INC = -I$(GVEC_ROOT)/include
+	endif
+	ifeq ($(GVEC_LIB),)
+		# -fopenmp is needed at link time because GVEC is compiled with OpenMP
+		GVEC_LIB = $(GVEC_ROOT)/lib/libGVEC.a $(GVEC_EXTRA_LIB) -fopenmp
+	endif
+	CPPFLAGS += -DGVEC
+endif
 ifdef USE_HDF5
 	FC = $(H5FC_par)
 	CC = $(H5CC_par)
@@ -224,7 +258,8 @@ endif
 # List of all the used libraries
 # Here $LIBSTELL_LIB points to utils/mini_libstell which contains a stellarator resource library
 LIBS += $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
-		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LAPACK_LIB) $(LIBSTELL_LIB) 
+		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LAPACK_LIB) $(LIBSTELL_LIB) \
+		$(GVEC_LIB)
 
 # Note that either you define the dependencies on imports manually, like in the makefile.depend
 # file, or you attach the library where the compiler can find the functions. Since all utils
@@ -233,7 +268,7 @@ LIBS += $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
 
 # Include flags
 INC_FLAGS= $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
-	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
+	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC) $(GVEC_INC)
 
 # Flags for the fortran compiler and the C compiler
 F90FLAGS += $(F90OPTFLAGS)
@@ -255,6 +290,8 @@ TAGS:	*.f90 *.fpp */*.f90 */*.fpp
 export F90FLAGS
 export NETCDF_INC
 export NETCDF_LIB
+export GVEC_INC
+export GVEC_LIB
 export COMPILATION_DIR
 export FC 
 
