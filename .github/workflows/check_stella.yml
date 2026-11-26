@@ -6,9 +6,11 @@ on: [push, pull_request, workflow_dispatch]
 # A pull request from a branch of this repository is already tested by the push to that
 # branch, so its pull_request run skips all jobs (see the "if" of the first jobs); pull
 # requests from forks are tested by their pull_request run. A new push to a branch or
-# pull request cancels the run of the previous push, except on master.
+# pull request cancels the run of the previous push. On master every commit gets a group
+# of its own, so that its run is never cancelled: within one group GitHub would cancel a
+# waiting run when the next commit arrives, even without cancel-in-progress.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.ref == 'refs/heads/master' && github.sha) || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 # We always run in a bash shell
@@ -16,7 +18,9 @@ defaults:
   run:
     shell: bash
 
-# First build stella, and then perform python tests
+# First build stella, and then perform python tests. A job normally takes 1-11 minutes and
+# the installation of the dependencies 1-2 minutes; the time limits below stop a job that
+# hangs (e.g. in apt, which then retries its downloads) instead of after GitHub's 6 hours.
 jobs:
 
 #-----------------------------------------------------------------------
@@ -42,6 +46,7 @@ jobs:
     
     # Operating system
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
       
     # Steps
     steps:
@@ -70,12 +75,14 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies
+        timeout-minutes: 20
         run: |
           # Install dependencies
           if ${{ contains(matrix.os, 'macos') }}; then
             brew install gcc make openmpi fftw netcdf-fortran gnu-sed
             gfortran --version
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
+            echo 'Acquire::Retries "5"; Acquire::http::Timeout "60"; Acquire::https::Timeout "60";' | sudo tee /etc/apt/apt.conf.d/80-retries
             sudo apt update
             sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
             sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev 
@@ -226,6 +233,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     name: Build stella quickly
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
@@ -239,7 +247,9 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies
+        timeout-minutes: 20
         run: |
+          echo 'Acquire::Retries "5"; Acquire::http::Timeout "60"; Acquire::https::Timeout "60";' | sudo tee /etc/apt/apt.conf.d/80-retries
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
@@ -270,6 +280,7 @@ jobs:
   # Perform python tests one by one
   python-tests: 
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: build-stella-quick
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -299,7 +310,9 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies and python virtual environment
+        timeout-minutes: 20
         run: |
+          echo 'Acquire::Retries "5"; Acquire::http::Timeout "60"; Acquire::https::Timeout "60";' | sudo tee /etc/apt/apt.conf.d/80-retries
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
@@ -334,6 +347,7 @@ jobs:
   python-tests-nproc1: 
     name: Python tests on 1 processor
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: build-stella-quick
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -348,7 +362,9 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies and python virtual environment
+        timeout-minutes: 20
         run: |
+          echo 'Acquire::Retries "5"; Acquire::http::Timeout "60"; Acquire::https::Timeout "60";' | sudo tee /etc/apt/apt.conf.d/80-retries
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
@@ -408,6 +424,7 @@ jobs:
   debug-build:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     name: "Build stella in debug mode"
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -422,7 +439,9 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies
+        timeout-minutes: 20
         run: |
+          echo 'Acquire::Retries "5"; Acquire::http::Timeout "60"; Acquire::https::Timeout "60";' | sudo tee /etc/apt/apt.conf.d/80-retries
           sudo apt update
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin 
           sudo apt install -y python3 python3-pip openmpi-bin libopenmpi-dev libblas-dev liblapack-dev 
