@@ -50,6 +50,10 @@
 !   - |phi|^2(t, kx, ky)   -->  phi2_vs_kxky in the NetCDF file
 !   - |apar|^2(t, kx, ky)  -->  apar2_vs_kxky in the NetCDF file
 !   - |bpar|^2(t, kx, ky)  -->  bpar2_vs_kxky in the NetCDF file
+! together with the zonal part of |phi|^2 at ky = 0, i.e. the square of the field-line average of phi,
+!   - |<phi(ky=0)>_z|^2(t, kx)  -->  phi2zonal_vs_kx in the NetCDF file
+! Since <|phi|^2>_z = |<phi>_z|^2 + <|phi - <phi>_z|^2>_z, the part of phi2_vs_kxky(ky=0) that varies
+! along z (i.e. without the zonal flow) is phi2_vs_kxky(ky=0) - phi2zonal_vs_kx.
 !   
 ! If <write_phi_vs_kxkyz>, <write_apar_vs_kxkyz> and <write_bpar_vs_kxkyz> are
 ! True, then the following complex quantities are calculated:
@@ -97,8 +101,9 @@ contains
       use arrays_fields, only: phi_corr_QN
 
       ! Grids
-      use grids_kxky, only: naky, nakx
+      use grids_kxky, only: naky, nakx, zonal_mode
       use grids_z, only: ntubes, nzgrid
+      use geometry, only: dl_over_b
       use grids_time, only: code_dt, code_time
 
       ! Flags
@@ -120,6 +125,7 @@ contains
       use write_diagnostics_to_netcdf, only: write_apar_nc
       use write_diagnostics_to_netcdf, only: write_bpar_nc
       use write_diagnostics_to_netcdf, only: write_kspectra_nc
+      use write_diagnostics_to_netcdf, only: write_zonal_kspectrum_nc
       
       ! Input file
       use parameters_diagnostics, only: write_phi_vs_kxkyz
@@ -140,6 +146,8 @@ contains
       ! Local variable
       complex, dimension(:, :, :, :), allocatable :: phi_vs_kykxzt, apar_vs_kykxzt, bpar_vs_kykxzt
       real, dimension(:, :), allocatable :: phi2_vs_kxky, apar2_vs_kxky, bpar2_vs_kxky
+      real, dimension(:), allocatable :: phi2zonal_vs_kx
+      integer :: ikx, it
       real :: phi2 = 0, apar2 = 0, bpar2 = 0
 
       !---------------------------------------------------------------------- 
@@ -214,6 +222,20 @@ contains
             call fieldline_average(real(phi_vs_kykxzt * conjg(phi_vs_kykxzt)), phi2_vs_kxky)
             call write_kspectra_nc(nout, phi2_vs_kxky, "phi2_vs_kxky", "electrostatic potential")
             deallocate (phi2_vs_kxky)
+         end if
+
+         ! Write the zonal part |<phi(ky=0)>_z|^2(t,kx) of phi2_vs_kxky(ky=0) to the netcdf file
+         if (write_phi2_vs_kxky .and. zonal_mode(1)) then
+            allocate (phi2zonal_vs_kx(nakx)); phi2zonal_vs_kx = 0.
+            do it = 1, ntubes
+               do ikx = 1, nakx
+                  phi2zonal_vs_kx(ikx) = phi2zonal_vs_kx(ikx) + abs(sum(dl_over_b(1, :) * phi_vs_kykxzt(1, ikx, :, it)))**2
+               end do
+            end do
+            phi2zonal_vs_kx = phi2zonal_vs_kx / real(ntubes)
+            call write_zonal_kspectrum_nc(nout, phi2zonal_vs_kx, "phi2zonal_vs_kx", &
+               "zonal part |<phi>_z|^2 of phi2_vs_kxky at ky = 0")
+            deallocate (phi2zonal_vs_kx)
          end if
          if (write_apar2_vs_kxky .and. include_apar) then
             allocate (apar2_vs_kxky(naky, nakx))

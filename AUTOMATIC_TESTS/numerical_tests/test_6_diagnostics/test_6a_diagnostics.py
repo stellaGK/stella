@@ -53,6 +53,32 @@ def test_whether_potential_diagnostics_are_correct(nonlinear_run):
     return
 
 #-------------------------------------------------------------------------------
+def test_whether_zonal_potential_diagnostic_is_correct(nonlinear_run):
+    '''Check that phi2zonal_vs_kx is the square of the field-line average of phi(ky=0), computed
+    from phi_vs_t with the weights dl_over_b = delzed * jacob / sum(delzed * jacob) of stella,
+    and that it is the zonal part of phi2_vs_kxky(ky=0) = |<phi>_z|^2 + <|phi - <phi>_z|^2>_z.'''
+    stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
+    with xr.open_dataset(local_netcdf_file) as data:
+        assert float(data['ky'][0]) == 0.0, 'The first ky mode should be ky = 0.'
+        zed = data['zed'].values
+        phi = data['phi_vs_t'].values[..., 0] + 1j * data['phi_vs_t'].values[..., 1]     # (t, tube, zed, kx, ky)
+        phi2_vs_kxky = data['phi2_vs_kxky'].values                                         # (t, kx, ky)
+        phi2zonal_vs_kx = data['phi2zonal_vs_kx'].values                                   # (t, kx)
+        weights = np.append(zed[1:] - zed[:-1], 0.0) * data['jacob'].values[:, 0]
+    weights = weights / np.sum(weights)
+
+    # The weights must reproduce the field-line average of |phi|^2 at ky = 0 written by stella
+    phi2_ky0 = np.mean(np.sum(weights[None, None, :, None] * np.abs(phi[..., 0])**2, axis=2), axis=1)
+    assert np.allclose(phi2_ky0, phi2_vs_kxky[:, :, 0], rtol=1e-10, atol=0), 'The field-line weights do not match.'
+
+    # |<phi(ky=0)>_z|^2 averaged over the flux tubes
+    zonal = np.mean(np.abs(np.sum(weights[None, None, :, None] * phi[..., 0], axis=2))**2, axis=1)
+    assert np.allclose(phi2zonal_vs_kx, zonal, rtol=1e-10, atol=1e-14 * np.max(zonal)), 'phi2zonal_vs_kx is not |<phi>_z|^2.'
+    assert np.all(phi2zonal_vs_kx <= phi2_vs_kxky[:, :, 0] * (1 + 1e-12)), 'The zonal part is larger than phi2_vs_kxky(ky=0).'
+    print(f'\n  -->  phi2zonal_vs_kx is the zonal part of phi2_vs_kxky at ky = 0.')
+    return
+
+#-------------------------------------------------------------------------------
 def test_whether_final_fields_diagnostics_are_correct(nonlinear_run, error=False):
     stella_local_run_directory, local_netcdf_file, expected_netcdf_file = nonlinear_run
     
