@@ -124,12 +124,6 @@
   explicit_algorithm = 'rk2'
 /
 
-&parameters_numerical
-  delt = 0.01
-  nstep = 100
-  explicit_option = 'rk2'
-/
-
 &debug_flags
   print_extra_info_to_terminal = .false.
 /
