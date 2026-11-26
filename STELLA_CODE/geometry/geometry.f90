@@ -1076,8 +1076,10 @@ contains
 
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
       ! For Miller or axi-symmetric devices we have: ∇ζ . ∇ψp = 0 and ∇ζ . ∇α = ∇ζ . ∇ζ = (1/R^2) 
-      !      (R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα) = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
-      gradzeta_grady_R2overB2 = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+      !      (R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα)
+      ! NB: before November 2026 this was geo_surf%rhoc / (geo_surf%qinp * bmag**2) = 1/(<dxdpsi> B^2), which included
+      ! the factor -<clebsch_factor>/(<dxdpsi>*<dydalpha>) of the momentum flux, see <bhat_factor> in diagnostics_fluxes_fluxtube.f90
+      gradzeta_grady_R2overB2 = dydalpha / bmag**2
       gradzeta_gradx_R2overB2 = 0.0
 
       ! For the momentum flux we need R^2 * b . ∇ζ

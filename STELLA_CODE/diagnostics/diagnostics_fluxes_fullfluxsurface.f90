@@ -234,6 +234,7 @@ contains
       use geometry, only: gradx_dot_grady, gradx_dot_gradx, grady_dot_grady
       use geometry, only: geo_surf
       use geometry, only: gradzeta_grady_R2overB2, gradzeta_gradx_R2overB2, b_dot_gradzeta_RR
+      use geometry, only: clebsch_factor, dxdpsi, dydalpha
 
       implicit none
 
@@ -351,8 +352,10 @@ contains
                   iv = iv_idx(vmu_lo, ivmu)
                   is = is_idx(vmu_lo, ivmu)
                   imu = imu_idx(vmu_lo, ivmu)
+                  ! The perpendicular part contains b = <clebsch_factor>/(<dxdpsi> <dydalpha>) (∇x x ∇y) / B,
+                  ! see <bhat_factor> in diagnostics_fluxes_fluxtube.f90
                   integrand(ivmu) = fy(iy, ikx, ivmu) * b_dot_gradzeta_RR(iy, iz) &
-                      - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
+                      + clebsch_factor / (dxdpsi * dydalpha) * vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
                end do
                
                ! Integrate over v-space to get the parallel flow, normalised by the reference thermal speed.
