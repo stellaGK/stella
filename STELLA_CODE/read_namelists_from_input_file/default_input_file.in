@@ -48,6 +48,14 @@
   betaprim = 0.0
 /
 
+&geometry_slab
+  shat = 0.0
+  qinp = 1.4
+  rmaj = 3.0
+  betaprim = 0.0
+  curvy_slab = .false.
+/
+
 &geometry_from_txt
   geometry_file = 'input.geometry'
   overwrite_bmag = .false.
