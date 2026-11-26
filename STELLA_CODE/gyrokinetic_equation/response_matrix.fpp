@@ -250,7 +250,7 @@ contains
       use arrays, only: response_window
       use field_equations, only: nfields
       use grids_kxky, only: naky
-      use grids_extended_zgrid, only: neigen, nsegments, nzed_segment
+      use grids_extended_zgrid, only: neigen, nzext
       use grids_extended_zgrid, only: periodic
       use debug_flags, only: print_extra_info_to_terminal
       use parallelisation_layouts, only: verbose
@@ -281,9 +281,9 @@ contains
                   ! and +1 for the non-periodic endpoint in the extended z-grid
                   ! To avoid overflowing the integers, we cast them to 64-bit integers first.
                   if (periodic(iky)) then
-                     nresponse = int((nsegments(ie, iky) * nzed_segment) * nfields, MPI_ADDRESS_KIND)
+                     nresponse = int((nzext(ie, iky) - 1) * nfields, MPI_ADDRESS_KIND)
                   else
-                     nresponse = int((nsegments(ie, iky) * nzed_segment + 1) * nfields, MPI_ADDRESS_KIND)
+                     nresponse = int(nzext(ie, iky) * nfields, MPI_ADDRESS_KIND)
                   end if
                   
                   ! Memory for integer metadata
@@ -464,10 +464,8 @@ contains
       use timers, only: time_response_matrix
       use parallelisation_layouts, only: mat_gen
       use parameters_physics, only: include_apar, include_bpar
-      use grids_extended_zgrid, only: ikxmod
-      use grids_extended_zgrid, only: nsegments, nzed_segment
+      use grids_extended_zgrid, only: nzext
       use grids_extended_zgrid, only: periodic
-      use grids_extended_zgrid, only: iz_low, iz_up
       use parallelisation_layouts, only: vmu_lo
       use field_equations, only: nfields
       use file_units, only: unit_response_matrix
@@ -478,8 +476,7 @@ contains
       integer, intent(in) :: iky, ie
 
       ! Local variables
-      integer :: idx, ikx, iseg
-      integer :: iz, izl_offset, izup
+      integer :: idx
       integer :: nz_ext, nresponse, nresponse_per_field
       complex, dimension(:, :), allocatable :: gext
       complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
@@ -492,19 +489,14 @@ contains
       ! ------------------------------------------------------------------------
       !              Set up system to compute response of the pdf               
       ! ------------------------------------------------------------------------
-      ! <nz_ext> is the dimension of the extended zed domain, <nzed_segment> is
-      ! the number of of unique zed values in all segments except the first. The 
-      ! first segment has one extra unique zed value (all others have one grid 
-      ! point in common with the previous segment due to periodicity). Finally,
-      ! <nsegments> is the number of segments on the extended zed domain, in 
-      ! other words, it is the number of 2π segments in z that are linked together.
-      !     <nz_ext> = (number of zeds) x (number of segments on extended zed domain)
-      !     <nzed_segment> = (number of zeds)
-      !     <nsegments> = (Nkx -1)/neigen = (number of segments on extended zed domain)
+      ! <nz_ext> is the number of points of this chain on the extended zed domain:
+      ! for the twist-and-shift chains (number of zeds) x (number of 2pi segments) + 1,
+      ! since every segment shares its first point with the previous one
+      ! (see <build_chain_points_from_segments> in grids_extended_zgrid).
       ! ------------------------------------------------------------------------
       
       ! Calculate the number of z-points on the extended z-domain
-      nz_ext = nsegments(ie, iky) * nzed_segment + 1
+      nz_ext = nzext(ie, iky)
 
       ! We need to treat the zonal mode specially to avoid double counting the end
       ! points in zed, as it is periodic so these end points are the same.
@@ -546,59 +538,16 @@ contains
       ! ------------------------------------------------------------------------
       
       ! <idx> here is the index in the extended zed domain that we are giving
-      ! a unit impulse to.
-      idx = 0
-
-      ! Loop over segments, and idex this with <iseg>. 
-      ! The first segment is special because it has one more unique
-      ! zed value than all the other segments since the domain
-      ! is [z0-pi:z0+pi], and we are including both endpoints.
-      ! For iseg > 1 one endpoint is shared with the previous segment.
-      izl_offset = 0
-
-      ! Here, we apply a unit impulse at every value of zed in this segment, and find the 
-      ! response of gext to this unit impulse. The impulse is provided at the <idx> value.
-      ! Note - No need to obtain response to impulses at negative kx values
-      ! Loop over all segments
-      do iseg = 1, nsegments(ie, iky)
-      
-         ! Compute the index of kx that is connected in the given eigen chain in this segment.
-         ! <ikxmod> gives the kx corresponding to (iseg,ie,iky)
-         ! i.e. given a ky (iky), which chain are we in (ie), and within that chain
-         !      which segment of 2π are we considering -> this is associated with a specific
-         !      kx value. 
-         ikx = ikxmod(iseg, ie, iky)
-
-         ! Make sure the boundary points are being treated correctly depending
-         ! on whether the mode is periodic or not. Here, define <izup> as the 
-         ! upper zed value within a segment. If the mode is periodic, then 
-         ! reduce the upper bound by one, as this is a repeated point so it is 
-         ! obtained using the periodicity condition. This avoids and double-counting.
-         ! Only the last segment ends on the periodic point; the upper end point of the other
-         ! segments is shared with the next segment, which skips it through <izl_offset>
-         if (periodic(iky) .and. iseg == nsegments(ie, iky)) then
-            izup = iz_up(iseg) - 1
-         else
-            izup = iz_up(iseg)
-         end if
-         
-         ! Now apply a unit impulse at each zed location. To do this loop over the zed index, but
-         ! recall that there is one less zed grid point in these connected segments as they share
-         ! a grid point with the previous segment. 
-         ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-         ! iz is only cycling through the zed location within a given segment. 
-         do iz = iz_low(iseg) + izl_offset, izup
-            idx = idx + 1
-            call get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-            if (include_apar) call get_response_matrix_for_apar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-            if (include_bpar) call get_response_matrix_for_bpar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
-         end do
-
-         ! Set the offset to 1 - all other connected segments need to start one point
-         ! displaced as they share a point with the previous segment. 
-         if (izl_offset == 0) izl_offset = 1
-         
+      ! a unit impulse to. Here, we apply a unit impulse at every point of the chain
+      ! (except the repeated end point of a periodic chain), and find the response
+      ! of gext to this unit impulse.
+      do idx = 1, nz_ext - merge(1, 0, periodic(iky))
+         call get_response_matrix_for_phi(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+         if (include_apar) call get_response_matrix_for_apar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+         if (include_bpar) call get_response_matrix_for_bpar(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
       end do
+
+      
 
       ! Deallocate temporary arrays
       deallocate (gext, phi_ext, apar_ext, bpar_ext)
@@ -1208,9 +1157,7 @@ contains
          use mp, only: sum_allreduce
          use parallelisation_layouts, only: vmu_lo
          use grids_species, only: nspec, spec
-         use grids_extended_zgrid, only: iz_low, iz_up
-         use grids_extended_zgrid, only: ikxmod
-         use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: izext_iz, izext_ikx
          use grids_extended_zgrid, only: periodic
          use calculations_velocity_integrals, only: integrate_species
          use calculations_gyro_averages, only: gyro_average
@@ -1223,8 +1170,7 @@ contains
          implicit none
 
          ! Local variables
-         integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset, izup
+         integer :: idx, ikx, iz, ia
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
          integer :: ivmu, imu, iv, is
@@ -1237,76 +1183,52 @@ contains
 
          ia = 1
          idx = 0
-         izl_offset = 0
 
          ! ---------------------------------------------------------------------
          !                            Integrals
          ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
-         do iseg = 1, nsegments(ie, iky)
-
-            ! Make sure the boundary points are being treated correctly depending
-            ! on whether the mode is periodic or not. Here, define <izup> as the 
-            ! upper zed value within a segment. If the mode is periodic, then 
-            ! reduce the upper bound by one, as this is a repeated point so it is 
-            ! obtained using the periodicity condition. This avoids and double-counting.
-            ! Only the last segment ends on the periodic point; the upper end point of the other
-            ! segments is shared with the next segment, which skips it through <izl_offset>
-            if (periodic(iky) .and. iseg == nsegments(ie, iky)) then
-               izup = iz_up(iseg) - 1
+         do idx = 1, nz_ext - merge(1, 0, periodic(iky))
+            ! (iz, ikx) location of this point of the chain on the extended z-grid
+            iz = izext_iz(idx, ie, iky)
+            ikx = izext_ikx(idx, ie, iky)
+            
+            ! ---------------------------------------------------------------
+            !                            Flux tube
+            ! ---------------------------------------------------------------
+            if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
+            
+               ! First get J0 * g
+               call gyro_average(g(idx, :), iky, ikx, iz, g0)
+               
+               ! Now integrate over vpa, mu and sum over species.
+               ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
+               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+               
+            ! ---------------------------------------------------------------
+            !                       Full Flux Surface
+            ! ---------------------------------------------------------------
             else
-               izup = iz_up(iseg)
+            
+               ! First multiply by B and gyroaverage, but use the piece that
+               ! is constant in alpha. This is because for FFS the response
+               ! matrix only treats the part that is constant in alpha,
+               ! and the remainder is treated using an iterative approach.
+               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                  iv = iv_idx(vmu_lo, ivmu)
+                  imu = imu_idx(vmu_lo, ivmu)
+                  is = is_idx(vmu_lo, ivmu)
+                  g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
+               end do
+               
+               ! Integrate over species, using the correct weights in order
+               ! to return the constant-in-alpha component of 
+               !              2B/sqrt(π) int dvpa int dmu J_0 * g
+               call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
             end if
-
-            ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-            ! <ikx> value on the local domain given our position on the extended domain.
-            ikx = ikxmod(iseg, ie, iky)
-
-            ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-            ! iz is only cycling through the zed location within a given segment. 
-            do iz = iz_low(iseg) + izl_offset, izup
-               idx = idx + 1
-               
-               ! ---------------------------------------------------------------
-               !                            Flux tube
-               ! ---------------------------------------------------------------
-               if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
-               
-                  ! First get J0 * g
-                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
-                  
-                  ! Now integrate over vpa, mu and sum over species.
-                  ! This returns: 2B/sqrt(π) int dvpa int dmu J_0 * g
-                  call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-                  
-               ! ---------------------------------------------------------------
-               !                       Full Flux Surface
-               ! ---------------------------------------------------------------
-               else
-               
-                  ! First multiply by B and gyroaverage, but use the piece that
-                  ! is constant in alpha. This is because for FFS the response
-                  ! matrix only treats the part that is constant in alpha,
-                  ! and the remainder is treated using an iterative approach.
-                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                     iv = iv_idx(vmu_lo, ivmu)
-                     imu = imu_idx(vmu_lo, ivmu)
-                     is = is_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
-                  end do
-                  
-                  ! Integrate over species, using the correct weights in order
-                  ! to return the constant-in-alpha component of 
-                  !              2B/sqrt(π) int dvpa int dmu J_0 * g
-                  call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-               end if
-            end do
-            
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
-            
          end do
+         
+         
 
          ! Collect the parts of <phi> spread out across processors.
          call sum_allreduce(phi)
@@ -1323,9 +1245,7 @@ contains
          use parallelisation_layouts, only: vmu_lo, iv_idx
          use parameters_physics, only: beta
          use grids_species, only: nspec, spec
-         use grids_extended_zgrid, only: iz_low, iz_up
-         use grids_extended_zgrid, only: ikxmod
-         use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: izext_iz, izext_ikx
          use grids_extended_zgrid, only: periodic
          use calculations_velocity_integrals, only: integrate_species
          use grids_velocity, only: vpa
@@ -1335,9 +1255,8 @@ contains
          implicit none
 
          ! Local variables
-         integer :: idx, iseg, ikx, iz, ia
+         integer :: idx, ikx, iz, ia
          integer :: ivmu, iv
-         integer :: izl_offset, izup
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
 
@@ -1349,56 +1268,32 @@ contains
 
          ia = 1
          idx = 0
-         izl_offset = 0
 
          ! ---------------------------------------------------------------------
          !                             Integrals
          ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
-         do iseg = 1, nsegments(ie, iky)
+         do idx = 1, nz_ext - merge(1, 0, periodic(iky))
+            ! (iz, ikx) location of this point of the chain on the extended z-grid
+            iz = izext_iz(idx, ie, iky)
+            ikx = izext_ikx(idx, ie, iky)
             
-            ! Make sure the boundary points are being treated correctly depending
-            ! on whether the mode is periodic or not. Here, define <izup> as the 
-            ! upper zed value within a segment. If the mode is periodic, then 
-            ! reduce the upper bound by one, as this is a repeated point so it is 
-            ! obtained using the periodicity condition. This avoids and double-counting.
-            ! Only the last segment ends on the periodic point; the upper end point of the other
-            ! segments is shared with the next segment, which skips it through <izl_offset>
-            if (periodic(iky) .and. iseg == nsegments(ie, iky)) then
-               izup = iz_up(iseg) - 1
-            else
-               izup = iz_up(iseg)
-            end if
-
-            ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-            ! <ikx> value on the local domain given our position on the extended domain.
-            ikx = ikxmod(iseg, ie, iky)
-
-            ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-            ! iz is only cycling through the zed location within a given segment. 
-            do iz = iz_low(iseg) + izl_offset, izup
-               idx = idx + 1
-               
-               ! First get J0 * g
-               call gyro_average(g(idx, :), iky, ikx, iz, g0)
-               
-               ! Multiply by vpa to give: J0 * g * vpa
-               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  iv = iv_idx(vmu_lo, ivmu)
-                  g0(ivmu) = g0(ivmu) * vpa(iv)
-               end do
-               
-               ! Now integrate over vpa, mu and sum over species.
-               ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g
-               call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
-               
+            ! First get J0 * g
+            call gyro_average(g(idx, :), iky, ikx, iz, g0)
+            
+            ! Multiply by vpa to give: J0 * g * vpa
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               g0(ivmu) = g0(ivmu) * vpa(iv)
             end do
             
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
+            ! Now integrate over vpa, mu and sum over species.
+            ! This returns: β sum_s Z_s n_s vth 2*B0/sqrt{π} int d^2v vpar J_0 g
+            call integrate_species(g0, iz, wgt, apar(idx), reduce_in=.false.)
             
          end do
+         
+         
 
          ! Collect the parts of <apar> spread out across processors. 
          call sum_allreduce(apar)
@@ -1415,9 +1310,7 @@ contains
          use parallelisation_layouts, only: vmu_lo, imu_idx
          use grids_species, only: nspec, spec
          use parameters_physics, only: beta
-         use grids_extended_zgrid, only: iz_low, iz_up
-         use grids_extended_zgrid, only: ikxmod
-         use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: izext_iz, izext_ikx
          use grids_extended_zgrid, only: periodic
          use calculations_velocity_integrals, only: integrate_species
          use grids_velocity, only: mu
@@ -1427,8 +1320,7 @@ contains
          implicit none
 
          ! Local variables
-         integer :: idx, iseg, ikx, iz, ia, imu, ivmu
-         integer :: izl_offset, izup
+         integer :: idx, ikx, iz, ia, imu, ivmu
          real, dimension(nspec) :: wgt
          complex, dimension(:), allocatable :: g0
 
@@ -1440,57 +1332,33 @@ contains
 
          ia = 1
          idx = 0
-         izl_offset = 0
          
          ! ---------------------------------------------------------------------
          !                          Integrals
          ! ---------------------------------------------------------------------
          ! Do for all segments in the chain
-         do iseg = 1, nsegments(ie, iky)
-         
-            ! Make sure the boundary points are being treated correctly depending
-            ! on whether the mode is periodic or not. Here, define <izup> as the 
-            ! upper zed value within a segment. If the mode is periodic, then 
-            ! reduce the upper bound by one, as this is a repeated point so it is 
-            ! obtained using the periodicity condition. This avoids and double-counting.
-            ! Only the last segment ends on the periodic point; the upper end point of the other
-            ! segments is shared with the next segment, which skips it through <izl_offset>
-            if (periodic(iky) .and. iseg == nsegments(ie, iky)) then
-               izup = iz_up(iseg) - 1
-            else
-               izup = iz_up(iseg)
-            end if
-
-            ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-            ! <ikx> value on the local domain given our position on the extended domain.
-            ikx = ikxmod(iseg, ie, iky)
-
-            ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-            ! iz is only cycling through the zed location within a given segment. 
-            do iz = iz_low(iseg) + izl_offset, izup
-               idx = idx + 1
-               
-               ! First get J1/a_s * g , where a_s is the argument of the Bessel
-               ! function. Note that 'J1' in the code is actually J1/a_s
-               call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
-               
-               ! Multiply by mu to get: J1/a_s * g * mu
-               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  imu = imu_idx(vmu_lo, ivmu)
-                  g0(ivmu) = g0(ivmu) * mu(imu)
-               end do
-               
-               ! Now integrate over vpa, mu and sum over species.
-               ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g 
-               call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
-               
+         do idx = 1, nz_ext - merge(1, 0, periodic(iky))
+            ! (iz, ikx) location of this point of the chain on the extended z-grid
+            iz = izext_iz(idx, ie, iky)
+            ikx = izext_ikx(idx, ie, iky)
+            
+            ! First get J1/a_s * g , where a_s is the argument of the Bessel
+            ! function. Note that 'J1' in the code is actually J1/a_s
+            call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
+            
+            ! Multiply by mu to get: J1/a_s * g * mu
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               imu = imu_idx(vmu_lo, ivmu)
+               g0(ivmu) = g0(ivmu) * mu(imu)
             end do
             
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
+            ! Now integrate over vpa, mu and sum over species.
+            ! This returns: - 2β sum_s n_s T_s 2*B0/sqrt{π} int d^2v mu J_1/a_s g 
+            call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
             
          end do
+         
+         
 
          ! Collect the parts of <bpar> spread out across processors. 
          call sum_allreduce(bpar)
@@ -1514,9 +1382,7 @@ contains
          use grids_species, only: spec
          use grids_species, only: has_electron_species
          use geometry, only: dl_over_b
-         use grids_extended_zgrid, only: iz_low, iz_up
-         use grids_extended_zgrid, only: ikxmod
-         use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: izext_iz, izext_ikx
          use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: denominator_fields, denominator_fields_MBR
@@ -1526,18 +1392,14 @@ contains
          implicit none
 
          ! Local variables
-         integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset, izup
+         integer :: idx, ikx, iz, ia
          complex :: tmp
-         real, dimension(:), allocatable :: denominator_seg
 
          ! ---------------------------------------------------------------------
 
          ia = 1
          idx = 0
-         izl_offset = 0
          
-         allocate (denominator_seg(-nzgrid:nzgrid))
          
          ! ---------------------------------------------------------------------
          !                             iky = ikx = 0 mode
@@ -1546,10 +1408,8 @@ contains
          ! mode and make sure it is set to zero.
          ! ---------------------------------------------------------------------
 
-         ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-         ! <ikx> value on the local domain given our position on the extended domain.
-         iseg = 1
-         ikx = ikxmod(iseg, ie, iky)
+         ! <ikx> of the first point of the chain
+         ikx = izext_ikx(1, ie, iky)
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             phi(:) = 0.0
             return
@@ -1559,44 +1419,17 @@ contains
          !                      Divide by correct field factor
          ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain. 
-         do iseg = 1, nsegments(ie, iky)
-         
-            ! Make sure the boundary points are being treated correctly depending
-            ! on whether the mode is periodic or not. Here, define <izup> as the 
-            ! upper zed value within a segment. If the mode is periodic, then 
-            ! reduce the upper bound by one, as this is a repeated point so it is 
-            ! obtained using the periodicity condition. This avoids and double-counting.
-            ! Only the last segment ends on the periodic point; the upper end point of the other
-            ! segments is shared with the next segment, which skips it through <izl_offset>
-            if (periodic(iky) .and. iseg == nsegments(ie, iky)) then
-               izup = iz_up(iseg) - 1
-            else
-               izup = iz_up(iseg)
-            end if
-
-            ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-            ! <ikx> value on the local domain given our position on the extended domain.
-            ikx = ikxmod(iseg, ie, iky)
-
-            ! For the given value of ky, kx, store the appropriate denominator from 
-            ! the Quasineutrality equation for this this segment. 
-            denominator_seg = denominator_fields(iky, ikx, :)
-
-            ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-            ! iz is only cycling through the zed location within a given segment. 
-            do iz = iz_low(iseg) + izl_offset, izup
-               idx = idx + 1
-               phi(idx) = phi(idx) / denominator_seg(iz)
-            end do
-
-            ! Treat the periodic point correct by dividing by the phase shift
-            if (periodic(iky)) phi(nz_ext) = phi (1) / phase_shift(iky)
-
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
-
+         do idx = 1, nz_ext - merge(1, 0, periodic(iky))
+            ! (iz, ikx) location of this point of the chain on the extended z-grid
+            iz = izext_iz(idx, ie, iky)
+            ikx = izext_ikx(idx, ie, iky)
+            phi(idx) = phi(idx) / denominator_fields(iky, ikx, iz)
          end do
+
+         ! Treat the periodic point correct by dividing by the phase shift
+         if (periodic(iky)) phi(nz_ext) = phi (1) / phase_shift(iky)
+
+
 
          ! ---------------------------------------------------------------------
          !                           Adiabatic electrons
@@ -1608,14 +1441,12 @@ contains
          
             ! No connections for ky = 0
             if (zonal_mode(iky)) then
-               iseg = 1
                tmp = sum(dl_over_b(ia, :) * phi)
-               phi = phi + tmp * denominator_fields_MBR(ikxmod(1, ie, iky), :)
+               phi = phi + tmp * denominator_fields_MBR(izext_ikx(1, ie, iky), :)
             end if
             
          end if
 
-         deallocate (denominator_seg)
 
       end subroutine calculate_phi_for_response_matrix
 
@@ -1631,9 +1462,7 @@ contains
          use grids_z, only: nzgrid
          use grids_kxky, only: zonal_mode, akx
          use grids_species, only: has_electron_species
-         use grids_extended_zgrid, only: iz_low, iz_up
-         use grids_extended_zgrid, only: ikxmod
-         use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: izext_iz, izext_ikx
          use grids_extended_zgrid, only: periodic, phase_shift
          use grids_species, only: spec
          use grids_species, only: adiabatic_option_switch
@@ -1646,22 +1475,15 @@ contains
          implicit none
 
          ! Local variables
-         integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset, izup
+         integer :: idx, ikx, iz, ia
          complex :: antot1, antot3
-         real, dimension(:), allocatable :: gammainv11, gammainv13, gammainv31, gammainv33
 
          ! ---------------------------------------------------------------------
 
          ia = 1
 
-         allocate (gammainv11(-nzgrid:nzgrid))
-         allocate (gammainv13(-nzgrid:nzgrid))
-         allocate (gammainv31(-nzgrid:nzgrid))
-         allocate (gammainv33(-nzgrid:nzgrid))
 
          idx = 0
-         izl_offset = 0
 
          ! ---------------------------------------------------------------------
          !                             iky = ikx = 0 mode
@@ -1670,10 +1492,8 @@ contains
          ! mode and make sure it is set to zero.
          ! ---------------------------------------------------------------------
 
-         ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-         ! <ikx> value on the local domain given our position on the extended domain.
-         iseg = 1
-         ikx = ikxmod(iseg, ie, iky)
+         ! <ikx> of the first point of the chain
+         ikx = izext_ikx(1, ie, iky)
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             phi(:) = 0.0
             bpar(:) = 0.0
@@ -1684,52 +1504,21 @@ contains
          !                      Divide by correct field factor
          ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain.
-         do iseg = 1, nsegments(ie, iky)
-         
-            ! Make sure the boundary points are being treated correctly depending
-            ! on whether the mode is periodic or not. Here, define <izup> as the 
-            ! upper zed value within a segment. If the mode is periodic, then 
-            ! reduce the upper bound by one, as this is a repeated point so it is 
-            ! obtained using the periodicity condition. This avoids and double-counting.
-            ! Only the last segment ends on the periodic point; the upper end point of the other
-            ! segments is shared with the next segment, which skips it through <izl_offset>
-            if (periodic(iky) .and. iseg == nsegments(ie, iky)) then
-               izup = iz_up(iseg) - 1
-            else
-               izup = iz_up(iseg)
-            end if
-
-            ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-            ! <ikx> value on the local domain given our position on the extended domain.
-            ikx = ikxmod(iseg, ie, iky)
-
-            ! For the given value of ky, kx, store the appropriate denominators from 
-            ! the field equations (Quasineutrality and perpendicular Amperes law) for 
-            ! this this segment. 
-            gammainv11 = denominator_fields_inv11(iky, ikx, :)
-            gammainv13 = denominator_fields_inv13(iky, ikx, :)
-            gammainv31 = denominator_fields_inv31(iky, ikx, :)
-            gammainv33 = denominator_fields_inv33(iky, ikx, :)
-
-            ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-            ! iz is only cycling through the zed location within a given segment. 
-            do iz = iz_low(iseg) + izl_offset, izup
-               idx = idx + 1
-               antot1 = phi(idx)
-               antot3 = bpar(idx)
-               phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
-               bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
-            end do
-
-            ! Treat the periodic point correct by dividing by the phase shift
-            if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
-            if (periodic(iky)) bpar(nz_ext) = bpar(1) / phase_shift(iky)
-            
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
-            
+         do idx = 1, nz_ext - merge(1, 0, periodic(iky))
+            ! (iz, ikx) location of this point of the chain on the extended z-grid
+            iz = izext_iz(idx, ie, iky)
+            ikx = izext_ikx(idx, ie, iky)
+            antot1 = phi(idx)
+            antot3 = bpar(idx)
+            phi(idx) = antot1 * denominator_fields_inv11(iky, ikx, iz) + antot3 * denominator_fields_inv13(iky, ikx, iz)
+            bpar(idx) = antot1 * denominator_fields_inv31(iky, ikx, iz) + antot3 * denominator_fields_inv33(iky, ikx, iz)
          end do
+
+         ! Treat the periodic point correct by dividing by the phase shift
+         if (periodic(iky)) phi(nz_ext) = phi(1) / phase_shift(iky)
+         if (periodic(iky)) bpar(nz_ext) = bpar(1) / phase_shift(iky)
+         
+         
 
          ! ---------------------------------------------------------------------
          !                           Adiabatic electrons
@@ -1741,7 +1530,6 @@ contains
             call mp_abort('adiabatic electrons not yet supported for include_bpar = T. aborting.')
          end if
 
-         deallocate (gammainv11, gammainv13, gammainv31, gammainv33)
 
       end subroutine calculate_phi_and_bpar_for_response_matrix
 
@@ -1754,9 +1542,7 @@ contains
       subroutine get_apar_for_response_matrix
 
          use grids_z, only: nzgrid
-         use grids_extended_zgrid, only: iz_low, iz_up
-         use grids_extended_zgrid, only: ikxmod
-         use grids_extended_zgrid, only: nsegments
+         use grids_extended_zgrid, only: izext_iz, izext_ikx
          use grids_extended_zgrid, only: periodic, phase_shift
          use grids_kxky, only: zonal_mode, akx
          use arrays, only: kperp2
@@ -1764,17 +1550,13 @@ contains
          implicit none
 
          ! Local variables
-         integer :: idx, iseg, ikx, iz, ia
-         integer :: izl_offset, izup
-         real, dimension(:), allocatable :: denominator
+         integer :: idx, ikx, iz, ia
 
          ! ---------------------------------------------------------------------
 
          ia = 1
          idx = 0
-         izl_offset = 0
 
-         allocate (denominator(-nzgrid:nzgrid))
          
          ! ---------------------------------------------------------------------
          !                             iky = ikx = 0 mode
@@ -1783,10 +1565,8 @@ contains
          ! mode and make sure it is set to zero.
          ! ---------------------------------------------------------------------
 
-         ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-         ! <ikx> value on the local domain given our position on the extended domain.
-         iseg = 1
-         ikx = ikxmod(iseg, ie, iky)
+         ! <ikx> of the first point of the chain
+         ikx = izext_ikx(1, ie, iky)
          if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
             apar(:) = 0.0
             return
@@ -1796,46 +1576,18 @@ contains
          !                      Divide by correct field factor
          ! ---------------------------------------------------------------------
          ! Loop over all connected segments in a chain. 
-         do iseg = 1, nsegments(ie, iky)
-         
-            ! Make sure the boundary points are being treated correctly depending
-            ! on whether the mode is periodic or not. Here, define <izup> as the 
-            ! upper zed value within a segment. If the mode is periodic, then 
-            ! reduce the upper bound by one, as this is a repeated point so it is 
-            ! obtained using the periodicity condition. This avoids and double-counting.
-            ! Only the last segment ends on the periodic point; the upper end point of the other
-            ! segments is shared with the next segment, which skips it through <izl_offset>
-            if (periodic(iky) .and. iseg == nsegments(ie, iky)) then
-               izup = iz_up(iseg) - 1
-            else
-               izup = iz_up(iseg)
-            end if
-
-            ! Get the appropriate indecies. Here, the <ikxmod> routine returns the 
-            ! <ikx> value on the local domain given our position on the extended domain.
-            ikx = ikxmod(iseg, ie, iky)
-
-            ! For the given value of ky, kx, store the appropriate denominator from 
-            ! the Amperes equation for this this segment. 
-            denominator = kperp2(iky, ikx, ia, :)
-
-            ! The <idx> index keeps track of the location on the extended zed grid, whereas the 
-            ! iz is only cycling through the zed location within a given segment. 
-            do iz = iz_low(iseg) + izl_offset, izup
-               idx = idx + 1
-               apar(idx) = apar(idx) / denominator(iz)
-            end do
-            
-            ! Treat the periodic point correct by dividing by the phase shift
-            if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
-
-            ! Set the offset to 1 - all other connected segments need to start one point
-            ! displaced as they share a point with the previous segment. 
-            if (izl_offset == 0) izl_offset = 1
-            
+         do idx = 1, nz_ext - merge(1, 0, periodic(iky))
+            ! (iz, ikx) location of this point of the chain on the extended z-grid
+            iz = izext_iz(idx, ie, iky)
+            ikx = izext_ikx(idx, ie, iky)
+            apar(idx) = apar(idx) / kperp2(iky, ikx, ia, iz)
          end do
+         
+         ! Treat the periodic point correct by dividing by the phase shift
+         if (periodic(iky)) apar(nz_ext) = apar(1) / phase_shift(iky)
 
-         deallocate (denominator)
+         
+
 
       end subroutine get_apar_for_response_matrix
 
@@ -2465,8 +2217,7 @@ contains
       use common_types, only: response_matrix_type
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
-      use grids_extended_zgrid, only: nsegments
-      use grids_extended_zgrid, only: nzed_segment
+      use grids_extended_zgrid, only: nzext
       use grids_extended_zgrid, only: periodic
       use mp, only: proc0, job, broadcast, mp_abort
       use field_equations, only: nfields
@@ -2518,7 +2269,7 @@ contains
          do ie = 1, neigen(iky)
          
             ! Number of zeds x number of segments
-            nz_ext = nsegments(ie, iky) * nzed_segment + 1
+            nz_ext = nzext(ie, iky)
 
             ! Treat zonal mode specially to avoid double counting as it is periodic
             if (periodic(iky)) then

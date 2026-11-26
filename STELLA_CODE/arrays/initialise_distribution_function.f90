@@ -590,7 +590,8 @@ contains
       use grids_extended_zgrid, only: ikxmod, nsegments, neigen
       use grids_extended_zgrid, only: it_right
       use grids_extended_zgrid, only: periodic, phase_shift
-      use grids_kxky, only: naky, nakx, reality
+      use grids_extended_zgrid, only: nzext, izext_iz, izext_ikx, enforce_chain_copies
+      use grids_kxky, only: naky, nakx, reality, non_twisting
       use grids_kxky, only: zonal_mode
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -609,7 +610,7 @@ contains
       complex, dimension(naky, nakx, -nzgrid:nzgrid, ntubes) :: phi
       real :: a, b, kmin
       integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
-      integer :: itmod 
+      integer :: itmod, n
       
       ! Read the following variables from the input file
       real :: zf_init
@@ -703,7 +704,22 @@ contains
             end do
          end if
 
+         ! Non-twisting flux tube: zero at the ends of the chains (unless periodic), and copies equal
+         ! to the points of the chains; the loop below then does nothing (one 'segment' per chain)
+         if (non_twisting) then
+            do iky = 1, naky
+               if (periodic(iky)) cycle
+               do ie = 1, neigen(iky)
+                  n = nzext(ie, iky)
+                  phi(iky, izext_ikx(1, ie, iky), izext_iz(1, ie, iky), :) = 0.0
+                  phi(iky, izext_ikx(n, ie, iky), izext_iz(n, ie, iky), :) = 0.0
+               end do
+            end do
+            call enforce_chain_copies(phi)
+         end if
+
          do iky = 1, naky
+            if (non_twisting) exit
             do ie = 1, neigen(iky)
                ! enforce zero BC at ends of domain, unless periodic
                if (.not. periodic(iky)) then
