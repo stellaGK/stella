@@ -222,7 +222,6 @@ contains
       use parameters_numerical, only: split_parallel_dynamics
       use parameters_numerical, only: explicit_algorithm_switch
       use parameters_numerical, only: explicit_algorithm_rk4
-      use parameters_numerical, only: explicit_algorithm_ssp32
       use parameters_numerical, only: explicit_algorithm_ssp42
       use parameters_numerical, only: explicit_algorithm_ssp52
       use parameters_numerical, only: explicit_algorithm_ssp43
@@ -281,13 +280,12 @@ contains
       g1 = 0.
       g2 = 0.
       
-      ! Allocate <g3> and <g4> at full size for all explicit schemes, since every
-      ! scheme (rk4, ssp32, ssp42, ssp52, ssp43, ssp93, rk64) writes full-size
-      ! stages into these arrays. Allocating a dummy 1-element array for a scheme
-      ! that does not appear in the condition would overflow the heap.
+      ! Allocate <g3> and <g4> at full size only for the schemes that use them as
+      ! Runge-Kutta stages: <g3> for rk4, ssp42, ssp52, ssp43, ssp93 and rk64, and
+      ! <g4> for ssp52, ssp43 and ssp93. A scheme that writes a full-size stage into
+      ! a dummy 1-element array would overflow the heap.
       if (.not. allocated(g3)) then
          if (explicit_algorithm_switch == explicit_algorithm_rk4 .or. &
-             explicit_algorithm_switch == explicit_algorithm_ssp32 .or. &
              explicit_algorithm_switch == explicit_algorithm_ssp42 .or. &
              explicit_algorithm_switch == explicit_algorithm_ssp52 .or. &
              explicit_algorithm_switch == explicit_algorithm_ssp43 .or. &
@@ -301,13 +299,9 @@ contains
       end if
 
       if (.not. allocated(g4)) then
-         if (explicit_algorithm_switch == explicit_algorithm_rk4 .or. &
-             explicit_algorithm_switch == explicit_algorithm_ssp32 .or. &
-             explicit_algorithm_switch == explicit_algorithm_ssp42 .or. &
-             explicit_algorithm_switch == explicit_algorithm_ssp52 .or. &
+         if (explicit_algorithm_switch == explicit_algorithm_ssp52 .or. &
              explicit_algorithm_switch == explicit_algorithm_ssp43 .or. &
-             explicit_algorithm_switch == explicit_algorithm_ssp93 .or. &
-             explicit_algorithm_switch == explicit_algorithm_rk64) then
+             explicit_algorithm_switch == explicit_algorithm_ssp93) then
             allocate (g4(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          else
             allocate (g4(1, 1, 1, 1, 1))
