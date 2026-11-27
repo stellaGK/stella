@@ -169,7 +169,6 @@ contains
          use parameters_physics, only: include_nonlinear
          use parameters_physics, only: include_xdrift, include_ydrift
          use parameters_physics, only: include_drive
-         use parameters_physics, only: rhostar
          use mp, only: mp_abort
          
          implicit none
@@ -235,14 +234,6 @@ contains
                write (*, *) 'forcing drifts_implicit = F.'
                write (*, *) '!!!WARNING!!!'
                drifts_implicit = .false.
-            end if
-            
-            if (rhostar > epsilon(0.0)) then
-               write (*, *) '!!!WARNING!!!'
-               write (*, *) 'drifts_implicit = T, coupled with rhostar > 0, has been observed'
-               write (*, *) 'to lead to numerical instability.  unless you know what you are doing,'
-               write (*, *) 'it is suggested that you set drifts_implicit = F or rhostar = 0.'
-               write (*, *) '!!!WARNING!!!'
             end if
          end if
 

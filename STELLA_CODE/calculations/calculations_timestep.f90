@@ -71,6 +71,11 @@ contains
       real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_shear
       real :: cfl_dt_wdriftx, cfl_dt_wdrifty, cfl_dt_wstar
       real :: wdriftx_max, wdrifty_max, wstar_max, zero
+      real :: cfl_dt_drifts
+
+      ! The implicit drifts are stable for any time step, but they are only accurate as long as
+      ! code_dt * max(omega_d, omega_*) is not much larger than one; warn above this value
+      real, parameter :: max_implicit_drift_dt_factor = 10.0
       
       !-------------------------------------------------------------------------
 
@@ -81,7 +86,11 @@ contains
       
       if (cfl_dt_linear < 0) cfl_dt_linear = code_dt / cfl_cushion_upper
 
-      if (.not. drifts_implicit .and. include_xdrift) then
+      ! The CFL time steps of the drifts and the drive are computed for both the explicit and the
+      ! implicit drifts; they only limit the time step when the drifts are explicit
+      cfl_dt_drifts = huge(0.)
+
+      if (include_xdrift) then
       
          ! Get the local max value of wdriftx on each processor
          wdriftx_max = maxval(abs(wdriftx_g))
@@ -93,7 +102,8 @@ contains
          ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
          ! For the non-twisting flux tube the ballooning kx is akx + kx_shift (kx_shift = 0 otherwise)
          cfl_dt_wdriftx = abs(code_dt) / max((maxval(abs(akx)) + maxval(abs(kx_shift))) * wdriftx_max, zero)
-         cfl_dt_linear = cfl_dt_wdriftx
+         cfl_dt_drifts = cfl_dt_wdriftx
+         if (.not. drifts_implicit) cfl_dt_linear = cfl_dt_wdriftx
          
       end if
 
@@ -138,7 +148,7 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_collisions)
       end if
 
-      if (.not. drifts_implicit .and. include_ydrift) then
+      if (include_ydrift) then
       
          ! Get the local max value of wdrifty on each processor
          wdrifty_max = maxval(abs(wdrifty_g))
@@ -150,18 +160,20 @@ contains
          
          ! wdrifty_g has code_dt built-in, which accounts for code_dt factor here
          cfl_dt_wdrifty = abs(code_dt) / max(maxval(abs(aky)) * wdrifty_max, zero)
-         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wdrifty)
+         cfl_dt_drifts = min(cfl_dt_drifts, cfl_dt_wdrifty)
+         if (.not. drifts_implicit) cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wdrifty)
          
       end if
 
-      if (.not. drifts_implicit .and. include_drive) then
+      if (include_drive) then
 
          wstar_max = maxval(abs(wstar))
          if (nproc > 1) then
             call max_allreduce(wstar_max)
          end if
          cfl_dt_wstar = abs(code_dt) / max(maxval(abs(aky)) * wstar_max, zero)
-         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wstar)
+         cfl_dt_drifts = min(cfl_dt_drifts, cfl_dt_wstar)
+         if (.not. drifts_implicit) cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wstar)
 
       end if
 
@@ -176,14 +188,30 @@ contains
          write (*, '(A)') "                        CFL CONDITION"
          write (*, '(A)') "############################################################"
          write (*, *) ''; write (*, '(A16)') 'LINEAR CFL_DT: '
-         if (.not. drifts_implicit .and. include_xdrift) write (*, '(A12,ES12.4)') '   wdriftx: ', cfl_dt_wdriftx
-         if (.not. drifts_implicit .and. include_ydrift) write (*, '(A12,ES12.4)') '   wdrifty: ', cfl_dt_wdrifty
-         if (.not. drifts_implicit .and. include_drive) write (*, '(A12,ES12.4)') '   wstar: ', cfl_dt_wstar
+         if (include_xdrift) write (*, '(A12,ES12.4,A)') '   wdriftx: ', cfl_dt_wdriftx, trim(merge(' (implicit)', '           ', drifts_implicit))
+         if (include_ydrift) write (*, '(A12,ES12.4,A)') '   wdrifty: ', cfl_dt_wdrifty, trim(merge(' (implicit)', '           ', drifts_implicit))
+         if (include_drive) write (*, '(A12,ES12.4,A)') '   wstar: ', cfl_dt_wstar, trim(merge(' (implicit)', '           ', drifts_implicit))
          if (.not. stream_implicit) write (*, '(A12,ES12.4)') '   stream: ', cfl_dt_stream
          if (.not. mirror_implicit) write (*, '(A12,ES12.4)') '   mirror: ', cfl_dt_mirror
          if (include_collisions .and. .not. collisions_implicit) write (*, '(A15,ES12.4)') '   collisions: ', cfl_dt_collisions
          write (*, '(A12,ES12.4)') '   total: ', cfl_dt_linear
          write (*, *) ''
+      end if
+
+      ! The implicit drifts do not limit the time step, but warn if it is so large compared with
+      ! 1/max(omega_d, omega_*) that the drifts of the fastest particles are no longer resolved in time
+      if (drifts_implicit .and. abs(code_dt) > max_implicit_drift_dt_factor * cfl_dt_drifts) then
+         if (proc0) then
+            write (*, *)
+            write (*, *) '!!!WARNING!!!'
+            write (*, '(A, ES10.2E2, A, F6.1, A)') ' The time step code_dt = ', abs(code_dt), ' is more than', &
+               max_implicit_drift_dt_factor, ' times'
+            write (*, '(A, ES10.2E2, A)') ' the CFL time step of the magnetic drifts and the drive (', cfl_dt_drifts, ').'
+            write (*, *) 'The implicit drifts remain stable, but the growth rates and frequencies can be inaccurate,'
+            write (*, *) 'in particular at large ky. Check the convergence in delt, or set drifts_implicit = .false.'
+            write (*, *) '!!!WARNING!!!'
+            write (*, *)
+         end if
       end if
 
       ! Reduce the time step if it's much larger than the CFL condition
