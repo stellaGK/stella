@@ -88,6 +88,7 @@ module namelist_initialise_distribution_function
    ! Parameters need to be public
    public :: init_distribution_option_maxwellian, init_distribution_option_noise, init_distribution_option_restart
    public :: init_distribution_option_kpar, init_distribution_option_rh, init_distribution_option_remap
+   public :: init_distribution_option_fourierblob
    
    private
    
@@ -97,7 +98,8 @@ module namelist_initialise_distribution_function
    integer, parameter :: init_distribution_option_restart = 3
    integer, parameter :: init_distribution_option_kpar = 4
    integer, parameter :: init_distribution_option_rh = 5
-   integer, parameter :: init_distribution_option_remap = 6 
+   integer, parameter :: init_distribution_option_remap = 6
+   integer, parameter :: init_distribution_option_fourierblob = 7
    
    ! These variables are used in every single subroutine, so make them global
    integer :: in_file
@@ -155,7 +157,7 @@ contains
          implicit none
          
          ! Link text options for <initialise_distribution_option> to an integer value
-         type(text_option), dimension(8), parameter :: init_distribution_options = &
+         type(text_option), dimension(9), parameter :: init_distribution_options = &
              (/text_option('default', init_distribution_option_maxwellian), &
                text_option('maxwellian', init_distribution_option_maxwellian), &
                text_option('noise', init_distribution_option_noise), &
@@ -163,7 +165,8 @@ contains
                text_option('restart', init_distribution_option_restart), &
                text_option('kpar', init_distribution_option_kpar), &
                text_option('rh', init_distribution_option_rh), &
-               text_option('remap', init_distribution_option_remap)/)
+               text_option('remap', init_distribution_option_remap), &
+               text_option('fourierblob', init_distribution_option_fourierblob)/)
 
          ! Variables in the <initialise_distribution> namelist
          namelist /initialise_distribution/ initialise_distribution_option, phiinit, scale_to_phiinit

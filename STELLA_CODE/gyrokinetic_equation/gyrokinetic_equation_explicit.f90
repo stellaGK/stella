@@ -57,6 +57,12 @@ contains
       use parameters_numerical, only: explicit_algorithm_rk2
       use parameters_numerical, only: explicit_algorithm_rk4
       use parameters_numerical, only: explicit_algorithm_euler
+      use parameters_numerical, only: explicit_algorithm_ssp32
+      use parameters_numerical, only: explicit_algorithm_ssp42
+      use parameters_numerical, only: explicit_algorithm_ssp52
+      use parameters_numerical, only: explicit_algorithm_ssp43
+      use parameters_numerical, only: explicit_algorithm_ssp93
+      use parameters_numerical, only: explicit_algorithm_rk64
 
       implicit none
 
@@ -97,6 +103,18 @@ contains
          call advance_explicit_rk3(g, restart_time_step, istep)
       case (explicit_algorithm_rk4)
          call advance_explicit_rk4(g, restart_time_step, istep)
+      case (explicit_algorithm_ssp32)
+         call advance_explicit_ssp32(g, restart_time_step, istep)
+      case (explicit_algorithm_ssp42)
+         call advance_explicit_ssp42(g, restart_time_step, istep)
+      case (explicit_algorithm_ssp52)
+         call advance_explicit_ssp52(g, restart_time_step, istep)
+      case (explicit_algorithm_ssp43)
+         call advance_explicit_ssp43(g, restart_time_step, istep)
+      case (explicit_algorithm_ssp93)
+         call advance_explicit_ssp93(g, restart_time_step, istep)
+      case (explicit_algorithm_rk64)
+         call advance_explicit_rk64(g, restart_time_step, istep)
       end select
 
       ! Re-impose the twist-and-shift chain joins on the updated distribution function
@@ -814,5 +832,503 @@ contains
       call enforce_periodicity(g)
 
    end subroutine enforce_parallel_boundary_conditions
+
+   !****************************************************************************
+   !                     SSP(3,2) STRONG STABILITY PRESERVING                   !
+   !****************************************************************************
+   ! Strong stability preserving Runge-Kutta (3,2) scheme to advance the
+   ! explicit part of the gyrokinetic equation in time.
+   !****************************************************************************
+   subroutine advance_explicit_ssp32(g, restart_time_step, istep)
+
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parameters_multibox, only: rk_step
+      use gk_radial_variation, only: mb_communicate
+
+      ! Distribution function
+      use arrays_distribution_function, only: g0, g1, g2
+
+      ! Grids
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      ! Local variables
+      integer :: counter
+
+      !-------------------------------------------------------------------------
+
+      ! if CFL condition is violated by nonlinear term then must modify time step
+      restart_time_step = .false.
+
+      ! rk_step is false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
+
+      ! Store the distribution function
+      g0 = g
+
+      ! Count the iterations
+      counter = 1
+
+      ! SSP RK3 algorithm to advance explicit part of code
+      ! if GK equation written as dg/dt = rhs - vpar . grad h,
+      ! add_explicit_gyrokinetic_terms returns rhs*dt
+      do while (counter <= 3)
+         select case (counter)
+         case (1)
+            call add_explicit_gyrokinetic_terms(g0, g1, restart_time_step, istep)
+         case (2)
+            ! g1 is h*k1
+            g1 = g0 + g1 / 2.
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+         case (3)
+            ! g2 is h*k2
+            g2 = g1 + g2 / 2.
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g, restart_time_step, istep)
+         end select
+         if (restart_time_step) then
+            counter = 10
+         else
+            counter = counter + 1
+         end if
+      end do
+
+      ! this is gbar at intermediate time level
+      g = g0 / 3.+2./3.*g2 + g / 3.
+
+   end subroutine advance_explicit_ssp32
+
+   !****************************************************************************
+   !                     SSP(4,2) STRONG STABILITY PRESERVING                   !
+   !****************************************************************************
+   ! Strong stability preserving Runge-Kutta (4,2) scheme to advance the
+   ! explicit part of the gyrokinetic equation in time.
+   !****************************************************************************
+   subroutine advance_explicit_ssp42(g, restart_time_step, istep)
+
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parameters_multibox, only: rk_step
+      use gk_radial_variation, only: mb_communicate
+
+      ! Distribution function
+      use arrays_distribution_function, only: g0, g1, g2, g3
+
+      ! Grids
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      ! Local variables
+      integer :: counter
+
+      !-------------------------------------------------------------------------
+
+      ! rk_step is false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
+
+      ! Store the distribution function
+      g0 = g
+
+      ! Count the iterations
+      counter = 1
+
+      ! SSP RK4(2) algorithm to advance explicit part of code
+      ! if GK equation written as dg/dt = rhs - vpar . grad h,
+      ! add_explicit_gyrokinetic_terms returns rhs*dt
+      do while (counter <= 4)
+         select case (counter)
+         case (1)
+            call add_explicit_gyrokinetic_terms(g0, g1, restart_time_step, istep)
+         case (2)
+            ! g1 is h*k1
+            g1 = g0 + g1 / 3.
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+         case (3)
+            ! g2 is h*k2
+            g2 = g1 + g2 / 3.
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+         case (4)
+            ! g3 is h*k3
+            g3 = g2 + g3 / 3.
+            if (rk_step) call mb_communicate(g3)
+            call add_explicit_gyrokinetic_terms(g3, g, restart_time_step, istep)
+         end select
+         if (restart_time_step) then
+            counter = 10
+         else
+            counter = counter + 1
+         end if
+      end do
+
+      ! this is gbar at intermediate time level
+      g = g0 / 4.+3./4.*g3 + g / 4.
+
+   end subroutine advance_explicit_ssp42
+
+   !****************************************************************************
+   !                     SSP(5,2) STRONG STABILITY PRESERVING                   !
+   !****************************************************************************
+   ! Strong stability preserving Runge-Kutta (5,2) scheme to advance the
+   ! explicit part of the gyrokinetic equation in time.
+   !****************************************************************************
+   subroutine advance_explicit_ssp52(g, restart_time_step, istep)
+
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parameters_multibox, only: rk_step
+      use gk_radial_variation, only: mb_communicate
+
+      ! Distribution function
+      use arrays_distribution_function, only: g0, g1, g2, g3, g4
+
+      ! Grids
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      ! Local variables
+      integer :: counter
+
+      !-------------------------------------------------------------------------
+
+      ! if CFL condition is violated by nonlinear term then must modify time step
+      restart_time_step = .false.
+
+      ! rk_step is false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
+
+      ! Store the distribution function
+      g0 = g
+
+      ! Count the iterations
+      counter = 1
+
+      ! SSP RK5(2) algorithm to advance explicit part of code
+      ! if GK equation written as dg/dt = rhs - vpar . grad h,
+      ! add_explicit_gyrokinetic_terms returns rhs*dt
+      do while (counter <= 5)
+         select case (counter)
+         case (1)
+            call add_explicit_gyrokinetic_terms(g0, g1, restart_time_step, istep)
+         case (2)
+            ! g1 is h*k1
+            g1 = g0 + g1 / 4.
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+         case (3)
+            ! g2 is h*k2
+            g2 = g1 + g2 / 4.
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+         case (4)
+            ! g3 is h*k3
+            g3 = g2 + g3 / 4.
+            if (rk_step) call mb_communicate(g3)
+            call add_explicit_gyrokinetic_terms(g3, g4, restart_time_step, istep)
+         case (5)
+            ! g4 is h*k4
+            g4 = g3 + g4 / 4.
+            if (rk_step) call mb_communicate(g4)
+            call add_explicit_gyrokinetic_terms(g4, g, restart_time_step, istep)
+         end select
+         if (restart_time_step) then
+            counter = 10
+         else
+            counter = counter + 1
+         end if
+      end do
+
+      ! this is gbar at intermediate time level
+      g = g0 / 5.+4./5.*g4 + g / 5.
+
+   end subroutine advance_explicit_ssp52
+
+   !****************************************************************************
+   !                     SSP(4,3) STRONG STABILITY PRESERVING                   !
+   !****************************************************************************
+   ! Strong stability preserving Runge-Kutta (4,3) scheme to advance the
+   ! explicit part of the gyrokinetic equation in time.
+   !****************************************************************************
+   subroutine advance_explicit_ssp43(g, restart_time_step, istep)
+
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parameters_multibox, only: rk_step
+      use gk_radial_variation, only: mb_communicate
+
+      ! Distribution function
+      use arrays_distribution_function, only: g0, g1, g2, g3, g4
+
+      ! Grids
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      ! Local variables
+      integer :: counter
+
+      !-------------------------------------------------------------------------
+
+      ! if CFL condition is violated by nonlinear term then must modify time step
+      restart_time_step = .false.
+
+      ! rk_step is false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
+
+      ! Store the distribution function
+      g0 = g
+
+      ! Count the iterations
+      counter = 1
+
+      ! SSP RK4(3) algorithm to advance explicit part of code
+      ! if GK equation written as dg/dt = rhs - vpar . grad h,
+      ! add_explicit_gyrokinetic_terms returns rhs*dt
+      do while (counter <= 4)
+         select case (counter)
+         case (1)
+            call add_explicit_gyrokinetic_terms(g0, g4, restart_time_step, istep)
+         case (2)
+            ! g1 is h*k1
+            g1 = g0 + 11./20.*g4
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+         case (3)
+            ! g2 is h*k2
+            g2 = 3./8.*g0 + 5./8.*(g1 + 11./20.*g2)
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+         case (4)
+            ! g3 is h*k3
+            g3 = 4./9.*g0 + 5./9.*(g2 + 11./20.*g3)
+            if (rk_step) call mb_communicate(g3)
+            call add_explicit_gyrokinetic_terms(g3, g, restart_time_step, istep)
+         end select
+         if (restart_time_step) then
+            counter = 10
+         else
+            counter = counter + 1
+         end if
+      end do
+
+      ! this is gbar at intermediate time level
+      g = 111./1331.*g0 + 260./1331.*(g0 + 11./20.*g4) + 960./1331.*(g3 + 11./20.*g)
+
+   end subroutine advance_explicit_ssp43
+
+   !****************************************************************************
+   !                     SSP(9,3) STRONG STABILITY PRESERVING                   !
+   !****************************************************************************
+   ! Strong stability preserving Runge-Kutta (9,3) scheme to advance the
+   ! explicit part of the gyrokinetic equation in time.
+   !****************************************************************************
+   subroutine advance_explicit_ssp93(g, restart_time_step, istep)
+
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parameters_multibox, only: rk_step
+      use gk_radial_variation, only: mb_communicate
+
+      ! Distribution function
+      use arrays_distribution_function, only: g0, g1, g2, g3, g4
+
+      ! Grids
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      ! Local variables
+      integer :: counter
+
+      !-------------------------------------------------------------------------
+
+      ! if CFL condition is violated by nonlinear term then must modify time step
+      restart_time_step = .false.
+
+      ! rk_step is false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
+
+      ! Store the distribution function
+      g0 = g
+
+      ! Count the iterations
+      counter = 1
+
+      ! SSP RK9(3) algorithm to advance explicit part of code
+      ! if GK equation written as dg/dt = rhs - vpar . grad h,
+      ! add_explicit_gyrokinetic_terms returns rhs*dt
+      do while (counter <= 9)
+         select case (counter)
+         case (1)
+            call add_explicit_gyrokinetic_terms(g0, g3, restart_time_step, istep)
+            g1 = g0 + 1./6.*g3
+         case (2)
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+            g4 = g1 + 1./6.*g2
+         case (3)
+            if (rk_step) call mb_communicate(g4)
+            call add_explicit_gyrokinetic_terms(g4, g2, restart_time_step, istep)
+            g1 = g4 + 1./6.*g2
+         case (4)
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+            g1 = g1 + 1./6.*g2
+         case (5)
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+            g1 = 1./5.*g0 + 4./5.*(g1 + 1./6.*g2)
+         case (6)
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+            g1 = 1./4.*(g0 + 1./6.*g3) + 3./4.*(g1 + 1./6.*g2)
+         case (7)
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+            g1 = 1./3.*g4 + 2./3.*(g1 + 1./6.*g2)
+         case (8)
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+            g1 = g1 + 1./6.*g2
+         case (9)
+            if (rk_step) call mb_communicate(g1)
+            call add_explicit_gyrokinetic_terms(g1, g2, restart_time_step, istep)
+         end select
+         if (restart_time_step) then
+            counter = 10
+         else
+            counter = counter + 1
+         end if
+      end do
+
+      ! this is gbar at intermediate time level
+      g = g1 + 1./6.*g2
+
+   end subroutine advance_explicit_ssp93
+
+   !****************************************************************************
+   !                       RK6-4 RUNGE-KUTTA SCHEME                             !
+   !****************************************************************************
+   ! 6th order 6-stage Runge-Kutta scheme to advance the explicit part of the
+   ! gyrokinetic equation in time (see https://doi.org/10.48550/arXiv.1403.7402).
+   !****************************************************************************
+   subroutine advance_explicit_rk64(g, restart_time_step, istep)
+
+      ! Parallelisation
+      use parallelisation_layouts, only: vmu_lo
+      use parameters_multibox, only: rk_step
+      use gk_radial_variation, only: mb_communicate
+
+      ! Distribution function
+      use arrays_distribution_function, only: g0, g1, g2, g3
+
+      ! Grids
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      ! Local variables
+      integer :: counter
+
+      !-------------------------------------------------------------------------
+
+      ! rk_step is false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
+
+      ! Store the distribution function
+      g0 = g
+
+      ! Count the iterations
+      counter = 1
+
+      ! RK64 algorithm to advance explicit part of code
+      ! see https://doi.org/10.48550/arXiv.1403.7402
+      ! if GK equation written as dg/dt = rhs - vpar . grad h,
+      ! add_explicit_gyrokinetic_terms returns rhs*dt
+      do while (counter <= 6)
+         select case (counter)
+         case (1)
+            call add_explicit_gyrokinetic_terms(g0, g1, restart_time_step, istep)
+         case (2)
+            ! g1 is h*k1
+            g2 = g0 + 0.16791847 * g1
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+            g1 = -0.15108371 * g1 + 0.7538468 * g3
+         case (3)
+            ! g3 is h*k2
+            g2 = g0 + 0.4829844 * g3
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+            g1 = g1 - 0.3601660 * g3
+         case (4)
+            ! g3 is h*k3
+            g2 = g0 + 0.7054607 * g3
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+            g1 = g1 + 0.5269677 * g3
+         case (5)
+            ! g3 is h*k4
+            g2 = g0 + 0.0929587 * g3
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+         case (6)
+            ! g3 is h*k5
+            g2 = g0 + 0.7621008 * g3
+            if (rk_step) call mb_communicate(g2)
+            call add_explicit_gyrokinetic_terms(g2, g3, restart_time_step, istep)
+            g1 = g1 + 0.2304351 * g3
+         end select
+
+         ! If the code_dt is reset, we need to quit this loop and restart the timestep again
+         ! Otherwise increase the <counter> that keeps track of the iterations
+         if (restart_time_step) then
+            counter = 10
+         else
+            counter = counter + 1
+         end if
+
+      end do
+
+      ! This is g at intermediate time level
+      g = g0 + g1
+
+   end subroutine advance_explicit_rk64
 
 end module gyrokinetic_equation_explicit

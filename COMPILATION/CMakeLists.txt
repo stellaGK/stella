@@ -4,9 +4,12 @@
 ############################################################
 
 cmake_minimum_required(VERSION 3.16)
+# C is enabled as a project language in addition to Fortran: some systems
+# (e.g. Intel oneAPI) provide LAPACK through the MKL library, and finding
+# MKL via find_package(LAPACK) requires a C compiler to be enabled.
 project(stella
   VERSION 0.3
-  LANGUAGES Fortran)
+  LANGUAGES Fortran C)
 
 # Cmake files
 set(CMAKE_MODULE_PATH

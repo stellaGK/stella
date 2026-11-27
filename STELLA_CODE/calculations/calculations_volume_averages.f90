@@ -15,6 +15,7 @@ module calculations_volume_averages
    public :: flux_surface_average_ffs
    public :: mode_fac
    public :: jacobian_ky
+   public :: volume_total
 
    private
 
@@ -31,6 +32,9 @@ module calculations_volume_averages
    ! Fourier coefficients in y of the Jacobian;
    ! needed for full flux surface simulations
    complex, dimension(:, :), allocatable :: jacobian_ky
+
+    ! Total volume of the domain (sum of the volume elements dVolume)
+    real :: volume_total
 
 contains
 
@@ -97,6 +101,9 @@ contains
       ! Avoid double counting at the zed boundaries
       dVolume(:, :, -nzgrid) = 0.5 * dVolume(:, :, -nzgrid)
       dVolume(:, :, nzgrid) = 0.5 * dVolume(:, :, nzgrid)
+
+      ! Total volume of the domain (used by the free-energy diagnostic)
+      volume_total = sum(dVolume(1, 1, :))
 
    end subroutine init_volume_averages
    

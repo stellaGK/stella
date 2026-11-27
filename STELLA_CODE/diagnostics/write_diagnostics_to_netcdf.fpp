@@ -291,6 +291,8 @@ contains
          ! Write constants to the netcdf file
          call nc_species(ncid)
          call nc_geo(ncid)
+         call nc_volume(ncid)
+         call nc_vmu(ncid)
          
       end if
 
@@ -667,6 +669,47 @@ contains
       call neasyf_write(file_id, "kperp2", kperp2, dim_names=[character(len=5)::"ky", "kx", "alpha", "zed"])
 
    end subroutine nc_geo
+#endif
+
+#ifdef NETCDF
+   !****************************************************************************
+   !                                 VOLUME
+   !****************************************************************************
+   subroutine nc_volume(file_id)
+
+      ! Volume element
+      use geometry, only: dVolume
+
+      implicit none
+
+      ! NetCDF ID of the file to write to
+      integer, intent(in) :: file_id
+
+      ! Volume element (alpha, kx, zed)
+      call neasyf_write(file_id, "dVolume", dVolume, dim_names=[character(len=5) :: "alpha", "kx", "zed"], long_name="Volume element")
+
+   end subroutine nc_volume
+#endif
+
+#ifdef NETCDF
+   !****************************************************************************
+   !                          VELOCITY-SPACE WEIGHTS
+   !****************************************************************************
+   subroutine nc_vmu(file_id)
+
+      ! Velocity-space grid weights
+      use grids_velocity, only: wgts_mu_bare, wgts_vpa
+
+      implicit none
+
+      ! NetCDF ID of the file to write to
+      integer, intent(in) :: file_id
+
+      ! Velocity-space weights
+      call neasyf_write(file_id, "wgts_mu_bare", wgts_mu_bare, dim_names=[character(len=5) :: "mu"], long_name="Velocity-space weight in mu (bare)")
+      call neasyf_write(file_id, "wgts_vpa", wgts_vpa, dim_names=[character(len=5) :: "vpa"], long_name="Velocity-space weight in vpar")
+
+   end subroutine nc_vmu
 #endif
 
 

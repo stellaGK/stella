@@ -20,6 +20,12 @@ module parameters_numerical
    use namelist_parameters_numerical, only: explicit_algorithm_rk3
    use namelist_parameters_numerical, only: explicit_algorithm_rk4
    use namelist_parameters_numerical, only: explicit_algorithm_euler
+   use namelist_parameters_numerical, only: explicit_algorithm_ssp32
+   use namelist_parameters_numerical, only: explicit_algorithm_ssp42
+   use namelist_parameters_numerical, only: explicit_algorithm_ssp52
+   use namelist_parameters_numerical, only: explicit_algorithm_ssp43
+   use namelist_parameters_numerical, only: explicit_algorithm_ssp93
+   use namelist_parameters_numerical, only: explicit_algorithm_rk64
 
    implicit none
    
@@ -28,6 +34,8 @@ module parameters_numerical
    public :: delt_option_hand, delt_option_auto
    public :: explicit_algorithm_rk3, explicit_algorithm_rk2
    public :: explicit_algorithm_rk4, explicit_algorithm_euler
+   public :: explicit_algorithm_ssp32, explicit_algorithm_ssp42, explicit_algorithm_ssp52
+   public :: explicit_algorithm_ssp43, explicit_algorithm_ssp93, explicit_algorithm_rk64
 
    ! Time trace options
    public :: nstep, tend
