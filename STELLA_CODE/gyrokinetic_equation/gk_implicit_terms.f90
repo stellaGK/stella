@@ -49,7 +49,6 @@ module gk_implicit_terms
    ! not allocated and freed for every chain
    complex, dimension(:), allocatable :: work_rhs_fields, work_scratch2, work_dpdf_dz, work_field, work_gyro_field
    complex, dimension(:), allocatable :: work_wdrift_ext, work_pdf_cf
-   complex, dimension(:, :, :), allocatable :: work_wdrift
    integer, dimension(:), allocatable :: work_iz_from_izext, work_ikx_from_izext, work_iz_ext
 
 contains
@@ -1229,10 +1228,9 @@ contains
       use parameters_numerical, only: drifts_implicit
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
       use parameters_numerical, only: time_upwind_plus
-      use grids_kxky, only: nakx
       use grids_kxky, only: akx, aky, kx_shift
       use arrays, only: wdriftx_g, wdrifty_g
-      use grids_extended_zgrid, only: map_to_extended_zgrid, izext_iz
+      use grids_extended_zgrid, only: map_to_iz_ikx_from_izext, nzext, izext_iz
       use grids_kxky, only: non_twisting
       use grids_extended_zgrid, only: periodic, phase_shift
       use gk_parallel_streaming, only: stream_sign, stream_c
@@ -1270,14 +1268,16 @@ contains
       ! get the drift frequency on the extended zed grid
       if (drifts_implicit) then
          ia = 1
-         ! Sum up the kx and ky contributions to the magnetic drift frequency
-         do iz = -nzgrid, nzgrid
-            do ikx = 1, nakx
-               work_wdrift(ikx, iz, :) = -zi * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
-            end do
+         ! Sum up the kx and ky contributions to the magnetic drift frequency at every point of the chain.
+         ! The drift frequency is a coefficient, not a field, so it must not pick up the phase factor of the
+         ! twist-and-shift boundary condition that map_to_extended_zgrid applies to the segments of a chain
+         ulim = nzext(ie, iky)
+         call map_to_iz_ikx_from_izext(iky, ie, work_iz_from_izext(:ulim), work_ikx_from_izext(:ulim))
+         do izext = 1, ulim
+            iz = work_iz_from_izext(izext)
+            ikx = work_ikx_from_izext(izext)
+            work_wdrift_ext(izext) = -zi * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
          end do
-         ! Obtain the drift frequency on the extended zed domain
-         call map_to_extended_zgrid(it, ie, iky, work_wdrift, work_wdrift_ext(:nz_ext), ulim)
          ! NB: need to check if passing periodic(iky) is the right thing to do here
          call center_zed(iv, work_wdrift_ext(:nz_ext), 1, periodic(iky))
       else
@@ -1391,10 +1391,7 @@ contains
    !****************************************************************************
    subroutine get_chain_work_arrays(nz_ext)
 
-      use grids_z, only: nzgrid, ntubes
-      use grids_kxky, only: nakx
       use grids_extended_zgrid, only: nzext
-      use parameters_numerical, only: drifts_implicit
 
       implicit none
 
@@ -1410,7 +1407,6 @@ contains
       n = max(nz_ext, maxval(nzext))
       allocate (work_rhs_fields(n), work_scratch2(n), work_dpdf_dz(n), work_field(n), work_gyro_field(n), work_wdrift_ext(n), work_pdf_cf(n))
       allocate (work_iz_from_izext(n), work_ikx_from_izext(n), work_iz_ext(n))
-      if (drifts_implicit .and. .not. allocated(work_wdrift)) allocate (work_wdrift(nakx, -nzgrid:nzgrid, ntubes))
 
    end subroutine get_chain_work_arrays
 
