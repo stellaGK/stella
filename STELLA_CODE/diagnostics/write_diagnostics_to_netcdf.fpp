@@ -317,7 +317,7 @@ contains
       
       ! Geometry
       use parameters_physics, only: rhostar
-      use geometry, only: geo_surf, dxdpsi, q_as_x
+      use geometry, only: geo_surf, dxdpsi, q_as_x, alpha
       use neasyf, only: neasyf_dim
       
       implicit none
@@ -341,7 +341,7 @@ contains
       call neasyf_dim(file_id, "mu", values=mu)
       call neasyf_dim(file_id, "vpa", values=vpa)
       call neasyf_dim(file_id, "tube", dim_size=ntubes)
-      call neasyf_dim(file_id, "alpha", dim_size=nalpha)
+      call neasyf_dim(file_id, "alpha", values=alpha, long_name="Field line label")
       call neasyf_dim(file_id, "species", dim_size=nspec)
       call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="a_ref/v_ref")
       call neasyf_dim(file_id, "ri", dim_size=2, long_name="Complex components", units="(real, imaginary)")
@@ -623,6 +623,7 @@ contains
       use geometry, only: grady_dot_grady, gradx_dot_grady, gradx_dot_gradx
       use geometry, only: grho, jacob, theta_vmec, zeta
       use geometry, only: drhodpsi, djacdrho, b_dot_gradz, geo_surf
+      use geometry, only: aref, bref, dxdpsi, dydalpha, exb_nonlin_fac, flux_fac, one_over_nablarho, bmag_psi0
       use parameters_physics, only: beta
       use arrays, only: kperp2
       use grids_kxky, only: jtwist
@@ -646,6 +647,17 @@ contains
       call neasyf_write(file_id, "d2psidr2", geo_surf%d2psidr2)
       call neasyf_write(file_id, "d2qdr2", geo_surf%d2qdr2)
 
+      ! The other variables of the <.geometry> file, so that it can be rebuilt from the NetCDF file
+      call neasyf_write(file_id, "rhoc", geo_surf%rhoc, long_name="Radial coordinate of the flux tube")
+      call neasyf_write(file_id, "rhotor", geo_surf%rhotor, long_name="Square root of the normalised toroidal flux")
+      call neasyf_write(file_id, "aref", aref, long_name="Reference length")
+      call neasyf_write(file_id, "bref", bref, long_name="Reference magnetic field")
+      call neasyf_write(file_id, "dxdpsi", dxdpsi, long_name="dx/dpsi")
+      call neasyf_write(file_id, "dydalpha", dydalpha, long_name="dy/dalpha")
+      call neasyf_write(file_id, "exb_nonlin", exb_nonlin_fac, long_name="Factor of the ExB nonlinearity")
+      call neasyf_write(file_id, "flux_fac", flux_fac, long_name="Normalisation factor of the fluxes")
+      call neasyf_write(file_id, "one_over_nablarho", one_over_nablarho, long_name="1/<|grad rho|> over the flux tube")
+
       ! Vectors along the field line
       call neasyf_write(file_id, "b_dot_gradz_avg", b_dot_gradz_avg, dim_names=["zed"], long_name="Parallel derivative multiplier")
 
@@ -654,6 +666,7 @@ contains
       call neasyf_write(file_id, "zeta", zeta, dim_names=flux_surface_dim, long_name="The zeta = q*theta straight-field-line coordinate.")
       call neasyf_write(file_id, "B_times_gradB_dot_grady", B_times_gradB_dot_grady, dim_names=flux_surface_dim, long_name="Magnetic gradient drift")
       call neasyf_write(file_id, "bmag", bmag, dim_names=flux_surface_dim, long_name="Magnitude of magnetic field", units="B_0")
+      call neasyf_write(file_id, "bmag_psi0", bmag_psi0, dim_names=flux_surface_dim, long_name="Magnitude of magnetic field at the reference flux surface", units="B_0")
       call neasyf_write(file_id, "B_times_gradB_dot_gradx", B_times_gradB_dot_gradx, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "B_times_kappa_dot_grady", B_times_kappa_dot_grady, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "B_times_kappa_dot_gradx", B_times_kappa_dot_gradx, dim_names=flux_surface_dim)

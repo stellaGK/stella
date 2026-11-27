@@ -90,3 +90,38 @@ def test_whether_miller_geometry_data_in_netcdf_file_is_correct(stella_run, erro
     return
     
 
+
+#-------------------------------------------------------------------------------
+#          Check whether the .geometry file follows from the netcdf file       #
+#-------------------------------------------------------------------------------
+# Every variable of the <.geometry> file is also written to the netcdf file, so
+# that the geometry can be rebuilt from the netcdf output alone (#109).
+#-------------------------------------------------------------------------------
+def test_whether_geometry_file_follows_from_netcdf_file(stella_run, error=False):
+
+    # Read the <.geometry> file: two lines with the scalars, then the arrays per field line
+    local_directory = stella_run['tmp_path']
+    input_file = stella_run['input_file_stem']
+    with open(local_directory / f'{input_file}.geometry', 'r') as file: lines = file.readlines()
+    scalar_names = lines[0].replace('#', '').split()
+    scalar_values = [float(value) for value in lines[1].replace('#', '').split()]
+    array_names = lines[3].replace('#', '').split()
+    array_values = np.array([[float(value) for value in line.split()] for line in lines[4:] if line.strip()])
+
+    # The names of the variables in the netcdf file
+    netcdf_names = {'qinp': 'q', '1/Grho': 'one_over_nablarho', 'b.Gz': 'b_dot_gradz', 'Gy.Gy': 'grady_dot_grady',
+        'Gx.Gy': 'gradx_dot_grady', 'Gx.Gx': 'gradx_dot_gradx', 'BxGB.Gy': 'B_times_gradB_dot_grady',
+        'Bxkappa.Gy': 'B_times_kappa_dot_grady', 'BxGB.Gx': 'B_times_gradB_dot_gradx'}
+
+    # Compare them with the netcdf file, to the 4 digits of the <.geometry> file
+    with xr.open_dataset(local_directory / f'{input_file}.out.nc') as netcdf:
+        nalpha = netcdf.sizes['alpha']
+        for name, value in zip(scalar_names, scalar_values):
+            assert np.isclose(float(netcdf[netcdf_names.get(name, name)]), value, rtol=1e-3, atol=1e-4), f'{name} differs from the netcdf file.'
+        for i, name in enumerate(array_names):
+            if name == 'alpha': netcdf_array = np.repeat(netcdf['alpha'].values, netcdf.sizes['zed'])
+            elif name == 'zed': netcdf_array = np.tile(netcdf['zed'].values, nalpha)
+            else: netcdf_array = netcdf[netcdf_names.get(name, name)].values.flatten()
+            assert np.allclose(netcdf_array, array_values[:, i], rtol=1e-3, atol=1e-4), f'{name} differs from the netcdf file.'
+    print('  -->  Every variable of the .geometry file is also in the netcdf file.')
+    return
