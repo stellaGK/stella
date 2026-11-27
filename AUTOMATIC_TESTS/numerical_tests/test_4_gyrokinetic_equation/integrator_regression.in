@@ -7,7 +7,7 @@
 ! init), which gives a well-behaved, deterministic evolution of <phi>.
 !
 ! The explicit algorithm is set per test via a wrapper input file that copies
-! this one and overrides <explicit_algorithm>. See test_3e_explicit_integrators.py.
+! this one and overrides <explicit_algorithm>. See test_4h_explicit_integrators.py.
 
 !===============================================================================
 !                               Magnetic Geometry

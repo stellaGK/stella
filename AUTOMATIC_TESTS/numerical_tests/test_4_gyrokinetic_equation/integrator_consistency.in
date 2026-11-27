@@ -5,7 +5,7 @@
 !     (the cross-scheme test compares the trajectories, not a single value).
 !   - <explicit_algorithm> is 'ssp93' (a representative higher-order scheme);
 !     the other schemes are run on copies of this file with that one line
-!     changed. See test_3f_explicit_integrator_consistency.py.
+!     changed. See test_4i_explicit_integrator_consistency.py.
 !
 ! The test asserts that all six new schemes (ssp32/ssp42/ssp52/ssp43/ssp93/rk64)
 ! reproduce the same potential <phi2>(t) within a loose tolerance, which directly
