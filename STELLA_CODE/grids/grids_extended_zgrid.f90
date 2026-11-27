@@ -143,8 +143,9 @@ contains
       use grids_z, only: nperiod, nzgrid, nzed, ntubes
       use grids_kxky, only: nakx, naky, ikx_max
       use grids_kxky, only: jtwist, ikx_twist_shift, phase_shift_angle
-      use grids_kxky, only: aky
+      use grids_kxky, only: aky, box
       use constants, only: zi
+      use mp, only: proc0
 
       implicit none
 
@@ -155,6 +156,19 @@ contains
 
       if (initialised_extended_zgrid) return
       initialised_extended_zgrid = .true.
+
+      ! The range grid has no twist-and-shift connections (jtwist = 0), so the linked boundary
+      ! conditions would give no chains at all for ky > 0, and parallel streaming (and the
+      ! implicit drifts) would silently be skipped for these modes. Every (ky, theta0) mode of
+      ! the range grid is its own ballooning mode, so use the unconnected boundary condition.
+      if (.not. box .and. (boundary_option_switch == boundary_option_linked &
+         .or. boundary_option_switch == boundary_option_linked_stellarator)) then
+         if (proc0) then
+            write (*, '(A)') ' WARNING: boundary_option = "linked" or "stellarator" needs grid_option = "box";'
+            write (*, '(A)') '          with grid_option = "range" the unconnected boundary condition ("default") is used.'
+         end if
+         boundary_option_switch = boundary_option_zero
+      end if
  
       if (debug) write (*, *) 'extended_zgrid::allocate_arrays'  
       if (.not. allocated(neigen)) allocate (neigen(naky))
@@ -200,9 +214,8 @@ contains
             if (periodic(iky)) then
                neigen(iky) = nakx
             else
-               ! TODO: check whether range grids with linked boundary conditions are correct.
-               ! For the range grid jtwist = 0 (see read_parameters_kxky_grids in grids_kxky.f90),
-               ! hence neigen = 0 for all ky > 0, i.e., no mode is connected to any other.
+               ! Only reached for the box grid: the range grid (jtwist = 0) uses the unconnected
+               ! boundary condition instead, see the start of this routine
                neigen(iky) = min((iky - 1) * jtwist, nakx)
             end if
          end do

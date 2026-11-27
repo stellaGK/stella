@@ -183,10 +183,8 @@ contains
             ! The twist-and-shift parameters are only defined for the box grid. They are
             ! used by the linked boundary conditions (init_extended_zgrid) and written to
             ! the netcdf file, so give them a defined value for the range grid as well
-            ! TODO: check whether range grids with linked boundary conditions are correct.
-            ! With jtwist = 0, init_extended_zgrid gives neigen = 0 for all ky > 0, so no mode
-            ! is connected to any other. This value was previously uninitialised (and 0 by
-            ! chance), it has been kept so that the results of these simulations do not change.
+            ! The range grid has no connections between its modes, so init_extended_zgrid
+            ! replaces the linked boundary conditions by the unconnected one for this grid.
             jtwist = 0
             jtwistfac = 1.
             ikx_twist_shift = 0
