@@ -1234,7 +1234,6 @@ contains
       use grids_kxky, only: non_twisting
       use grids_extended_zgrid, only: periodic, phase_shift
       use gk_parallel_streaming, only: stream_sign, stream_c
-      use gk_parallel_streaming, only: center_zed
       use parallelisation_layouts, only: vmu_lo, iv_idx, is_idx
 
       implicit none
@@ -1278,8 +1277,6 @@ contains
             ikx = work_ikx_from_izext(izext)
             work_wdrift_ext(izext) = -zi * (wdriftx_g(ia, iz, ivmu) * (akx(ikx) + kx_shift(iky, iz)) + wdrifty_g(ia, iz, ivmu) * aky(iky))
          end do
-         ! NB: need to check if passing periodic(iky) is the right thing to do here
-         call center_zed(iv, work_wdrift_ext(:nz_ext), 1, periodic(iky))
       else
          ulim = size(pdf)
       end if
@@ -1354,7 +1351,7 @@ contains
       integer :: izext
       real :: stream_term
       real :: tupwnd_p, zupwnd_p, zupwnd_m
-      complex :: wd_factor, fac1, fac2
+      complex :: wd_factor, wd_factor_up, fac1, fac2
 
       !-------------------------------------------------------------------------
 
@@ -1374,10 +1371,17 @@ contains
          else
             iz = iz - sgn
          end if
-         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
+         ! The drift term is cell-centred in z in the same way as on the RHS (center_zed of wdrift * g),
+         ! so every point keeps its own drift frequency
+         if (drifts_implicit) then
+            wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
+            wd_factor_up = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext + sgn)
+         else
+            wd_factor_up = 1.0
+         end if
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
          fac1 = zupwnd_p * wd_factor + sgn * stream_term
-         fac2 = zupwnd_m * wd_factor - sgn * stream_term
+         fac2 = zupwnd_m * wd_factor_up - sgn * stream_term
          pdf(izext) = (-pdf(izext + sgn) * fac2 + 2.0 * pdf(izext)) / fac1
       end do
 
