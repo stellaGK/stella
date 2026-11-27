@@ -380,7 +380,7 @@ contains
       ! Free-energy diagnostic (closure)
       use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, write_energy_xy
       use diagnostics_energy, only: init_energy_diagnostic
-      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface, include_apar, include_bpar
       use file_utils, only: open_output_file, close_output_file, error_unit
 
       use dissipation_and_collisions, only: ecoll_zeff
@@ -410,6 +410,10 @@ contains
       character(len=*), parameter :: ffs_energy_warning = &
          'WARNING: the free-energy diagnostic does not support full_flux_surface; ' // &
          'disabling write_energy and its NetCDF outputs for this run.'
+      ! Warning emitted when the electrostatic-only closure is requested for an EM run
+      character(len=*), parameter :: em_energy_warning = &
+         'WARNING: the free-energy diagnostic is electrostatic-only on this branch; ' // &
+         'disabling write_energy and its NetCDF outputs for this electromagnetic run.'
       
       !-------------------------------------------------------------------------
 
@@ -462,6 +466,20 @@ contains
          if (proc0) then
             write (*, '(A)') ffs_energy_warning
             write (error_unit(), '(A)') ffs_energy_warning
+         end if
+         write_energy = .false.
+         write_energy_kxkyz = .false.
+         write_energy_vmu = .false.
+         write_energy_species = .false.
+         write_energy_xy = .false.
+      end if
+
+      ! The closure is electrostatic only on this branch. Warn and disable it
+      ! for an electromagnetic run instead of writing an incomplete budget.
+      if (write_energy .and. (include_apar .or. include_bpar)) then
+         if (proc0) then
+            write (*, '(A)') em_energy_warning
+            write (error_unit(), '(A)') em_energy_warning
          end if
          write_energy = .false.
          write_energy_kxkyz = .false.
