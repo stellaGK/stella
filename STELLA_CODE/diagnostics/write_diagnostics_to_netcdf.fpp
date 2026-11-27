@@ -467,6 +467,7 @@ contains
       use netcdf, only: NF90_GLOBAL
       use parameters_physics, only: full_flux_surface
       use parameters_diagnostics, only: energy_nc_single
+      use parameters_diagnostics, only: write_energy
 
       implicit none
 
@@ -529,24 +530,26 @@ contains
       ! Record the per-mode normalisation convention of the free-energy
       ! diagnostic (see diagnostics_energy.f90 and TODO.md). The file is
       ! netCDF-4, so a global attribute can be added without re-entering
-      ! define mode.
-      if (full_flux_surface) then
-         status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
-            'ffs: alpha-weighted transform; scalar is the plain mode sum (not yet volume-normalised)')
-      else
-         status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
-            'flux_tube: per-mode without dVolume; scalar = sum(array*dVolume)/volume_total')
-      end if
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, NF90_GLOBAL, att='energy_kxkyz_convention')
+      ! define mode. Only meaningful when the diagnostic is switched on.
+      if (write_energy) then
+         if (full_flux_surface) then
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
+               'ffs: alpha-weighted transform; scalar is the plain mode sum (not yet volume-normalised)')
+         else
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
+               'flux_tube: per-mode without dVolume; scalar = sum(array*dVolume)/volume_total')
+         end if
+         if (status /= nf90_noerr) call netcdf_error(status, ncid, NF90_GLOBAL, att='energy_kxkyz_convention')
 
-      ! Record the storage precision of the energy-diagnostic arrays so the
-      ! reader does not have to infer it from the variable dtypes.
-      if (energy_nc_single) then
-         status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_precision', 'single')
-      else
-         status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_precision', 'double')
+         ! Record the storage precision of the energy-diagnostic arrays so the
+         ! reader does not have to infer it from the variable dtypes.
+         if (energy_nc_single) then
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_precision', 'single')
+         else
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_precision', 'double')
+         end if
+         if (status /= nf90_noerr) call netcdf_error(status, ncid, NF90_GLOBAL, att='energy_precision')
       end if
-      if (status /= nf90_noerr) call netcdf_error(status, ncid, NF90_GLOBAL, att='energy_precision')
 
    end subroutine write_text_to_netcdf_file
 #endif

@@ -380,7 +380,8 @@ contains
       ! Free-energy diagnostic (closure)
       use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, write_energy_xy
       use diagnostics_energy, only: init_energy_diagnostic
-      use file_utils, only: open_output_file, close_output_file
+      use parameters_physics, only: full_flux_surface
+      use file_utils, only: open_output_file, close_output_file, error_unit
 
       use dissipation_and_collisions, only: ecoll_zeff
       use dissipation_and_collisions, only: vnew_ref
@@ -404,6 +405,11 @@ contains
       ! Stella version number and release date
       character(len=40) :: git_commit
       character(len=10) :: git_date
+
+      ! Warning emitted when the free-energy diagnostic is requested on a full flux surface
+      character(len=*), parameter :: ffs_energy_warning = &
+         'WARNING: the free-energy diagnostic does not support full_flux_surface; ' // &
+         'disabling write_energy and its NetCDF outputs for this run.'
       
       !-------------------------------------------------------------------------
 
@@ -448,6 +454,21 @@ contains
       call init_diagnostics_omega(restart)
       call init_diagnostics_fluxes(restart)
       call init_diagnostics_potential(restart)
+
+      ! The free-energy closure is not implemented for a full flux surface on
+      ! this branch. Warn and disable it instead of writing an empty '.energy'
+      ! file and unfilled per-mode arrays to the NetCDF file.
+      if (write_energy .and. full_flux_surface) then
+         if (proc0) then
+            write (*, '(A)') ffs_energy_warning
+            write (error_unit(), '(A)') ffs_energy_warning
+         end if
+         write_energy = .false.
+         write_energy_kxkyz = .false.
+         write_energy_vmu = .false.
+         write_energy_species = .false.
+         write_energy_xy = .false.
+      end if
 
       ! Initialize the free-energy diagnostic (only allocates arrays when <write_energy> = .true.)
       if (write_energy) then
