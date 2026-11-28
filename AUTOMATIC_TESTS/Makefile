@@ -43,6 +43,9 @@ numerical-tests-5: check-tests-dependencies $(PROJECT_DIR)/stella
 numerical-tests-6: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 6"
 	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_6_diagnostics
+numerical-tests-6c: check-tests-dependencies $(PROJECT_DIR)/stella
+	@echo "Running: automated stella tests 6c (free-energy closure)"
+	@python3 -m pytest -v -rA -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_6_diagnostics/test_6c_energy_closure.py
 numerical-tests-7: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests 7"
 	@python3 -m pytest -v -rF -W ignore::DeprecationWarning $(TEST_DIR)/numerical_tests/test_7_full_flux_surface

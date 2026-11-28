@@ -216,6 +216,7 @@ contains
       ! Distribution functions that are allocated here
       use arrays_distribution_function, only: gnew, gold, phi_gyro
       use arrays_distribution_function, only: gvmu, g_kymus
+      use arrays_distribution_function, only: gvmu0
       use arrays_distribution_function, only: g0, g1, g2, g3, g4
 
       ! Numerical flags
@@ -249,12 +250,16 @@ contains
       ! <phi> on every vmu-layout point is only stored for full-flux-surface simulations
       if (full_flux_surface .and. .not. allocated(phi_gyro)) allocate (phi_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(gvmu)) allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      ! gvmu0 is a work array (nvpa,nmu,-kxkyz-layout-) used by the vmu-representation
+      ! energy projections of the free-energy diagnostic.
+      if (.not. allocated(gvmu0)) allocate (gvmu0(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          
       ! Initialise arrays to zero
       gnew = 0.
       gold = 0.
       if (allocated(phi_gyro)) phi_gyro = 0.
       gvmu = 0.
+      gvmu0 = 0.
       
       !-------------------------------------------------------------------------
       
@@ -1164,6 +1169,7 @@ contains
 
       use arrays_distribution_function, only: gnew, gold, gvmu
       use arrays_distribution_function, only: phi_gyro, g_kymus
+      use arrays_distribution_function, only: gvmu0
       use arrays_distribution_function, only: g0, g1, g2, g3, g4
 
       implicit none
@@ -1173,6 +1179,7 @@ contains
       if (allocated(gold)) deallocate (gold)
       if (allocated(phi_gyro)) deallocate (phi_gyro)
       if (allocated(gvmu)) deallocate (gvmu)
+      if (allocated(gvmu0)) deallocate (gvmu0)
       if (allocated(g_kymus)) deallocate (g_kymus)
       if (allocated(g0)) deallocate (g0)
       if (allocated(g1)) deallocate (g1)

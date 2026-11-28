@@ -395,10 +395,10 @@ contains
       implicit none
 
       ! Namelists which stella reads from the input file, besides &species_parameters_<i>
-      character(len=*), dimension(50), parameter :: known_namelists = [character(len=35) :: &
+      character(len=*), dimension(51), parameter :: known_namelists = [character(len=35) :: &
          'adiabatic_electron_response', 'adiabatic_ion_response', 'collisions_dougherty', &
          'collisions_fokker_planck', 'debug_flags', 'diagnostics', 'diagnostics_distribution', &
-         'diagnostics_fluxes', 'diagnostics_moments', 'diagnostics_omega', 'diagnostics_potential', &
+         'diagnostics_energy', 'diagnostics_fluxes', 'diagnostics_moments', 'diagnostics_omega', 'diagnostics_potential', &
          'diagnostics_stresses', 'dissipation_and_collisions_options', 'electromagnetic', &
          'euterpe_parameters', 'flow_shear', 'flux_annulus', 'geometry_from_txt', 'geometry_gvec', &
          'geometry_miller', 'geometry_options', 'geometry_slab', 'geometry_vmec', 'geometry_zpinch', 'gyrokinetic_terms', &
@@ -796,6 +796,7 @@ contains
       use gk_flow_shear, only: hammett_flow_shear
       use gk_flow_shear, only: g_exb, g_exbfac
       use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
+      use parameters_diagnostics, only: write_energy_xy
 
       implicit none
       
@@ -820,6 +821,9 @@ contains
       
       ! If printing out flux-surface-averaged radial fluxes or moments, need FFTs
       if (write_radial_fluxes .or. write_radial_moments) fourier_transformations_are_needed = .true.
+
+      ! Real-space energy densities need the x/y FFT plans even in linear runs
+      if (write_energy_xy) fourier_transformations_are_needed = .true.
 
    end subroutine are_fourier_transformations_needed
 
@@ -984,6 +988,8 @@ contains
       use timers, only: time_all_diagnostics
       use timers, only: time_parallel_streaming
       use timers, only: time_individual_diagnostics
+      use timers, only: time_energy
+      use timers, only: time_energy_terms
       use timers, only: time_response_matrix
       use timers, only: time_lu_decomposition
       
@@ -997,6 +1003,7 @@ contains
       use parameters_numerical, only: drifts_implicit
       use dissipation_and_collisions, only: include_collisions
       use debug_flags, only: print_extra_info_to_terminal
+      use debug_flags, only: energy_diagnostics_debug
       use gk_sources, only: source_option_switch
       use gk_sources, only: source_option_none
       
@@ -1192,12 +1199,14 @@ contains
          write (*, fmt='(A)') '                          -----------'
          sum_timings = time_individual_diagnostics(1, 1) + time_individual_diagnostics(1, 2) + time_individual_diagnostics(1, 3)
          sum_timings = sum_timings + time_individual_diagnostics(1, 4) + time_individual_diagnostics(1, 5) + time_individual_diagnostics(1, 6)
+         sum_timings = sum_timings + time_energy(1)
          call write_time_message('omega:', time_individual_diagnostics(1, 1), sum_timings)
          call write_time_message('phi:', time_individual_diagnostics(1, 2), sum_timings)
          call write_time_message('omega:', time_individual_diagnostics(1, 3), sum_timings)
          call write_time_message('fluxes:', time_individual_diagnostics(1, 4), sum_timings)
          call write_time_message('moments:', time_individual_diagnostics(1, 5), sum_timings)
          call write_time_message('distribution:', time_individual_diagnostics(1, 6), sum_timings)
+         call write_time_message('energy:', time_energy(1), sum_timings)
          call write_time_message('total:', time_all_diagnostics(1), time_total(1))
          write (*, *)
         
@@ -1226,7 +1235,24 @@ contains
          call write_time_message('redistribute:', sum_redistribute, time_total(1))
          call write_time_message('sum:', sum_timings, time_total(1))
          write (*, *)
-        
+
+         ! Debug: print the per-term timing breakdown for the free-energy
+         ! diagnostic (gated on <energy_diagnostics_debug>), once at the end.
+         if (energy_diagnostics_debug) then
+            write (*, *)
+            write (*, '(A)') '             ENERGY DIAGNOSTIC: per-term timing (cumulative seconds)'
+            write (*, '(A,F10.4)') '       drive:          ', time_energy_terms(1, 1)
+            write (*, '(A,F10.4)') '       collisions:     ', time_energy_terms(1, 2)
+            write (*, '(A,F10.4)') '       diss_vpa:       ', time_energy_terms(1, 3)
+            write (*, '(A,F10.4)') '       diss_zed:       ', time_energy_terms(1, 4)
+            write (*, '(A,F10.4)') '       diss_perp:      ', time_energy_terms(1, 5)
+            write (*, '(A,F10.4)') '       nonlinearity:   ', time_energy_terms(1, 6)
+            write (*, '(A,F10.4)') '       streaming:      ', time_energy_terms(1, 7)
+            write (*, '(A,F10.4)') '       mirror:         ', time_energy_terms(1, 8)
+            write (*, '(A,F10.4)') '       drifts:         ', time_energy_terms(1, 9)
+            write (*, '(A,F10.4)') '       sum(terms):     ', sum(time_energy_terms(1, :))
+         end if
+
       end if
 
       ! Finish (clean up) mpi message passing

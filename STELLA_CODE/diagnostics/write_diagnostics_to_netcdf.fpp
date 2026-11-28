@@ -178,6 +178,9 @@ module write_diagnostics_to_netcdf
    public :: write_fluxes_kxkyzs_nc
    public :: write_fluxes_kxkys_nc
    public :: write_stresses_nc
+   public :: write_energy_kxkyz_nc
+   public :: write_energy_vmu_nc
+   public :: write_energy_xy_nc
    public :: get_nout
    public :: sync_nc
 
@@ -186,6 +189,17 @@ module write_diagnostics_to_netcdf
    integer(kind_nf) :: ncid
    integer(kind_nf) :: char10_dim
    integer :: code_id
+#endif
+
+   ! Writes an energy-diagnostic array, optionally narrowed to single
+   ! precision (<energy_precision> = 'single') at the NetCDF layer.
+#ifdef NETCDF
+   interface write_energy_var
+      module procedure write_energy_var_rank2
+      module procedure write_energy_var_rank3
+      module procedure write_energy_var_rank4
+      module procedure write_energy_var_rank5
+   end interface write_energy_var
 #endif
 
    ! Converts a complex array to a real array with an extra dimension
@@ -311,6 +325,8 @@ contains
       ! Grids
       use grids_kxky, only: nakx, naky, nalpha, phase_shift_angle
       use grids_kxky, only: x_d, rho_d, akx, aky, theta0
+      use grids_kxky, only: x, y, nx, ny
+      use grids_kxky, only: grid_option_switch, grid_option_box
       use grids_z, only: nzgrid, ntubes, zed
       use grids_velocity, only: nvpa, vpa, nmu, mu
       use grids_species, only: nspec
@@ -337,6 +353,10 @@ contains
       ! Dimensions (kx,ky,z,mu,vpa,s,t) as well as (alpha, tube) and (real, imaginary)
       call neasyf_dim(file_id, "kx", values=akx, long_name="Wavenumber in direction of grad alpha", units="1/rho_ref")
       call neasyf_dim(file_id, "ky", values=aky, long_name="Wavenumber perpendicular to flux surface", units="1/rho_ref")
+      if (grid_option_switch == grid_option_box) then
+         call neasyf_dim(file_id, "x", values=x, long_name="Real-space x coordinate", units="rho_ref")
+         call neasyf_dim(file_id, "y", values=y, long_name="Real-space y coordinate", units="rho_ref")
+      end if
       call neasyf_dim(file_id, "zed", values=zed)
       call neasyf_dim(file_id, "mu", values=mu)
       call neasyf_dim(file_id, "vpa", values=vpa)
@@ -358,6 +378,10 @@ contains
       ! Integers related to the dimensions
       call neasyf_write(file_id, "nkx", nakx, long_name="Number of kx points")
       call neasyf_write(file_id, "nky", naky, long_name="Number of ky points")
+      if (grid_option_switch == grid_option_box) then
+         call neasyf_write(file_id, "nx", nx, long_name="Number of real-space x points")
+         call neasyf_write(file_id, "ny", ny, long_name="Number of real-space y points")
+      end if
       call neasyf_write(file_id, "ntubes", ntubes, long_name="Number of tubes")
       call neasyf_write(file_id, "nzed_tot", 2 * nzgrid + 1, long_name="Number of zed points")
       call neasyf_write(file_id, "nspecies", nspec, long_name="Number of species")
@@ -440,6 +464,10 @@ contains
       use netcdf, only: nf90_put_att
       use netcdf, only: nf90_put_var
       use netcdf, only: nf90_inq_libvers
+      use netcdf, only: NF90_GLOBAL
+      use parameters_physics, only: full_flux_surface
+      use parameters_diagnostics, only: energy_nc_single
+      use parameters_diagnostics, only: write_energy
 
       implicit none
 
@@ -498,6 +526,30 @@ contains
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
       ci = 'c14'; status = nf90_put_att(ncid, code_id, trim(ci), 'should be clear from the context in which they appear below.')
       if (status /= nf90_noerr) call netcdf_error(status, ncid, code_id, att=ci)
+
+      ! Record the per-mode normalisation convention of the free-energy
+      ! diagnostic (see diagnostics_energy.f90 and TODO.md). The file is
+      ! netCDF-4, so a global attribute can be added without re-entering
+      ! define mode. Only meaningful when the diagnostic is switched on.
+      if (write_energy) then
+         if (full_flux_surface) then
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
+               'ffs: alpha-weighted transform; scalar is the plain mode sum (not yet volume-normalised)')
+         else
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_kxkyz_convention', &
+               'flux_tube: per-mode without dVolume; scalar = sum(array*dVolume)/volume_total')
+         end if
+         if (status /= nf90_noerr) call netcdf_error(status, ncid, NF90_GLOBAL, att='energy_kxkyz_convention')
+
+         ! Record the storage precision of the energy-diagnostic arrays so the
+         ! reader does not have to infer it from the variable dtypes.
+         if (energy_nc_single) then
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_precision', 'single')
+         else
+            status = nf90_put_att(ncid, NF90_GLOBAL, 'energy_precision', 'double')
+         end if
+         if (status /= nf90_noerr) call netcdf_error(status, ncid, NF90_GLOBAL, att='energy_precision')
+      end if
 
    end subroutine write_text_to_netcdf_file
 #endif
@@ -698,16 +750,27 @@ contains
    subroutine nc_vmu(file_id)
 
       ! Velocity-space grid weights
-      use grids_velocity, only: wgts_mu_bare, wgts_vpa
+      use grids_velocity, only: wgts_mu_bare, wgts_vpa, dvpa, nvpa
+      use constants, only: pi
 
       implicit none
 
       ! NetCDF ID of the file to write to
       integer, intent(in) :: file_id
 
+      ! Conservative parallel-velocity weight used by the free-energy diagnostic
+      ! (it calls set_vpa_weights(.true.) internally, then restores the default).
+      real, dimension(:), allocatable :: wgts_vpa_energy
+
       ! Velocity-space weights
       call neasyf_write(file_id, "wgts_mu_bare", wgts_mu_bare, dim_names=[character(len=5) :: "mu"], long_name="Velocity-space weight in mu (bare)")
-      call neasyf_write(file_id, "wgts_vpa", wgts_vpa, dim_names=[character(len=5) :: "vpa"], long_name="Velocity-space weight in vpar")
+      call neasyf_write(file_id, "wgts_vpa", wgts_vpa, dim_names=[character(len=5) :: "vpa"], long_name="Velocity-space weight in vpar (default Simpson weights)")
+
+      allocate (wgts_vpa_energy(nvpa))
+      wgts_vpa_energy = dvpa / sqrt(pi)
+      call neasyf_write(file_id, "wgts_vpa_energy", wgts_vpa_energy, dim_names=[character(len=5) :: "vpa"], &
+                        long_name="Conservative parallel-velocity weight used by the energy diagnostic (dvpa/sqrt(pi))")
+      deallocate (wgts_vpa_energy)
 
    end subroutine nc_vmu
 #endif
@@ -1506,7 +1569,296 @@ contains
       call neasyf_write(parent_id, name, real_values, dim_names=dim_names, units=units, long_name=long_name, start=start)
       
    end subroutine write_complex_rank5
-   
+
+#ifdef NETCDF
+   !----------------------------------------------------------------------------
+   ! Write an energy-diagnostic array, honouring <energy_precision>. The arrays
+   ! live in memory in the default (usually double) precision; only the NetCDF
+   ! storage is narrowed. `real(values, real32)` creates the temporary
+   ! automatically, including for array sections.
+   !----------------------------------------------------------------------------
+   subroutine write_energy_var_rank2(parent_id, name, values, dim_names, start, long_name)
+
+      use, intrinsic :: iso_fortran_env, only: real32
+      use parameters_diagnostics, only: energy_nc_single
+
+      implicit none
+
+      integer, intent(in) :: parent_id
+      character(len=*), intent(in) :: name
+      real, dimension(:, :), intent(in) :: values
+      character(len=*), dimension(:), intent(in) :: dim_names
+      integer, dimension(:), optional, intent(in) :: start
+      character(len=*), optional, intent(in) :: long_name
+
+      if (energy_nc_single) then
+         call neasyf_write(parent_id, name, real(values, real32), dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      else
+         call neasyf_write(parent_id, name, values, dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      end if
+
+   end subroutine write_energy_var_rank2
+
+   subroutine write_energy_var_rank3(parent_id, name, values, dim_names, start, long_name)
+
+      use, intrinsic :: iso_fortran_env, only: real32
+      use parameters_diagnostics, only: energy_nc_single
+
+      implicit none
+
+      integer, intent(in) :: parent_id
+      character(len=*), intent(in) :: name
+      real, dimension(:, :, :), intent(in) :: values
+      character(len=*), dimension(:), intent(in) :: dim_names
+      integer, dimension(:), optional, intent(in) :: start
+      character(len=*), optional, intent(in) :: long_name
+
+      if (energy_nc_single) then
+         call neasyf_write(parent_id, name, real(values, real32), dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      else
+         call neasyf_write(parent_id, name, values, dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      end if
+
+   end subroutine write_energy_var_rank3
+
+   subroutine write_energy_var_rank4(parent_id, name, values, dim_names, start, long_name)
+
+      use, intrinsic :: iso_fortran_env, only: real32
+      use parameters_diagnostics, only: energy_nc_single
+
+      implicit none
+
+      integer, intent(in) :: parent_id
+      character(len=*), intent(in) :: name
+      real, dimension(:, :, :, :), intent(in) :: values
+      character(len=*), dimension(:), intent(in) :: dim_names
+      integer, dimension(:), optional, intent(in) :: start
+      character(len=*), optional, intent(in) :: long_name
+
+      if (energy_nc_single) then
+         call neasyf_write(parent_id, name, real(values, real32), dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      else
+         call neasyf_write(parent_id, name, values, dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      end if
+
+   end subroutine write_energy_var_rank4
+
+   subroutine write_energy_var_rank5(parent_id, name, values, dim_names, start, long_name)
+
+      use, intrinsic :: iso_fortran_env, only: real32
+      use parameters_diagnostics, only: energy_nc_single
+
+      implicit none
+
+      integer, intent(in) :: parent_id
+      character(len=*), intent(in) :: name
+      real, dimension(:, :, :, :, :), intent(in) :: values
+      character(len=*), dimension(:), intent(in) :: dim_names
+      integer, dimension(:), optional, intent(in) :: start
+      character(len=*), optional, intent(in) :: long_name
+
+      if (energy_nc_single) then
+         call neasyf_write(parent_id, name, real(values, real32), dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      else
+         call neasyf_write(parent_id, name, values, dim_names=dim_names, &
+                           start=start, long_name=long_name)
+      end if
+
+   end subroutine write_energy_var_rank5
+#endif
+
+!###############################################################################
+!############### FREE-ENERGY DIAGNOSTIC (CLOSURE) ################################
+!###############################################################################
+! Write out the free-energy closure in the two representations:
+!   - "kxkyz": on the full (ky,kx,zed,tube,species) grid
+!   - "vmu":   spatially averaged, on the (vpa,mu,species) grid
+! The data is stored in the diagnostics_energy module (energy_diag).
+
+   !--------------------------- particle energy (kxkyz) ------------------------
+   subroutine write_energy_kxkyz_nc(nout)
+      use diagnostics_energy, only: energy_diag
+
+      implicit none
+      integer, intent(in) :: nout
+
+#ifdef NETCDF
+      call write_energy_var(ncid, "particle_energy_kxkyz", energy_diag%particle_energy_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Particle energy H_p per mode (see global attribute energy_kxkyz_convention)")
+      call write_energy_var(ncid, "field_energy_kxkyz", energy_diag%field_energy_kxkyz(:, :, :, :, 1), &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "t"], &
+         start=[1, 1, 1, 1, nout], &
+         long_name="Electrostatic field energy H_chi per mode (see global attribute energy_kxkyz_convention)")
+      call write_energy_var(ncid, "dedt_projected_kxkyz", energy_diag%dedt_proj_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Projected dH/dt = <c_f|RHS>")
+      call write_energy_var(ncid, "drive_kxkyz", energy_diag%drive_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Drive term")
+      call write_energy_var(ncid, "collisions_kxkyz", energy_diag%coll_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Collisions term")
+      call write_energy_var(ncid, "diss_vpa_kxkyz", energy_diag%diss_vpa_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="hyp_v dissipation")
+      call write_energy_var(ncid, "diss_zed_kxkyz", energy_diag%diss_zed_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="hyp_z dissipation")
+      call write_energy_var(ncid, "diss_perp_kxkyz", energy_diag%diss_perp_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="hyp_x/y dissipation")
+      call write_energy_var(ncid, "nonlinearity_kxkyz", energy_diag%nonlinearity_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Nonlinearity term")
+      call write_energy_var(ncid, "streaming_kxkyz", energy_diag%streaming_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Parallel streaming term")
+      call write_energy_var(ncid, "mirror_kxkyz", energy_diag%mirror_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Mirror term")
+      call write_energy_var(ncid, "drifts_kxkyz", energy_diag%drifts_kxkyz, &
+         dim_names=[character(len=7)::"ky", "kx", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Drift/drifts term")
+#endif
+   end subroutine write_energy_kxkyz_nc
+
+   !------------------- real-space energy densities (xy) -----------------------
+   subroutine write_energy_xy_nc(nout)
+      use diagnostics_energy, only: energy_diag
+
+      implicit none
+      integer, intent(in) :: nout
+
+#ifdef NETCDF
+      call write_energy_var(ncid, "field_energy_xy_z", energy_diag%field_energy_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "t"], &
+         start=[1, 1, 1, 1, nout], &
+         long_name="Electrostatic field energy density 0.5*Re[phi* (Lambda phi)] (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "particle_energy_xy_z", energy_diag%particle_energy_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Particle energy density 0.5*sum_s n_s T_s int dv w/F0 |h|^2 (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "dedt_projected_xy_z", energy_diag%dedt_proj_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Projected dH/dt density <c_f|RHS>, sum of the term maps (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "drive_xy_z", energy_diag%drive_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Drive term density 0.5*Re[factor*term*h*] (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "collisions_xy_z", energy_diag%coll_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Collisions term density (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "diss_vpa_xy_z", energy_diag%diss_vpa_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="hyp_v dissipation density (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "diss_zed_xy_z", energy_diag%diss_zed_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="hyp_z dissipation density (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "diss_perp_xy_z", energy_diag%diss_perp_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="hyp_x/y dissipation density (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "nonlinearity_xy_z", energy_diag%nonlinearity_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Nonlinearity term density (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "streaming_xy_z", energy_diag%streaming_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Parallel streaming term density (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "mirror_xy_z", energy_diag%mirror_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Mirror term density (unfolded; apply dV/V and 1/(nx*ny))")
+      call write_energy_var(ncid, "drifts_xy_z", energy_diag%drifts_xy_z, &
+         dim_names=[character(len=7)::"x", "y", "zed", "tube", "species", "t"], &
+         start=[1, 1, 1, 1, 1, nout], &
+         long_name="Drift/drifts term density (unfolded; apply dV/V and 1/(nx*ny))")
+#endif
+   end subroutine write_energy_xy_nc
+
+   !----------------------------- particle energy (vmu) ------------------------
+   subroutine write_energy_vmu_nc(nout)
+      use diagnostics_energy, only: energy_diag
+
+      implicit none
+      integer, intent(in) :: nout
+
+#ifdef NETCDF
+      call write_energy_var(ncid, "particle_energy_vmu", energy_diag%particle_energy_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Particle energy H_p averaged over real space (volume-averaged)")
+      call write_energy_var(ncid, "field_energy_vmu", energy_diag%field_energy_vmu(:, :, 1), &
+         dim_names=[character(len=7)::"vpa", "mu", "t"], &
+         start=[1, 1, nout], &
+         long_name="Electrostatic field energy H_chi (constant over vpa,mu; equals H_chi)")
+      call write_energy_var(ncid, "dedt_projected_vmu", energy_diag%dedt_proj_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Projected dH/dt averaged over real space")
+      call write_energy_var(ncid, "drive_vmu", energy_diag%drive_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Drive term averaged over real space")
+      call write_energy_var(ncid, "collisions_vmu", energy_diag%coll_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Collisions term averaged over real space")
+      call write_energy_var(ncid, "diss_vpa_vmu", energy_diag%diss_vpa_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="hyp_v dissipation averaged over real space")
+      call write_energy_var(ncid, "diss_zed_vmu", energy_diag%diss_zed_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="hyp_z dissipation averaged over real space")
+      call write_energy_var(ncid, "diss_perp_vmu", energy_diag%diss_perp_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="hyp_x/y dissipation averaged over real space")
+      call write_energy_var(ncid, "nonlinearity_vmu", energy_diag%nonlinearity_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Nonlinearity term averaged over real space")
+      call write_energy_var(ncid, "streaming_vmu", energy_diag%streaming_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Parallel streaming term averaged over real space")
+      call write_energy_var(ncid, "mirror_vmu", energy_diag%mirror_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Mirror term averaged over real space")
+      call write_energy_var(ncid, "drifts_vmu", energy_diag%drifts_vmu, &
+         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+         start=[1, 1, 1, nout], &
+         long_name="Drift/drifts term averaged over real space")
+#endif
+   end subroutine write_energy_vmu_nc
+
 !###############################################################################
 !############################## FINISH NETCDF FILE #############################
 !###############################################################################

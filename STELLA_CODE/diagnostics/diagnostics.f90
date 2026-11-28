@@ -143,6 +143,9 @@ module diagnostics
    ! Only initialise once
    logical :: initialised_diagnostics = .false.
 
+   ! Fortran unit for the '.energy' ascii file (free-energy diagnostic)
+   integer :: energy_unit
+
 contains
 
 !###############################################################################
@@ -157,10 +160,11 @@ contains
       use job_manage, only: time_message
       use timers, only: time_all_diagnostics
       use timers, only: time_individual_diagnostics
+      use timers, only: time_energy
 
       ! Fields and distribution function
       use arrays_fields, only: phi, apar, bpar
-      use arrays_distribution_function, only: gnew
+      use arrays_distribution_function, only: gnew, g4
       
       ! If required, we will update the fields
       use field_equations, only: advance_fields
@@ -170,6 +174,15 @@ contains
       use parameters_physics, only: radial_variation
       use parameters_diagnostics, only: nc_mult, nwrite, dt_write
       use grids_time, only: code_time
+
+      ! Free-energy diagnostic (closure)
+      use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_xy
+      use diagnostics_energy, only: get_free_energy
+      use grids_velocity, only: set_vpa_weights
+      use calculations_tofrom_ghf, only: g_to_h
+      use parameters_physics, only: fphi
+      use write_diagnostics_to_netcdf, only: write_energy_kxkyz_nc, write_energy_vmu_nc, write_energy_xy_nc
+      use parameters_physics, only: full_flux_surface
 
       ! Write data
       use diagnostics_omega, only: write_omega_to_netcdf_file, calculate_omega
@@ -233,6 +246,49 @@ contains
       call write_potential_to_netcdf_file(istep, nout, time_individual_diagnostics(:, 2), write_to_netcdf_file)
       call write_omega_to_netcdf_file(istep, nout, time_individual_diagnostics(:, 3), write_to_netcdf_file)  
       call write_fluxes_to_netcdf_file(nout, time_individual_diagnostics(:, 4), write_to_netcdf_file) 
+
+      ! Free-energy diagnostic. Computes the free-energy
+      ! projection identity at t_n and writes the 14-column '.energy' ascii file
+      ! (every <nwrite> step). The per-mode kxkyz/vmu arrays are filled here and
+      ! written to NetCDF below on the <nwrite*nc_mult> steps.
+      if (write_energy) then
+         ! Time the free-energy diagnostic (the energy closure), which is otherwise
+         ! lumped into the un-attributed remainder of the <diagnostics> total.
+         call time_message(.false., time_energy, ' free-energy diagnostic')
+         if (full_flux_surface) then
+            ! TODO: full flux surface energy diagnostic not yet supported
+            if (debug) write (*, *) 'diagnostics::write_energy: full_flux_surface not supported'
+         else
+            ! The free-energy diagnostic projects the GKE RHS onto the
+            ! non-adiabatic response <h>, so <gnew> (the <g> value) must first be
+            ! converted to <h> via g_to_h. The fields are re-advanced so that
+            ! <phi> is consistent with the current <gnew>.
+            call set_vpa_weights(.true.)
+
+            ! Save a pristine copy of the current <g> in <g4> (used by the RHS
+            ! term projections below; <gnew> is converted to <h>).
+            g4 = gnew
+
+            ! Re-advance the fields to ensure <phi> is consistent with <gnew>.
+            fields_updated = .false.
+            call advance_fields(gnew, phi, apar, bpar, dist='g')
+
+            ! Convert <g> to <h> space: <gnew> now holds <h(t_n)>.
+            call g_to_h(gnew, phi, bpar, fphi)
+
+            ! Compute the closure.
+            call get_free_energy(gnew, g4, phi, istep, energy_unit, write_energy_vmu, &
+                                 write_energy_xy .and. write_to_netcdf_file)
+
+            ! Convert <h> back to <g> space.
+            call g_to_h(gnew, phi, bpar, -fphi)
+
+            call set_vpa_weights(.false.)
+         end if
+
+         ! End the free-energy diagnostic timer.
+         call time_message(.false., time_energy, ' free-energy diagnostic')
+      end if
       
       !**********************************************************************
       !             WRITE TO NETCDF FILES EVERY <NWRITE*NC_MULT>            !
@@ -248,6 +304,17 @@ contains
       call write_moments_to_netcdf_file(nout, time_individual_diagnostics(:, 5))
       call write_distribution_to_netcdf_file(nout, time_individual_diagnostics(:, 6))
       call write_stresses_to_netcdf_file(nout)
+
+      ! Write the free-energy diagnostic to the netcdf file
+      if (write_energy_kxkyz .and. proc0) then
+         call write_energy_kxkyz_nc(nout)
+      end if
+      if (write_energy_vmu .and. proc0) then
+         call write_energy_vmu_nc(nout)
+      end if
+      if (write_energy_xy .and. proc0) then
+         call write_energy_xy_nc(nout)
+      end if
 
       ! Synchronize the disk copy of a netCDF dataset with in-memory buffers
       if (proc0) call sync_nc
@@ -309,6 +376,13 @@ contains
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes
       use diagnostics_potential, only: init_diagnostics_potential
+
+      ! Free-energy diagnostic (closure)
+      use parameters_diagnostics, only: write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, write_energy_xy
+      use diagnostics_energy, only: init_energy_diagnostic
+      use parameters_physics, only: full_flux_surface, include_apar, include_bpar
+      use file_utils, only: open_output_file, close_output_file, error_unit
+
       use dissipation_and_collisions, only: ecoll_zeff
       use dissipation_and_collisions, only: vnew_ref
       use dissipation_and_collisions, only: zeff
@@ -331,6 +405,15 @@ contains
       ! Stella version number and release date
       character(len=40) :: git_commit
       character(len=10) :: git_date
+
+      ! Warning emitted when the free-energy diagnostic is requested on a full flux surface
+      character(len=*), parameter :: ffs_energy_warning = &
+         'WARNING: the free-energy diagnostic does not support full_flux_surface; ' // &
+         'disabling write_energy and its NetCDF outputs for this run.'
+      ! Warning emitted when the electrostatic-only closure is requested for an EM run
+      character(len=*), parameter :: em_energy_warning = &
+         'WARNING: the free-energy diagnostic is electrostatic-only on this branch; ' // &
+         'disabling write_energy and its NetCDF outputs for this electromagnetic run.'
       
       !-------------------------------------------------------------------------
 
@@ -376,6 +459,43 @@ contains
       call init_diagnostics_fluxes(restart)
       call init_diagnostics_potential(restart)
 
+      ! The free-energy closure is not implemented for a full flux surface on
+      ! this branch. Warn and disable it instead of writing an empty '.energy'
+      ! file and unfilled per-mode arrays to the NetCDF file.
+      if (write_energy .and. full_flux_surface) then
+         if (proc0) then
+            write (*, '(A)') ffs_energy_warning
+            write (error_unit(), '(A)') ffs_energy_warning
+         end if
+         write_energy = .false.
+         write_energy_kxkyz = .false.
+         write_energy_vmu = .false.
+         write_energy_species = .false.
+         write_energy_xy = .false.
+      end if
+
+      ! The closure is electrostatic only on this branch. Warn and disable it
+      ! for an electromagnetic run instead of writing an incomplete budget.
+      if (write_energy .and. (include_apar .or. include_bpar)) then
+         if (proc0) then
+            write (*, '(A)') em_energy_warning
+            write (error_unit(), '(A)') em_energy_warning
+         end if
+         write_energy = .false.
+         write_energy_kxkyz = .false.
+         write_energy_vmu = .false.
+         write_energy_species = .false.
+         write_energy_xy = .false.
+      end if
+
+      ! Initialize the free-energy diagnostic (only allocates arrays when <write_energy> = .true.)
+      if (write_energy) then
+         call init_energy_diagnostic(write_energy_vmu, write_energy_species, write_energy_xy, restart)
+
+         ! Open the '.energy' ascii file and create its header
+         call open_energy_ascii_file(restart)
+      end if
+
       ! Open the netcdf file with extension '.out.nc'
       call init_write_diagnostics_to_netcdf(restart, git_commit, git_date)
 
@@ -399,6 +519,11 @@ contains
       use diagnostics_omega, only: finish_diagnostics_omega
       use diagnostics_fluxes, only: finish_diagnostics_fluxes
       use diagnostics_potential, only: finish_diagnostics_potential
+
+      ! Free-energy diagnostic
+      use diagnostics_energy, only: finish_energy_diagnostic
+      use parameters_diagnostics, only: write_energy
+      use file_utils, only: close_output_file
       
       ! Save the stella data so the simulation can be restarted
       use save_stella_for_restart, only: save_stella_data_for_restart
@@ -424,9 +549,50 @@ contains
       call finish_diagnostics_fluxes
       call finish_diagnostics_potential
 
+      ! Finish the free-energy diagnostic (close the '.energy' ascii file and free the arrays)
+      if (write_energy) then
+         call close_output_file(energy_unit)
+         call finish_energy_diagnostic
+      end if
+
       nout = 1
       initialised_diagnostics = .false.
 
    end subroutine finish_diagnostics
+
+   !=========================================================================
+   !======================== OPEN THE '.energy' ASCII FILE ==================
+   !=========================================================================
+   ! Open the '.energy' ascii file and write its header. For a new simulation
+   ! the file is overwritten; for a restart it is appended to.
+   !=========================================================================
+   subroutine open_energy_ascii_file(restart)
+
+      use file_utils, only: open_output_file
+
+      implicit none
+
+      logical, intent(in) :: restart
+      logical :: overwrite
+
+      !--------------------------------------------------------------
+
+      ! For a new simulation <overwrite> = True since we wish to create a new ascii file.
+      ! For a restart <overwrite> = False since we wish to append to the existing file.
+      overwrite = .not. restart
+
+      ! Open the '.energy' file
+      call open_output_file(energy_unit, '.energy', overwrite)
+
+      ! Write the header to the '.energy' file (18 columns)
+      if (.not. restart) then
+         write (energy_unit, '(18a20)') '#time', 'particle_energy', 'field_energy', &
+            'total_energy', 'dedt_particle', 'dedt_field', 'dedt_total', &
+            'dedt_projected', 'drive', 'heat_sources', 'collisions', &
+            'diss_vpa', 'diss_zed', 'diss_perp', 'drifts', 'streaming', &
+            'mirror', 'nonlinearity'
+      end if
+
+   end subroutine open_energy_ascii_file
 
 end module diagnostics

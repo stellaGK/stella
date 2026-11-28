@@ -63,6 +63,12 @@
 !   diagnostics_stresses
 !     write_stresses = .false.
 ! 
+!   diagnostics_energy
+!     write_energy = .false.
+!     write_energy_kxkyz = .false.
+!     write_energy_vmu = .false.
+!     write_energy_species = .false.
+! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
 !    - read_namelist_<namelist>
@@ -85,6 +91,7 @@ module namelist_diagnostics
    public :: read_namelist_diagnostics_fluxes
    public :: read_namelist_diagnostics_moments
    public :: read_namelist_diagnostics_stresses
+   public :: read_namelist_diagnostics_energy
 
    private
 
@@ -758,6 +765,136 @@ contains
       end subroutine read_input_file_diagnostics_stresses
 
    end subroutine read_namelist_diagnostics_stresses
+
+   !****************************************************************************
+   !                            DIAGNOSTICS ENERGY                             !
+   !****************************************************************************
+   subroutine read_namelist_diagnostics_energy (write_energy, write_energy_kxkyz, &
+                                                write_energy_vmu, write_energy_species, &
+                                                write_energy_xy, energy_nc_single)
+
+      use mp, only: proc0
+
+      implicit none
+
+      ! Variables that are read from the input file
+      logical, intent (out) :: write_energy
+      logical, intent (out) :: write_energy_kxkyz
+      logical, intent (out) :: write_energy_vmu
+      logical, intent (out) :: write_energy_species
+      logical, intent (out) :: write_energy_xy
+      logical, intent (out) :: energy_nc_single
+
+      ! Text option <energy_precision> and its internal switch. The namelist
+      ! entry is a string ('double' or 'single'); the rest of the code uses
+      ! the logical <energy_nc_single>.
+      character(len=20) :: energy_precision
+      integer, parameter :: precision_double = 0, precision_single = 1
+      integer :: precision_switch
+
+      !-------------------------------------------------------------------------
+
+      if (.not. proc0) return
+      call set_default_parameters_diagnostics_energy
+      call read_input_file_diagnostics_energy
+      call check_inputs_diagnostics_energy
+      call write_parameters_to_input_file_energy
+
+   contains
+
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_diagnostics_energy
+
+         implicit none
+
+         ! Toggle for the free-energy diagnostic. The energy diagnostic is only
+         ! computed when <write_energy> = True, in which case the per-term
+         ! contributions are written to the '.energy' ascii file. The two
+         ! <write_energy_*> flags additionally control whether the full kxkyz
+         ! grid or the spatially-averaged vmu grid is written to netcdf.
+         write_energy = .false.
+         write_energy_kxkyz = .false.
+         write_energy_vmu = .false.
+         write_energy_species = .false.
+         write_energy_xy = .false.
+
+         ! NetCDF storage precision for the energy arrays. 'double' keeps the
+         ! historical behaviour; 'single' halves the file size.
+         energy_precision = 'double'
+         energy_nc_single = .false.
+
+      end subroutine set_default_parameters_diagnostics_energy
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_diagnostics_energy
+
+         use file_utils, only: input_unit_exist, error_unit
+         use text_options, only: text_option, get_option_value
+
+         implicit none
+
+         ! Link the text option <energy_precision> to an internal switch.
+         type(text_option), dimension(2), parameter :: precision_options = &
+            (/ text_option('double', precision_double), &
+               text_option('single', precision_single) /)
+         integer :: ierr
+
+         ! Variables in the <diagnostics_energy> namelist
+         namelist /diagnostics_energy/ write_energy, write_energy_kxkyz, write_energy_vmu, write_energy_species, &
+            write_energy_xy, energy_precision
+
+         !----------------------------------------------------------------------
+
+         ! Overwrite the default input parameters by those specified in the input file
+         in_file = input_unit_exist('diagnostics_energy', dexist)
+         if (dexist) read (unit=in_file, nml=diagnostics_energy)
+
+         ! Convert the text option to the logical used by the writers. An
+         ! invalid value aborts with the list of valid selections.
+         precision_switch = precision_double
+         ierr = error_unit()
+         call get_option_value(energy_precision, precision_options, precision_switch, &
+            ierr, 'energy_precision in namelist_diagnostics_energy', .true.)
+         energy_nc_single = (precision_switch == precision_single)
+
+      end subroutine read_input_file_diagnostics_energy
+
+      !---------------------------- Check variables ----------------------------
+      subroutine check_inputs_diagnostics_energy
+
+         implicit none
+
+         ! If the energy diagnostic is switched off, the per-term netcdf writes
+         ! must also be switched off (they have no data to write).
+         if (.not. write_energy) then
+            write_energy_kxkyz = .false.
+            write_energy_vmu = .false.
+            write_energy_species = .false.
+            write_energy_xy = .false.
+         end if
+
+      end subroutine check_inputs_diagnostics_energy
+
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file_energy
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         write (unit, '(A)') '&diagnostics_energy'
+         write (unit, '(A, L1)') '  write_energy = ', write_energy
+         write (unit, '(A, L1)') '  write_energy_kxkyz = ', write_energy_kxkyz
+         write (unit, '(A, L1)') '  write_energy_vmu = ', write_energy_vmu
+         write (unit, '(A, L1)') '  write_energy_species = ', write_energy_species
+         write (unit, '(A, L1)') '  write_energy_xy = ', write_energy_xy
+         write (unit, '(A, A, A)') '  energy_precision = "', trim(energy_precision), '"'
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file_energy
+
+   end subroutine read_namelist_diagnostics_energy
 
 
 

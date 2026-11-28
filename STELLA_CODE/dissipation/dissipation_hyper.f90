@@ -50,17 +50,18 @@ module dissipation_hyper
    ! Variables specified in the input file
    public :: D_hyper, D_zed, D_vpa
    public :: hyp_vpa, hyp_zed
+   public :: k2max
 
    private
 
    ! Variables specified in the input file
-   logical :: use_physical_ksqr, scale_to_outboard
-   real :: D_hyper, D_zed, D_vpa
-   logical :: hyp_vpa, hyp_zed
+   logical :: use_physical_ksqr = .false., scale_to_outboard = .false.
+   real :: D_hyper = 0.0, D_zed = 0.0, D_vpa = 0.0
+   logical :: hyp_vpa = .false., hyp_zed = .false.
    
    ! Variables calculated at initialisation
-   real :: k2max  ! Maximum of the perpendicular wanumber squared, i.e., max(kperp**2)
-   real :: tfac   ! Factor to define the ballooning angle theta0
+   real :: k2max = 0.0  ! Maximum of the perpendicular wanumber squared, i.e., max(kperp**2)
+   real :: tfac = 0.0   ! Factor to define the ballooning angle theta0
 
 contains
 
